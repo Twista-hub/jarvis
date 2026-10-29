@@ -21,8 +21,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)"}
-# Portals whose terms and robots.txt allow downloading the public documents (checked by hand).
-PORTALE = {"www.dtvp.de"}
+# Portals whose terms and robots.txt allow downloading the documents for our service (checked by hand).
+# Not DTVP: its AGB (29.10.2026) forbid systematic downloads of notices and documents for commercial offers.
+PORTALE: set[str] = set()
 MAX_STECKBRIEFE = int(os.environ.get("MAX_STECKBRIEFE", "2"))
 STECKBRIEF_AB = 7
 
@@ -90,29 +91,31 @@ def item(nr: int, rel: dict) -> dict:
 
 
 def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str) -> Path | None:
-    """Download the documents (allowed portals only), let Claude write the Steckbrief, save it."""
-    if urllib.parse.urlparse(url).netloc not in PORTALE:
-        return None
+    """Let Claude write the Steckbrief: from the documents on allowed portals, otherwise from the notice itself."""
     t = rel.get("tender") or {}
     slug = re.sub(r"[^a-z0-9]+", "-", t.get("title", "").lower())[:50].strip("-")
     out = ROOT / "steckbriefe" / f"{day}-{name}-{slug}.md"
     if out.exists():
         return out
-    from texte import bundle
-    from unterlagen import download
-    with tempfile.TemporaryDirectory() as tmp:
-        files = download(url, Path(tmp), verbose=False)
-        dokumente, skipped = bundle(files)
-        if not dokumente.strip():
-            return None
-        kopf = json.dumps(item(0, rel) | {"link": url, "veroeffentlicht": day}, ensure_ascii=False)
-        text = ki.steckbrief(profile["beschreibung"], kopf, dokumente)
+    kopf = json.dumps(item(0, rel) | {"link": url, "veroeffentlicht": day}, ensure_ascii=False)
+    if urllib.parse.urlparse(url).netloc in PORTALE:
+        from texte import bundle
+        from unterlagen import download
+        with tempfile.TemporaryDirectory() as tmp:
+            files = download(url, Path(tmp), verbose=False)
+            dokumente, skipped = bundle(files)
+        quelle = f"aus {len(files)} Vergabeunterlagen" + (f" (nicht gelesen: {', '.join(skipped)})" if skipped else "")
+    else:
+        dokumente = "Nur die öffentliche Bekanntmachung (OCDS), keine Vergabeunterlagen:\n" + json.dumps(rel, ensure_ascii=False)[:60000]
+        quelle = "nur aus der Bekanntmachung (die Vergabeunterlagen selbst hat Jarvis nicht gelesen)"
+    if not dokumente.strip():
+        return None
+    text = ki.steckbrief(profile["beschreibung"], kopf, dokumente)
     if not text:
         return None
-    note = f"\n\n---\n_Automatisch erstellt von Jarvis am {date.today().isoformat()} aus {len(files)} Dateien"
-    note += f" (nicht gelesen: {', '.join(skipped)})" if skipped else ""
     out.parent.mkdir(exist_ok=True)
-    out.write_text(text + note + f". Quelle: [{url}]({url}). Ohne Gewähr, bitte vor dem Angebot die Originalunterlagen prüfen._\n", encoding="utf-8")
+    out.write_text(f"{text}\n\n---\n_Automatisch erstellt von Jarvis am {date.today().isoformat()} {quelle}. "
+                   f"Quelle: [{url}]({url}). Ohne Gewähr, vor dem Angebot bitte die Originalunterlagen prüfen._\n", encoding="utf-8")
     return out
 
 
