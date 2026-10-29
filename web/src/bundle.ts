@@ -34,3 +34,21 @@ export function bundle(texts: Text[], maxChars = MAX_CHARS): { text: string; ski
 export function baseName(path: string): string {
   return path.split("/").pop() ?? path;
 }
+
+const MIME: Record<string, string> = {
+  pdf: "application/pdf",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  xls: "application/vnd.ms-excel",
+  odt: "application/vnd.oasis.opendocument.text",
+  ods: "application/vnd.oasis.opendocument.spreadsheet",
+  csv: "text/csv",
+  txt: "text/plain",
+  htm: "text/html",
+  html: "text/html",
+};
+
+/** Workers AI needs the file type to convert a document. */
+export function mimeType(name: string): string {
+  return MIME[name.split(".").pop()?.toLowerCase() ?? ""] ?? "application/octet-stream";
+}

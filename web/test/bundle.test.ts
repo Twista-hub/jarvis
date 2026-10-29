@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bundle, wanted } from "../src/bundle.ts";
+import { bundle, mimeType, wanted } from "../src/bundle.ts";
 
 test("skips boilerplate and unreadable files", () => {
   assert.equal(wanted("B01_Leistungsbeschreibung.pdf"), true);
@@ -21,4 +21,10 @@ test("puts the Leistungsbeschreibung first and respects the limit", () => {
   assert.ok(text.startsWith("===== DATEI: ordner/Leistungsbeschreibung.pdf\nLB mit\nLücken"));
   assert.ok(text.includes("Anlage"));
   assert.deepEqual(skipped, ["riesig.pdf (zu lang)"]);
+});
+
+test("file types for the converter", () => {
+  assert.equal(mimeType("A0_Aufforderung.PDF"), "application/pdf");
+  assert.equal(mimeType("x.zip/C2_Preisblatt.xlsx"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  assert.equal(mimeType("notiz.txt"), "text/plain");
 });
