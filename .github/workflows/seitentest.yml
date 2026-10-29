@@ -1,0 +1,27 @@
+# Opens a page in a simulated phone browser and commits screenshots and a log to diagnose/ergebnis.
+name: Seitentest
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Adresse"
+        default: "https://restockhero.eu/"
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm i --no-save playwright@1.56.1 && npx playwright install --with-deps chromium
+      - run: node diagnose/seitentest.mjs "${{ inputs.url }}"
+      - run: |
+          git config user.name "Jarvis"; git config user.email "noreply@github.com"
+          git add -f diagnose/ergebnis
+          git commit -qm "Seitentest $(date -u +%F\ %H:%M)" && git pull -q --rebase && git push
