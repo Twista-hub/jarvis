@@ -31,13 +31,30 @@ Ein KI-Gehirn, das komplett online läuft. Es plant, verteilt Aufgaben, programm
 
 Budget gesamt: höchstens 100 €/Monat ohne die bestehenden Abos.
 
+### Wo Jarvis lebt
+
+Kein eigener Server. Jarvis ist auf Clouddienste verteilt, die ohne Wartung laufen:
+- **Gedächtnis und Code:** GitHub (dieses Repo), Daten in Supabase (Frankfurt).
+- **Denken:** Claude-Code-Cloud-Sitzungen. Sie starten bei Bedarf oder nach Zeitplan, arbeiten und enden. Was bleibt, steht im Repo oder in der Datenbank.
+- **Dauerdienste** (Alarm, Telegram-Bot, Cockpit): Cloudflare Workers, ohne Server und ohne Updates.
+- **Hetzner o. Ä.** (ca. 5 €/Monat) nur, falls später etwas rund um die Uhr laufen muss, z. B. ein selbst gehosteter Hermes.
+
+### Mit Jarvis reden
+
+| Weg | Wofür | Reaktion |
+|---|---|---|
+| Claude-App (Repo `jarvis`), auch per Sprache | alles: planen, bauen, ändern | sofort |
+| Telegram-Bot | Briefing, OK/Nein-Knöpfe, `/status`, `/aufgabe …` | Knöpfe sofort, Aufgaben beim nächsten Lauf (höchstens ca. 1 Std.) |
+| Cockpit-Webseite (PWA) | Überblick: Aufgaben, Freigaben, Kosten, Kunden | sofort |
+| Mail an eigene Jarvis-Adresse | Mail weiterleiten → wird Aufgabe | beim nächsten Lauf |
+
 ## Erstes Geschäft: Ausschreibungs- und Förder-Alarm
 
 **Was:** Jarvis liest täglich öffentliche Ausschreibungen (TED, deutscher Bekanntmachungsservice, Länderportale) und Förderprogramme, filtert nach Kundenprofil, bewertet mit KI und schickt morgens eine Mail plus Push mit Zusammenfassung, Frist, Nachweisen und Punktzahl.
 
 **Für wen:**
 1. WP Digital Ranger selbst: IT, Webseiten, Apps, Barrierefreiheit.
-2. Pilotkunde Perlease (Personal für Events, Messen, Hotels, Catering; 19 Standorte).
+2. Pilotkunde Perlease (Personal für Events, Messen, Hotels, Catering; 19 Standorte). Wird ohne Vorabfrage gebaut, als Überraschung: Benjamin zeigt fertige Morgenmails mit echten Treffern. Nichts geht ohne Benjamin an Perlease.
 3. Danach weitere Personaldienstleister in Gastro und Events, später andere Branchen.
 
 **Zusatz:** Vertriebs-Alarm mit neuen Hotels, Messen und Events an den Standorten des Kunden.
@@ -70,6 +87,6 @@ Perlease: 2 Monate kostenlos, danach z. B. 199 € + 1,5 %. Preis erst nennen, w
 ## Offene Entscheidungen
 
 - [ ] Name und Domain für den Alarm
-- [ ] Freund bei Perlease fragen (Ausschreibungen? Hotel- und Event-Leads?)
+- [x] Perlease nicht vorab fragen, Überraschung (29.10.)
 - [ ] Wie mit Jarvis reden: nur Telegram-Knöpfe oder freier Chat (Hermes)?
 - [ ] Rechte von Jarvis bestätigen: lesen, planen, programmieren, Entwürfe; Senden, Bezahlen und Veröffentlichen nur mit OK
