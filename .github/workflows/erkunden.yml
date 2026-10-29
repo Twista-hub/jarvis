@@ -1,0 +1,16 @@
+# Exploration for the tender alarm: public data only, no secrets.
+name: Ausschreibungen erkunden
+
+on:
+  workflow_dispatch:
+    inputs:
+      tage:
+        description: "Zeitraum in Tagen"
+        default: "30"
+
+jobs:
+  erkunden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 alarm/erkunden.py "${{ inputs.tage }}"
