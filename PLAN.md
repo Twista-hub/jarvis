@@ -94,7 +94,7 @@ Perlease: 2 Monate kostenlos, danach z. B. 199 € + 1,5 %. Preis erst nennen, w
 | Phase | Was | Ergebnis | Status |
 |---|---|---|---|
 | 0 | Plan ins Repo. RestockHero-Deploys (Cloudflare, Supabase, Android) auf GitHub Actions. Wächter für RestockHero | PC kann aus bleiben, Störungen werden erkannt | läuft: Abläufe Prüfen/Ausrollen/Zurückrollen/Datenbank in RestockHero (#56, #57), Secrets gesetzt 29.10. Migrations-Historie bereinigt 29.10. (#58), Regeln für Codex in AGENTS.md. Live-Abgleich: live = main, erstes Ausrollen über GitHub 29.10. mit Seitentest und Auto-Rückweg (#60, #61). Seit 29.10.: automatisches Ausrollen bei Merge, Wächter `restockhero-waechter` läuft alle 10 Min. (#62, #63). Selbstheilung läuft: Wächter-Runde (Claude, alle 3 Std., Regelwerk restockhero `docs/automation/selbstheilung.md`). Offen: Telegram-Bot verbinden, Android |
-| 1 | Ausschreibungs-Alarm per Mail: zuerst WP Digital Ranger, dann Perlease | echte Treffer prüfen | offen |
+| 1 | Ausschreibungs-Alarm per Mail: zuerst WP Digital Ranger, dann Perlease | echte Treffer prüfen | läuft: täglicher Bericht `alarm/berichte/` seit 29.10. (Quelle Bekanntmachungsservice, CC0). Offen: KI-Bewertung, Fristen (eForms), Zustellung per Mail/Telegram |
 | 2 | Webseite: Login, Profil, Vertrag per Klick, Stripe, App-Ansicht mit 👍/👎 | erste zahlende Kunden | offen |
 | 3 | Angebotsentwürfe, Zuschlags-Abgleich, Provisionsrechnung, Play-Store-App | volles Produkt | offen |
 | 4 | Telegram-Briefing und Freigaben für alle Projekte, optional Hermes | Jarvis-Gefühl | offen |
