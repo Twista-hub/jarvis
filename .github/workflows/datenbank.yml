@@ -44,5 +44,7 @@ jobs:
           else
             npx -y supabase@2.48.3 db push --db-url "$DB_URL" --include-all --dry-run
           fi
-      - name: Tabellen
-        run: psql "$DB_URL" -tAc "select table_name from information_schema.tables where table_schema='public' order by 1"
+      - name: Tabellen und Firmen
+        run: |
+          psql "$DB_URL" -tAc "select table_name from information_schema.tables where table_schema='public' order by 1"
+          psql "$DB_URL" -c "select f.id, f.name, f.paket, f.erstellt::date, count(m.*) as mitglieder, (select count(*) from public.vorgaenge v where v.firma_id = f.id) as vorgaenge from public.firmen f left join public.mitglieder m on m.firma_id = f.id group by f.id order by f.erstellt"
