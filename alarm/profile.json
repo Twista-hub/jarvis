@@ -1,20 +1,70 @@
 {
   "perlease": {
     "name": "Perlease (Personal für Events, Messen, Gastronomie)",
-    "cpv": ["79620", "79952", "79956", "79992", "5552", "5530", "5541", "79953", "79954", "55120"],
-    "cpv_needs_context": {"79620": "gastro|service|event|messe|veranstalt|empfang|hostess|catering|küche|kueche|bankett|bewirt|kantine|theke|bar\\b"},
+    "cpv": [
+      "79620",
+      "79952",
+      "79956",
+      "79992",
+      "5552",
+      "5530",
+      "5541",
+      "79953",
+      "79954",
+      "55120"
+    ],
+    "cpv_needs_context": {
+      "79620": "gastro|service|event|messe|veranstalt|empfang|hostess|catering|küche|kueche|bankett|bewirt|kantine|theke|bar\\b"
+    },
     "words": "servicepersonal|messepersonal|hostess|garderobenpersonal|garderobendienst|einlassdienst|eventpersonal|veranstaltungsservice|veranstaltungspersonal|personalgestellung|leihpersonal|servicekr(ä|ae)fte|thekenpersonal|bankettpersonal|bankettservice|messecatering|eventcatering|veranstaltungscatering|empfangsdienst|eventmanagement|teilnehmermanagement",
     "strong": "servicepersonal|messepersonal|hostess|leihpersonal|eventpersonal|personalgestellung|messestand|messecatering|empfang|bankettpersonal|veranstaltungspersonal",
-    "exclude": "kita|kindertages|kindergarten|schulverpflegung|mittagsverpflegung|mensa|asylbewerber|krankenhausverpflegung|rettungsdienst|pflegekr(ä|ae)fte|it-|software|ingenieur|elektro|nuklear",
-    "exclude_cpv": ["45", "71", "44", "39", "34", "50", "77", "90", "31", "32", "33", "5552400"]
+    "exclude": "kita|kindertages|kindergarten|schulverpflegung|mittagsverpflegung|mensa|asylbewerber|krankenhausverpflegung|rettungsdienst|pflegekr(ä|ae)fte|it-|software|ingenieur|elektro|nuklear|sicherheitsdienst|werkschutz|wachdienst|bewachung|stellenausschreibung",
+    "exclude_cpv": [
+      "45",
+      "71",
+      "44",
+      "39",
+      "34",
+      "50",
+      "77",
+      "90",
+      "31",
+      "32",
+      "33",
+      "5552400"
+    ]
   },
   "wpdr": {
     "name": "WP Digital Ranger (Webseiten, Apps, Barrierefreiheit)",
-    "cpv": ["72413", "7242", "72212224", "72415", "79822500", "7221", "72212"],
-    "cpv_needs_context": {"7221": "web|app|portal|online|internet", "72212": "web|app|portal|online|internet"},
+    "cpv": [
+      "72413",
+      "7242",
+      "72212224",
+      "72415",
+      "79822500",
+      "7221",
+      "72212"
+    ],
+    "cpv_needs_context": {
+      "7221": "web|app|portal|online|internet",
+      "72212": "web|app|portal|online|internet"
+    },
     "words": "webseite|website|webauftritt|internetauftritt|internetseite|homepage|relaunch|wordpress|typo3|webdesign|progressive web app|\\bpwa\\b|onlineportal|barrierefreie (web|internet|online|digital)|digitale barrierefreiheit|bitv|barrierefreiheitspr(ü|ue)fung",
     "strong": "website|webseite|internetauftritt|relaunch|wordpress|typo3|webdesign|bitv|digitale barrierefreiheit|barrierefreiheitspr",
-    "exclude": "lizenz|subskription|wartungsverl(ä|ae)ngerung|hardware|server|netzwerk|sap\\b|microsoft|oracle|ibm",
-    "exclude_cpv": ["45", "71", "44", "39", "34", "50", "77", "90", "31", "32", "33", "48"]
+    "exclude": "lizenz|subskription|wartungsverl(ä|ae)ngerung|hardware|server|netzwerk|sap\\b|microsoft|oracle|ibm|fahrzeug|gigabit|breitband|stellenausschreibung|werkstudent",
+    "exclude_cpv": [
+      "45",
+      "71",
+      "44",
+      "39",
+      "34",
+      "50",
+      "77",
+      "90",
+      "31",
+      "32",
+      "33",
+      "48"
+    ]
   }
 }
