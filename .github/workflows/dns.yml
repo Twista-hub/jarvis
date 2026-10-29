@@ -1,0 +1,69 @@
+# DNS for wpdigitalranger.com (Namecheap Private Email). "anzeigen" only reads; "postfach" switches mail
+# from Cloudflare Email Routing to Private Email (MX, SPF, autoconfig CNAMEs). Needs CLOUDFLARE_API_TOKEN
+# with Zone DNS Edit (and Email Routing Edit to turn routing off).
+name: DNS
+
+on:
+  workflow_dispatch:
+    inputs:
+      aktion:
+        type: choice
+        options: [anzeigen, postfach, dkim]
+        default: anzeigen
+      wert:
+        description: "Nur für dkim: der TXT-Wert aus Namecheap (v=DKIM1; ...)"
+        default: ""
+
+jobs:
+  dns:
+    runs-on: ubuntu-latest
+    env:
+      CF: https://api.cloudflare.com/client/v4
+      TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      DOMAIN: wpdigitalranger.com
+    steps:
+      - name: Zone finden
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" "$@"; }
+          echo "Schlüssel:"; api "$CF/user/tokens/verify" | jq -c '.result // .errors'
+          zone=$(api "$CF/zones?name=$DOMAIN" | jq -r '.result[0].id // empty')
+          echo "Zone: ${zone:-nicht sichtbar}"
+          echo "ZONE=$zone" >> "$GITHUB_ENV"
+      - name: Einträge anzeigen
+        if: env.ZONE != ''
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $TOKEN" "$@"; }
+          echo "DNS-Einträge:"; api "$CF/zones/$ZONE/dns_records?per_page=100" | jq -r '.success, (.errors[]?|tostring), (.result[]? | "\(.type)\t\(.name)\t\(.priority // "")\t\(.content)")'
+          echo "Email Routing:"; api "$CF/zones/$ZONE/email/routing" | jq -c '{success, errors, enabled: .result.enabled, status: .result.status}'
+      - name: Postfach einrichten
+        if: env.ZONE != '' && inputs.aktion == 'postfach'
+        run: |
+          set -e
+          api() { curl -sS -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" "$@"; }
+          echo "Email Routing aus:"; api -X POST "$CF/zones/$ZONE/email/routing/disable" -d '{}' | jq -c '{success, errors}'
+          recs=$(api "$CF/zones/$ZONE/dns_records?per_page=100")
+          # Old mail records of Email Routing: MX to Cloudflare and the SPF TXT on the apex.
+          for id in $(jq -r --arg d "$DOMAIN" '.result[] | select((.type=="MX") or (.type=="TXT" and .name==$d and (.content|test("v=spf1")))) | .id' <<<"$recs"); do
+            echo "lösche $id"; api -X DELETE "$CF/zones/$ZONE/dns_records/$id" | jq -c '{success, errors}'
+          done
+          add() { echo "neu: $1"; api -X POST "$CF/zones/$ZONE/dns_records" -d "$1" | jq -c '{success, errors}'; }
+          add '{"type":"MX","name":"@","content":"mx1.privateemail.com","priority":10,"ttl":1}'
+          add '{"type":"MX","name":"@","content":"mx2.privateemail.com","priority":10,"ttl":1}'
+          add '{"type":"TXT","name":"@","content":"\"v=spf1 include:spf.privateemail.com ~all\"","ttl":1}'
+          add '{"type":"CNAME","name":"mail","content":"privateemail.com","ttl":1,"proxied":false}'
+          add '{"type":"CNAME","name":"autodiscover","content":"privateemail.com","ttl":1,"proxied":false}'
+          add '{"type":"CNAME","name":"autoconfig","content":"privateemail.com","ttl":1,"proxied":false}'
+          add '{"type":"SRV","name":"_autodiscover._tcp","data":{"priority":0,"weight":0,"port":443,"target":"privateemail.com"},"ttl":1}'
+      - name: DKIM eintragen
+        if: env.ZONE != '' && inputs.aktion == 'dkim' && inputs.wert != ''
+        env:
+          WERT: ${{ inputs.wert }}
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" "$@"; }
+          body=$(jq -nc --arg v "$WERT" '{type:"TXT", name:"default._domainkey", content:("\"" + $v + "\""), ttl:1}')
+          api -X POST "$CF/zones/$ZONE/dns_records" -d "$body" | jq -c '{success, errors}'
+      - name: Ergebnis von außen (Google DNS)
+        run: |
+          for q in "$DOMAIN MX" "$DOMAIN TXT" "default._domainkey.$DOMAIN TXT" "_dmarc.$DOMAIN TXT"; do
+            set -- $q; echo "$1 $2:"; curl -sS "https://dns.google/resolve?name=$1&type=$2" | jq -r '.Answer[]?.data'
+          done
