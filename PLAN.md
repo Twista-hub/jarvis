@@ -93,7 +93,7 @@ Perlease: 2 Monate kostenlos, danach z. B. 199 € + 1,5 %. Preis erst nennen, w
 
 | Phase | Was | Ergebnis | Status |
 |---|---|---|---|
-| 0 | Plan ins Repo. RestockHero-Deploys (Cloudflare, Supabase, Android) auf GitHub Actions. Wächter für RestockHero | PC kann aus bleiben, Störungen werden erkannt | offen |
+| 0 | Plan ins Repo. RestockHero-Deploys (Cloudflare, Supabase, Android) auf GitHub Actions. Wächter für RestockHero | PC kann aus bleiben, Störungen werden erkannt | läuft: Abläufe Prüfen/Ausrollen/Zurückrollen/Datenbank in RestockHero (#56, #57), Secrets gesetzt 29.10. Offen: Live-Stand mit main abgleichen, Migrations-Historie bereinigen, Android, Wächter |
 | 1 | Ausschreibungs-Alarm per Mail: zuerst WP Digital Ranger, dann Perlease | echte Treffer prüfen | offen |
 | 2 | Webseite: Login, Profil, Vertrag per Klick, Stripe, App-Ansicht mit 👍/👎 | erste zahlende Kunden | offen |
 | 3 | Angebotsentwürfe, Zuschlags-Abgleich, Provisionsrechnung, Play-Store-App | volles Produkt | offen |
