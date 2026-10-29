@@ -1,0 +1,94 @@
+# Deploys the upload worker jarvis-alarm (folder web/): customers upload tender documents, Claude writes the Steckbrief.
+# Needs CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and ANTHROPIC_API_KEY.
+name: Upload-Seite ausrollen
+
+on:
+  push:
+    branches: [main]
+    paths: ["web/**", "alarm/profile.json", "alarm/steckbrief-anleitung.txt", ".github/workflows/web.yml"]
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Danach Bundesbank-Testunterlagen hochladen und Steckbrief zeigen (kostet ca. 0,50 $)"
+        type: boolean
+        default: false
+
+concurrency:
+  group: web
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+        shell: bash -eo pipefail {0}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      URL: https://jarvis-alarm.benschiffer79.workers.dev
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cloudflare-Schlüssel vorhanden?
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::warning::Secrets CLOUDFLARE_API_TOKEN und CLOUDFLARE_ACCOUNT_ID fehlen noch, nichts ausgerollt."
+            echo "OHNE_SCHLUESSEL=1" >> "$GITHUB_ENV"
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - if: env.OHNE_SCHLUESSEL != '1'
+        run: npm ci
+      - if: env.OHNE_SCHLUESSEL != '1'
+        run: npm run check
+      - if: env.OHNE_SCHLUESSEL != '1'
+        run: npm test
+
+      - name: Speicher (R2, EU) bereitstellen
+        if: env.OHNE_SCHLUESSEL != '1'
+        run: |
+          npx wrangler r2 bucket create jarvis-auftraege --jurisdiction eu 2>&1 | tail -3 || true
+          npx wrangler r2 bucket lifecycle add jarvis-auftraege auftraege-30-tage auftraege/ --expire-days 30 --jurisdiction eu --force 2>&1 | tail -3 || true
+          npx wrangler r2 bucket lifecycle add jarvis-auftraege zaehler-7-tage zaehler/ --expire-days 7 --jurisdiction eu --force 2>&1 | tail -3 || true
+          npx wrangler r2 bucket lifecycle list jarvis-auftraege --jurisdiction eu
+
+      - if: env.OHNE_SCHLUESSEL != '1'
+        run: npx wrangler deploy
+
+      - name: Schlüssel setzen
+        if: env.OHNE_SCHLUESSEL != '1'
+        run: |
+          printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY
+          # A fresh test code on every deploy; only its hash goes to the worker.
+          code=$(openssl rand -hex 12)
+          echo "::add-mask::$code"
+          echo "TEST_CODE=$code" >> "$GITHUB_ENV"
+          printf '%s' "$code" | sha256sum | cut -d' ' -f1 | tr -d '\n' | npx wrangler secret put TEST_CODE_HASH
+
+      - name: Seite erreichbar?
+        if: env.OHNE_SCHLUESSEL != '1'
+        run: |
+          sleep 10
+          curl -fsS "$URL/" | grep -q "Unterlagen prüfen lassen"
+          echo "Upload-Seite: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Test mit Bundesbank-Unterlagen
+        if: inputs.test && env.OHNE_SCHLUESSEL != '1'
+        working-directory: alarm/test-unterlagen/dtvp-CXP4Y63M3X1
+        run: |
+          args=()
+          for f in *.pdf *.docx *.xlsx; do [ -e "$f" ] && args+=(-F "dateien=@$f"); done
+          loc=$(curl -fsS -o /dev/null -w '%{redirect_url}' -F "code=$TEST_CODE" -F "titel=Test: Bundesbank Leihpersonal Gastronomie" "${args[@]}" "$URL/hochladen")
+          echo "Auftrag: $loc"
+          for i in $(seq 1 60); do
+            sleep 20
+            page=$(curl -fsS "$loc")
+            if ! grep -q "Wird geprüft" <<<"$page"; then break; fi
+            echo "läuft noch ($i)"
+          done
+          python3 -c "import html,re,sys;t=sys.stdin.read();t=re.sub(r'(?s)<style.*?</style>','',t);print(html.unescape(re.sub(r'<[^>]+>','',t)))" <<<"$page" | sed '/^\s*$/d' | tee steckbrief.txt
+          { echo "## Test-Steckbrief"; echo; echo "$loc"; echo; echo '```'; cat steckbrief.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "Fristen" steckbrief.txt

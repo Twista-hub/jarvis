@@ -1,0 +1,29 @@
+name = "jarvis-alarm"
+main = "src/index.ts"
+compatibility_date = "2026-09-20"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = true
+
+# Uploaded documents and Steckbriefe; a lifecycle rule deletes auftraege/ after 30 days.
+[[r2_buckets]]
+binding = "DATEN"
+bucket_name = "jarvis-auftraege"
+jurisdiction = "eu"
+
+[ai]
+binding = "AI"
+
+[[workflows]]
+name = "jarvis-steckbrief"
+binding = "STECKBRIEF"
+class_name = "Steckbrief"
+
+[vars]
+TAGES_LIMIT = "5"
+
+[[rules]]
+type = "Text"
+globs = ["**/*.txt"]
+fallthrough = true
+
+# Secrets (set by .github/workflows/web.yml): ANTHROPIC_API_KEY, TEST_CODE_HASH.
