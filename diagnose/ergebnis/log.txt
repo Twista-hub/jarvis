@@ -1,0 +1,9 @@
+1.0s 200 https://restockhero.eu/ enc=zstd len=? gen=-
+1.1s 200 https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 enc=gzip len=? gen=-
+1.3s 200 https://restockhero.eu/assets/index-phOXvy83-mvtbh8jv.js enc=zstd len=? gen=-
+1.4s PAGEERROR: VITE_SUPABASE_URL und VITE_SUPABASE_ANON_KEY müssen gesetzt sein.
+5.2s SCREENSHOT nach 5s, Text: RestockHero
+15.4s SCREENSHOT nach 15s, Text: RestockHero
+30.2s SCREENSHOT nach 30s, Text: RestockHero
+60.2s SCREENSHOT nach 60s, Text: RestockHero
+JS-Speicher: 10 MB
