@@ -1,9 +1,8 @@
 // Jarvis upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import kunden from "../kunden.json";
-import { marked } from "marked";
 import { euro, FELDER, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los } from "./kalkulation";
 import { konto, type KontoEnv } from "./konto";
-import { escape, seite } from "./seite";
+import { escape, markdown, seite } from "./seite";
 
 export { Steckbrief } from "./workflow";
 
@@ -168,17 +167,6 @@ function formular(fehler = "", titel = ""): string {
       <button>Prüfen lassen</button>
     </form>
     <p class="klein">Die Unterlagen werden nur für diesen Steckbrief gelesen und nach 30 Tagen gelöscht.</p>`);
-}
-
-/** Model output may contain text from the documents: escape all HTML, allow only http(s) links. */
-function markdown(md: string): string {
-  const safe = md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return marked.parse(safe, {
-    async: false,
-    walkTokens(token) {
-      if (token.type === "link" && !/^https?:\/\//i.test(token.href)) token.href = "#";
-    },
-  }) as string;
 }
 
 function html(body: string, status = 200): Response {
