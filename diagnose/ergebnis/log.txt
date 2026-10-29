@@ -1,9 +1,16 @@
-1.0s 200 https://restockhero.eu/ enc=zstd len=? gen=-
-1.1s 200 https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 enc=gzip len=? gen=-
-1.3s 200 https://restockhero.eu/assets/index-phOXvy83-mvtbh8jv.js enc=zstd len=? gen=-
-1.4s PAGEERROR: VITE_SUPABASE_URL und VITE_SUPABASE_ANON_KEY müssen gesetzt sein.
-5.2s SCREENSHOT nach 5s, Text: RestockHero
-15.4s SCREENSHOT nach 15s, Text: RestockHero
-30.2s SCREENSHOT nach 30s, Text: RestockHero
-60.2s SCREENSHOT nach 60s, Text: RestockHero
+0.3s 200 https://restockhero.eu/ enc=zstd len=? gen=-
+0.4s 200 https://static.cloudflareinsights.com/beacon.min.js/vce701823e78c4301a35b7e07294d87301792088814092 enc=gzip len=? gen=-
+0.4s 200 https://restockhero.eu/assets/index-kjiyt5Bk-mvruoybc.js enc=zstd len=? gen=-
+0.9s 200 https://restockhero.eu/assets/workbox-window.prod.es5-BBnX5xw4-mvruoybc.js enc=zstd len=? gen=-
+1.0s 200 https://restockhero.eu/api/geo enc=- len=16 gen=-
+1.1s 200 https://restockhero.eu/api/catalog?v=2&part=live enc=zstd len=? gen=2026-10-29T16:20:49.094Z
+2.3s FERTIG https://restockhero.eu/api/catalog?v=2&part=live
+14.9s 200 https://restockhero.eu/api/catalog?v=2&part=rest enc=zstd len=? gen=2026-10-29T16:20:49.094Z
+14.9s 200 https://restockhero.eu/api/ebay-listings enc=zstd len=? gen=-
+19.3s 200 https://alicecollectibles.com/api/images/products/cmvsza80x001674vh9at3albs/c7111d9b-5189-4497-9143-f75e55ed553b-OP-15.w enc=- len=? gen=-
+20.2s FERTIG https://restockhero.eu/api/catalog?v=2&part=rest
+29.6s SCREENSHOT nach 5s, Text: RestockHero app Restock alerts on your phone – free Get × Restocks, preorders and prices — right on your phone. ⌕ Sign in Sealed 6239 Cards 2605 Accessories & Merch 686 ⌂ Home 🔥 Deals ✨ New ▥ Scan ♡ 
+30.0s SCREENSHOT nach 15s, Text: RestockHero app Restock alerts on your phone – free Get × Restocks, preorders and prices — right on your phone. ⌕ Sign in Sealed 6239 Cards 2605 Accessories & Merch 686 ⌂ Home 🔥 Deals ✨ New ▥ Scan ♡ 
+30.3s SCREENSHOT nach 30s, Text: RestockHero app Restock alerts on your phone – free Get × Restocks, preorders and prices — right on your phone. ⌕ Sign in Sealed 6239 Cards 2605 Accessories & Merch 686 ⌂ Home 🔥 Deals ✨ New ▥ Scan ♡ 
+60.4s SCREENSHOT nach 60s, Text: RestockHero app Restock alerts on your phone – free Get × Restocks, preorders and prices — right on your phone. ⌕ Sign in Sealed 6239 Cards 2605 Accessories & Merch 686 ⌂ Home 🔥 Deals ✨ New ▥ Scan ♡ 
 JS-Speicher: 10 MB
