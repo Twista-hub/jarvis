@@ -4,7 +4,7 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { unzipSync } from "fflate";
 import ANLEITUNG from "../../alarm/steckbrief-anleitung.txt";
 import profile from "../../alarm/profile.json";
-import { baseName, bundle, wanted, type Text } from "./bundle";
+import { baseName, bundle, mimeType, wanted, type Text } from "./bundle";
 import type { Env, Job } from "./index";
 
 const MODEL = "claude-opus-5-5";
@@ -62,9 +62,18 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
           if (!f.name.endsWith("/")) ausgelassen.push(baseName(f.name));
           continue;
         }
-        const r = await this.env.AI.toMarkdown({ name: baseName(f.name), blob: new Blob([f.data]) });
-        if (r.format === "error") ausgelassen.push(`${baseName(f.name)} (nicht lesbar)`);
-        else texts.push({ name: f.name, text: r.data });
+        const typ = mimeType(f.name);
+        if (typ.startsWith("text/") && typ !== "text/html") {
+          texts.push({ name: f.name, text: new TextDecoder().decode(f.data) });
+          continue;
+        }
+        try {
+          const r = await this.env.AI.toMarkdown({ name: baseName(f.name), blob: new Blob([f.data], { type: typ }) });
+          if (r.format === "error") ausgelassen.push(`${baseName(f.name)} (nicht lesbar)`);
+          else texts.push({ name: f.name, text: r.data });
+        } catch {
+          ausgelassen.push(`${baseName(f.name)} (nicht lesbar)`);
+        }
       }
       const { text, skipped } = bundle(texts);
       await this.env.DATEN.put(`${dir}/text.md`, text);
