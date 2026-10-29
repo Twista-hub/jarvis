@@ -179,6 +179,8 @@ def run(days: list[str]) -> str:
             lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
         if not rows:
             lines += ["Heute nichts Passendes.", ""]
+    import foerder
+    lines += foerder.abschnitt(profiles, ki, days)
     if ki:
         lines += [f"_KI-Kosten dieses Laufs: {ki.kosten():.2f} $_", ""]
     return "\n".join(lines)

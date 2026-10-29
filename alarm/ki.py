@@ -82,6 +82,29 @@ def score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
     return {b["nr"]: b for b in json.loads(text)["bewertungen"]}
 
 
+def foerder_score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
+    """items: [{nr, titel, beschreibung}] -> {nr: {punkte, kurz, grund}}"""
+    if not items or _bremse():
+        return {}
+    system = (
+        "Du prüfst neue Förderprogramme für eine Firma. Antworte auf Deutsch. "
+        "punkte: 1–10, wie gut die Firma das Programm nutzen kann (10 = antragsberechtigt und klarer Nutzen; "
+        "1 = nicht antragsberechtigt oder kein Nutzen). Achte auf Region, Firmengröße und Branche. "
+        "kurz: ein Satz, was gefördert wird. grund: ein Satz in eigenen Worten, warum es passt oder nicht."
+    )
+    user = f"Firma:\n{beschreibung}\n\nFörderprogramme:\n" + json.dumps(items, ensure_ascii=False)
+    response = _create(
+        max_tokens=16000,
+        system=system,
+        output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCORE_SCHEMA}},
+        messages=[{"role": "user", "content": user}],
+    )
+    if response.stop_reason == "refusal":
+        return {}
+    text = next(b.text for b in response.content if b.type == "text")
+    return {b["nr"]: b for b in json.loads(text)["bewertungen"] if 0 <= b["nr"] < len(items)}
+
+
 # Shared with the upload worker (web/), so both write the same Steckbrief.
 STECKBRIEF_ANLEITUNG = (Path(__file__).parent / "steckbrief-anleitung.txt").read_text(encoding="utf-8")
 
