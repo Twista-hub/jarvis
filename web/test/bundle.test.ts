@@ -9,18 +9,20 @@ test("skips boilerplate and unreadable files", () => {
   assert.equal(wanted("__MACOSX/x.pdf"), false);
 });
 
-test("puts the Leistungsbeschreibung first and respects the limit", () => {
+test("puts the important files first and shortens long ones", () => {
   const { text, skipped } = bundle(
     [
       { name: "z_anlage.pdf", text: "Anlage" },
       { name: "ordner/Leistungsbeschreibung.pdf", text: "LB   mit\n\n\nLücken" },
-      { name: "riesig.pdf", text: "x".repeat(100) },
+      { name: "C2_Vergütungsvereinbarung.xlsx", text: "P".repeat(5_000) },
+      { name: "riesig.pdf", text: "x".repeat(10_000) },
     ],
-    50,
+    9_000,
   );
-  assert.ok(text.startsWith("===== DATEI: ordner/Leistungsbeschreibung.pdf\nLB mit\nLücken"));
-  assert.ok(text.includes("Anlage"));
-  assert.deepEqual(skipped, ["riesig.pdf (zu lang)"]);
+  assert.ok(text.startsWith("===== DATEI: C2_Vergütungsvereinbarung.xlsx"));
+  assert.ok(text.includes("===== DATEI: ordner/Leistungsbeschreibung.pdf\nLB mit\nLücken"));
+  assert.ok(text.includes("[… gekürzt]"));
+  assert.deepEqual(skipped, ["riesig.pdf (nur teilweise)", "z_anlage.pdf (kein Platz mehr)"]);
 });
 
 test("file types for the converter", () => {

@@ -92,3 +92,8 @@ jobs:
           python3 -c "import html,re,sys;t=sys.stdin.read();t=re.sub(r'(?s)<style.*?</style>','',t);print(html.unescape(re.sub(r'<[^>]+>','',t)))" <<<"$page" | sed '/^\s*$/d' | tee steckbrief.txt
           { echo "## Test-Steckbrief"; echo; echo "$loc"; echo; echo '```'; cat steckbrief.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "Fristen" steckbrief.txt
+          # Calculation: German number input, result table with price per hour
+          kalk=$(curl -fsSL -d "lohn=15,50" -d "nebenkosten=23" -d "ausfall=20" -d "zuschlaege=5" -d "gemeinkosten=15" -d "gewinn=8" -d "sonstiges=0" "$loc/kalkulation")
+          python3 -c "import html,re,sys;t=sys.stdin.read();i=t.find('Kalkulation');print(html.unescape(re.sub(r'<[^>]+>',' ',t[i:i+6000])))" <<<"$kalk" | tr -s ' ' | tee kalkulation.txt
+          { echo "## Test-Kalkulation"; echo '```'; cat kalkulation.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          grep -q "Angebotspreis pro Stunde" kalkulation.txt
