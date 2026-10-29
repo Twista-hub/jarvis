@@ -11,6 +11,8 @@ from datetime import date, timedelta
 
 UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)", "Content-Type": "application/json"}
 
+SUMMARY = []
+
 PROFILES = {
     "perlease": ["79620000", "79952000", "79952100", "79956000", "79992000", "55520000", "55300000", "55410000", "79953000", "79954000"],
     "wpdr": ["72413000", "72420000", "72212224", "72415000", "79822500", "72267000", "72421000", "72422000"],
@@ -49,6 +51,7 @@ def ted(profile, codes, days):
         print(data)
         return
     print("Treffer gesamt:", data.get("totalNoticeCount"))
+    SUMMARY.append(f"TED {profile}: {data.get('totalNoticeCount')} in {days} Tagen")
     for n in data.get("notices", [])[:40]:
         title = n.get("notice-title") or {}
         t = title.get("deu") or title.get("eng") or next(iter(title.values()), "") if isinstance(title, dict) else title
@@ -75,4 +78,4 @@ if __name__ == "__main__":
     days = int(sys.argv[1]) if len(sys.argv) > 1 else 30
     for name, codes in PROFILES.items():
         ted(name, codes, days)
-    probe_oev()
+    print("\n".join(["", "ZUSAMMENFASSUNG"] + SUMMARY))

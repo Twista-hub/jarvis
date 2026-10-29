@@ -14,3 +14,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 alarm/erkunden.py "${{ inputs.tage }}"
+      - run: python3 alarm/erkunden_de.py "${{ inputs.tage }}"
