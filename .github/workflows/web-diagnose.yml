@@ -1,0 +1,27 @@
+# Shows what happened in one Steckbrief run (steps, retries, errors). Read only.
+name: Upload-Seite Diagnose
+
+on:
+  workflow_dispatch:
+    inputs:
+      auftrag:
+        description: "Auftrags-ID (aus dem Link /auftrag/<ID>) oder latest"
+        default: "latest"
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      AUFTRAG: ${{ inputs.auftrag }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx wrangler workflows instances describe jarvis-steckbrief "$AUFTRAG"
