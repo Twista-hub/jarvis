@@ -4,11 +4,16 @@ Source: https://oeffentlichevergabe.de/api/notice-exports?pubDay=YYYY-MM-DD&form
 (all German notices, above and below EU thresholds; licence stated in every file).
 Usage: python3 alarm/alarm.py [YYYY-MM-DD ...]   (default: yesterday)
 Writes alarm/berichte/<date>.md and prints it.
+With ANTHROPIC_API_KEY set, Claude scores the hits and writes Steckbriefe for the best ones
+(alarm/steckbriefe/), at most MAX_STECKBRIEFE per run.
 """
 import io
 import json
+import os
 import re
 import sys
+import tempfile
+import urllib.parse
 import urllib.request
 import zipfile
 from datetime import date, timedelta
@@ -16,6 +21,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)"}
+# Portals whose terms and robots.txt allow downloading the public documents (checked by hand).
+PORTALE = {"www.dtvp.de"}
+MAX_STECKBRIEFE = int(os.environ.get("MAX_STECKBRIEFE", "2"))
+STECKBRIEF_AB = 7
 
 
 def fetch(day: str) -> bytes:
@@ -74,6 +83,39 @@ def place(rel: dict) -> str:
     return f"{a.get('postalCode', '')} {a.get('locality', '')}".strip()
 
 
+def item(nr: int, rel: dict) -> dict:
+    t = rel.get("tender") or {}
+    return {"nr": nr, "titel": t.get("title", "").strip(), "auftraggeber": (rel.get("buyer") or {}).get("name", ""),
+            "ort": place(rel), "beschreibung": re.sub(r"\s+", " ", t.get("description", ""))[:1500], "cpv": cpv_codes(t)}
+
+
+def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str) -> Path | None:
+    """Download the documents (allowed portals only), let Claude write the Steckbrief, save it."""
+    if urllib.parse.urlparse(url).netloc not in PORTALE:
+        return None
+    t = rel.get("tender") or {}
+    slug = re.sub(r"[^a-z0-9]+", "-", t.get("title", "").lower())[:50].strip("-")
+    out = ROOT / "steckbriefe" / f"{day}-{name}-{slug}.md"
+    if out.exists():
+        return out
+    from texte import bundle
+    from unterlagen import download
+    with tempfile.TemporaryDirectory() as tmp:
+        files = download(url, Path(tmp), verbose=False)
+        dokumente, skipped = bundle(files)
+        if not dokumente.strip():
+            return None
+        kopf = json.dumps(item(0, rel) | {"link": url, "veroeffentlicht": day}, ensure_ascii=False)
+        text = ki.steckbrief(profile["beschreibung"], kopf, dokumente)
+    if not text:
+        return None
+    note = f"\n\n---\n_Automatisch erstellt von Jarvis am {date.today().isoformat()} aus {len(files)} Dateien"
+    note += f" (nicht gelesen: {', '.join(skipped)})" if skipped else ""
+    out.parent.mkdir(exist_ok=True)
+    out.write_text(text + note + f". Quelle: [{url}]({url}). Ohne Gewähr, bitte vor dem Angebot die Originalunterlagen prüfen._\n", encoding="utf-8")
+    return out
+
+
 def run(days: list[str]) -> str:
     profiles = json.loads((ROOT / "profile.json").read_text(encoding="utf-8"))
     hits = {k: [] for k in profiles}
@@ -94,20 +136,47 @@ def run(days: list[str]) -> str:
                 points, reason = score(profile, text, codes)
                 if points:
                     hits[name].append((points, day, rel, reason))
+    ki = None
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        import ki
     lines = [f"# Ausschreibungs-Alarm {', '.join(days)}", "",
              f"{total} neue Ausschreibungen geprüft. Quelle: Bekanntmachungsservice (oeffentlichevergabe.de), Lizenz: {licence or 'siehe Datei'}.", ""]
+    briefe = 0
     for name, profile in profiles.items():
-        rows = sorted(hits[name], key=lambda h: -h[0])
+        rows = sorted(hits[name], key=lambda h: -h[0])[:40]
+        bewertung = ki.score(profile["beschreibung"], [item(i, rel) for i, (_, _, rel, _) in enumerate(rows)]) if ki and rows else {}
+        if bewertung:
+            rows = [(bewertung.get(i, {}), *r) for i, r in enumerate(rows)]
+            rows.sort(key=lambda r: (-r[0].get("punkte", 0), -r[1]))
+            weg = [r for r in rows if r[0].get("punkte", 0) < 4]
+            rows = [r for r in rows if r[0].get("punkte", 0) >= 4]
+        else:
+            rows, weg = [({}, *r) for r in rows], []
         lines += [f"## {profile['name']}: {len(rows)} Treffer", ""]
-        for points, day, rel, reason in rows[:40]:
+        for b, points, day, rel, reason in rows:
             t = rel.get("tender") or {}
-            stars = "★" * min(points, 5)
-            desc = re.sub(r"\s+", " ", t.get("description", ""))[:240]
-            lines += [f"### {stars} {t.get('title', '').strip()}",
-                      f"{(rel.get('buyer') or {}).get('name', '')} · {place(rel)} · veröffentlicht {day} · {reason}",
-                      "", desc, "", f"[Zur Ausschreibung]({link(rel)})", ""]
+            url = link(rel)
+            if b:
+                head = f"### {b['punkte']}/10 {t.get('title', '').strip()}"
+                desc = f"**{b['kurz']}** {b['grund']}"
+            else:
+                head = f"### {'★' * min(points, 5)} {t.get('title', '').strip()}"
+                desc = re.sub(r"\s+", " ", t.get("description", ""))[:240]
+            lines += [head, f"{(rel.get('buyer') or {}).get('name', '')} · {place(rel)} · veröffentlicht {day} · {reason}",
+                      "", desc, ""]
+            links = f"[Zur Ausschreibung]({url})"
+            if b.get("punkte", 0) >= STECKBRIEF_AB and briefe < MAX_STECKBRIEFE:
+                pfad = steckbrief_fuer(ki, name, profile, day, rel, url)
+                if pfad:
+                    briefe += 1
+                    links += f" · [📄 Steckbrief](../steckbriefe/{pfad.name})"
+            lines += [links, ""]
+        if weg:
+            lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
         if not rows:
             lines += ["Heute nichts Passendes.", ""]
+    if ki:
+        lines += [f"_KI-Kosten dieses Laufs: {ki.kosten():.2f} $_", ""]
     return "\n".join(lines)
 
 

@@ -1,4 +1,4 @@
-# Daily tender report (public data, no secrets). Writes alarm/berichte/<date>.md.
+# Daily tender report. Writes alarm/berichte/<date>.md; with the API key also KI scores and alarm/steckbriefe/.
 name: Ausschreibungs-Alarm
 
 on:
@@ -18,11 +18,22 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 alarm/alarm.py ${{ inputs.tage }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Werkzeuge
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq poppler-utils
+          pip install -q anthropic
+      - run: python alarm/alarm.py ${{ inputs.tage }}
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       - name: Bericht speichern
         run: |
           git config user.name "Jarvis"
           git config user.email "noreply@github.com"
-          git add alarm/berichte
+          git add alarm/berichte alarm/steckbriefe
           git diff --cached --quiet || git commit -m "Ausschreibungs-Alarm $(date -u +%F)"
+          git pull -q --rebase
           git push
