@@ -1,0 +1,26 @@
+# Test: download the public documents of one tender and commit them to this private repo.
+name: Unterlagen testen
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: "Link zur Unterlagen-Seite"
+      name:
+        description: "Ordnername"
+        default: "test"
+
+permissions:
+  contents: write
+
+jobs:
+  laden:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 alarm/unterlagen.py "${{ inputs.url }}" "${{ inputs.name }}"
+      - run: |
+          git config user.name "Jarvis"; git config user.email "noreply@github.com"
+          git add alarm/test-unterlagen
+          git diff --cached --quiet || git commit -m "Unterlagen-Test ${{ inputs.name }}"
+          git push
