@@ -20,6 +20,9 @@ class_name = "Steckbrief"
 
 [vars]
 TAGES_LIMIT = "5"
+# Supabase project "jarvis" (Frankfurt); the publishable key is public by design.
+SUPABASE_URL = "https://juuuifrcxmitkqudqngq.supabase.co"
+SUPABASE_KEY = "sb_publishable_Lp4GwnMS4RK5XcXPwgq28Q_Z5jj-Xcp"
 
 [[rules]]
 type = "Text"

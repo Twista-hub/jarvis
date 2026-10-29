@@ -22,7 +22,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   a { color: var(--accent); }
   form { display: grid; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
   label { display: grid; gap: 6px; font-weight: 600; }
-  input { font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }
+  input, select { font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }
   button { font: inherit; font-weight: 600; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); cursor: pointer; }
   .fehler { color: var(--error); font-weight: 600; }
   .klein { color: var(--muted); font-size: 14px; }
@@ -33,7 +33,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 </style>
 </head>
 <body><main>
-<header>Jarvis · Ausschreibungs-Alarm</header>
+<header>Jarvis · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>
 ${inhalt.trimStart().startsWith("<h1") ? "" : `<h1>${escape(titel)}</h1>`}
 ${inhalt.replace(/<table>/g, '<div class="tabelle"><table>').replace(/<\/table>/g, "</table></div>")}
 <p class="klein">WP Digital Ranger</p>
