@@ -40,7 +40,7 @@ const dt = profile.timeDeltas ?? [];
 const byId = new Map(profile.nodes.map((n) => [n.id, n]));
 (profile.samples ?? []).forEach((id, i) => {
   const n = byId.get(id); const f = n.callFrame;
-  const key = `${f.functionName || "(anonym)"} ${f.url.split("/").pop()}:${f.lineNumber}`;
+  const key = `${f.functionName || "(anonym)"} ${f.url.split("/").pop()}:${f.lineNumber}:${f.columnNumber}`;
   self.set(key, (self.get(key) ?? 0) + (dt[i] ?? 0) / 1000);
 });
 const total = [...self.values()].reduce((a, b) => a + b, 0);
