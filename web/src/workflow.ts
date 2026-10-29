@@ -110,12 +110,8 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
     const fuss = `\n\n---\n_Automatisch erstellt von Jarvis aus ${lesen.gelesen} Dateien` +
       (lesen.ausgelassen.length ? ` (nicht gelesen: ${lesen.ausgelassen.join(", ")})` : "") +
       `. Ohne Gewähr, vor dem Angebot bitte die Originalunterlagen prüfen._\n`;
-    await step.do("Ergebnis speichern", async () => {
-      await this.speichern(dir, (ki.text || "# Kein Steckbrief\n\nDie KI hat diese Unterlagen abgelehnt.") + fuss);
-      await this.env.DATEN.delete(`${dir}/text.md`);
-    });
-
     // Lots and quantities for the calculation form; read from the Steckbrief only, so it is cheap.
+    // Saved before the Steckbrief, because the result page appears as soon as ergebnis.md exists.
     const lose = ki.text
       ? await step.do("Lose erfassen", { retries: { limit: 2, delay: "10 seconds" } }, async () => {
           const message = await this.client().beta.messages.create({
@@ -133,6 +129,11 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
           return { anzahl: lose.length, kosten: kostenVon(message.usage) };
         })
       : { anzahl: 0, kosten: 0 };
+    await step.do("Ergebnis speichern", async () => {
+      await this.speichern(dir, (ki.text || "# Kein Steckbrief\n\nDie KI hat diese Unterlagen abgelehnt.") + fuss);
+      await this.env.DATEN.delete(`${dir}/text.md`);
+    });
+
     return { ...lesen, kosten: ki.kosten + lose.kosten, lose: lose.anzahl };
   }
 
