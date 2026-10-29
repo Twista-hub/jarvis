@@ -61,7 +61,9 @@ jobs:
           WERT: ${{ inputs.wert }}
         run: |
           api() { curl -sS -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" "$@"; }
-          body=$(jq -nc --arg v "$WERT" '{type:"TXT", name:"default._domainkey", content:("\"" + $v + "\""), ttl:1}')
+          # TXT strings are at most 255 characters each, so the key is split into quoted parts.
+          body=$(jq -nc --arg v "$(tr -d ' \n' <<<"$WERT")" '{type:"TXT", name:"default._domainkey", ttl:1,
+            content: ([range(0; ($v|length); 250) as $i | "\"" + $v[$i:$i+250] + "\""] | join(" "))}')
           api -X POST "$CF/zones/$ZONE/dns_records" -d "$body" | jq -c '{success, errors}'
       - name: Ergebnis von außen (Google DNS)
         run: |
