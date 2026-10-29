@@ -93,7 +93,7 @@ Perlease: 2 Monate kostenlos, danach z. B. 199 € + 1,5 %. Preis erst nennen, w
 
 | Phase | Was | Ergebnis | Status |
 |---|---|---|---|
-| 0 | Plan ins Repo. RestockHero-Deploys (Cloudflare, Supabase, Android) auf GitHub Actions. Wächter für RestockHero | PC kann aus bleiben, Störungen werden erkannt | läuft: Abläufe Prüfen/Ausrollen/Zurückrollen/Datenbank in RestockHero (#56, #57), Secrets gesetzt 29.10. Migrations-Historie bereinigt 29.10. (#58), Regeln für Codex in AGENTS.md. Live-Abgleich: live = main, erstes Ausrollen über GitHub 29.10. mit Seitentest und Auto-Rückweg (#60, #61). Seit 29.10.: automatisches Ausrollen bei Merge, Wächter `restockhero-waechter` läuft alle 10 Min. (#62, #63). Offen: Telegram-Bot verbinden, Android, Selbstheilung |
+| 0 | Plan ins Repo. RestockHero-Deploys (Cloudflare, Supabase, Android) auf GitHub Actions. Wächter für RestockHero | PC kann aus bleiben, Störungen werden erkannt | läuft: Abläufe Prüfen/Ausrollen/Zurückrollen/Datenbank in RestockHero (#56, #57), Secrets gesetzt 29.10. Migrations-Historie bereinigt 29.10. (#58), Regeln für Codex in AGENTS.md. Live-Abgleich: live = main, erstes Ausrollen über GitHub 29.10. mit Seitentest und Auto-Rückweg (#60, #61). Seit 29.10.: automatisches Ausrollen bei Merge, Wächter `restockhero-waechter` läuft alle 10 Min. (#62, #63). Selbstheilung läuft: Wächter-Runde (Claude, alle 3 Std., Regelwerk restockhero `docs/automation/selbstheilung.md`). Offen: Telegram-Bot verbinden, Android |
 | 1 | Ausschreibungs-Alarm per Mail: zuerst WP Digital Ranger, dann Perlease | echte Treffer prüfen | offen |
 | 2 | Webseite: Login, Profil, Vertrag per Klick, Stripe, App-Ansicht mit 👍/👎 | erste zahlende Kunden | offen |
 | 3 | Angebotsentwürfe, Zuschlags-Abgleich, Provisionsrechnung, Play-Store-App | volles Produkt | offen |
@@ -104,4 +104,5 @@ Perlease: 2 Monate kostenlos, danach z. B. 199 € + 1,5 %. Preis erst nennen, w
 - [ ] Name und Domain für den Alarm
 - [x] Perlease nicht vorab fragen, Überraschung (29.10.)
 - [ ] Wie mit Jarvis reden: nur Telegram-Knöpfe oder freier Chat (Hermes)?
+- [ ] Telegram-Bot „Jarvis“ anlegen (Secret `JARVIS_TELEGRAM_TOKEN` in restockhero), Benjamin macht das später
 - [ ] Rechte von Jarvis bestätigen: lesen, planen, programmieren, Entwürfe; Senden, Bezahlen und Veröffentlichen nur mit OK
