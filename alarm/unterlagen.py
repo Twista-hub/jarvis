@@ -25,6 +25,16 @@ try:
 except Exception as e:  # noqa: BLE001
     print("robots.txt:", e)
 
+import urllib.robotparser
+rp = urllib.robotparser.RobotFileParser(base + "/robots.txt")
+try:
+    rp.read()
+except Exception:  # noqa: BLE001
+    pass
+if not rp.can_fetch(UA, url):
+    print("ABBRUCH: robots.txt erlaubt diese Seite nicht.")
+    sys.exit(0)
+
 r = opener.open(url, timeout=60)
 html = r.read().decode(errors="replace")
 print("=== Seite", r.status, r.geturl(), len(html), "Zeichen")
@@ -41,6 +51,9 @@ for full, label in links[:80]:
 
 saved = 0
 for full, label in links[:60]:
+    if not rp.can_fetch(UA, full):
+        print("robots.txt sperrt:", full[:120])
+        continue
     time.sleep(1)
     try:
         resp = opener.open(full, timeout=120)
