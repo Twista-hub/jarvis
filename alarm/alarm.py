@@ -69,6 +69,13 @@ def score(profile: dict, text: str, codes: list[str]) -> tuple[int, str]:
     return points, reason
 
 
+def frist(tender: dict) -> str | None:
+    """Submission deadline: for the whole tender, else the earliest one of its lots (eForms BT-131 per lot)."""
+    ende = (tender.get("tenderPeriod") or {}).get("endDate")
+    lose = [(l.get("tenderPeriod") or {}).get("endDate") for l in tender.get("lots") or []]
+    return ende or min(filter(None, lose), default=None)
+
+
 def link(rel: dict) -> str:
     for d in (rel.get("tender") or {}).get("documents") or []:
         if d.get("url"):
@@ -178,7 +185,7 @@ def run(days: list[str]) -> str:
                     links += f" · [📄 Steckbrief](../steckbriefe/{pfad.name})"
             lines += [links, ""]
             treffer.append({"profil": name, "quelle_id": rel.get("ocid") or rel.get("id") or url, "titel": t.get("title", "").strip(),
-                            "link": url, "frist": (t.get("tenderPeriod") or {}).get("endDate") or None,
+                            "link": url, "frist": frist(t),
                             "punkte": b.get("punkte") or None, "steckbrief": pfad.read_text(encoding="utf-8") if pfad else None})
         if weg:
             lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
