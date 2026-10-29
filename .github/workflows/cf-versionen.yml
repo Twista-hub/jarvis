@@ -1,0 +1,27 @@
+# Lists the recent versions of a Cloudflare worker (read only).
+name: Cloudflare-Versionen
+
+on:
+  workflow_dispatch:
+    inputs:
+      worker:
+        description: "Worker-Name"
+        default: "tcg-restock-monitor-pwa"
+
+jobs:
+  liste:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      WORKER: ${{ inputs.worker }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npx wrangler deployments list --name "$WORKER" | tail -n 60
