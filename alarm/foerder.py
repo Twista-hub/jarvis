@@ -66,7 +66,7 @@ def abschnitt(profiles: dict, ki, days: list[str]) -> list[str]:
             i = items[b["nr"]]
             lines += [f"- **{b['punkte']}/10** [{i['titel']}]({i['link']}): {b['grund']}"]
         lines += [""] if passend else ["Nichts Passendes.", ""]
-    return lines + [f"_{len(items)} neue Programme geprüft. {QUELLE}_", ""]
+    return lines + [f"_Neue Programme geprüft: {len(items)}. {QUELLE}_", ""]
 
 
 if __name__ == "__main__":
