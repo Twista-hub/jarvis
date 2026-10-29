@@ -50,6 +50,7 @@ jobs:
           add '{"type":"MX","name":"@","content":"mx1.privateemail.com","priority":10,"ttl":1}'
           add '{"type":"MX","name":"@","content":"mx2.privateemail.com","priority":10,"ttl":1}'
           add '{"type":"TXT","name":"@","content":"\"v=spf1 include:spf.privateemail.com ~all\"","ttl":1}'
+          add '{"type":"TXT","name":"_dmarc","content":"\"v=DMARC1; p=none\"","ttl":1}'
           add '{"type":"CNAME","name":"mail","content":"privateemail.com","ttl":1,"proxied":false}'
           add '{"type":"CNAME","name":"autodiscover","content":"privateemail.com","ttl":1,"proxied":false}'
           add '{"type":"CNAME","name":"autoconfig","content":"privateemail.com","ttl":1,"proxied":false}'
