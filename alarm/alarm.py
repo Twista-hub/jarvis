@@ -20,6 +20,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).parent
+UPLOAD = "https://jarvis-alarm.benschiffer79.workers.dev/"
 UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)"}
 # Portals whose terms and robots.txt allow downloading the documents for our service (checked by hand).
 # Not DTVP: its AGB (29.10.2026) forbid systematic downloads of notices and documents for commercial offers.
@@ -167,7 +168,7 @@ def run(days: list[str]) -> str:
                 desc = re.sub(r"\s+", " ", t.get("description", ""))[:240]
             lines += [head, f"{(rel.get('buyer') or {}).get('name', '')} · {place(rel)} · veröffentlicht {day} · {reason}",
                       "", desc, ""]
-            links = f"[Zur Ausschreibung]({url})"
+            links = f"[Zur Ausschreibung]({url}) · [⬆️ Unterlagen prüfen lassen]({UPLOAD}?titel={urllib.parse.quote(t.get('title', '').strip()[:200])})"
             if b.get("punkte", 0) >= STECKBRIEF_AB and briefe < MAX_STECKBRIEFE:
                 pfad = steckbrief_fuer(ki, name, profile, day, rel, url)
                 if pfad:

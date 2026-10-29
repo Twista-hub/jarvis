@@ -10,6 +10,35 @@ import type { Env, Job } from "./index";
 const MODEL = "claude-opus-5-5";
 const PREIS = [4, 20]; // $ per million input / output tokens
 
+const LOSE_SCHEMA = {
+  type: "object",
+  properties: {
+    lose: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          nr: { type: "string" },
+          name: { type: "string" },
+          menge: { type: "number" },
+          einheit: { type: "string" },
+          zeitraum: { type: "string" },
+          hinweis: { type: "string" },
+        },
+        required: ["nr", "name", "menge", "einheit", "zeitraum", "hinweis"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["lose"],
+  additionalProperties: false,
+};
+
+function kostenVon(u: { input_tokens: number; output_tokens: number; cache_creation_input_tokens?: number | null; cache_read_input_tokens?: number | null }) {
+  const eingabe = u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
+  return (eingabe * PREIS[0] + u.output_tokens * PREIS[1]) / 1e6;
+}
+
 export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
   async run(event: Readonly<WorkflowEvent<Job>>, step: WorkflowStep) {
     const job = event.payload;
@@ -50,8 +79,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
     const ki = await step.do("Steckbrief schreiben", { retries: { limit: 2, delay: "30 seconds" }, timeout: "15 minutes" }, async () => {
       const dokumente = await (await this.env.DATEN.get(`${dir}/text.md`))!.text();
       const kunde = (profile as Record<string, { beschreibung: string }>)[job.profil];
-      const client = new Anthropic({ apiKey: this.env.ANTHROPIC_API_KEY });
-      const message = await client.beta.messages
+      const message = await this.client().beta.messages
         .stream({
           model: MODEL,
           betas: ["server-side-fallback-2026-07-01"],
@@ -65,9 +93,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
           }],
         })
         .finalMessage();
-      const u = message.usage;
-      const eingabe = u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
-      const kosten = (eingabe * PREIS[0] + u.output_tokens * PREIS[1]) / 1e6;
+      const kosten = kostenVon(message.usage);
       if (message.stop_reason === "refusal") return { text: "", kosten };
       return { text: message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim(), kosten };
     });
@@ -79,7 +105,30 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
       await this.speichern(dir, (ki.text || "# Kein Steckbrief\n\nDie KI hat diese Unterlagen abgelehnt.") + fuss);
       await this.env.DATEN.delete(`${dir}/text.md`);
     });
-    return { ...lesen, kosten: ki.kosten };
+
+    // Lots and quantities for the calculation form; read from the Steckbrief only, so it is cheap.
+    const lose = ki.text
+      ? await step.do("Lose erfassen", { retries: { limit: 2, delay: "10 seconds" } }, async () => {
+          const message = await this.client().beta.messages.create({
+            model: MODEL,
+            betas: ["server-side-fallback-2026-07-01"],
+            fallbacks: "default",
+            max_tokens: 8000,
+            output_config: { effort: "low", format: { type: "json_schema", schema: LOSE_SCHEMA } },
+            system: "Lies aus dem Steckbrief die Lose bzw. Leistungen mit ihren Mengen. menge: Zahl (Stunden pro Jahr oder Gesamt, wie angegeben; 0, wenn unbekannt). einheit: z. B. Stunden, Tage, Stück, pauschal. zeitraum: z. B. pro Jahr oder Laufzeit. Gibt es keine Lose, nimm die ganze Leistung als ein Los.",
+            messages: [{ role: "user", content: ki.text }],
+          });
+          const text = message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
+          const lose = message.stop_reason === "refusal" ? [] : (JSON.parse(text).lose as unknown[]);
+          await this.env.DATEN.put(`${dir}/lose.json`, JSON.stringify(lose));
+          return { anzahl: lose.length, kosten: kostenVon(message.usage) };
+        })
+      : { anzahl: 0, kosten: 0 };
+    return { ...lesen, kosten: ki.kosten + lose.kosten, lose: lose.anzahl };
+  }
+
+  private client() {
+    return new Anthropic({ apiKey: this.env.ANTHROPIC_API_KEY });
   }
 
   private async speichern(dir: string, markdown: string) {
