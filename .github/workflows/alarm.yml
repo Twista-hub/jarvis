@@ -1,0 +1,28 @@
+# Daily tender report (public data, no secrets). Writes alarm/berichte/<date>.md.
+name: Ausschreibungs-Alarm
+
+on:
+  schedule:
+    - cron: "17 5 * * *"
+  workflow_dispatch:
+    inputs:
+      tage:
+        description: "Tage (YYYY-MM-DD, mit Leerzeichen); leer = gestern"
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  bericht:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 alarm/alarm.py ${{ inputs.tage }}
+      - name: Bericht speichern
+        run: |
+          git config user.name "Jarvis"
+          git config user.email "noreply@github.com"
+          git add alarm/berichte
+          git diff --cached --quiet || git commit -m "Ausschreibungs-Alarm $(date -u +%F)"
+          git push
