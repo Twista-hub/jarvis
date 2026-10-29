@@ -13,6 +13,9 @@ on:
       portale:
         description: "Portale der Unterlagen zählen (ja)"
         default: ""
+      zeiten:
+        description: "Erreichbarkeit messen: URLs mit Leerzeichen (Status, Zeit, Größe)"
+        default: ""
       pruefen:
         description: "Quellen prüfen: URLs mit Leerzeichen"
         default: ""
@@ -27,6 +30,14 @@ jobs:
       - uses: actions/checkout@v4
       - if: inputs.portale != ''
         run: python3 alarm/portale.py "${{ inputs.tage }}"
+      - if: inputs.zeiten != ''
+        env:
+          URLS: ${{ inputs.zeiten }}
+        run: |
+          for u in $URLS; do
+            curl -s -o body.bin -m 60 -A "Mozilla/5.0 (Linux; Android 14) Chrome/130 Mobile" -w "%{http_code} %{time_total}s %{size_download}B  $u\n" "$u" || echo "FEHLER/TIMEOUT  $u"
+            head -c 300 body.bin | tr -d '\0' ; echo; echo
+          done
       - if: inputs.pruefen != ''
         env:
           URLS: ${{ inputs.pruefen }}
@@ -38,9 +49,9 @@ jobs:
           curl -sSL -A "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)" "$SEITE" -o seite.html
           python3 -c "import re,html;t=open('seite.html',errors='replace').read();t=re.sub(r'(?is)<(script|style).*?</\1>','',t);print(re.sub(r'\s*\n\s*','\n',html.unescape(re.sub(r'<[^>]+>','\n',t)))[:60000])"
           grep -oiE 'href="[^"]*(nutzung|agb|impressum|bedingung|terms)[^"]*"' seite.html | sort -u | head -40
-      - if: inputs.beispiel != '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == ''
+      - if: inputs.beispiel != '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == '' && inputs.zeiten == ''
         run: python3 alarm/beispiel.py "${{ inputs.beispiel }}" "${{ inputs.tage }}"
-      - if: inputs.beispiel == '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == ''
+      - if: inputs.beispiel == '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == '' && inputs.zeiten == ''
         run: python3 alarm/erkunden.py "${{ inputs.tage }}"
-      - if: inputs.beispiel == '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == ''
+      - if: inputs.beispiel == '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == '' && inputs.zeiten == ''
         run: python3 alarm/erkunden_de.py "${{ inputs.tage }}"
