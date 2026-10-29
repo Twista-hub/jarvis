@@ -2,11 +2,12 @@
 import kunden from "../kunden.json";
 import { marked } from "marked";
 import { euro, FELDER, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los } from "./kalkulation";
+import { konto, type KontoEnv } from "./konto";
 import { escape, seite } from "./seite";
 
 export { Steckbrief } from "./workflow";
 
-export interface Env {
+export interface Env extends KontoEnv {
   DATEN: R2Bucket;
   AI: Ai;
   STECKBRIEF: Workflow<Job>;
@@ -24,6 +25,8 @@ const ID = /^[0-9a-f-]{36}$/;
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const k = await konto(request, env);
+    if (k) return k;
     if (url.pathname === "/" && request.method === "GET") return html(formular("", url.searchParams.get("titel") ?? ""));
     if (url.pathname === "/hochladen" && request.method === "POST") return hochladen(request, env);
     const m = url.pathname.match(/^\/auftrag\/([^/]+)(\/kalkulation)?$/);
