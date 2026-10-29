@@ -48,6 +48,21 @@ Kein eigener Server. Jarvis ist auf Clouddienste verteilt, die ohne Wartung lauf
 | Cockpit-Webseite (PWA) | Überblick: Aufgaben, Freigaben, Kosten, Kunden | sofort |
 | Mail an eigene Jarvis-Adresse | Mail weiterleiten → wird Aufgabe | beim nächsten Lauf |
 
+### Selbstheilung (Wächter)
+
+Probleme erkennt und behebt Jarvis selbst. Benjamin wird nur informiert oder gebraucht, wenn es nicht anders geht.
+
+1. **Erkennen:** Ein Wächter (Cloudflare, alle 5–15 Min.) prüft feste Kennzahlen je Projekt, z. B. letzter Post, Alter des Katalogs, Worker-Fehler, Antworten von Make/Buffer, Morgenmail verschickt.
+2. **Melden:** Störung wird in der Datenbank angelegt, Telegram: „Problem erkannt, ich kümmere mich.“
+3. **Untersuchen:** Der nächste Jarvis-Lauf (spätestens nach ca. 1 Std.) liest Logs und findet die Ursache.
+4. **Beheben, in drei Stufen:**
+   - **A – ohne Rückfrage:** erneut senden, Cache neu bauen, Token automatisch erneuern, Shop bei Sperre/403 deaktivieren.
+   - **B – Code-Fehler:** Fix schreiben, Tests laufen lassen, automatisch deployen, wenn Tests grün und Änderung klein. Prüft der Wächter danach wieder rot → automatisch zurückrollen. Größere Änderungen nur mit OK.
+   - **C – braucht Benjamin:** Passwort, Kontosperre, Zahlung, rechtliche Fragen. Telegram mit direktem Link und Buttontext.
+5. **Bericht:** Was war, was wurde gemacht, kurz per Telegram.
+
+Am Anfang mehr Stufe B mit OK, mit wachsendem Vertrauen mehr ohne Rückfrage.
+
 ## Erstes Geschäft: Ausschreibungs- und Förder-Alarm
 
 **Was:** Jarvis liest täglich öffentliche Ausschreibungen (TED, deutscher Bekanntmachungsservice, Länderportale) und Förderprogramme, filtert nach Kundenprofil, bewertet mit KI und schickt morgens eine Mail plus Push mit Zusammenfassung, Frist, Nachweisen und Punktzahl.
@@ -78,7 +93,7 @@ Perlease: 2 Monate kostenlos, danach z. B. 199 € + 1,5 %. Preis erst nennen, w
 
 | Phase | Was | Ergebnis | Status |
 |---|---|---|---|
-| 0 | Plan ins Repo. RestockHero-Deploys (Cloudflare, Supabase, Android) auf GitHub Actions | PC kann aus bleiben | offen |
+| 0 | Plan ins Repo. RestockHero-Deploys (Cloudflare, Supabase, Android) auf GitHub Actions. Wächter für RestockHero | PC kann aus bleiben, Störungen werden erkannt | offen |
 | 1 | Ausschreibungs-Alarm per Mail: zuerst WP Digital Ranger, dann Perlease | echte Treffer prüfen | offen |
 | 2 | Webseite: Login, Profil, Vertrag per Klick, Stripe, App-Ansicht mit 👍/👎 | erste zahlende Kunden | offen |
 | 3 | Angebotsentwürfe, Zuschlags-Abgleich, Provisionsrechnung, Play-Store-App | volles Produkt | offen |
