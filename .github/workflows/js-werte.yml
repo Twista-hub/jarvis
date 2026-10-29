@@ -1,0 +1,26 @@
+# Reads the public build settings (Supabase URL, anon key, VAPID public key) from a live web app bundle.
+name: App-Einstellungen lesen
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        default: "https://restockhero.eu/"
+
+jobs:
+  lesen:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          URL: ${{ inputs.url }}
+        run: |
+          html=$(curl -fsS "$URL")
+          for js in $(grep -oE '/assets/[^"]+\.js' <<<"$html" | sort -u); do
+            echo "== $js"
+            curl -fsS "${URL%/}$js" -o app.js
+            grep -oE 'https://[a-z0-9]+\.supabase\.co' app.js | sort -u
+            grep -oE 'eyJ[A-Za-z0-9_-]+\.eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+' app.js | sort -u
+            grep -oE 'sb_publishable_[A-Za-z0-9_-]+' app.js | sort -u
+            grep -oE '"B[A-Za-z0-9_-]{86}"' app.js | sort -u
+            grep -c "müssen gesetzt sein" app.js || true
+          done
