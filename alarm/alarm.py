@@ -146,6 +146,7 @@ def run(days: list[str]) -> str:
     lines = [f"# Ausschreibungs-Alarm {', '.join(days)}", "",
              f"{total} neue Ausschreibungen geprüft. Quelle: Bekanntmachungsservice (oeffentlichevergabe.de), Lizenz: {licence or 'siehe Datei'}.", ""]
     briefe = 0
+    treffer = []  # for the firms' accounts in the app (alarm/speichern.py)
     for name, profile in profiles.items():
         rows = sorted(hits[name], key=lambda h: -h[0])[:40]
         bewertung = ki.score(profile["beschreibung"], [item(i, rel) for i, (_, _, rel, _) in enumerate(rows)]) if ki and rows else {}
@@ -169,16 +170,21 @@ def run(days: list[str]) -> str:
             lines += [head, f"{(rel.get('buyer') or {}).get('name', '')} · {place(rel)} · veröffentlicht {day} · {reason}",
                       "", desc, ""]
             links = f"[Zur Ausschreibung]({url}) · [⬆️ Unterlagen prüfen lassen]({UPLOAD}?titel={urllib.parse.quote(t.get('title', '').strip()[:200])})"
+            pfad = None
             if b.get("punkte", 0) >= STECKBRIEF_AB and briefe < MAX_STECKBRIEFE:
                 pfad = steckbrief_fuer(ki, name, profile, day, rel, url)
                 if pfad:
                     briefe += 1
                     links += f" · [📄 Steckbrief](../steckbriefe/{pfad.name})"
             lines += [links, ""]
+            treffer.append({"profil": name, "quelle_id": rel.get("ocid") or rel.get("id") or url, "titel": t.get("title", "").strip(),
+                            "link": url, "frist": (t.get("tenderPeriod") or {}).get("endDate") or None,
+                            "punkte": b.get("punkte") or None, "steckbrief": pfad.read_text(encoding="utf-8") if pfad else None})
         if weg:
             lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
         if not rows:
             lines += ["Heute nichts Passendes.", ""]
+    (ROOT / "treffer.json").write_text(json.dumps(treffer, ensure_ascii=False), encoding="utf-8")
     import foerder
     lines += foerder.abschnitt(profiles, ki, days)
     if ki:

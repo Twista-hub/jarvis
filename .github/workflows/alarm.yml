@@ -29,6 +29,13 @@ jobs:
       - run: python alarm/alarm.py ${{ inputs.tage }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Treffer in die App
+        continue-on-error: true
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          pip install -q "psycopg[binary]"
+          python alarm/speichern.py
       - name: Datenbank wach halten
         # Free Supabase projects pause after 7 days without access; one query a day prevents that.
         continue-on-error: true

@@ -1,3 +1,5 @@
+import { marked } from "marked";
+
 // Page frame: plain HTML, no scripts, readable on a phone, light and dark.
 
 export function seite(titel: string, inhalt: string, neuLadenSekunden = 0): string {
@@ -43,4 +45,15 @@ ${inhalt.replace(/<table>/g, '<div class="tabelle"><table>').replace(/<\/table>/
 
 export function escape(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/** Model output may contain text from the documents: escape all HTML, allow only http(s) links. */
+export function markdown(md: string): string {
+  const safe = md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return marked.parse(safe, {
+    async: false,
+    walkTokens(token) {
+      if (token.type === "link" && !/^https?:\/\//i.test(token.href)) token.href = "#";
+    },
+  }) as string;
 }

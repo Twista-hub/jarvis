@@ -1,7 +1,7 @@
 // Accounts: login by e-mail link (Supabase Auth, PKCE on the server, no scripts) and the firm pages
 // (create a firm, areas, invitations). All data access runs with the user's token, so the database
 // rules (row level security) decide what each person may see and change.
-import { escape, seite } from "./seite.ts";
+import { escape, markdown, seite } from "./seite.ts";
 
 export interface KontoEnv {
   SUPABASE_URL: string;
@@ -11,6 +11,16 @@ export interface KontoEnv {
 type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
 type Mitglied = { firma_id: string; rolle: string; erstellt: string; user_id: string };
 type Bereich = { id: string; name: string; art: string; parent_id: string | null };
+type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; steckbrief?: string | null };
+const STATUS: Record<string, string> = {
+  neu: "neu",
+  pruefen: "prüfen",
+  angebot: "Angebot in Arbeit",
+  abgegeben: "abgegeben",
+  gewonnen: "gewonnen",
+  verloren: "verloren",
+  verworfen: "verworfen",
+};
 type Einladung = { id: string; email: string; rolle: string; gueltig_bis: string; angenommen: string | null };
 
 const ROLLEN: Record<string, string> = {
@@ -34,6 +44,9 @@ export async function konto(request: Request, env: KontoEnv): Promise<Response |
   if (p === "/konto/firma" && post) return mitSitzung(request, env, firmaAnlegen);
   if (p === "/konto/bereich" && post) return mitSitzung(request, env, bereichAnlegen);
   if (p === "/konto/einladen" && post) return mitSitzung(request, env, einladen);
+  if (p === "/konto/status" && post) return mitSitzung(request, env, statusSetzen);
+  const v = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})$/);
+  if (v && !post) return vorgangZeigen(v[1], request, env);
   if (p === "/einladung") return post ? mitSitzung(request, env, einladungAnnehmen) : einladungZeigen(url, request, env);
   return null;
 }
@@ -151,7 +164,9 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
   }
   const m = meine.daten[0];
   const admin = m.rolle === "inhaber" || m.rolle === "admin";
-  const [bereiche, mitglieder, einladungen, anzahl] = await Promise.all([
+  const alle = new URL(request.url).searchParams.get("alle") === "1";
+  const [vorgaenge, bereiche, mitglieder, einladungen, anzahl] = await Promise.all([
+    db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${alle ? "" : "&status=not.in.(verworfen,verloren)"}&select=id,titel,link,frist,status,punkte,erstellt&order=punkte.desc.nullslast,erstellt.desc&limit=100`),
     db<Bereich[]>(s, env, `bereiche?firma_id=eq.${m.firma_id}&select=id,name,art,parent_id&order=name`),
     db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id&order=erstellt`),
     admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date().toISOString()}&select=id,email,rolle,gueltig_bis,angenommen&order=erstellt.desc`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
@@ -164,6 +179,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
   let inhalt = `${kopf}
 <p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p>
 <p><a href="/">Unterlagen prüfen lassen</a></p>
+${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle)}
 <h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
   inhalt += b.length
     ? `<div class="tabelle"><table><tr><th>Name</th><th>Art</th><th>gehört zu</th></tr>${b.map((x) => `<tr><td>${escape(x.name)}</td><td>${ARTEN[x.art] ?? x.art}</td><td>${escape(name(x.parent_id))}</td></tr>`).join("")}</table></div>`
@@ -254,6 +270,40 @@ async function einladungAnnehmen(s: Sitzung, form: FormData, _r: Request, env: K
   if (r.ok) return weiterleiten(`/konto?hinweis=${encodeURIComponent("Willkommen! Du bist jetzt dabei.")}`);
   const grund = /andere E-Mail/.test(r.fehler) ? "Die Einladung gilt für eine andere E-Mail-Adresse. Melde dich mit der eingeladenen Adresse an." : "Die Einladung ist ungültig oder abgelaufen.";
   return html(seite("Einladung", `<p class="fehler">${grund}</p><p><a href="/konto">Zur Übersicht</a></p>`), 400);
+}
+
+function trefferListe(liste: Vorgang[], alle: boolean): string {
+  const umschalten = alle ? `<a href="/konto">nur offene zeigen</a>` : `<a href="/konto?alle=1">auch verworfene zeigen</a>`;
+  if (!liste.length) return `<h2>Ausschreibungen</h2><p class="klein">Noch keine Treffer. Der Morgenbericht trägt passende Ausschreibungen jeden Tag hier ein. ${umschalten}</p>`;
+  const optionen = (aktuell: string) => Object.entries(STATUS).map(([k, t]) => `<option value="${k}"${k === aktuell ? " selected" : ""}>${t}</option>`).join("");
+  const zeilen = liste.map((v) => `<tr>
+  <td>${v.punkte ? `<strong>${v.punkte}/10</strong>` : "–"}</td>
+  <td><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a></td>
+  <td>${v.frist ? datum(v.frist) : "–"}</td>
+  <td><form method="post" action="/konto/status" style="display:flex;gap:6px;padding:0;border:0;background:none">
+    <input type="hidden" name="id" value="${v.id}"><select name="status">${optionen(v.status)}</select><button>OK</button></form></td>
+</tr>`).join("");
+  return `<h2>Ausschreibungen</h2><div class="tabelle"><table><tr><th>Punkte</th><th>Titel</th><th>Frist</th><th>Stand</th></tr>${zeilen}</table></div><p class="klein">${umschalten}</p>`;
+}
+
+async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
+  const id = String(form.get("id") ?? "");
+  const status = String(form.get("status") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(id) || !STATUS[status]) return weiterleiten("/konto");
+  const r = await db(s, env, `vorgaenge?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
+  return weiterleiten(`/konto?hinweis=${encodeURIComponent(r.ok ? `Stand: ${STATUS[status]}` : "Das darfst du für diese Ausschreibung nicht ändern.")}`);
+}
+
+async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promise<Response> {
+  const s = await sitzung(request, env);
+  if (!s) return weiterleiten("/konto");
+  const r = await db<Vorgang[]>(s, env, `vorgaenge?id=eq.${id}&select=id,titel,link,frist,status,punkte,erstellt,steckbrief`);
+  const v = r.ok ? r.daten[0] : undefined;
+  if (!v) return html(seite("Nicht gefunden", `<p>Diese Ausschreibung gibt es nicht oder du darfst sie nicht sehen.</p><p><a href="/konto">Zur Übersicht</a></p>`), 404, s.cookies);
+  const hochladen = `/?titel=${encodeURIComponent(v.titel.slice(0, 200))}`;
+  return html(seite(v.titel, `<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status}</p>
+<p>${v.link && /^https?:\/\//.test(v.link) ? `<a href="${escape(v.link)}" rel="noopener">Zur Ausschreibung</a> · ` : ""}<a href="${escape(hochladen)}">Unterlagen prüfen lassen</a> · <a href="/konto">Zur Übersicht</a></p>
+${v.steckbrief ? `<h2>Steckbrief</h2>${markdown(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief. Lade die Vergabeunterlagen hoch, dann schreibt Jarvis einen.</p>`}`), 200, s.cookies);
 }
 
 // ---------- Helpers ----------
