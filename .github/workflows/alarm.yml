@@ -29,6 +29,16 @@ jobs:
       - run: python alarm/alarm.py ${{ inputs.tage }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      - name: Datenbank wach halten
+        # Free Supabase projects pause after 7 days without access; one query a day prevents that.
+        continue-on-error: true
+        env:
+          PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          pw=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["PW"],safe=""))')
+          for host in aws-1-eu-central-1 aws-0-eu-central-1; do
+            psql "postgresql://postgres.juuuifrcxmitkqudqngq:$pw@$host.pooler.supabase.com:5432/postgres" -tAc "select 'Datenbank wach: ' || count(*) || ' Firmen' from public.firmen" 2>/dev/null && break
+          done
       - name: Bericht speichern
         run: |
           git config user.name "Jarvis"
