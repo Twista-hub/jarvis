@@ -29,7 +29,7 @@ Regel: vor jedem automatischen Abruf Nutzungsbedingungen und robots.txt prüfen 
 
 | Quelle | Geprüft | Ergebnis | Nutzung |
 |---|---|---|---|
-| Förderdatenbank des Bundes (foerderdatenbank.de) | 29.10.2026 | Impressum: Texte unter CC BY-ND 4.0 DE (Namensnennung, keine Bearbeitung). robots.txt erlaubt, `Crawl-delay: 30`. RSS-Feed „Förderprogramme“: https://www.foerderdatenbank.de/FDB/DE/Service/RSS/Functions/foerderprogram_rssnewsfeed.xml | erlaubt über RSS mit Quellenangabe. Texte nicht umschreiben und weitergeben: nur Titel, Link und unsere eigene Einschätzung zeigen |
+| Förderdatenbank des Bundes (foerderdatenbank.de) | 29.10.2026 | Impressum: Texte unter CC BY-ND 4.0 DE (Namensnennung, keine Bearbeitung). robots.txt erlaubt, `Crawl-delay: 30`. RSS-Feed „Förderprogramme“: https://www.foerderdatenbank.de/FDB/DE/Service/RSS/Functions/foerderprogram_rssnewsfeed.xml | seit 29.10.2026 im Morgenbericht (`alarm/foerder.py`), über RSS mit Quellenangabe. Texte nicht umschreiben und weitergeben: nur Titel, Link und unsere eigene Einschätzung zeigen |
 
 ## Messen und Events (Vertriebs-Alarm)
 

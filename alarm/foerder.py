@@ -35,7 +35,7 @@ def parse(blob: bytes) -> list[dict]:
                 pass
         text = re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", get("description"))).strip()
         if get("title") and get("link"):
-            out.append({"titel": get("title"), "link": get("link"), "tag": tag, "text": text})
+            out.append({"titel": get("title"), "link": get("link").split("?")[0], "tag": tag, "text": text})
     return out
 
 
