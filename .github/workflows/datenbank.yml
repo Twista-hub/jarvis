@@ -1,0 +1,48 @@
+# Database migrations for the Supabase project "jarvis" (juuuifrcxmitkqudqngq, Frankfurt).
+# Needs only the repository secret SUPABASE_DB_PASSWORD. "anzeigen" is a dry run;
+# "einspielen" applies supabase/migrations and needs the input EINSPIELEN.
+name: Datenbank
+
+on:
+  workflow_dispatch:
+    inputs:
+      aktion:
+        type: choice
+        options: [anzeigen, einspielen]
+        default: anzeigen
+      bestaetigung:
+        description: "Zum Einspielen hier EINSPIELEN eintippen"
+        default: ""
+
+concurrency:
+  group: datenbank
+  cancel-in-progress: false
+
+jobs:
+  datenbank:
+    runs-on: ubuntu-latest
+    env:
+      REF: juuuifrcxmitkqudqngq
+      PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verbindung finden
+        run: |
+          if [ -z "$PW" ]; then echo "::error::Secret SUPABASE_DB_PASSWORD fehlt."; exit 1; fi
+          pw=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["PW"],safe=""))')
+          for host in aws-1-eu-central-1 aws-0-eu-central-1; do
+            url="postgresql://postgres.$REF:$pw@$host.pooler.supabase.com:5432/postgres"
+            if psql "$url" -tAc "select 'verbunden: ' || version()" 2>/dev/null; then
+              echo "::add-mask::$url"; echo "DB_URL=$url" >> "$GITHUB_ENV"; exit 0
+            fi
+          done
+          echo "::error::Keine Verbindung (Passwort falsch oder Projekt pausiert)."; exit 1
+      - name: Migrationen
+        run: |
+          if [ "${{ inputs.aktion }}" = einspielen ] && [ "${{ inputs.bestaetigung }}" = EINSPIELEN ]; then
+            npx -y supabase@2.48.3 db push --db-url "$DB_URL" --include-all --yes
+          else
+            npx -y supabase@2.48.3 db push --db-url "$DB_URL" --include-all --dry-run
+          fi
+      - name: Tabellen
+        run: psql "$DB_URL" -tAc "select table_name from information_schema.tables where table_schema='public' order by 1"

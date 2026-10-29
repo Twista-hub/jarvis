@@ -54,6 +54,6 @@ Beispiel Perlease mit 15 Nutzern im Pro-Paket: 399 € + 10 × 39 € = 789 € 
 ## Technik
 
 - **Login:** Supabase Auth (Frankfurt) mit Magic Link per E-Mail. Admins laden Mitarbeiter per E-Mail ein.
-- **Daten:** Supabase-Projekt „jarvis“ (Frankfurt), strikt getrennt von RestockHero und Demopin.
+- **Daten:** Supabase-Projekt „jarvis“ (`juuuifrcxmitkqudqngq`, Frankfurt, Organisation „WP Digital Ranger“, seit 29.10.2026), strikt getrennt von RestockHero und Demopin. Migrationen über den Ablauf „Datenbank“ (Secret `SUPABASE_DB_PASSWORD`).
 - **Unterlagen und Steckbriefe:** wie bisher über Cloudflare (R2 EU, Workers AI, Claude). Später hängen sie am Vorgang.
 - **Oberfläche:** die Upload-Seite (`web/`) wird zur App: Anmelden, Treffer-Liste pro Bereich, Vorgang mit Steckbrief und Kalkulation, Verwaltung (Bereiche, Mitarbeiter, Abrechnung).
