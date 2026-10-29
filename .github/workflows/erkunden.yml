@@ -7,11 +7,18 @@ on:
       tage:
         description: "Zeitraum in Tagen"
         default: "30"
+      beispiel:
+        description: "Nur ein Beispiel zeigen: Suchwort"
+        default: ""
 
 jobs:
   erkunden:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: python3 alarm/erkunden.py "${{ inputs.tage }}"
-      - run: python3 alarm/erkunden_de.py "${{ inputs.tage }}"
+      - if: inputs.beispiel != ''
+        run: python3 alarm/beispiel.py "${{ inputs.beispiel }}" "${{ inputs.tage }}"
+      - if: inputs.beispiel == ''
+        run: python3 alarm/erkunden.py "${{ inputs.tage }}"
+      - if: inputs.beispiel == ''
+        run: python3 alarm/erkunden_de.py "${{ inputs.tage }}"
