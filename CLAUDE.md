@@ -2,6 +2,7 @@
 
 ## Nutzer
 - Benjamin Schiffer, Firma „WP Digital Ranger“ (Einzelunternehmen, Nebenerwerb). Schreibt Deutsch, locker und schnell, oft vom Handy; Tipp- und Diktierfehler sind normal.
+- Firmendaten (Impressum): Rochusstraße 19, 52531 Übach-Palenberg (NRW). Kleinunternehmer nach § 19 UStG, Steuernummer über Elster beantragt (Stand 30.10.2026), keine USt-IdNr. Telefon vorerst nicht veröffentlichen. Gespeichert in `web/src/rechtliches.ts` (`FIRMA`).
 - Kein Konsolen-Fan. Für Schritte im Browser immer den direkten Link und den genauen Buttontext schicken.
 - Antworten auf Deutsch, kurz, Wichtigstes zuerst.
 

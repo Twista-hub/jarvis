@@ -5,13 +5,13 @@ import { escape } from "./seite.ts";
 export const FIRMA = {
   name: "Benjamin Schiffer",
   firma: "WP Digital Ranger",
-  strasse: "", // e.g. "Musterstraße 1"
-  ort: "", // e.g. "12345 Musterstadt"
+  strasse: "Rochusstraße 19", // e.g. "Musterstraße 1"
+  ort: "52531 Übach-Palenberg", // e.g. "12345 Musterstadt"
   telefon: "", // optional
   email: "kontakt@wpdigitalranger.com",
   ustId: "", // USt-IdNr., if any
-  kleinunternehmer: false, // true: § 19 UStG
-  aufsicht: "", // data protection authority of the state, e.g. "Landesbeauftragte für Datenschutz ..., https://..."
+  kleinunternehmer: true, // true: § 19 UStG
+  aufsicht: "Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen, Kavalleriestraße 2–4, 40213 Düsseldorf, www.ldi.nrw.de", // data protection authority of the state, e.g. "Landesbeauftragte für Datenschutz ..., https://..."
   stand: "30.10.2026",
 };
 
