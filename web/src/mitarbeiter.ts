@@ -8,15 +8,18 @@ export const funktionsListe = `<datalist id="funktionen">${FUNKTIONEN.map((f) =>
 
 export function personFormular(person: Person, firma: string, bereiche: Bereich[], zugeordnet: string[], inhaber: boolean): string {
   if (person.rolle === "inhaber" && !inhaber) return "";
+  const standorte = bereiche.filter((b) => b.art === "standort" && !bereiche.some((x) => x.parent_id === b.id && x.art === "standort"));
+  const leitung = person.rolle === "standortleitung";
   return `<details><summary>Funktion & Rechte ändern</summary><form method="post" action="/konto/mitarbeiter">
     <input type="hidden" name="firma" value="${firma}"><input type="hidden" name="person" value="${person.user_id}">
     <label>Name<input name="name" maxlength="200" value="${escape(person.anzeigename ?? "")}"></label>
     <label>Funktion im Betrieb<input name="funktion" list="funktionen" required maxlength="100" value="${escape(person.funktion ?? "Mitarbeiter/in")}"></label>
-    <label>Zugriff<select name="rolle">${Object.entries(ZUGRIFFE).filter(([r]) => r !== "inhaber" || inhaber).map(([r, label]) => `<option value="${r}"${person.rolle === r ? " selected" : ""}>${escape(label)}</option>`).join("")}</select></label>
+    <label>Zugriff<select name="rolle" data-rolle>${Object.entries(ZUGRIFFE).filter(([r]) => r !== "inhaber" || inhaber).map(([r, label]) => `<option value="${r}"${person.rolle === r ? " selected" : ""}>${escape(label)}</option>`).join("")}</select></label>
     <p class="klein">„Nur persönlich freigegebene Informationen“ zeigt ausschließlich die ausgewählten Texte. Vollständige Steckbriefe können bereits Preisangaben enthalten. Standortleitung gilt nur für zugeordnete Standorte, kann dort Personal und Einsätze pflegen und hat keinen Zugriff auf Kalkulation oder Firmenunterlagen.</p>
     <label class="zeile"><input type="checkbox" name="finanzen"${person.finanzen ? " checked" : ""}>Kalkulation, Firmenunterlagen und Angebotsmappen freigeben</label>
     <p class="klein">Finanzfreigabe gilt nur beim Zugriff auf vollständige Steckbriefe. Inhaber und Administration sehen immer alle Informationen.</p>
-    <fieldset><legend>Bereiche für vollständige Steckbriefe</legend><label class="zeile"><input type="checkbox" name="alle"${person.alle_bereiche ? " checked" : ""}>Alle Bereiche</label>${bereiche.map((b) => `<label class="zeile"><input type="checkbox" name="bereiche" value="${b.id}"${zugeordnet.includes(b.id) ? " checked" : ""}>${escape(bereichPfad(bereiche, b))}</label>`).join("")}</fieldset>
+    <fieldset data-bereiche-mehrfach${leitung ? " hidden" : ""}><legend>Bereiche für vollständige Steckbriefe</legend><label class="zeile"><input type="checkbox" name="alle"${person.alle_bereiche ? " checked" : ""}>Alle Bereiche</label>${bereiche.map((b) => `<label class="zeile"><input type="checkbox" name="bereiche" value="${b.id}"${zugeordnet.includes(b.id) ? " checked" : ""}>${escape(bereichPfad(bereiche, b))}</label>`).join("")}</fieldset>
+    <fieldset data-bereich-einzel${leitung ? "" : " hidden"}><legend>Standort der Leitung</legend><p class="klein">Wähle genau einen Standort aus. Dann kann diese Person dort Personal und Einsätze verwalten. Regionen werden nicht angeboten.</p>${standorte.length ? standorte.map((b) => `<label class="zeile"><input type="radio" name="bereiche" value="${b.id}"${zugeordnet.includes(b.id) ? " checked" : ""}${leitung ? " required" : " disabled"}>${escape(bereichPfad(bereiche, b))}</label>`).join("") : `<p>Lege zuerst einen Standort an.</p>`}</fieldset>
     <button>Rechte speichern</button></form></details>`;
 }
 

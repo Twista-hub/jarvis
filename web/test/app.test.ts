@@ -8,6 +8,11 @@ test("serves the app files with the right types", async () => {
   assert.equal(manifest.start_url, "/konto");
   const png = new Uint8Array(await statisch("/icon-192.png")!.arrayBuffer());
   assert.deepEqual([...png.slice(1, 4)], [80, 78, 71]); // "PNG"
+  const js = await statisch("/app.js")!.text();
+  assert.match(js, /data-tarifgruppen/);
+  assert.match(js, /option\.disabled = !!option\.value/);
+  assert.match(js, /data-bereich-einzel/);
+  assert.match(js, /istLeitung = rolle\.value === "standortleitung"/);
   assert.equal(statisch("/geheim"), null);
   assert.match(CSP, /script-src 'self'/);
 });

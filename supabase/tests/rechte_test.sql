@@ -20,6 +20,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031020000_personal.sql
 \ir ../migrations/20261031030000_einsaetze.sql
 \ir ../migrations/20261031040000_standortleitung_qualifikationen.sql
+\ir ../migrations/20261031050000_personal_tarifvertraege.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -79,6 +80,19 @@ end $$;
 -- Personnel pool: editors add people at their own locations only.
 insert into public.personal (firma_id, bereich_id, vorname, berufe) values (:'firma', :'berlin', 'Eva', '{Servicekraft}');
 select pruefe((select count(*) = 1 from public.personal), 'Bearbeiter trägt Personal in Berlin ein');
+select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name='Zeitarbeit GVP/DGB' and '2a'=any(gruppen)), 'Firma erhält GVP/DGB mit dokumentierten Entgeltgruppen');
+insert into public.personal (firma_id, bereich_id, vorname, tarifvertrag_id, eg)
+  select :'firma', :'berlin', 'Tarifkraft', id, '2a' from public.firmen_tarifvertraege where firma_id=:'firma' and vorgegeben;
+select pruefe((select count(*) = 1 from public.personal where vorname='Tarifkraft' and eg='2a'), 'Entgeltgruppe des gewählten Vertrags ist zulässig');
+do $$ begin
+  insert into public.personal (firma_id, bereich_id, vorname, tarifvertrag_id, eg)
+    select current_setting('test.firma')::uuid, (select id from public.bereiche where name='Berlin'), 'Falsche Gruppe', id, 'Meister'
+    from public.firmen_tarifvertraege where firma_id=current_setting('test.firma')::uuid and vorgegeben;
+  raise exception 'FEHLER: fremde Entgeltgruppe akzeptiert';
+exception when raise_exception then
+  if sqlerrm like 'FEHLER%' then raise; end if;
+  raise notice 'ok: Entgeltgruppe muss zum gewählten Vertrag gehören';
+end $$;
 do $$ begin
   insert into public.personal (firma_id, bereich_id, vorname) values (current_setting('test.firma')::uuid, (select id from public.bereiche where name = 'Hamburg'), 'Heimlich');
   raise exception 'FEHLER: Personal in fremdem Standort eingetragen';
