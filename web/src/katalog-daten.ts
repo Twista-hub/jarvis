@@ -1,4 +1,4 @@
-import { BERUFE } from "./berufe.ts";
+import { BERUFE, BERUF_SYNONYME } from "./berufe.ts";
 
 // Source data only. No customer profiles, contact lists or private documents are shared.
 export type Bedarf = { art: "beruf" | "qualifikation" | "nachweis"; name: string; fundstelle: string; los: string; menge?: number };
@@ -27,6 +27,16 @@ for (const name of Object.values(BERUFE).flat()) {
   const stem = name.split("/")[0].replace(/[- ]$/, "");
   const safe = stem.replace(/[.*+?^${}()|[\]\\]/g, "\\$&").replace(/kraft/g, "kr(?:aft|äfte)");
   BERUF_REGELN.push([name, new RegExp(safe, "gi")]);
+}
+// Ausschreibungen verwenden oft andere Berufsbezeichnungen als Personalprofile.
+// Aliase werden auf die kanonische Bezeichnung abgebildet; die Fundstelle behält
+// weiterhin den Wortlaut aus der Bekanntmachung.
+for (const [kanonisch, aliase] of Object.entries(BERUF_SYNONYME)) {
+  const index = BERUF_REGELN.findIndex(([name]) => name === kanonisch);
+  if (index < 0 || !aliase.length) continue;
+  const [name, regex] = BERUF_REGELN[index];
+  const aliasMuster = aliase.map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+  BERUF_REGELN[index] = [name, new RegExp(`(?:${regex.source})|(?:${aliasMuster})`, "giu")];
 }
 for (let i = 0; i < BERUF_REGELN.length; i++) {
   const [name, regex] = BERUF_REGELN[i];

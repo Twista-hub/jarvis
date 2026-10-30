@@ -11,15 +11,16 @@
 
 ## Bereits umgesetzt
 
-- Berufsgruppen für Büro, Bau/Ausbau, Technik/Metall, Logistik, Gastronomie, Reinigung, Pflege, Einzelhandel, Sicherheit/Veranstaltung und Garten/Agrar.
+- Berufsgruppen für Büro/Verwaltung, Bau/Ausbau, Elektro/Metall/Technik, IT/Kommunikation, Logistik, Gastronomie/Hotel, Reinigung/Hauswirtschaft, Pflege/Soziales, Bildung/Betreuung, Einzelhandel, Sicherheit/Veranstaltung, Garten/Agrar/Tierpflege, Fahrzeug/Verkehr und Gebäudetechnik/Energie (`web/src/berufe.ts`).
+- Ausschreibungs-Synonyme werden auf vorhandene kanonische Berufe abgebildet, z. B. Schreiner → Tischler/in, Fachinformatiker Systemintegration → Fachinformatiker/in und PV-Monteur → Solar-/Photovoltaikmonteur/in (`web/src/katalog-daten.ts`). Der erkannte Eintrag enthält weiterhin Originalfundstelle und Losbezug.
 - Zusätzliche Berufe pro Person bleiben als Freitext möglich.
 - Qualifikationen aus dem Grundkatalog sowie selbst angelegte Qualifikationen je Firma oder Standort.
 - Filter nach Beruf, Qualifikation und Verfügbarkeit; Standortleitung mit Personal- und Einsatzrechten nur im zugeordneten Bereich.
 - Firmenweite Kalkulation, Angebotsunterlagen und Mitgliedsverwaltung bleiben der Administration bzw. explizit finanzberechtigten Rollen vorbehalten.
 
-## Nächster Datenbankschritt
+## Datenherkunft und nächste Schritte
 
-Die gemeinsame Berufsdatenbank soll kanonische Berufe mit Synonymen und Herkunft enthalten. Treffer aus Ausschreibungen werden nicht ungeprüft zu Berufen erklärt: Jarvis schlägt eine Zuordnung mit Originaltext, Fundstelle und Vertrauenswert vor; ein Mensch bestätigt oder korrigiert sie. So können neue und branchenspezifische Tätigkeiten ergänzt werden, ohne ältere Datensätze umzubenennen.
+Der aktuelle Berufekatalog ist ein kuratierter Startbestand im Anwendungscode, keine vollständige oder direkt importierte amtliche Berufedatenbank. Die Synonymliste wächst schrittweise. Der Trefferbedarf wird mit Originaltext/Fundstelle erkannt; fachliche Eignung und Zuordnung müssen weiter durch Nutzer geprüft werden. Für eine größere Berufedatenbank sind pro Eintrag Herkunft, Aktualisierungsdatum und Nutzungsrecht zu dokumentieren, bevor sie importiert wird.
 
 Zielverknüpfungen: Ausschreibung ↔ Beruf ↔ Anforderungen; Einsatzkraft ↔ Berufe ↔ Qualifikationsnachweise; Qualifikationsnachweis ↔ Ablaufdatum; Tarifregel ↔ Vertrag/Region/Gültigkeitszeitraum/Entgeltgruppe. Tarifdaten müssen aus dem passenden Originalvertrag übernommen werden. Eine GVP/DGB-Tabelle darf zum Beispiel nicht auf Maler-, Elektro- oder andere Branchen übertragen werden.
 

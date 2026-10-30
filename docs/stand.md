@@ -17,6 +17,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Mitarbeiter: Name und Funktion (z. B. Abteilungsleitung, Sachbearbeitung, Serviceleitung/Facharbeiter) getrennt von Rollen, Bereichszuordnung und Finanzfreigabe; gezielte Textweitergabe mit Vorschau/Widerruf und eigener Mitarbeiteransicht.
   - Organisationsbaum Firma → Region → Standort, getrennte App-Zugänge und Einsatzpersonal, sichtbare Standortleitung mit auf einen einzelnen Standort beschränkten Rechten. Standortleitungen verwalten Personal und Einsätze, aber weder Firmenfinanzen noch globale Team-/Bereichsverwaltung.
   - Personalbestand mit branchenübergreifenden Berufsgruppen, Verfügbarkeit, Kontakt und Qualifikationen; eigene Qualifikationen pro Firma/Standort, Filter nach Beruf, Qualifikation und Status. Personen können Ausschreibungen mit Einsatzstatus zugeordnet werden.
+  - Berufekatalog in `web/src/berufe.ts` um IT, Bildung/Betreuung, Fahrzeug/Verkehr sowie Gebäudetechnik/Energie erweitert. Ausschreibungsbegriffe werden über gepflegte Synonyme kanonischen Berufsbezeichnungen zugeordnet; der Originalwortlaut bleibt in der Fundstelle erhalten. Das ist ein kuratierter Startbestand, keine vollständige amtliche Berufedatenbank.
   - Qualifikationen als Mehrfachauswahl mit Häkchen. Personal wird einem Tarifvertrag mit Geltungsbereich, Quelle und Laufzeit zugeordnet; die Entgeltgruppenliste zeigt nur Gruppen dieses Vertrags. GVP/DGB ist aus den Originalverträgen vorbefüllt, weitere Verträge kann die Administration mit den Gruppen aus dem Originalvertrag hinterlegen.
   - Kalkulation pro Los mit Tarifentgeltgruppen, Laufzeit, Schicht- und Einsatzkosten, Gemeinkosten sowie Gewinn.
   - Firmenunterlagen und Word-/Textvorlagen; Angebotsmappe mit bearbeitbarem Entwurf, Chef-Freigabe vor Download, Ablaufprüfung, Ablauf-Erinnerungen und protokolliertem Eingangsbeleg nach manueller Portalabgabe.
@@ -29,13 +30,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
+- Zurzeit nichts.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
 2. ~~**Kalkulationsvorlagen pro Standort**~~: Auf `/konto/kalkulation` nach Firma oder Standort auswählen und Vorlagen speichern. Beim Rechnen gelten in Reihenfolge Standort → Region → Firma; eigene Angebotswerte behalten Vorrang. Keine Migration nötig, vorhandene Bereichs-/Finanzrechte bleiben maßgeblich.
-3. Mitarbeiter sperren/austreten lassen.
-4. Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen.
-5. Berufs- und Tarifdatenbank (`docs/personalkatalog.md`).
+3. ~~Mitarbeiter sperren/austreten lassen~~ (firmenbezogen umgesetzt).
+4. ~~Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen~~ (umgesetzt; Rechte und Finanzsicht bleiben rollenabhängig).
+5. Berufekatalog um weitere belegte Tätigkeiten/Synonyme ergänzen; Tarifdaten nur vertragsbezogen aus Originalen aufnehmen. Keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`).
 6. Danach Quellen (Lücke Bayern/BW, SAM.gov-API-Bedingungen), dann Pläne/Stripe, Telegram-Jarvis.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
@@ -44,13 +46,19 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
-2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen. Die bundesweite zentrale Tarifdatenbank bleibt offen: Recherchequellen decken nur ausgewählte Branchen/Berufe ab; Nutzungsrechte und Aktualisierung für eine automatische Übernahme müssen geklärt werden (docs/personalkatalog.md, alarm/quellen.md).
+2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt und kaufmännische Zuständigkeit sind umgesetzt. Berufekatalog samt Ausschreibungssynonymen ist erweitert. Die bundesweite Tarifdatenbank bleibt offen: geprüfte Quellen decken nur ausgewählte Branchen/Berufe ab; Vollständigkeit, Nutzungsrechte und Aktualisierung für eine automatische Übernahme sind ungeklärt (docs/personalkatalog.md, alarm/quellen.md).
 3. ~~Mitarbeiterzugänge sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Logo und Grundgestaltung in der Konto-Kopfzeile~~ (umgesetzt); übrige Seitensymbole/Farben können später vereinheitlicht werden.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (Berufekatalog und Ausschreibungssynonyme)
+- Berufekatalog (`web/src/berufe.ts`) um Tätigkeiten in IT/Kommunikation, Bildung/Betreuung, Fahrzeug/Verkehr sowie Gebäudetechnik/Energie erweitert; Agrar/Tierpflege um Landwirt, Tierpfleger und Forstwirt ergänzt.
+- `web/src/katalog-daten.ts` ordnet zusätzliche Ausschreibungsbegriffe (z. B. Schreiner, Fachinformatiker Systemintegration, PV-Monteur) kanonischen Berufen zu. Der extrahierte Bedarf behält Originalfundstelle und Losbezug. Regressionstest ergänzt.
+- `cd web && npm run check && npm test`: Typprüfung und alle 19 Testdateien erfolgreich.
+- Keine Datenbank- oder Tarifmigration: die vorbefüllten Entgeltgruppen bleiben an die vorhandenen Originalverträge gebunden. Offen sind belegte weitere Berufsbezeichnungen samt Herkunft sowie vollständige, rechtmäßig nutzbare Tarifquellen und deren Aktualisierung; die App behauptet keine bundesweite Vollständigkeit. Benjamin muss hierfür nichts hochladen oder einrichten.
 
 ### 30.10.2026 – ChatGPT (Logo- und Designvorschlag)
 - Main aktualisiert und Claudes neue Domain, Auslandsquellen und Einsatzplanung gelesen. Jüngste Web-/Prüfläufe sowie Datenbank- und Katalog-Ausrollläufe auf GitHub erfolgreich; kein erneuter Rollout ausgelöst.

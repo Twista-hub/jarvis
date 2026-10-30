@@ -41,6 +41,12 @@ test("Unbekannte Fristen und Mengen bleiben unbekannt; normale Wörter sind kein
   assert.equal(n.status, "unbekannt");
   assert.equal(n.bedarf.length, 0);
 });
+test("Branchenübergreifende Synonyme werden kanonisch erkannt und behalten ihre Fundstelle", () => {
+  const b = bedarfErkennen("Gesucht sind Fachinformatiker Systemintegration und PV-Monteure sowie Schreinerinnen.");
+  assert.ok(b.some((x) => x.name === "Fachinformatiker/in" && x.fundstelle.includes("Fachinformatiker Systemintegration")));
+  assert.ok(b.some((x) => x.name === "Solar-/Photovoltaikmonteur/in" && x.fundstelle.includes("PV-Monteure")));
+  assert.ok(b.some((x) => x.name === "Tischler/in" && x.fundstelle.includes("Schreinerinnen")));
+});
 test("Teilnahmecheck vergleicht verfügbare Kräfte und ausreichend lange gültige Nachweise", () => {
   const b = bedarfErkennen("3 Elektriker und eine gültige Arbeitnehmerüberlassungserlaubnis");
   b.push({ art: "nachweis", name: "Arbeitnehmerüberlassungserlaubnis", los: "", fundstelle: "Erlaubnis erforderlich" });
