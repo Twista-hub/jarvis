@@ -16,3 +16,20 @@ test("Seitenrahmen hat gut erreichbare Handy- und Tastaturbedienung", () => {
   assert.match(html, /:focus-visible/);
   assert.match(html, /position: fixed/);
 });
+
+test("Mehrere Kontexthilfen teilen ein Symbol neben der Seitenüberschrift", () => {
+  const html = seite("Firma & Team", `<h2>Personal</h2>${hilfe("Personal", "Kräfte eintragen")}<form></form><h2>Zugänge</h2>${hilfe("Rechte", "Zugriff auswählen")}`);
+  assert.equal((html.match(/<details class="seiten-hilfe">/g) ?? []).length, 1);
+  assert.match(html, /<div class="seiten-titel"><h1>Firma &#38; Team<\/h1><details/);
+  assert.match(html, /<strong>Personal<\/strong><br>Kräfte eintragen/);
+  assert.match(html, /<strong>Rechte<\/strong><br>Zugriff auswählen/);
+  assert.doesNotMatch(html, /<details class="hilfe">/);
+  assert.match(html, /width: min\(360px, 100%\)/);
+});
+
+test("Bestehende Seitenüberschrift erhält das Symbol ohne zweite Überschrift", () => {
+  const html = seite("Standort", `<h1>Hamburg</h1><p>Personal</p>${hilfe("Einplanung", "Status ändern")}`);
+  assert.equal((html.match(/<h1>/g) ?? []).length, 1);
+  assert.match(html, /<div class="seiten-titel"><h1>Hamburg<\/h1><details/);
+  assert.match(html, /<summary aria-label="Hinweise zu Standort"/);
+});

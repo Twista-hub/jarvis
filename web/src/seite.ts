@@ -3,6 +3,20 @@ import { marked } from "marked";
 // Page frame: plain HTML (the only script is /app.js, see app.ts), readable on a phone, light and dark.
 
 export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, kontoBereich?: string): string {
+  // Collect only the controlled markup emitted by hilfe(), after access checks have built this page.
+  // One icon next to the title replaces separate rows for every contextual explanation.
+  const hinweise: string[] = [];
+  inhalt = inhalt.replace(/<details class="hilfe"><summary aria-label="([^"]*)" title="[^"]*"><span aria-hidden="true">ℹ️<\/span><\/summary><p>([\s\S]*?)<\/p><\/details>/g, (_block, name, text) => {
+    hinweise.push(`<p><strong>${name}</strong><br>${text}</p>`);
+    return "";
+  });
+  const info = hinweise.length ? `<details class="seiten-hilfe"><summary aria-label="Hinweise zu ${escape(titel)}" title="Hinweise"><span aria-hidden="true">ℹ️</span></summary><div class="hilfe-inhalt">${hinweise.join("")}</div></details>` : "";
+  const titelzeile = (h: string) => `<div class="seiten-titel">${h}${info}</div>`;
+  let kopf = titelzeile(`<h1>${escape(titel)}</h1>`);
+  if (inhalt.trimStart().startsWith("<h1")) {
+    kopf = "";
+    inhalt = inhalt.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/, titelzeile);
+  }
   return `<!doctype html>
 <html lang="de">
 <head>
@@ -47,11 +61,14 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   button, input, select { min-height: 44px; }
   input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; min-height: 22px; flex: 0 0 22px; accent-color: var(--accent); }
   .knopf { display: block; text-align: center; font-weight: 700; font-size: 1.1rem; padding: 14px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; }
-  .hilfe { margin: 4px 0; max-width: 100%; }
-  .hilfe[open] { border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
-  .hilfe summary { display: flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; cursor: pointer; color: var(--accent); list-style: none; }
-  .hilfe summary::-webkit-details-marker { display: none; }
-  .hilfe p { margin: 0; padding: 0 12px 12px; color: var(--muted); font-size: 14px; }
+  .seiten-titel { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .seiten-titel h1 { min-width: 0; }
+  .seiten-hilfe { flex: 0 0 44px; align-self: center; }
+  .seiten-hilfe summary { display: flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; cursor: pointer; color: var(--accent); list-style: none; border-radius: 8px; }
+  .seiten-hilfe summary::-webkit-details-marker { display: none; }
+  .hilfe-inhalt { position: absolute; top: 100%; right: 0; z-index: 20; width: min(360px, 100%); max-height: 55vh; overflow-y: auto; border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--card); box-shadow: 0 4px 16px #0002; }
+  .hilfe-inhalt p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+  .hilfe-inhalt p:last-child { margin-bottom: 0; }
   .fehler { color: var(--error); font-weight: 600; }
   .laedt { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
   .kreisel { flex-shrink: 0; width: 24px; height: 24px; margin-top: 2px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: kreisen 0.9s linear infinite; }
@@ -194,7 +211,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 <body><main>
 ${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto">Jarvis</a><div class="konto-aktionen"><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>`}
 ${kontoBereich ? `<p class="konto-zurueck"><a href="/konto" aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←</span></a></p>` : ""}
-${inhalt.trimStart().startsWith("<h1") ? "" : `<h1>${escape(titel)}</h1>`}
+${kopf}
 ${inhalt.replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace(/<\/table>/g, "</table></div>")}
 <p class="klein">WP Digital Ranger · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> · <a href="/avv">Auftragsverarbeitung</a></p>
 </main>${kontoBereich !== undefined ? kontoNavigation(kontoBereich) : ""}</body>
