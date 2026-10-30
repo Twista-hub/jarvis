@@ -53,7 +53,8 @@ ausführlichen Steckbrief und rechnet den Angebotspreis.
 | Suchprofile | `alarm/profile.json` (von Hand) oder in der App gespeichert (Tabelle `suchprofile`, gewinnt) | |
 
 Wichtige Daten-Regeln: Alle App-Zugriffe laufen mit dem Token der Person (Zeilenrechte/RLS). Firmen anlegen nur nach
-Freischaltung (Tabelle `freigaben`). Rollen: inhaber, admin, bearbeiter, leser (kostenlos).
+Freischaltung (Tabelle `freigaben`). Rollen: inhaber, admin, bearbeiter, leser (kostenlos), mitarbeiter (nur persönlich freigegebene Texte). Funktionen wie Abteilungsleitung oder Facharbeiter sind unabhängig von Zugriffsrechten. Finanzdaten nur für Inhaber/Administration oder ausdrücklich berechtigte Leser/Bearbeiter. Mitarbeiter-Freigaben sind ausgewählte Textkopien mit Vorschau und Widerruf, keine Zugriffe auf Originalunterlagen/Kalkulation.
+Firmenunterlagen/Vorlagen liegen unter `bibliothek/` in R2 (EU) bis zur Löschung, getrennt von den 30-Tage-Vergabeunterlagen. Angebotsmappen werden als Entwurf vorbereitet und heruntergeladen; die Abgabe erfolgt über den vorgeschriebenen Portalweg. Keine automatische Unterschrift oder Übermittlung ohne erlaubte Schnittstelle und Freigabe.
 
 ## 6. Wie man arbeitet (ohne PC, über GitHub)
 - Code ändern, testen, auf `main` pushen. Ein Push auf `web/**` rollt die App automatisch aus (`web.yml`, mit Typprüfung,

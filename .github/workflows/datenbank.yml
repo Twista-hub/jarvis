@@ -48,3 +48,8 @@ jobs:
         run: |
           psql "$DB_URL" -tAc "select table_name from information_schema.tables where table_schema='public' order by 1"
           psql "$DB_URL" -c "select f.id, f.name, f.paket, f.erstellt::date, count(m.*) as mitglieder, (select count(*) from public.vorgaenge v where v.firma_id = f.id) as vorgaenge from public.firmen f left join public.mitglieder m on m.firma_id = f.id group by f.id order by f.erstellt"
+
+      - name: Standorte und Zeilenrechte prüfen
+        run: |
+          psql "$DB_URL" -c "select f.name, count(*) filter(where b.parent_id is null) as regionen, count(*) filter(where b.parent_id is not null) as standorte from public.firmen f join public.bereiche b on b.firma_id=f.id group by f.name"
+          psql "$DB_URL" -c "select relname,relrowsecurity from pg_class c join pg_namespace n on n.oid=c.relnamespace where n.nspname='public' and c.relname in ('vorgang_freigaben','firmenunterlagen','angebotsmappen')"

@@ -2,3 +2,6 @@ __pycache__/
 node_modules/
 .wrangler/
 alarm/treffer.json
+
+# Local Supabase CLI metadata (no source).
+supabase/.temp/

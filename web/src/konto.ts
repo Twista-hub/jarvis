@@ -1,6 +1,9 @@
 // Accounts: login by e-mail link (Supabase Auth, PKCE on the server, no scripts) and the firm pages
 // (create a firm, areas, invitations). All data access runs with the user's token, so the database
 // rules (row level security) decide what each person may see and change.
+import { bereichOptionen as optionenFuerBereiche } from "./bereiche.ts";
+import { funktionsListe, personFormular } from "./mitarbeiter.ts";
+import { darfFinanzen, FUNKTIONEN, ZUGRIFFE } from "./rechte.ts";
 import { einladungsMail, senden } from "./mail.ts";
 import { CSP } from "./app.ts";
 import { FELDER, STANDARD, fmt, zahl, type Eingaben } from "./kalkulation.ts";
@@ -14,7 +17,7 @@ export interface KontoEnv {
 }
 
 export type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
-type Mitglied = { firma_id: string; rolle: string; erstellt: string; user_id: string };
+type Mitglied = { firma_id: string; rolle: string; erstellt: string; user_id: string; anzeigename?: string; funktion?: string; finanzen?: boolean; alle_bereiche?: boolean };
 export type Bereich = { id: string; name: string; art: string; parent_id: string | null };
 type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; steckbrief?: string | null };
 const STATUS: Record<string, string> = {
@@ -33,6 +36,7 @@ const ROLLEN: Record<string, string> = {
   admin: "Admin",
   bearbeiter: "Bearbeiter",
   leser: "Leser (kostenlos)",
+  mitarbeiter: "Mitarbeiter (nur Freigaben)",
 };
 const ARTEN: Record<string, string> = { standort: "Standort", abteilung: "Abteilung", team: "Team" };
 const COOKIE = "Path=/; HttpOnly; Secure; SameSite=Lax";
@@ -163,7 +167,7 @@ async function mitSitzung(request: Request, env: KontoEnv, f: (s: Sitzung, form:
 async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unterseite = "", dateiProfil: (firma: string) => { beschreibung: string } | undefined = () => undefined): Promise<Response> {
   const s = await sitzung(request, env);
   if (!s) return html(seite("Anmelden", anmeldeFormular("", new URL(request.url).pathname + new URL(request.url).search, "Melde dich an, um Ausschreibungen, Bereiche und Mitarbeiter deiner Firma zu verwalten.")));
-  const meine = await db<(Mitglied & { firmen: { name: string; paket: string } })[]>(s, env, `mitglieder?user_id=eq.${s.userId}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id,firmen(name,paket)&order=erstellt`);
+  const meine = await db<(Mitglied & { firmen: { name: string; paket: string } })[]>(s, env, `mitglieder?user_id=eq.${s.userId}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id,anzeigename,funktion,finanzen,alle_bereiche,firmen(name,paket)&order=erstellt`);
   const kopf = hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : "";
   const abmelden = `<form method="post" action="/abmelden"><button>Abmelden</button></form>`;
   if (!meine.ok || !meine.daten.length) {
@@ -182,6 +186,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const m = meine.daten.find((x) => x.firma_id === gewaehlt) ?? meine.daten[0];
   if (url.searchParams.get("firma") === m.firma_id) s.cookies.push(`jv_firma=${m.firma_id}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`);
   const admin = m.rolle === "inhaber" || m.rolle === "admin";
+  const finanzrecht = darfFinanzen(m.rolle, m.finanzen);
   const alle = url.searchParams.get("alle") === "1";
   const reiter = ["neu", "arbeit", "abgegeben", "archiv"].includes(url.searchParams.get("stand") ?? "") ? url.searchParams.get("stand")! : alle ? "archiv" : "neu";
   const gruppen: Record<string, string[]> = { neu: ["neu", "pruefen"], arbeit: ["angebot"], abgegeben: ["abgegeben"], archiv: ["gewonnen", "verloren", "verworfen"] };
@@ -194,7 +199,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const bereichFilter = filter ? `&bereich_id=in.(${unter(filter.id).join(",")})` : "";
   const [vorgaenge, mitglieder, einladungen, anzahl] = await Promise.all([
     db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${bereichFilter}${statusFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id&order=${unterseite === "fristen" ? "frist.asc" : "punkte.desc.nullslast,erstellt.desc"}&limit=100`),
-    db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id&order=erstellt`),
+    db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id,anzeigename,funktion,finanzen,alle_bereiche&order=erstellt`),
     admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date().toISOString()}&select=id,email,rolle,gueltig_bis,angenommen&order=erstellt.desc`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
@@ -211,14 +216,14 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const stunde = mail.ok && mail.daten[0] ? mail.daten[0].stunde : null;
   const kanal = mail.ok && mail.daten[0] ? mail.daten[0].kanal : "mail";
   const name = (id: string | null | undefined) => b.find((x) => x.id === id)?.name ?? "";
-  const bereichOptionen = b.map((x) => `<option value="${x.id}">${escape(x.name)}</option>`).join("");
+  const bereichOptionen = optionenFuerBereiche(b);
 
   const wechsel = meine.daten.length > 1
     ? `<h2>Firma wechseln</h2><form class="profil-firmenwechsel" method="get" action="/konto/profil"><label>Aktive Firma<select name="firma">${meine.daten.map((x) => `<option value="${x.firma_id}"${x.firma_id === m.firma_id ? " selected" : ""}>${escape(x.firmen.name)}</option>`).join("")}</select></label><button>Wechseln</button></form>`
     : "";
-  const regionen = b.filter((x) => !x.parent_id);
+
   const link = (stand: string, bereich = filter?.id ?? "") => `/konto/treffer?stand=${stand}${bereich ? `&bereich=${bereich}` : ""}`;
-  const bereichWahl = regionen.length ? `<form class="treffer-filter" method="get" action="/konto/treffer"><input type="hidden" name="stand" value="${reiter}"><label>Bereich<select name="bereich"><option value="">Alle Bereiche</option>${regionen.map((x) => `<option value="${x.id}"${filter?.id === x.id ? " selected" : ""}>${escape(x.name)}</option>`).join("")}</select></label><button>Anzeigen</button></form>` : "";
+  const bereichWahl = b.length ? `<form class="treffer-filter" method="get" action="/konto/treffer"><input type="hidden" name="stand" value="${reiter}"><label>Bereich / Standort<select name="bereich"><option value="">Alle Bereiche</option>${optionenFuerBereiche(b, filter?.id)}</select></label><button>Anzeigen</button></form>` : "";
   const liste = vorgaenge.ok ? vorgaenge.daten : [];
   const heute = new Date().toISOString().slice(0, 10);
   const in7Tagen = new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10);
@@ -236,7 +241,9 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     ["team", "👥", "Firma & Team", "Standorte und Einladungen verwalten"],
     ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? "Suche ansehen und anpassen" : "Passende Ausschreibungen finden"],
   ];
-  const kacheln = `<div class="konto-kacheln">${cards.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
+  cards.push(["freigaben", "📨", "Für mich freigegeben", "Ausgewählte Informationen vom Team"]);
+  const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? path === "freigaben" : path !== "kalkulation" || finanzrecht);
+  const kacheln = `<div class="konto-kacheln">${sichtbareKarten.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
   let inhalt: string;
   if (!unterseite) {
     inhalt = rahmen(`${meldungen}<h2>Was möchtest du tun?</h2><p>${neu} neue Treffer · ${bald} Fristen diese Woche</p>${kacheln}`);
@@ -247,7 +254,9 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     inhalt = rahmen(`<h2>Nächste Fristen</h2>${fristen.length ? `<ul class="fristen-liste">${fristen.map((v) => `<li${v.frist!.slice(0, 10) <= in7Tagen ? ' class="frist-bald"' : ""}><time datetime="${escape(v.frist!)}">${datum(v.frist!)}</time><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a></li>`).join("")}</ul>` : `<p>Aktuell stehen keine offenen Fristen an.</p>`}<p class="klein">Jarvis erinnert dich zusätzlich 7 und 2 Tage vorher per täglicher Nachricht.</p>`);
   } else if (unterseite === "unterlagen") {
     const unterlagen = await unterlagenListe(liste, env);
-    inhalt = rahmen(`<p>Lade Vergabeunterlagen auch ohne vorhandenen Treffer hoch. Jarvis erstellt daraus einen Steckbrief und eine Kalkulation.</p>${m.rolle !== "leser" ? `<form method="post" action="/konto/unterlagen" enctype="multipart/form-data"><input type="hidden" name="firma" value="${m.firma_id}"><label>Ausschreibung (Titel oder Link)<input name="titel" required maxlength="300"></label>${b.length ? `<label>Bereich<select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label>` : ""}<label>Unterlagen<input name="dateien" type="file" multiple required accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label><button>Hochladen und prüfen</button></form>` : `<p class="klein">Als Leser kannst du vorhandene Steckbriefe ansehen.</p>`}<h2>Bisherige Steckbriefe aus Unterlagen</h2>${unterlagen || `<p>Noch keine Unterlagen geprüft.</p>`}<p><a href="/konto/treffer">Unterlagen bei einem Treffer nachreichen →</a></p>`);
+    inhalt = rahmen(`${finanzrecht ? `<p><a class="knopf" href="/konto/firmenunterlagen?firma=${m.firma_id}">Firmenunterlagen & Angebotsvorlagen</a></p>` : ""}<p>Lade Vergabeunterlagen auch ohne vorhandenen Treffer hoch. Jarvis erstellt daraus einen Steckbrief und eine Kalkulation.</p>${["inhaber","admin","bearbeiter"].includes(m.rolle) ? `<form method="post" action="/konto/unterlagen" enctype="multipart/form-data"><input type="hidden" name="firma" value="${m.firma_id}"><label>Ausschreibung (Titel oder Link)<input name="titel" required maxlength="300"></label>${b.length ? `<label>Bereich<select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label>` : ""}<label>Unterlagen<input name="dateien" type="file" multiple required accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label><button>Hochladen und prüfen</button></form>` : `<p class="klein">Als Leser kannst du vorhandene Steckbriefe ansehen.</p>`}<h2>Bisherige Steckbriefe aus Unterlagen</h2>${unterlagen || `<p>Noch keine Unterlagen geprüft.</p>`}<p><a href="/konto/treffer">Unterlagen bei einem Treffer nachreichen →</a></p>`);
+  } else if (unterseite === "kalkulation" && !finanzrecht) {
+    inhalt = rahmen(`<p>Für Kalkulationen brauchst du eine Finanzfreigabe. Frage einen Inhaber oder Administrator.</p>`);
   } else if (unterseite === "kalkulation") {
     const vorlagen = await db<{ eingaben: Eingaben }[]>(s, env, `kalkulationsvorlagen?firma_id=eq.${m.firma_id}&bereich_id=is.null&select=eingaben`);
     const werte = { ...STANDARD, ...(vorlagen.ok ? vorlagen.daten[0]?.eingaben : {}) };
@@ -268,7 +277,9 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     }
     team += `<h2>Mitarbeiter</h2>`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
-    team += `<div class="tabelle"><table><tr><th>Wer</th><th>Rolle</th><th>seit</th></tr>${ml.map((x) => `<tr><td>${x.user_id === s.userId ? `du (${escape(s.email)})` : "Mitarbeiter"}</td><td>${ROLLEN[x.rolle] ?? x.rolle}</td><td>${datum(x.erstellt)}</td></tr>`).join("")}</table></div>`;
+    const zuordnungen = admin ? await db<{user_id:string;bereich_id:string}[]>(s, env, `mitglied_bereiche?firma_id=eq.${m.firma_id}&select=user_id,bereich_id`) : null;
+    team += funktionsListe;
+    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"><h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3><p>${escape(x.funktion || "Mitarbeiter/in")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}</p>${admin ? personFormular(x, m.firma_id, b, zuordnungen?.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
     if (admin) {
     const offen = einladungen.ok ? einladungen.daten : [];
     if (offen.length) {
@@ -276,8 +287,11 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     }
     team += `<form method="post" action="/konto/einladen">
   <input type="hidden" name="firma" value="${m.firma_id}">
+  <label>Name<input name="name" maxlength="200"></label>
   <label>E-Mail-Adresse <input type="email" name="email" required></label>
-  <label>Rolle <select name="rolle"><option value="bearbeiter">Bearbeiter</option><option value="leser">Leser (kostenlos)</option><option value="admin">Admin</option></select></label>
+  <label>Funktion im Betrieb<input name="funktion" list="funktionen" value="Mitarbeiter/in" required maxlength="100"></label>
+  <label>Zugriff<select name="rolle">${Object.entries(ZUGRIFFE).filter(([r]) => r !== "inhaber").sort(([a],[b]) => Number(b === "mitarbeiter") - Number(a === "mitarbeiter")).map(([r,t]) => `<option value="${r}">${escape(t)}</option>`).join("")}</select></label>
+  <label class="zeile"><input type="checkbox" name="finanzen">Finanzdaten zusätzlich freigeben (nur bei vollständigen Steckbriefen)</label><p class="klein">Funktion und Zugriffsrechte sind getrennt. „Nur persönlich freigegebene Informationen“ öffnet keine Originalunterlagen und keine Kalkulation. Inhaber und Administration sehen alle Daten.</p>
   ${b.length ? `<label>Bereich <select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label>` : ""}
   <button>Einladung erstellen</button>
   <p class="klein">Du bekommst einen Link, den du der Person schickst. Er gilt 14 Tage und nur für diese Adresse.</p>
@@ -343,7 +357,7 @@ async function bereichAnlegen(s: Sitzung, form: FormData, _r: Request, env: Kont
 
 async function einladen(s: Sitzung, form: FormData, request: Request, env: KontoEnv): Promise<Response> {
   const email = String(form.get("email") ?? "").trim().toLowerCase();
-  const rolle = String(form.get("rolle") ?? "bearbeiter");
+  const rolle = String(form.get("rolle") ?? "mitarbeiter");
   const bereich = String(form.get("bereich") ?? "");
   const token = zufall(32);
   const r = await db(s, env, "einladungen", {
@@ -351,7 +365,10 @@ async function einladen(s: Sitzung, form: FormData, request: Request, env: Konto
     body: JSON.stringify({
       firma_id: String(form.get("firma") ?? ""),
       email,
-      rolle: ["admin", "bearbeiter", "leser"].includes(rolle) ? rolle : "bearbeiter",
+      rolle: ["admin", "bearbeiter", "leser", "mitarbeiter"].includes(rolle) ? rolle : "mitarbeiter",
+      anzeigename: String(form.get("name") ?? "").trim().slice(0,200),
+      funktion: String(form.get("funktion") ?? "Mitarbeiter/in").trim().slice(0,100) || "Mitarbeiter/in",
+      finanzen: ["bearbeiter", "leser"].includes(rolle) && form.has("finanzen"),
       bereich_ids: bereich ? [bereich] : [],
       token_hash: await sha256(token),
       erstellt_von: s.userId,
@@ -418,14 +435,15 @@ async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoE
 }
 
 /** The Vorgang with its firm and the user's role there, or null if the user may not see it. */
-export async function vorgangZugriff(request: Request, env: KontoEnv, id: string): Promise<{ s: Sitzung; v: Vorgang & { firma_id: string }; rolle: string } | null> {
+export async function vorgangZugriff(request: Request, env: KontoEnv, id: string): Promise<{ s: Sitzung; v: Vorgang & { firma_id: string }; rolle: string; finanzen: boolean } | null> {
   const s = await sitzung(request, env);
   if (!s || !/^[0-9a-f-]{36}$/.test(id)) return null;
-  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,status,punkte,erstellt,steckbrief`);
+  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,status,punkte,erstellt,bereich_id,steckbrief`);
   const v = r.ok ? r.daten[0] : undefined;
   if (!v) return null;
-  const m = await db<{ rolle: string }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle`);
-  return { s, v, rolle: m.ok && m.daten[0] ? m.daten[0].rolle : "leser" };
+  const m = await db<{ rolle: string; finanzen?: boolean }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle,finanzen`);
+  if (!m.ok || !m.daten[0] || m.daten[0].rolle === "mitarbeiter") return null;
+  return { s, v, rolle: m.daten[0].rolle, finanzen: darfFinanzen(m.daten[0].rolle, m.daten[0].finanzen) };
 }
 
 async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promise<Response> {
@@ -434,11 +452,12 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
     if (!(await sitzung(request, env))) return weiterleiten("/konto");
     return html(seite("Nicht gefunden", `<p>Diese Ausschreibung gibt es nicht oder du darfst sie nicht sehen.</p><p><a href="/konto">Zur Übersicht</a></p>`), 404);
   }
-  const { s, v, rolle } = z;
+  const { s, v, rolle, finanzen } = z;
   const fehler = new URL(request.url).searchParams.get("fehler") ?? "";
   const portal = v.link && /^https?:\/\//.test(v.link) ? v.link : "";
   const aus = await unterlagenSteckbrief(env, id);
-  const kopf = `<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status} · <a href="/konto">Zur Übersicht</a></p>
+  const aktionen = `${["inhaber","admin"].includes(rolle) ? `<p><a class="knopf" href="/konto/vorgang/${v.id}/freigeben">An Mitarbeiter weitergeben</a></p>` : ""}${finanzen ? `<p><a class="knopf" href="/konto/vorgang/${v.id}/angebot">Angebot vorbereiten</a></p>` : ""}`;
+  const kopf = `${aktionen}<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status} · <a href="/konto">Zur Übersicht</a></p>
 ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
   const hochladen = rolle === "leser" ? "" : `<h2 id="unterlagen">📥 Vergabeunterlagen</h2>
 <p>Für Eignungskriterien, Nachweise, Referenzen und das Preisblatt braucht Jarvis die Unterlagen.</p>
@@ -453,7 +472,7 @@ ${portal ? `<p><a class="knopf" href="${escape(portal)}" rel="noopener" target="
   let teil: string;
   if (aus?.text) {
     teil = `<h2>Steckbrief aus den Vergabeunterlagen</h2>${markdown(aus.text)}
-<p><a href="/auftrag/${aus.auftrag}#kalkulation"><strong>💶 Zur Kalkulation</strong></a></p>${hochladen.replace("📥 Vergabeunterlagen", "📥 Dateien nachreichen")}
+${finanzen ? `<p><a href="/auftrag/${aus.auftrag}#kalkulation"><strong>💶 Zur Kalkulation</strong></a></p>` : ""}${hochladen.replace("📥 Vergabeunterlagen", "📥 Dateien nachreichen")}
 ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summary>${markdown(v.steckbrief)}</details>` : ""}`;
   } else if (aus) {
     return html(seite(v.titel, `${kopf}<p><strong>Jarvis liest gerade die Unterlagen.</strong> Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu; du kannst sie auch schließen.</p>
@@ -465,7 +484,7 @@ ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${markdown(v.steckbr
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */
-async function unterlagenSteckbrief(env: KontoEnv, id: string): Promise<{ auftrag: string; text: string } | null> {
+export async function unterlagenSteckbrief(env: KontoEnv, id: string): Promise<{ auftrag: string; text: string } | null> {
   if (!env.DATEN) return null;
   const zeiger = await env.DATEN.get(`auftraege/vorgaenge/${id}.json`);
   if (!zeiger) return null;
