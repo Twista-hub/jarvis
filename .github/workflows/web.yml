@@ -1,5 +1,5 @@
 # Deploys the upload worker jarvis-alarm (folder web/): customers upload tender documents, Claude writes the Steckbrief.
-# Needs CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and ANTHROPIC_API_KEY.
+# Needs CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID and ANTHROPIC_API_KEY; optional SMTP_PASSWORD (invitation mails).
 name: Upload-Seite ausrollen
 
 on:
@@ -28,6 +28,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+      SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       URL: https://jarvis-alarm.benschiffer79.workers.dev
     steps:
       - uses: actions/checkout@v4
@@ -62,6 +63,8 @@ jobs:
         if: env.OHNE_SCHLUESSEL != '1'
         run: |
           printf '%s' "$ANTHROPIC_API_KEY" | npx wrangler secret put ANTHROPIC_API_KEY
+          # Password of kontakt@wpdigitalranger.com; until it exists, invitations are shown as a link.
+          if [ -n "$SMTP_PASSWORD" ]; then printf '%s' "$SMTP_PASSWORD" | npx wrangler secret put SMTP_PASSWORD; fi
           # A fresh test code on every deploy; only its hash goes to the worker.
           code=$(openssl rand -hex 12)
           echo "::add-mask::$code"

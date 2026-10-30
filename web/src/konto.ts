@@ -1,11 +1,13 @@
 // Accounts: login by e-mail link (Supabase Auth, PKCE on the server, no scripts) and the firm pages
 // (create a firm, areas, invitations). All data access runs with the user's token, so the database
 // rules (row level security) decide what each person may see and change.
+import { einladungsMail, senden } from "./mail.ts";
 import { escape, markdown, seite } from "./seite.ts";
 
 export interface KontoEnv {
   SUPABASE_URL: string;
   SUPABASE_KEY: string; // publishable key, public by design
+  SMTP_PASSWORD?: string; // kontakt@wpdigitalranger.com; without it invitations are shown as a link
 }
 
 type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
@@ -154,7 +156,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
   const abmelden = `<form method="post" action="/abmelden"><button>Abmelden</button></form>`;
   if (!meine.ok || !meine.daten.length) {
     return html(seite("Deine Firma", `${kopf}
-<p>Du gehörst noch zu keiner Firma. Lege deine Firma an oder öffne den Einladungs-Link, den du bekommen hast.</p>
+<p>Du gehörst noch zu keiner Firma. Öffne den Einladungs-Link, den du bekommen hast, oder lege deine Firma an, wenn WP Digital Ranger dein Konto freigeschaltet hat.</p>
 <form method="post" action="/konto/firma">
   <label>Name der Firma <input name="name" required minlength="2" maxlength="200" placeholder="z. B. Muster GmbH"></label>
   <button>Firma anlegen</button>
@@ -217,7 +219,10 @@ ${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle)}
 async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
   const name = String(form.get("name") ?? "").trim();
   const r = await db<string>(s, env, "rpc/firma_anlegen", { method: "POST", body: JSON.stringify({ name }) });
-  return weiterleiten(`/konto?hinweis=${encodeURIComponent(r.ok ? "Firma angelegt." : "Die Firma konnte nicht angelegt werden.")}`);
+  const fehler = !r.ok && r.fehler.includes("nicht freigeschaltet")
+    ? "Firmen-Konten schaltet WP Digital Ranger frei. Schreib uns an kontakt@wpdigitalranger.com, oder öffne den Einladungs-Link deiner Firma."
+    : "Die Firma konnte nicht angelegt werden.";
+  return weiterleiten(`/konto?hinweis=${encodeURIComponent(r.ok ? "Firma angelegt." : fehler)}`);
 }
 
 async function bereichAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
@@ -248,6 +253,15 @@ async function einladen(s: Sitzung, form: FormData, request: Request, env: Konto
   });
   if (!r.ok) return weiterleiten(`/konto?hinweis=${encodeURIComponent("Die Einladung konnte nicht erstellt werden.")}`);
   const link = new URL(`/einladung?token=${token}`, request.url).toString();
+  if (env.SMTP_PASSWORD) {
+    const firma = await db<{ name: string }[]>(s, env, `firmen?id=eq.${String(form.get("firma") ?? "")}&select=name`);
+    try {
+      await senden(env, einladungsMail(email, firma.ok && firma.daten[0] ? firma.daten[0].name : "deiner Firma", ROLLEN[rolle] ?? rolle, link));
+      return weiterleiten(`/konto?hinweis=${encodeURIComponent(`Einladung an ${email} verschickt.`)}`);
+    } catch (e) {
+      console.warn(`Einladung nicht verschickt: ${e instanceof Error ? e.message : String(e)}`);
+    }
+  }
   return html(seite("Einladung erstellt", `<p>Schick diesen Link an <strong>${escape(email)}</strong>, zum Beispiel per Mail oder Messenger. Er gilt 14 Tage und nur für diese Adresse.</p>
 <p><code style="word-break: break-all">${escape(link)}</code></p>
 <p><a href="/konto">Zurück zur Übersicht</a></p>`));

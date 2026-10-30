@@ -9,6 +9,7 @@ create table auth.users (id uuid primary key, email text);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
 grant usage on schema auth to authenticated;
 \ir ../migrations/20261029120000_firmen_und_rechte.sql
+\ir ../migrations/20261030010000_firmen_freigabe.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -16,6 +17,8 @@ insert into auth.users values
   ('00000000-0000-0000-0000-00000000000a', 'chef@perlease.test'),
   ('00000000-0000-0000-0000-00000000000b', 'berlin@perlease.test'),
   ('00000000-0000-0000-0000-00000000000c', 'fremd@andere.test');
+
+insert into public.freigaben (email) values ('chef@perlease.test');
 
 create function test_als(u text) returns void language sql as $$ select set_config('test.uid', u, false) $$;
 create function pruefe(ok boolean, was text) returns void language plpgsql as $$
@@ -31,6 +34,13 @@ insert into public.vorgaenge (firma_id, bereich_id, titel) values (:'firma', :'m
 insert into public.einladungen (firma_id, email, rolle, bereich_ids, token_hash)
   values (:'firma', 'berlin@perlease.test', 'bearbeiter', array[:'berlin']::uuid[], encode(sha256(convert_to('geheim', 'UTF8')), 'hex'));
 select pruefe(public.nutzer_zaehlen(:'firma') = 1, 'Inhaber zählt als 1 Nutzer');
+
+-- Someone who signed up on their own cannot create a firm.
+select test_als('00000000-0000-0000-0000-00000000000c');
+do $$ begin perform public.firma_anlegen('Fremde GmbH'); raise exception 'FEHLER: Firma ohne Freigabe angelegt';
+exception when others then if sqlerrm <> 'nicht freigeschaltet' then raise; end if; raise notice 'ok: ohne Freigabe keine Firma'; end $$;
+select pruefe(not exists (select 1 from public.freigaben), 'Freigaben sind nicht lesbar');
+
 
 -- Berlin employee accepts the invitation and sees Berlin (incl. sub-team) and firm-wide items, not Hamburg.
 select test_als('00000000-0000-0000-0000-00000000000b');
