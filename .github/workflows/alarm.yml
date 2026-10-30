@@ -30,7 +30,7 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq poppler-utils
-          pip install -q anthropic "psycopg[binary]"
+          pip install -q anthropic "psycopg[binary]" cryptography
       - name: Schon gelaufen?
         if: github.event_name == 'schedule'
         run: |
@@ -48,6 +48,15 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           python alarm/speichern.py
+      - name: Erste Treffer melden
+        # Right after the setup assistant: mail and phone notification to the firm's people who want news.
+        if: inputs.firma != ''
+        continue-on-error: true
+        env:
+          FIRMA: ${{ inputs.firma }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: python alarm/mail.py --sofort "$FIRMA"
       - name: Datenbank wach halten
         # Free Supabase projects pause after 7 days without access; one query a day prevents that.
         continue-on-error: true

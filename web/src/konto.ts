@@ -2,6 +2,7 @@
 // (create a firm, areas, invitations). All data access runs with the user's token, so the database
 // rules (row level security) decide what each person may see and change.
 import { einladungsMail, senden } from "./mail.ts";
+import { CSP } from "./app.ts";
 import { escape, markdown, seite } from "./seite.ts";
 
 export interface KontoEnv {
@@ -34,9 +35,6 @@ const ROLLEN: Record<string, string> = {
 };
 const ARTEN: Record<string, string> = { standort: "Standort", abteilung: "Abteilung", team: "Team" };
 const COOKIE = "Path=/; HttpOnly; Secure; SameSite=Lax";
-// The only script: submits the upload as soon as a file is chosen. Allowed by its hash in the CSP below.
-export const SOFORT_JS = 'document.querySelectorAll("input[data-sofort]").forEach(function(i){i.addEventListener("change",function(){if(i.files.length){i.form.querySelector("button").textContent="Wird hochgeladen …";i.form.requestSubmit();}});});';
-export const SOFORT_HASH = "sha256-VNoEX8Z3tsR5/QCXrLw24nEJXrMXtx1IAc7BCP929eo=";
 
 /** Handles /konto, /anmelden, /einladung and /abmelden; null for other paths. */
 export async function konto(request: Request, env: KontoEnv): Promise<Response | null> {
@@ -52,6 +50,9 @@ export async function konto(request: Request, env: KontoEnv): Promise<Response |
   if (p === "/konto/einladen" && post) return mitSitzung(request, env, einladen);
   if (p === "/konto/status" && post) return mitSitzung(request, env, statusSetzen);
   if (p === "/konto/mail" && post) return mitSitzung(request, env, mailSetzen);
+  if (p === "/konto/push/schluessel") return pushSchluessel(env);
+  if (p === "/konto/push/abo" && post) return pushAbo(request, env);
+  if (p === "/konto/push/neu") return pushNeu(request, env);
   const v = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})$/);
   if (v && !post) return vorgangZeigen(v[1], request, env);
   if (p === "/einladung") return post ? mitSitzung(request, env, einladungAnnehmen) : einladungZeigen(url, request, env);
@@ -190,7 +191,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
   ]);
   const [profil, mail] = await Promise.all([
     db<{ id: string; erstlauf: string | null }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf&limit=1`),
-    db<{ stunde: number | null }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde`),
+    db<{ stunde: number | null; kanal: string }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde,kanal`),
   ]);
   const ohneProfil = admin && profil.ok && !profil.daten.length && !(vorgaenge.ok && vorgaenge.daten.length);
   // First run after the setup assistant: about 5 minutes; the page reloads until then.
@@ -198,6 +199,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
   const start = Date.now() - erstlauf;
   const sucht = erstlauf < 15 * 60_000 && !(vorgaenge.ok && vorgaenge.daten.some((v) => Date.parse(v.erstellt) > start));
   const stunde = mail.ok && mail.daten[0] ? mail.daten[0].stunde : null;
+  const kanal = mail.ok && mail.daten[0] ? mail.daten[0].kanal : "mail";
   const name = (id: string | null | undefined) => b.find((x) => x.id === id)?.name ?? "";
   const bereichOptionen = b.map((x) => `<option value="${x.id}">${escape(x.name)}</option>`).join("");
 
@@ -243,13 +245,16 @@ ${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle, name, bereichWahl)}
   <p class="klein">Du bekommst einen Link, den du der Person schickst. Er gilt 14 Tage und nur für diese Adresse.</p>
 </form>`;
   }
-  inhalt += `<h2 id="mail">📬 Tägliche Mail</h2>
+  inhalt += `<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
-  <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) per Mail an ${escape(s.email)} um<select name="stunde">${stundenOptionen(stunde)}</select></label>
+  <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
+  <label>Per<select name="kanal">${KANAEL_LISTE.map(([k, t]) => `<option value="${k}"${k === kanal ? " selected" : ""}>${t}</option>`).join("")}</select></label>
   <button>Speichern</button>
-  <p class="klein">Nur wenn es etwas Neues gibt. Jeder im Team stellt seine Uhrzeit selbst ein.</p>
+  <p class="klein">Nur wenn es etwas Neues gibt. Mail an ${escape(s.email)}. Ein Tipp auf die Handy-Nachricht öffnet direkt die Ausschreibung. Jeder im Team stellt das für sich selbst ein.</p>
 </form>
+<p><button type="button" id="push-an" hidden>📱 Nachrichten auf diesem Handy einschalten</button></p>
+<p class="klein" id="push-status"></p>
 <h2>Konto</h2>${abmelden}`;
   return html(seite(m.firmen.name, inhalt, sucht ? 30 : 0), 200, s.cookies);
 }
@@ -379,8 +384,7 @@ ${portal ? `<p><a class="knopf" href="${escape(portal)}" rel="noopener" target="
   <button>Prüfen lassen</button>
 </form>
 <p class="klein"><strong>Mehrere Dateien:</strong> Im Auswahlfenster die erste Datei lange drücken, dann die anderen antippen und oben auf „Auswählen“ bzw. „Fertig“. Einfacher ist meist „Alle herunterladen“ beim Portal: Dann kommt eine ZIP-Datei mit allem, und die reicht. Vergessene Dateien kannst du später nachreichen, Jarvis liest dann alle zusammen.</p>
-<p class="klein">Am Handy liegt die Datei unter „Downloads“. Jarvis schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p>
-<script>${SOFORT_JS}</script>`;
+<p class="klein">Am Handy liegt die Datei unter „Downloads“. Jarvis schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p>`;
   let teil: string;
   if (aus?.text) {
     teil = `<h2>Steckbrief aus den Vergabeunterlagen</h2>${markdown(aus.text)}
@@ -416,22 +420,69 @@ export function stundenOptionen(aktuell: number | null): string {
 }
 
 /** Saves the person's own mail hour (null = no mail). */
-export async function mailZeitSetzen(s: Sitzung, env: KontoEnv, firma: string, wert: unknown): Promise<boolean> {
+export async function mailZeitSetzen(s: Sitzung, env: KontoEnv, firma: string, wert: unknown, kanalWert?: unknown): Promise<boolean> {
+  // Without a channel (setup assistant) the existing choice stays; new rows start with mail.
+  const kanal = ["mail", "push", "beides"].includes(String(kanalWert)) ? String(kanalWert) : undefined;
   const h = typeof wert === "string" && wert !== "" ? Number(wert) : null;
   const stunde = h !== null && Number.isInteger(h) && h >= 7 && h <= 20 ? h : null;
   const r = await db(s, env, "benachrichtigungen?on_conflict=firma_id,user_id", {
     method: "POST",
     headers: { prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify({ firma_id: firma, user_id: s.userId, stunde }),
+    body: JSON.stringify({ firma_id: firma, user_id: s.userId, stunde, kanal }),
   });
   return r.ok;
 }
 
 async function mailSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
   const firma = String(form.get("firma") ?? "");
-  const ok = /^[0-9a-f-]{36}$/.test(firma) && (await mailZeitSetzen(s, env, firma, form.get("stunde")));
+  const ok = /^[0-9a-f-]{36}$/.test(firma) && (await mailZeitSetzen(s, env, firma, form.get("stunde"), form.get("kanal")));
   const h = String(form.get("stunde") ?? "");
-  return weiterleiten(`/konto?hinweis=${encodeURIComponent(!ok ? "Die Mail-Zeit konnte nicht gespeichert werden." : h ? `Tägliche Mail um ${h}:00 Uhr.` : "Keine tägliche Mail mehr.")}#mail`);
+  const wie = KANAELE[String(form.get("kanal"))] ?? "Mail";
+  return weiterleiten(`/konto?hinweis=${encodeURIComponent(!ok ? "Die Einstellung konnte nicht gespeichert werden." : h ? `Jeden Tag um ${h}:00 Uhr per ${wie}.` : "Keine tägliche Nachricht mehr.")}#mail`);
+}
+
+const KANAEL_LISTE: [string, string][] = [["mail", "Mail"], ["push", "Handy"], ["beides", "Mail und Handy"]];
+const KANAELE: Record<string, string> = Object.fromEntries(KANAEL_LISTE);
+
+/** Public VAPID key for registering a device (public by design). */
+async function pushSchluessel(env: KontoEnv): Promise<Response> {
+  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/push_schluessel`, { method: "POST", headers: { apikey: env.SUPABASE_KEY, "content-type": "application/json" }, body: "{}" });
+  const k = r.ok ? ((await r.json()) as string | null) : null;
+  return new Response(k ?? "", { status: k ? 200 : 503, headers: { "content-type": "text/plain", "cache-control": "no-store" } });
+}
+
+/** Saves this device's push subscription for the logged-in person. */
+async function pushAbo(request: Request, env: KontoEnv): Promise<Response> {
+  const s = await sitzung(request, env);
+  if (!s) return new Response("nicht angemeldet", { status: 401 });
+  let abo: { endpoint?: unknown; keys?: { p256dh?: unknown; auth?: unknown } };
+  try {
+    abo = await request.json();
+  } catch {
+    return new Response("ungültig", { status: 400 });
+  }
+  const endpoint = String(abo.endpoint ?? "");
+  const p256dh = String(abo.keys?.p256dh ?? "");
+  const auth = String(abo.keys?.auth ?? "");
+  if (!/^https:\/\/[^\s]{10,1000}$/.test(endpoint) || !p256dh || !auth || p256dh.length > 200 || auth.length > 100) return new Response("ungültig", { status: 400 });
+  const r = await db(s, env, "push_abos?on_conflict=endpoint", {
+    method: "POST",
+    headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ endpoint, p256dh, auth, user_id: s.userId }),
+  });
+  const antwort = new Response(r.ok ? "ok" : "fehler", { status: r.ok ? 200 : 500 });
+  for (const c of s.cookies) antwort.headers.append("set-cookie", c);
+  return antwort;
+}
+
+/** Text of the latest notification; the service worker fetches it when an (empty) push arrives. */
+async function pushNeu(request: Request, env: KontoEnv): Promise<Response> {
+  const s = await sitzung(request, env);
+  const r = s ? await db<{ titel: string; text: string; url: string }[]>(s, env, "push_nachrichten?select=titel,text,url&order=erstellt.desc&limit=1") : null;
+  const n = r?.ok ? r.daten[0] : undefined;
+  const antwort = Response.json(n ? { ...n, url: sicherWeiter(n.url) } : { titel: "Jarvis", text: "Neue Ausschreibungen", url: "/konto" }, { headers: { "cache-control": "no-store" } });
+  for (const c of s?.cookies ?? []) antwort.headers.append("set-cookie", c);
+  return antwort;
 }
 
 // ---------- Helpers ----------
@@ -502,7 +553,7 @@ export function weiterleiten(ziel: string, cookies: string[] = []): Response {
 export function html(body: string, status = 200, cookies: string[] = []): Response {
   const h = new Headers({
     "content-type": "text/html; charset=utf-8",
-    "content-security-policy": `default-src 'none'; style-src 'unsafe-inline'; script-src '${SOFORT_HASH}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
+    "content-security-policy": CSP,
     "cache-control": "no-store",
     "referrer-policy": "no-referrer",
   });

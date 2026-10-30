@@ -12,6 +12,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261030010000_firmen_freigabe.sql
 \ir ../migrations/20261030200000_einrichtung.sql
 \ir ../migrations/20261030210000_benachrichtigungen.sql
+\ir ../migrations/20261030220000_push.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -115,4 +116,18 @@ do $$ begin
 exception when insufficient_privilege or foreign_key_violation then raise notice 'ok: Fremde bekommen keine Mails'; end $$;
 select test_als('00000000-0000-0000-0000-00000000000a');
 select pruefe((select count(*) from public.benachrichtigungen) = 0, 'Inhaber sieht fremde Mail-Zeiten nicht');
+
+-- Phone notifications: own devices and messages only, server keys hidden.
+reset role;
+insert into public.app_schluessel values ('vapid_public', 'OEFFENTLICH'), ('vapid_private', 'GEHEIM');
+insert into public.push_nachrichten (user_id, titel) values ('00000000-0000-0000-0000-00000000000b', 'Für Berlin');
+set role authenticated;
+select pruefe(public.push_schluessel() = 'OEFFENTLICH', 'Öffentlicher Push-Schlüssel lesbar');
+select pruefe(not exists (select 1 from public.app_schluessel), 'Server-Schlüssel nicht lesbar');
+insert into public.push_abos (endpoint, p256dh, auth) values ('https://push.example/a', 'k', 'a');
+select pruefe((select user_id from public.push_abos) = auth.uid(), 'Gerät gehört dem Anmelder');
+select pruefe(not exists (select 1 from public.push_nachrichten), 'Fremde Push-Texte nicht lesbar');
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe(not exists (select 1 from public.push_abos), 'Fremde Geräte nicht lesbar');
+select pruefe((select count(*) from public.push_nachrichten) = 1, 'Eigene Push-Texte lesbar');
 \echo ALLE TESTS OK

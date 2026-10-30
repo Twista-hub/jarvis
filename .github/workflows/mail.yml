@@ -1,4 +1,4 @@
-# Daily mail with new hits and deadline reminders, at the hour each person chose in the app.
+# Daily mail and phone notification with new hits and deadline reminders, at the hour each person chose in the app.
 # Runs every hour from 7 to 20 o'clock Berlin time (both summer and winter time are covered).
 name: Tägliche Mail
 
@@ -23,7 +23,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -q "psycopg[binary]"
+      - run: pip install -q "psycopg[binary]" cryptography
       - run: python alarm/mail.py ${TEST:+--test "$TEST"}
         env:
           TEST: ${{ inputs.test }}

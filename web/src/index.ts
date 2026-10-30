@@ -2,6 +2,7 @@
 import kunden from "../kunden.json";
 import { euro, FELDER, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los } from "./kalkulation";
 import profile from "../../alarm/profile.json";
+import { CSP, statisch } from "./app";
 import { einrichtung } from "./einrichtung";
 import { konto, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
@@ -36,6 +37,8 @@ const ID = /^[0-9a-f-]{36}$/;
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const datei = request.method === "GET" ? statisch(url.pathname) : null;
+    if (datei) return datei;
     const u = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/unterlagen$/);
     if (u && request.method === "POST") return unterlagenAmVorgang(u[1], request, env);
     const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");
@@ -244,7 +247,7 @@ function html(body: string, status = 200): Response {
     status,
     headers: {
       "content-type": "text/html; charset=utf-8",
-      "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+      "content-security-policy": CSP,
       "referrer-policy": "no-referrer",
       "x-robots-tag": "noindex",
     },
