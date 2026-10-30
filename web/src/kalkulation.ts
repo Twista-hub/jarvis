@@ -1,35 +1,79 @@
 // Price calculation for a tender: the customer's wages and surcharges -> price per hour and per lot.
 
 export type Eingaben = {
-  lohn: number; // gross hourly wage, €
+  lohn: number; // gross hourly wage, € (default for all lots; a lot can have its own)
   nebenkosten: number; // employer social security, levies, BG, %
   ausfall: number; // paid time off (holiday, sickness, public holidays) on productive hours, %
-  zuschlaege: number; // average surcharges for night/Sunday/holiday work, %
+  // Shift model: share of hours (%) and surcharge (%) for night, Sunday, public holiday and overtime.
+  anteilNacht: number;
+  zuschlagNacht: number;
+  anteilSonntag: number;
+  zuschlagSonntag: number;
+  anteilFeiertag: number;
+  zuschlagFeiertag: number;
+  anteilUeber: number;
+  zuschlagUeber: number;
+  zuschlaege: number; // further surcharges on average, %
+  // Costs of the assignment
+  stundenTag: number; // working hours per day, to spread daily costs
+  fahrt: number; // travel per working day, €
+  verpflegung: number; // meal allowance per working day, €
+  unterkunft: number; // accommodation per night, € (only lots marked "auswärts")
+  einmalig: number; // once per worker: clothing, safety gear, health instruction, training, recruiting, €
+  stundenKraft: number; // hours one worker works in the assignment, to spread one-off costs
+  sonstiges: number; // other costs per hour, €
   gemeinkosten: number; // overhead (office, dispatch, insurance), %
   gewinn: number; // risk and profit, %
-  sonstiges: number; // other costs per hour (travel, clothing), €
 };
 
 export type Los = { nr: string; name: string; menge: number; einheit: string; zeitraum: string; hinweis: string };
+/** Per lot: own hourly wage (e.g. cook vs. kitchen help) and whether workers stay overnight away from home. */
+export type LosWerte = Record<string, { lohn?: number; auswaerts?: boolean }>;
 
-export const STANDARD: Eingaben = { lohn: 15, nebenkosten: 23, ausfall: 20, zuschlaege: 0, gemeinkosten: 15, gewinn: 8, sonstiges: 0 };
+export const STANDARD: Eingaben = {
+  lohn: 15, nebenkosten: 23, ausfall: 20,
+  anteilNacht: 0, zuschlagNacht: 25, anteilSonntag: 0, zuschlagSonntag: 50, anteilFeiertag: 0, zuschlagFeiertag: 100, anteilUeber: 0, zuschlagUeber: 25, zuschlaege: 0,
+  stundenTag: 8, fahrt: 0, verpflegung: 0, unterkunft: 0, einmalig: 0, stundenKraft: 1000, sonstiges: 0,
+  gemeinkosten: 15, gewinn: 8,
+};
 export const MINDESTLOHN_2026 = 13.9;
 export const UST = 19;
 
-export const FELDER: { key: keyof Eingaben; label: string; einheit: string; hilfe: string }[] = [
-  { key: "lohn", label: "Stundenlohn brutto", einheit: "€", hilfe: "Was die Mitarbeitenden pro Stunde verdienen" },
-  { key: "nebenkosten", label: "Lohnnebenkosten", einheit: "%", hilfe: "Arbeitgeberanteil Sozialversicherung, Umlagen, Berufsgenossenschaft (meist 21–25 %)" },
-  { key: "ausfall", label: "Ausfallzeiten", einheit: "%", hilfe: "Bezahlter Urlaub, Krankheit, Feiertage (meist 15–25 %)" },
-  { key: "zuschlaege", label: "Zuschläge im Schnitt", einheit: "%", hilfe: "Nacht, Sonntag, Feiertag auf alle Stunden gerechnet; 0, wenn extra abgerechnet" },
-  { key: "gemeinkosten", label: "Gemeinkosten", einheit: "%", hilfe: "Büro, Disposition, Versicherungen, Software" },
-  { key: "gewinn", label: "Wagnis und Gewinn", einheit: "%", hilfe: "Dein Aufschlag" },
-  { key: "sonstiges", label: "Sonstiges pro Stunde", einheit: "€", hilfe: "Fahrtkosten, Dienstkleidung usw." },
+type Feld = { key: keyof Eingaben; label: string; einheit: string; hilfe: string; gruppe: string };
+export const GRUPPEN = ["Lohn", "Schichten und Zuschläge", "Einsatzkosten", "Aufschläge"];
+export const FELDER: Feld[] = [
+  { gruppe: "Lohn", key: "lohn", label: "Stundenlohn brutto", einheit: "€", hilfe: "Standard für alle Lose; pro Los änderbar (z. B. Koch höher als Küchenhilfe)" },
+  { gruppe: "Lohn", key: "nebenkosten", label: "Lohnnebenkosten", einheit: "%", hilfe: "Arbeitgeberanteil Sozialversicherung, Umlagen U1–U3, Berufsgenossenschaft (meist 21–25 %)" },
+  { gruppe: "Lohn", key: "ausfall", label: "Ausfallzeiten", einheit: "%", hilfe: "Bezahlter Urlaub, Krankheit, Feiertage (meist 15–25 %)" },
+  { gruppe: "Schichten und Zuschläge", key: "anteilNacht", label: "Anteil Nachtstunden", einheit: "%", hilfe: "Wie viel Prozent der Stunden nachts anfallen" },
+  { gruppe: "Schichten und Zuschläge", key: "zuschlagNacht", label: "Nachtzuschlag", einheit: "%", hilfe: "Zuschlag auf den Lohn für diese Stunden" },
+  { gruppe: "Schichten und Zuschläge", key: "anteilSonntag", label: "Anteil Sonntagsstunden", einheit: "%", hilfe: "" },
+  { gruppe: "Schichten und Zuschläge", key: "zuschlagSonntag", label: "Sonntagszuschlag", einheit: "%", hilfe: "" },
+  { gruppe: "Schichten und Zuschläge", key: "anteilFeiertag", label: "Anteil Feiertagsstunden", einheit: "%", hilfe: "" },
+  { gruppe: "Schichten und Zuschläge", key: "zuschlagFeiertag", label: "Feiertagszuschlag", einheit: "%", hilfe: "" },
+  { gruppe: "Schichten und Zuschläge", key: "anteilUeber", label: "Anteil Überstunden", einheit: "%", hilfe: "" },
+  { gruppe: "Schichten und Zuschläge", key: "zuschlagUeber", label: "Überstundenzuschlag", einheit: "%", hilfe: "" },
+  { gruppe: "Schichten und Zuschläge", key: "zuschlaege", label: "Weitere Zuschläge im Schnitt", einheit: "%", hilfe: "z. B. Branchenzuschlag; 0, wenn keine" },
+  { gruppe: "Einsatzkosten", key: "stundenTag", label: "Arbeitsstunden pro Tag", einheit: "Std", hilfe: "Um Tageskosten auf Stunden umzurechnen" },
+  { gruppe: "Einsatzkosten", key: "fahrt", label: "Fahrtkosten pro Tag", einheit: "€", hilfe: "Pro Kraft und Arbeitstag" },
+  { gruppe: "Einsatzkosten", key: "verpflegung", label: "Verpflegung pro Tag", einheit: "€", hilfe: "Verpflegungsmehraufwand pro Kraft und Arbeitstag" },
+  { gruppe: "Einsatzkosten", key: "unterkunft", label: "Unterkunft pro Nacht", einheit: "€", hilfe: "Nur für Lose, die du unten als „auswärts“ markierst" },
+  { gruppe: "Einsatzkosten", key: "einmalig", label: "Einmalige Kosten pro Kraft", einheit: "€", hilfe: "Dienstkleidung, Arbeitsschutz, Gesundheitsbelehrung, Einarbeitung, Recruiting" },
+  { gruppe: "Einsatzkosten", key: "stundenKraft", label: "Einsatzstunden pro Kraft", einheit: "Std", hilfe: "Auf so viele Stunden werden die einmaligen Kosten verteilt" },
+  { gruppe: "Einsatzkosten", key: "sonstiges", label: "Sonstiges pro Stunde", einheit: "€", hilfe: "Alles andere, z. B. Bereitschaft/Disposition" },
+  { gruppe: "Aufschläge", key: "gemeinkosten", label: "Gemeinkosten", einheit: "%", hilfe: "Büro, Disposition, Versicherungen, Software" },
+  { gruppe: "Aufschläge", key: "gewinn", label: "Wagnis und Gewinn", einheit: "%", hilfe: "Dein Aufschlag" },
 ];
+
+/** Form fields grouped in boxes (labels are fixed text, values numbers). */
+export function felderHtml(werte: Eingaben, nurLesen = false): string {
+  return GRUPPEN.map((g) => `<fieldset><legend>${g}</legend>${FELDER.filter((f) => f.gruppe === g).map((f) => `<label>${f.label} (${f.einheit})<input name="${f.key}" inputmode="decimal" value="${fmt(werte[f.key])}"${nurLesen ? " readonly" : ""}>${f.hilfe ? `<span class="klein">${f.hilfe}</span>` : ""}</label>`).join("")}</fieldset>`).join("");
+}
 
 export type Ergebnis = {
   schritte: { name: string; betrag: number }[];
   preisProStunde: number;
-  lose: { los: Los; stunden: number; netto: number }[];
+  lose: { los: Los; stunden: number; netto: number; lohn: number; auswaerts: boolean; preisProStunde: number }[];
   netto: number;
   brutto: number;
   warnungen: string[];
@@ -37,31 +81,51 @@ export type Ergebnis = {
 
 const auf = (x: number, p: number) => x * (1 + p / 100);
 
-export function rechnen(e: Eingaben, lose: Los[], mengen: Record<string, number>): Ergebnis {
-  const personal = auf(auf(auf(e.lohn, e.nebenkosten), e.ausfall), e.zuschlaege);
-  const selbstkosten = auf(personal, e.gemeinkosten) + e.sonstiges;
+/** Price per hour for one wage; the steps explain the way there. */
+function stundenpreis(e: Eingaben, lohn: number, auswaerts: boolean) {
+  const zuschlag = e.zuschlaege + (e.anteilNacht * e.zuschlagNacht + e.anteilSonntag * e.zuschlagSonntag + e.anteilFeiertag * e.zuschlagFeiertag + e.anteilUeber * e.zuschlagUeber) / 100;
+  const mitNk = auf(lohn, e.nebenkosten);
+  const mitAusfall = auf(mitNk, e.ausfall);
+  const personal = auf(mitAusfall, zuschlag);
+  const proTag = e.fahrt + e.verpflegung + (auswaerts ? e.unterkunft : 0);
+  const einsatz = (e.stundenTag > 0 ? proTag / e.stundenTag : 0) + (e.stundenKraft > 0 ? e.einmalig / e.stundenKraft : 0) + e.sonstiges;
+  const gemein = auf(personal, e.gemeinkosten);
+  const selbstkosten = gemein + einsatz;
   const preis = auf(selbstkosten, e.gewinn);
-  const zeilen = lose.map((los) => {
-    const stunden = mengen[los.nr] ?? (stundenEinheit(los.einheit) ? los.menge : 0);
-    return { los, stunden, netto: runden(stunden * preis) };
-  });
-  const netto = runden(zeilen.reduce((s, z) => s + z.netto, 0));
-  const warnungen: string[] = [];
-  if (e.lohn < MINDESTLOHN_2026) warnungen.push(`Der Stundenlohn liegt unter dem gesetzlichen Mindestlohn (${fmt(MINDESTLOHN_2026)} € ab 1.1.2026).`);
-  if (e.gewinn <= 0) warnungen.push("Ohne Aufschlag für Wagnis und Gewinn arbeitest du zum Selbstkostenpreis.");
-  if (lose.some((l) => !stundenEinheit(l.einheit))) warnungen.push("Manche Lose sind nicht in Stunden angegeben. Trag die Stunden dort selbst ein.");
   return {
+    preis,
     schritte: [
-      { name: "Stundenlohn", betrag: runden(e.lohn) },
-      { name: `+ Lohnnebenkosten ${fmt(e.nebenkosten)} %`, betrag: runden(auf(e.lohn, e.nebenkosten) - e.lohn) },
-      { name: `+ Ausfallzeiten ${fmt(e.ausfall)} %`, betrag: runden(auf(auf(e.lohn, e.nebenkosten), e.ausfall) - auf(e.lohn, e.nebenkosten)) },
-      { name: `+ Zuschläge ${fmt(e.zuschlaege)} %`, betrag: runden(personal - auf(auf(e.lohn, e.nebenkosten), e.ausfall)) },
-      { name: `+ Gemeinkosten ${fmt(e.gemeinkosten)} %`, betrag: runden(auf(personal, e.gemeinkosten) - personal) },
-      { name: "+ Sonstiges", betrag: runden(e.sonstiges) },
+      { name: "Stundenlohn", betrag: runden(lohn) },
+      { name: `+ Lohnnebenkosten ${fmt(e.nebenkosten)} %`, betrag: runden(mitNk - lohn) },
+      { name: `+ Ausfallzeiten ${fmt(e.ausfall)} %`, betrag: runden(mitAusfall - mitNk) },
+      { name: `+ Zuschläge im Schnitt ${fmt(runden(zuschlag))} %`, betrag: runden(personal - mitAusfall) },
+      { name: `+ Gemeinkosten ${fmt(e.gemeinkosten)} %`, betrag: runden(gemein - personal) },
+      { name: `+ Einsatzkosten${auswaerts ? " mit Unterkunft" : ""}`, betrag: runden(einsatz) },
       { name: "= Selbstkosten pro Stunde", betrag: runden(selbstkosten) },
       { name: `+ Wagnis und Gewinn ${fmt(e.gewinn)} %`, betrag: runden(preis - selbstkosten) },
     ],
-    preisProStunde: runden(preis),
+  };
+}
+
+export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record<string, number>, proLos: LosWerte = {}): Ergebnis {
+  const e = { ...STANDARD, ...eingaben }; // values saved before new fields existed
+  const basis = stundenpreis(e, e.lohn, false);
+  const zeilen = lose.map((los) => {
+    const lohn = proLos[los.nr]?.lohn || e.lohn;
+    const auswaerts = !!proLos[los.nr]?.auswaerts;
+    const preis = runden(stundenpreis(e, lohn, auswaerts).preis);
+    const stunden = mengen[los.nr] ?? (stundenEinheit(los.einheit) ? los.menge : 0);
+    return { los, stunden, netto: runden(stunden * preis), lohn, auswaerts, preisProStunde: preis };
+  });
+  const netto = runden(zeilen.reduce((s, z) => s + z.netto, 0));
+  const warnungen: string[] = [];
+  if ([e.lohn, ...zeilen.map((z) => z.lohn)].some((l) => l < MINDESTLOHN_2026)) warnungen.push(`Ein Stundenlohn liegt unter dem gesetzlichen Mindestlohn (${fmt(MINDESTLOHN_2026)} € ab 1.1.2026).`);
+  if (e.gewinn <= 0) warnungen.push("Ohne Aufschlag für Wagnis und Gewinn arbeitest du zum Selbstkostenpreis.");
+  if (e.anteilNacht + e.anteilSonntag + e.anteilFeiertag > 100) warnungen.push("Nacht-, Sonntags- und Feiertagsanteil zusammen über 100 %. Bitte prüfen.");
+  if (lose.some((l) => !stundenEinheit(l.einheit))) warnungen.push("Manche Lose sind nicht in Stunden angegeben. Trag die Stunden dort selbst ein.");
+  return {
+    schritte: basis.schritte,
+    preisProStunde: runden(basis.preis),
     lose: zeilen,
     netto,
     brutto: runden(auf(netto, UST)),

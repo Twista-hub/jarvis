@@ -6,7 +6,7 @@ import { funktionsListe, personFormular } from "./mitarbeiter.ts";
 import { darfFinanzen, ZUGRIFFE } from "./rechte.ts";
 import { einladungsMail, senden } from "./mail.ts";
 import { CSP } from "./app.ts";
-import { FELDER, STANDARD, fmt, zahl, type Eingaben } from "./kalkulation.ts";
+import { FELDER, STANDARD, felderHtml, fmt, zahl, type Eingaben } from "./kalkulation.ts";
 import { escape, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
@@ -268,7 +268,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   } else if (unterseite === "kalkulation") {
     const vorlagen = await db<{ eingaben: Eingaben }[]>(s, env, `kalkulationsvorlagen?firma_id=eq.${m.firma_id}&bereich_id=is.null&select=eingaben`);
     const werte = { ...STANDARD, ...(vorlagen.ok ? vorlagen.daten[0]?.eingaben : {}) };
-    inhalt = rahmen(`<p>Diese Standardwerte gelten für die Firma. Du kannst sie bei jeder Ausschreibung anpassen.</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}">${FELDER.map((f) => `<label>${f.label} (${f.einheit})<input name="${f.key}" inputmode="decimal" value="${fmt(werte[f.key])}"${m.rolle === "leser" ? " readonly" : ""}><span class="klein">${f.hilfe}</span></label>`).join("")}${m.rolle !== "leser" ? `<button>Standardwerte speichern</button>` : ""}</form>`}<h2>Kalkulationen aus Unterlagen</h2>${await unterlagenListe(liste, env, true) || `<p>Noch keine Kalkulation vorhanden. Lade zuerst Vergabeunterlagen hoch.</p>`}`);
+    inhalt = rahmen(`<p>Diese Standardwerte gelten für die Firma. Du kannst sie bei jeder Ausschreibung anpassen.</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>Standardwerte speichern</button>` : ""}</form>`}<h2>Kalkulationen aus Unterlagen</h2>${await unterlagenListe(liste, env, true) || `<p>Noch keine Kalkulation vorhanden. Lade zuerst Vergabeunterlagen hoch.</p>`}`);
   } else if (unterseite === "team") {
     let team = `<h2>Firma & Team</h2><p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p><h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
     team += b.length
@@ -339,7 +339,11 @@ async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoE
 
 async function vorlageSpeichern(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
   const firma = String(form.get("firma") ?? "");
-  const eingaben = Object.fromEntries(FELDER.map((f) => [f.key, zahl(form.get(f.key), NaN)])) as Eingaben;
+  // Missing fields (e.g. an older form) take the standard value; a field filled with nonsense is rejected.
+  const eingaben = Object.fromEntries(FELDER.map((f) => {
+    const roh = form.get(f.key);
+    return [f.key, roh === null || String(roh).trim() === "" ? STANDARD[f.key] : zahl(roh, NaN)];
+  })) as Eingaben;
   if (!/^[0-9a-f-]{36}$/.test(firma) || Object.values(eingaben).some((v) => !Number.isFinite(v) || v > 10000)) return weiterleiten("/konto/kalkulation?hinweis=Bitte%20gültige%20Werte%20zwischen%200%20und%2010000%20eingeben.");
   const r = await db(s, env, "kalkulationsvorlagen?on_conflict=firma_id,bereich_id", {
     method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" },

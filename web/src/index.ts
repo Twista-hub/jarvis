@@ -1,6 +1,6 @@
 // Jarvis upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import kunden from "../kunden.json";
-import { euro, FELDER, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los } from "./kalkulation";
+import { euro, FELDER, felderHtml, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los, type LosWerte } from "./kalkulation";
 import profile from "../../alarm/profile.json";
 import { CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
@@ -13,7 +13,7 @@ import { einrichtung } from "./einrichtung";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
-import { escape, markdown, seite } from "./seite";
+import { escape, markdown, seite, stapeln } from "./seite";
 
 export { Steckbrief } from "./workflow";
 
@@ -192,7 +192,7 @@ async function jsonAus<T>(env: Env, key: string): Promise<T | null> {
   return obj ? ((await obj.json()) as T) : null;
 }
 
-type Gespeichert = { eingaben: Eingaben; mengen: Record<string, number> };
+type Gespeichert = { eingaben: Eingaben; mengen: Record<string, number>; proLos?: LosWerte };
 
 /** Calculation form below the Steckbrief; remembers the customer's last inputs. */
 async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<string> {
@@ -203,24 +203,28 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   const firmenwerte = firmendaten?.ok ? firmendaten.daten[0]?.eingaben : undefined;
   const vorlage = { ...STANDARD, ...(eigene?.eingaben ?? firmenwerte ?? (await jsonAus<Eingaben>(env, `kunden/${job.profil}/kalkulation.json`))) };
   const mengen = eigene?.mengen ?? {};
-  const felder = FELDER.map((f) => `<label>${f.label} (${f.einheit})<input name="${f.key}" inputmode="decimal" value="${fmt(vorlage[f.key])}"><span class="klein">${f.hilfe}</span></label>`).join("");
-  const loseFelder = lose.map((l) => `<label>Los ${escape(l.nr)}: ${escape(l.name)} – Stunden${l.zeitraum ? ` (${escape(l.zeitraum)})` : ""}
-      <input name="los_${escape(l.nr)}" inputmode="decimal" value="${fmt(mengen[l.nr] ?? (/stunde|std/i.test(l.einheit) ? l.menge : 0))}">
-      ${l.hinweis ? `<span class="klein">${escape(l.hinweis)}</span>` : ""}</label>`).join("");
+  const proLos = eigene?.proLos ?? {};
+  const felder = felderHtml(vorlage);
+  // Per lot: hours, own wage (empty = standard) and "away from home" for accommodation costs.
+  const loseFelder = lose.map((l) => `<fieldset><legend>Los ${escape(l.nr)}: ${escape(l.name)}</legend>
+      <label>Stunden${l.zeitraum ? ` (${escape(l.zeitraum)})` : ""}<input name="los_${escape(l.nr)}" inputmode="decimal" value="${fmt(mengen[l.nr] ?? (/stunde|std/i.test(l.einheit) ? l.menge : 0))}"></label>
+      <label>Eigener Stundenlohn (€, leer = Standard)<input name="lohn_${escape(l.nr)}" inputmode="decimal" value="${proLos[l.nr]?.lohn ? fmt(proLos[l.nr].lohn!) : ""}" placeholder="${fmt(vorlage.lohn)}"></label>
+      <label class="zeile"><input type="checkbox" name="auswaerts_${escape(l.nr)}" value="1"${proLos[l.nr]?.auswaerts ? " checked" : ""}> Auswärts mit Unterkunft</label>
+      ${l.hinweis ? `<span class="klein">${escape(l.hinweis)}</span>` : ""}</fieldset>`).join("");
   let ergebnis = "";
   if (eigene) {
-    const r = rechnen(eigene.eingaben, lose, eigene.mengen);
+    const r = rechnen(eigene.eingaben, lose, eigene.mengen, proLos);
     ergebnis = `<h3>Ergebnis</h3>
       ${r.warnungen.map((w) => `<p class="fehler">⚠️ ${escape(w)}</p>`).join("")}
       <div class="tabelle"><table><tbody>
         ${r.schritte.map((s) => `<tr><td>${escape(s.name)}</td><td>${euro(s.betrag)}</td></tr>`).join("")}
         <tr><th>Angebotspreis pro Stunde (netto)</th><th>${euro(r.preisProStunde)}</th></tr>
       </tbody></table></div>
-      ${r.lose.length ? `<div class="tabelle"><table><thead><tr><th>Los</th><th>Stunden</th><th>Netto</th></tr></thead><tbody>
-        ${r.lose.map((z) => `<tr><td>${escape(z.los.nr)} ${escape(z.los.name)}</td><td>${fmt(z.stunden)}</td><td>${euro(z.netto)}</td></tr>`).join("")}
-        <tr><th>Gesamt netto</th><th></th><th>${euro(r.netto)}</th></tr>
-        <tr><td>Gesamt brutto (19 % USt)</td><td></td><td>${euro(r.brutto)}</td></tr>
-      </tbody></table></div>` : ""}
+      ${r.lose.length ? stapeln(`<table><thead><tr><th>Los</th><th>Lohn</th><th>Preis/Std</th><th>Stunden</th><th>Netto</th></tr></thead><tbody>
+        ${r.lose.map((z) => `<tr><td>${escape(z.los.nr)} ${escape(z.los.name)}${z.auswaerts ? " (auswärts)" : ""}</td><td>${euro(z.lohn)}</td><td>${euro(z.preisProStunde)}</td><td>${fmt(z.stunden)}</td><td>${euro(z.netto)}</td></tr>`).join("")}
+        <tr><td><strong>Gesamt netto</strong></td><td></td><td></td><td></td><td><strong>${euro(r.netto)}</strong></td></tr>
+        <tr><td>Gesamt brutto (19 % USt)</td><td></td><td></td><td></td><td>${euro(r.brutto)}</td></tr>
+      </tbody></table>`) : ""}
       <p class="klein">Eine Rechenhilfe, keine Rechtsberatung. Bei Arbeitnehmerüberlassung Tarif bzw. Equal Pay und die Vorgaben im Preisblatt beachten.</p>`;
   }
   return `<h2 id="kalkulation">💶 Kalkulation</h2>
@@ -241,7 +245,8 @@ async function kalkulieren(id: string, request: Request, env: Env): Promise<Resp
   const eingaben = Object.fromEntries(FELDER.map((f) => [f.key, zahl(form.get(f.key), STANDARD[f.key])])) as Eingaben;
   const lose = (await jsonAus<Los[]>(env, `auftraege/${id}/lose.json`)) ?? [];
   const mengen = Object.fromEntries(lose.map((l) => [l.nr, zahl(form.get(`los_${l.nr}`), 0)]));
-  await env.DATEN.put(`auftraege/${id}/kalkulation.json`, JSON.stringify({ eingaben, mengen }));
+  const proLos: LosWerte = Object.fromEntries(lose.map((l) => [l.nr, { lohn: zahl(form.get(`lohn_${l.nr}`), 0) || undefined, auswaerts: form.get(`auswaerts_${l.nr}`) === "1" }]));
+  await env.DATEN.put(`auftraege/${id}/kalkulation.json`, JSON.stringify({ eingaben, mengen, proLos }));
   await env.DATEN.put(`kunden/${job.profil}/kalkulation.json`, JSON.stringify(eingaben));
   return Response.redirect(new URL(`/auftrag/${id}#kalkulation`, request.url).toString(), 303);
 }
