@@ -24,3 +24,9 @@ test("reads cookies and the token payload", () => {
   assert.deepEqual(jwt(`h.${payload}.s`), { sub: "u1", email: "a@b.de", exp: 2000000000 });
   assert.equal(jwt("kaputt"), null);
 });
+
+test("CSP hash matches the auto-upload script", async () => {
+  const { SOFORT_JS, SOFORT_HASH } = await import("../src/konto.ts");
+  const d = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(SOFORT_JS)));
+  assert.equal(SOFORT_HASH, `sha256-${btoa(String.fromCharCode(...d))}`);
+});
