@@ -1,0 +1,26 @@
+# Sends one test mail from kontakt@wpdigitalranger.com to Benjamin's own address (SMTP login check).
+name: Mail-Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+        run: |
+          python3 - <<'PY'
+          import os, smtplib
+          from email.message import EmailMessage
+          m = EmailMessage()
+          m["From"] = "Jarvis · WP Digital Ranger <kontakt@wpdigitalranger.com>"
+          m["To"] = "benschiffer79@gmail.com"
+          m["Subject"] = "Jarvis: Testmail von kontakt@wpdigitalranger.com"
+          m.set_content("Hallo Benjamin,\n\ndas Postfach kontakt@wpdigitalranger.com kann Mails verschicken.\n\nJarvis\n")
+          with smtplib.SMTP_SSL("mail.privateemail.com", 465, timeout=30) as s:
+              s.login("kontakt@wpdigitalranger.com", os.environ["SMTP_PASSWORD"].strip())
+              s.send_message(m)
+          print("Testmail verschickt")
+          PY
