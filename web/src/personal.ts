@@ -10,6 +10,16 @@ import { euro } from "./kalkulation.ts";
 
 export type Kraft = { id: string; firma_id: string; bereich_id: string | null; vorname: string; nachname: string; berufe: string[]; qualifikationen: string[]; tarifvertrag_id: string | null; eg: string; telefon: string; email: string; status: string; notiz: string };
 export type Tarifvertrag = { id: string; name: string; geltungsbereich?: string; gruppen: string[]; quelle?: string; gueltig_ab?: string | null; gueltig_bis?: string | null; vorgegeben?: boolean };
+type AppMitglied = { user_id: string; rolle: string; anzeigename: string; funktion: string };
+
+export function standortleitungBlock(bereich: string, mitglieder: AppMitglied[], zuordnungen: { user_id: string; bereich_id: string }[], admin: boolean): string {
+  const ids = zuordnungen.filter((z) => z.bereich_id === bereich).map((z) => z.user_id);
+  const leitung = mitglieder.filter((m) => m.rolle === "standortleitung" && ids.includes(m.user_id)).map((m) => m.anzeigename || m.funktion || "Standortleitung").join(", ");
+  const text = `Standortleitung: ${escape(leitung || "noch nicht zugeordnet")}`;
+  if (!admin) return `<p class="standort-leitung">${text}</p>`;
+  const wahl = mitglieder.filter((m) => ["bearbeiter", "leser", "mitarbeiter", "standortleitung"].includes(m.rolle) && !(m.rolle === "standortleitung" && zuordnungen.some((z) => z.user_id === m.user_id && z.bereich_id !== bereich)));
+  return `<details class="leitung-zuordnen"><summary>${text} · ${leitung ? "Ergänzen" : "Zuordnen"}</summary>${wahl.length ? `<form method="post" action="/konto/standort/${bereich}/leitung"><label>Person auswählen<select name="person" required><option value="">Bitte auswählen …</option>${wahl.map((m) => `<option value="${escape(m.user_id)}"${ids.includes(m.user_id) && m.rolle === "standortleitung" ? " selected" : ""}>${escape(m.anzeigename || m.funktion || "Teammitglied")}</option>`).join("")}</select></label><p class="klein">Die Person erhält Personal- und Einsatzrechte für diesen Standort. Ihre bisherige Bereichszuordnung wird ersetzt; Finanzzugriff entfällt.</p><button>Als Standortleitung zuordnen</button></form>` : `<p>Noch kein passender App-Zugang vorhanden.</p>`}<p class="klein"><a href="/konto/team#app-zugaenge">Neue Person einladen oder App-Zugänge verwalten</a></p></details>`;
+}
 
 export const BERUFE: Record<string, string[]> = {
   "Büro & Verwaltung": ["Bürokraft", "Sachbearbeiter/in", "Kaufmännische Fachkraft", "Bürokaufmann/-frau", "Empfangskraft", "Datenerfasser/in", "Buchhalter/in", "Lohnbuchhalter/in", "Personalreferent/in", "Kundenservice"],
@@ -80,7 +90,7 @@ export function kraftFormular(k: Partial<Kraft>, aktion: string, knopf: string, 
   <label>Entgeltgruppe<select name="eg" data-tarifgruppen><option value="">${tarifvertragId ? "Entgeltgruppe wählen …" : "Erst Tarifvertrag wählen …"}</option>${egOptionen(tarife, tarifvertragId, k.eg ?? "")}</select></label></div>
   <fieldset><legend>Berufe</legend>${Object.entries(BERUFE).map(([gruppe, liste]) => `<details${liste.some((b) => k.berufe?.includes(b)) ? " open" : ""}><summary>${escape(gruppe)}</summary>${chips("berufe", liste, k.berufe ?? [])}</details>`).join("")}
   <label>Weitere Berufe (mit Komma trennen)<input name="weitere" maxlength="200" value="${escape(eigene.join(", "))}"></label></fieldset>
-  <details class="qualifikationen-dropdown"><summary>Qualifikationen auswählen · Mehrfachauswahl mit Häkchen</summary>${chips("qualifikationen", qualifikationen, k.qualifikationen ?? [])}</details>
+  <details class="qualifikationen-dropdown"><summary>Qualifikationen auswählen <span aria-hidden="true">›</span></summary>${chips("qualifikationen", qualifikationen, k.qualifikationen ?? [])}</details>
   <label>Notiz (freiwillig)<textarea name="notiz" maxlength="500" rows="2" placeholder="z. B. nur Frühschicht, Einsatzradius 30 km">${escape(k.notiz ?? "")}</textarea></label>
   <button>${knopf}</button>
 </form>`;
@@ -164,11 +174,11 @@ export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, akti
   const berufeHier = [...new Set(alle.flatMap((k) => k.berufe))].sort((a, c) => a.localeCompare(c, "de"));
   const filter = alle.length > 3 ? `<form method="get" class="filter-leiste"><label>Beruf<select name="beruf" data-sofort-wahl><option value="">Alle Berufe</option>${berufeHier.map((x) => `<option${x === beruf ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></label><label>Qualifikation<select name="qualifikation" data-sofort-wahl><option value="">Alle Qualifikationen</option>${qualifikationen.map((x) => `<option${x === qual ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></label><label>Status<select name="status" data-sofort-wahl><option value="">Alle</option>${Object.entries(STATUS).map(([v, [i, t]]) => `<option value="${v}"${v === st ? " selected" : ""}>${i} ${t}</option>`).join("")}</select></label><noscript><button>Filtern</button></noscript></form>` : "";
   return `<p class="klein">${alle.filter((k) => k.status === "verfuegbar").length} verfügbar · ${alle.filter((k) => k.status === "einsatz").length} im Einsatz · ${alle.length} gesamt</p>
-${darfAendern && alle.length ? `<p><a class="knopf" href="#neu" data-oeffne="neu">➕ Person hinzufügen</a></p>` : ""}
+${darfAendern && alle.length ? `<p><a class="knopf" href="#neu" data-oeffne="neu">Person hinzufügen <span aria-hidden="true">+</span></a></p>` : ""}
 ${hilfe("Welche Person soll ich eintragen?", "Erfasse nur Personen, die ihr für Einsätze einplant. Berufe helfen Jarvis, passende Kräfte für Ausschreibungen vorzuschlagen. Die Kontaktangaben nutzt dein Team direkt vom eigenen Gerät.")}
 ${filter}
 <div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"), qualifikationen, tarife)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
-${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>➕ Person hinzufügen</summary>${kraftFormular({}, aktion, "Person speichern", qualifikationen, tarife)}</details>` : ""}
+${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>Person hinzufügen <span aria-hidden="true">+</span></summary>${kraftFormular({}, aktion, "Person speichern", qualifikationen, tarife)}</details>` : ""}
 <p class="klein">Die Daten sieht nur, wer Zugriff auf diesen Standort hat. Trag nur ein, was für die Einsatzplanung nötig ist, und lösche Personen, die nicht mehr für euch arbeiten.</p>`;
 }
 
@@ -211,6 +221,27 @@ async function heimat(f: { s: Parameters<typeof db>[0]; m: { firma_id: string } 
 
 export async function personal(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
+  const leitungSetzen = url.pathname.match(/^\/konto\/standort\/([0-9a-f-]{36})\/leitung$/);
+  if (leitungSetzen && request.method === "POST") {
+    const f = await aktiveFirma(request, env);
+    if (!f) return weiterleiten("/konto");
+    const bid = leitungSetzen[1];
+    const ziel = `/konto/standort/${bid}`;
+    if (!["inhaber", "admin"].includes(f.m.rolle)) return html(seite("Nicht erlaubt", "<p>Nur Inhaber und Administration dürfen die Standortleitung zuordnen.</p>"), 403, f.s.cookies);
+    const uid = String((await request.formData()).get("person") ?? "");
+    if (!ID.test(uid)) return weiterleiten(`${ziel}?hinweis=Bitte%20eine%20Person%20auswählen.`, f.s.cookies);
+    const r = await db<AppMitglied[]>(f.s, env, `mitglieder?firma_id=eq.${f.m.firma_id}&user_id=eq.${uid}&aktiv=eq.true&select=user_id,rolle,anzeigename,funktion`);
+    const m = r.ok ? r.daten[0] : undefined;
+    if (!m || !["bearbeiter", "leser", "mitarbeiter", "standortleitung"].includes(m.rolle)) return weiterleiten(`${ziel}?hinweis=Diese%20Person%20kann%20hier%20nicht%20zugeordnet%20werden.`, f.s.cookies);
+    const bereiche = await db<Bereich[]>(f.s, env, `bereiche?firma_id=eq.${f.m.firma_id}&select=id,name,art,parent_id`);
+    if (!bereiche.ok || !bereiche.daten.some((b) => b.id === bid && b.art === "standort") || bereiche.daten.some((b) => b.parent_id === bid && b.art === "standort")) return weiterleiten(`${ziel}?hinweis=Bitte%20einen%20einzelnen%20Standort%20wählen.`, f.s.cookies);
+    if (m.rolle === "standortleitung") {
+      const z = await db<{ bereich_id: string }[]>(f.s, env, `mitglied_bereiche?firma_id=eq.${f.m.firma_id}&user_id=eq.${uid}&select=bereich_id`);
+      if (!z.ok || z.daten.some((x) => x.bereich_id !== bid)) return weiterleiten(`${ziel}?hinweis=Diese%20Standortleitung%20ist%20bereits%20anderswo%20zugeordnet.`, f.s.cookies);
+    }
+    const result = await db(f.s, env, "rpc/mitglied_aktualisieren", { method: "POST", body: JSON.stringify({ f: f.m.firma_id, u: uid, n: m.anzeigename || "", funktion_neu: "Standortleitung", rolle_neu: "standortleitung", finanzen_neu: false, alle: false, bereiche: [bid] }) });
+    return weiterleiten(`${ziel}?hinweis=${encodeURIComponent(result.ok ? "Standortleitung zugeordnet." : "Zuordnung nicht möglich. Bitte einen einzelnen Standort dieser Firma wählen.")}`, f.s.cookies);
+  }
   if (url.pathname === "/konto/tarifvertrag" && request.method === "POST") {
     const f = await aktiveFirma(request, env);
     if (!f) return weiterleiten("/konto");
@@ -288,7 +319,7 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
   if (!standort && !einzeln) return null;
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
-  const darfAendern = ["inhaber", "admin", "bearbeiter"].includes(f.m.rolle);
+  const darfAendern = ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(f.m.rolle);
   const antwort = (titel: string, inhalt: string, status = 200) => html(seite(titel, `<p class="konto-zurueck"><a href="/konto/team" aria-label="Zurück zu Firma & Team">‹</a></p>${inhalt}`, 0, "team"), status, f.s.cookies);
 
   if (standort) {
@@ -309,7 +340,7 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
       db<Bereich[]>(f.s, env, `bereiche?firma_id=eq.${f.m.firma_id}&select=id,name,art,parent_id`),
       db<Kraft[]>(f.s, env, `personal?firma_id=eq.${f.m.firma_id}&bereich_id=${bid ? `eq.${bid}` : "is.null"}&select=*&order=status,vorname`),
       qualifikationenLaden(f.s, env, f.m.firma_id, bid),
-      db<{ user_id: string; rolle: string; anzeigename: string; funktion: string }[]>(f.s, env, `mitglieder?firma_id=eq.${f.m.firma_id}&aktiv=eq.true&rolle=eq.standortleitung&select=user_id,rolle,anzeigename,funktion`),
+      db<AppMitglied[]>(f.s, env, `mitglieder?firma_id=eq.${f.m.firma_id}&aktiv=eq.true&select=user_id,rolle,anzeigename,funktion`),
       db<{ user_id: string; bereich_id: string }[]>(f.s, env, `mitglied_bereiche?firma_id=eq.${f.m.firma_id}&select=user_id,bereich_id`),
       tarifvertraegeLaden(f.s, env, f.m.firma_id),
     ]);
@@ -320,9 +351,7 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     const alle = liste.ok ? liste.daten : [];
     const hinweis = url.searchParams.get("hinweis");
     const custom = qualifikationen.map((q) => q.name);
-    const leitungIds = zuordnungen.ok ? zuordnungen.daten.filter((z) => z.bereich_id === bid).map((z) => z.user_id) : [];
-    const leitung = mitglieder.ok ? mitglieder.daten.filter((x) => leitungIds.includes(x.user_id)).map((x) => x.anzeigename || x.funktion || "Standortleitung").join(", ") : "";
-    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${bid ? `<p class="standort-leitung">👤 <strong>Standortleitung:</strong> ${escape(leitung || "noch nicht zugeordnet")}</p>` : ""}${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`, einsaetze, custom, tarife)}${qualifikationenBlock(bid, qualifikationen, darfAendern)}`);
+    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${bid ? standortleitungBlock(bid, mitglieder.ok ? mitglieder.daten : [], zuordnungen.ok ? zuordnungen.daten : [], ["inhaber", "admin"].includes(f.m.rolle)) : ""}${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`, einsaetze, custom, tarife)}${qualifikationenBlock(bid, qualifikationen, darfAendern)}`);
   }
 
   const pid = einzeln![1];

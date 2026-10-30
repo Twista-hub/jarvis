@@ -83,7 +83,7 @@ test("Tarifvertrag wählt nur eigene Entgeltgruppen; Qualifikationen sind mehrfa
   assert.match(html, /name="tarifvertrag" required data-tarifvertrag/);
   assert.match(html, /data-tarifvertrag="88888888[^\"]*" selected>EG 2a/);
   assert.match(html, /data-tarifvertrag="99999999[^\"]*" disabled>Geselle/);
-  assert.match(html, /Qualifikationen auswählen · Mehrfachauswahl mit Häkchen/);
+  assert.match(html, /Qualifikationen auswählen/);
   assert.match(html, /name="qualifikationen" value="Staplerschein"/);
   const form = new FormData();
   form.set("vorname", "Tom"); form.set("tarifvertrag", tarifId); form.set("eg", "2a");
@@ -113,6 +113,29 @@ function mock(t: TestContext) {
 const anfrage = (pfad: string, init: RequestInit = {}) => new Request(`https://jarvis.test${pfad}`, { ...init, headers: { cookie: `jv_at=${token}`, ...(init.headers ?? {}) } });
 const env = { SUPABASE_URL: "https://sb.test", SUPABASE_KEY: "pk" };
 
+for (const [actor, target, erlaubt] of [["inhaber", "bearbeiter", true], ["bearbeiter", "bearbeiter", false], ["inhaber", "inhaber", false]] as const) {
+  test(`Direkte Leitungszuordnung: ${actor} zu ${target}, erlaubt=${erlaubt}`, async (t) => {
+    let gespeichert: any;
+    t.mock.method(globalThis, "fetch", async (input: string | URL | Request, init?: RequestInit) => {
+      const url = new URL(String(input));
+      const table = url.pathname.split("/rest/v1/")[1];
+      if (table === "rpc/mitglied_aktualisieren") { gespeichert = JSON.parse(String(init?.body)); return Response.json(null); }
+      if (table === "mitglieder") return Response.json(url.searchParams.has("firma_id") ? [{ user_id: pid, rolle: target, anzeigename: "Samira", funktion: "Disposition" }] : [{ firma_id: firma, rolle: actor, firmen: { name: "Test" } }]);
+      if (table === "bereiche") return Response.json([{ id: ort, name: "Hamburg", art: "standort", parent_id: null }]);
+      return Response.json([]);
+    });
+    const r = await personal(anfrage(`/konto/standort/${ort}/leitung`, { method: "POST", body: new URLSearchParams({ person: pid }) }), env);
+    assert.ok(r);
+    if (erlaubt) {
+      assert.deepEqual(gespeichert.bereiche, [ort]);
+      assert.equal(gespeichert.rolle_neu, "standortleitung");
+      assert.equal(gespeichert.finanzen_neu, false);
+      assert.equal(gespeichert.alle, false);
+      assert.match(r.headers.get("location")!, /Standortleitung%20zugeordnet/);
+    } else assert.equal(gespeichert, undefined);
+  });
+}
+
 test("Standortseite zeigt das Personal als Karten und das Formular zum Hinzufügen", async (t) => {
   mock(t);
   const r = await personal(anfrage(`/konto/standort/${ort}`), env);
@@ -120,7 +143,7 @@ test("Standortseite zeigt das Personal als Karten und das Formular zum Hinzufüg
   assert.equal(r!.status, 200);
   assert.match(html, /📍 Hamburg/);
   assert.match(html, /class="person-karte"/);
-  assert.match(html, /➕ Person hinzufügen/);
+  assert.match(html, /Person hinzufügen/);
 });
 
 test("Person anlegen speichert Berufe und Standort", async (t) => {

@@ -186,6 +186,6 @@ test("Firma & Team mit nur einem Standort zeigt das Personal direkt", async (t) 
   const html = await seite("/konto/team");
   assert.match(html, /Organisationsbaum/);
   assert.match(html, /Einsatzpersonal/);
-  assert.match(html, /➕ Person hinzufügen/);
+  assert.match(html, /Person hinzufügen/);
   assert.doesNotMatch(html, /class="konto-kacheln standort-kacheln"/);
 });
