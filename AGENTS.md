@@ -16,7 +16,7 @@ Pflichten. Wer an Jarvis arbeitet, liest zuerst diese Datei und dann `docs/stand
 - Benjamin Schiffer, Firma „WP Digital Ranger“ (Einzelunternehmen, Nebenerwerb, Kleinunternehmer nach § 19 UStG,
   Steuernummer beantragt). Rochusstraße 19, 52531 Übach-Palenberg (NRW). Telefon nicht veröffentlichen.
 - Schreibt Deutsch, schnell, oft vom Handy, mit Diktierfehlern. Antworten: Deutsch, kurz, Wichtigstes zuerst.
-- Konto-Übersicht: Profil-Icon oben rechts, keine „Angemeldet als“-Zeile; Firmenwechsel kompakt oben, Suche einrichten im Bereich „Suchprofil“.
+- Konto-Übersicht: Profil-Icon oben rechts, keine „Angemeldet als“-Zeile; Firmenwechsel im Profil, Suche einrichten im Bereich „Suchprofil“. Zurück-Navigation als Pfeil ohne sichtbares „Zurück“. Ausschreibungen als Karten ohne seitliches Scrollen am Handy.
 - Kein Konsolen-Fan. Für Schritte im Browser immer den **direkten Link** und den **genauen Buttontext**, Schritt für Schritt.
 - Will, dass möglichst alles automatisch und ohne ihn läuft. Pull, Konflikte lösen, Tests, Push und die Ausroll-Prüfung übernimmt die KI selbst. Bei Netzwerkfehlern die vorgesehene Netzwerkfreigabe der Ausführungsumgebung prüfen; Benjamin soll keine Konsolenarbeit übernehmen.
 

@@ -214,11 +214,11 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const bereichOptionen = b.map((x) => `<option value="${x.id}">${escape(x.name)}</option>`).join("");
 
   const wechsel = meine.daten.length > 1
-    ? `<details class="firmenwechsel"><summary>Firma wechseln</summary><form method="get" action="${escape(url.pathname)}"><label>Firma<select name="firma">${meine.daten.map((x) => `<option value="${x.firma_id}"${x.firma_id === m.firma_id ? " selected" : ""}>${escape(x.firmen.name)}</option>`).join("")}</select></label><button>Wechseln</button></form></details>`
+    ? `<h2>Firma wechseln</h2><form class="profil-firmenwechsel" method="get" action="/konto/profil"><label>Aktive Firma<select name="firma">${meine.daten.map((x) => `<option value="${x.firma_id}"${x.firma_id === m.firma_id ? " selected" : ""}>${escape(x.firmen.name)}</option>`).join("")}</select></label><button>Wechseln</button></form>`
     : "";
   const regionen = b.filter((x) => !x.parent_id);
   const link = (stand: string, bereich = filter?.id ?? "") => `/konto/treffer?stand=${stand}${bereich ? `&bereich=${bereich}` : ""}`;
-  const bereichWahl = regionen.length ? `<p class="klein">Bereich: <a href="${link(reiter, "")}">alle</a> · ${regionen.map((x) => `<a href="${link(reiter, x.id)}">${escape(x.name)}</a>`).join(" · ")}</p>` : "";
+  const bereichWahl = regionen.length ? `<form class="treffer-filter" method="get" action="/konto/treffer"><input type="hidden" name="stand" value="${reiter}"><label>Bereich<select name="bereich"><option value="">Alle Bereiche</option>${regionen.map((x) => `<option value="${x.id}"${filter?.id === x.id ? " selected" : ""}>${escape(x.name)}</option>`).join("")}</select></label><button>Anzeigen</button></form>` : "";
   const liste = vorgaenge.ok ? vorgaenge.daten : [];
   const heute = new Date().toISOString().slice(0, 10);
   const in7Tagen = new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10);
@@ -241,7 +241,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   if (!unterseite) {
     inhalt = rahmen(`${meldungen}<h2>Was möchtest du tun?</h2><p>${neu} neue Treffer · ${bald} Fristen diese Woche</p>${kacheln}`);
   } else if (unterseite === "treffer") {
-    const tabs = `<nav class="reiter" aria-label="Stand">${[["neu", "Neu"], ["arbeit", "In Arbeit"], ["abgegeben", "Abgegeben"], ["archiv", "Archiv"]].map(([key, label]) => `<a href="${link(key)}"${key === reiter ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
+    const tabs = `<nav class="reiter" aria-label="Stand der Ausschreibungen">${[["neu", "Neu"], ["arbeit", "In Arbeit"], ["abgegeben", "Abgegeben"], ["archiv", "Archiv"]].map(([key, label]) => `<a href="${link(key)}"${key === reiter ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
     inhalt = rahmen(`${meldungen}${tabs}${trefferListe(liste.filter((v) => gruppen[reiter].includes(v.status)), name, bereichWahl, link(reiter))}`);
   } else if (unterseite === "fristen") {
     inhalt = rahmen(`<h2>Nächste Fristen</h2>${fristen.length ? `<ul class="fristen-liste">${fristen.map((v) => `<li${v.frist!.slice(0, 10) <= in7Tagen ? ' class="frist-bald"' : ""}><time datetime="${escape(v.frist!)}">${datum(v.frist!)}</time><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a></li>`).join("")}</ul>` : `<p>Aktuell stehen keine offenen Fristen an.</p>`}<p class="klein">Jarvis erinnert dich zusätzlich 7 und 2 Tage vorher per täglicher Nachricht.</p>`);
@@ -285,7 +285,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     }
     inhalt = rahmen(team);
   } else if (unterseite === "profil") {
-    inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p><h2>Abmelden</h2>${abmelden}`);
+    inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p>${wechsel}<h2>Abmelden</h2>${abmelden}`);
   } else if (unterseite === "suchprofil") {
     const beschreibung = (profil.ok ? profil.daten[0]?.beschreibung : "") || hinterlegt?.beschreibung || "";
     inhalt = rahmen(`${!profil.ok ? `<p class="fehler">Der aktuelle Stand des Suchprofils konnte nicht geladen werden. Bitte versuche es erneut.</p>` : sucheEingerichtet ? `<p><strong>Die Suche für ${escape(m.firmen.name)} ist eingerichtet.</strong></p>` : `<p>Für diese Firma ist noch keine Suche eingerichtet.</p>`}${beschreibung ? `<p>${escape(beschreibung)}</p>` : ""}${admin && (profil.ok || sucheEingerichtet) ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">${sucheEingerichtet ? "Suchprofil anpassen" : "Suche einrichten"}</a></p>` : !admin ? `<p class="klein">Ein Inhaber oder Admin kann das Suchprofil anpassen.</p>` : ""}`);
@@ -302,7 +302,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
 <p class="klein" id="push-status"></p>
 <h2>Konto</h2>${abmelden}`);
   }
-  return html(seite(unterseite ? labels[unterseite] : m.firmen.name, inhalt, sucht ? 30 : 0, unterseite, wechsel), 200, s.cookies);
+  return html(seite(unterseite ? labels[unterseite] : m.firmen.name, inhalt, sucht ? 30 : 0, unterseite), 200, s.cookies);
 }
 
 async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
@@ -393,16 +393,19 @@ async function einladungAnnehmen(s: Sitzung, form: FormData, _r: Request, env: K
 }
 
 function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefined) => string, bereichWahl: string, weiter: string): string {
-  if (!liste.length) return `<h2>Ausschreibungen</h2>${bereichWahl}<p class="klein">In diesem Reiter gibt es noch keine Treffer.</p>`;
+  if (!liste.length) return `${bereichWahl}<div class="treffer-leer"><h2>Noch keine Ausschreibungen</h2><p>In diesem Bereich gibt es aktuell keine Treffer. Wähle einen anderen Stand oder Bereich.</p></div>`;
   const optionen = (aktuell: string) => Object.entries(STATUS).map(([k, t]) => `<option value="${k}"${k === aktuell ? " selected" : ""}>${t}</option>`).join("");
-  const zeilen = liste.map((v) => `<tr>
-  <td>${v.punkte ? `<strong>${v.punkte}/10</strong>` : "–"}</td>
-  <td><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a>${v.bereich_id ? `<br><span class="klein">${escape(bereichName(v.bereich_id))}</span>` : ""}</td>
-  <td>${v.frist ? datum(v.frist) : "–"}</td>
-  <td><form method="post" action="/konto/status" style="display:flex;gap:6px;padding:0;border:0;background:none">
-    <input type="hidden" name="weiter" value="${escape(weiter)}"><input type="hidden" name="id" value="${v.id}"><select name="status">${optionen(v.status)}</select><button>OK</button></form></td>
-</tr>`).join("");
-  return `<h2>Ausschreibungen</h2>${bereichWahl}<div class="tabelle"><table><tr><th>Punkte</th><th>Titel</th><th>Frist</th><th>Stand</th></tr>${zeilen}</table></div>`;
+  const karten = liste.map((v) => `<li><article class="treffer-karte">
+  <div class="treffer-meta"><span class="treffer-punkte">${v.punkte !== null ? `${v.punkte}/10 Punkte` : "Ohne Bewertung"}</span><span class="treffer-status">${escape(STATUS[v.status] ?? v.status)}</span></div>
+  <h2><a href="/konto/vorgang/${v.id}"><span>${escape(v.titel)}</span><span aria-hidden="true">›</span></a></h2>
+  ${v.bereich_id ? `<p class="treffer-bereich">${escape(bereichName(v.bereich_id))}</p>` : ""}
+  <p class="treffer-frist"><span>Abgabefrist</span>${v.frist ? `<time datetime="${escape(v.frist)}">${datum(v.frist)}</time>` : `<strong>Noch nicht bekannt</strong>`}</p>
+  <details class="treffer-stand"><summary>Stand ändern</summary><form method="post" action="/konto/status">
+    <input type="hidden" name="weiter" value="${escape(weiter)}"><input type="hidden" name="id" value="${v.id}">
+    <label>Bearbeitungsstand<select name="status">${optionen(v.status)}</select></label><button>Speichern</button>
+  </form></details>
+</article></li>`).join("");
+  return `${bereichWahl}<ol class="treffer-liste" aria-label="Ausschreibungen">${karten}</ol>`;
 }
 
 async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
