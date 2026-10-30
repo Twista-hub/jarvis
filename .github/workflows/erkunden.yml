@@ -32,6 +32,9 @@ on:
       seite:
         description: "Nur eine Seite als Text zeigen (z. B. Nutzungsbedingungen): URL"
         default: ""
+      pdf:
+        description: "Ein öffentliches PDF als Text zeigen (z. B. Tariftabelle), nur wenn robots.txt es erlaubt: URL"
+        default: ""
 
 jobs:
   erkunden:
@@ -69,9 +72,17 @@ jobs:
           curl -sSL -A "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)" "$SEITE" -o seite.html
           python3 -c "import re,html;t=open('seite.html',errors='replace').read();t=re.sub(r'(?is)<(script|style).*?</\1>','',t);print(re.sub(r'\s*\n\s*','\n',html.unescape(re.sub(r'<[^>]+>','\n',t)))[:60000])"
           grep -oiE 'href="[^"]*(nutzung|agb|impressum|bedingung|terms)[^"]*"' seite.html | sort -u | head -40
-      - if: inputs.beispiel != '' && !inputs.foerder && inputs.recherche == '' && inputs.zuschlaege == '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == '' && inputs.zeiten == ''
+      - if: inputs.pdf != ''
+        env:
+          PDF: ${{ inputs.pdf }}
+        run: |
+          python3 -c "import os,sys,urllib.parse,urllib.robotparser as r;u=os.environ['PDF'];p=urllib.parse.urlparse(u);rp=r.RobotFileParser(f'{p.scheme}://{p.netloc}/robots.txt');rp.read();ok=rp.can_fetch('JarvisAlarm',u);print('robots.txt erlaubt:',ok);sys.exit(0 if ok else 1)"
+          sudo apt-get install -y -qq poppler-utils >/dev/null
+          curl -sSL -A "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)" "$PDF" -o datei.pdf
+          pdftotext -layout datei.pdf - | head -c 60000
+      - if: inputs.beispiel != '' && !inputs.foerder && inputs.recherche == '' && inputs.zuschlaege == '' && inputs.seite == '' && inputs.pdf == '' && inputs.portale == '' && inputs.pruefen == '' && inputs.zeiten == ''
         run: python3 alarm/beispiel.py "${{ inputs.beispiel }}" "${{ inputs.tage }}"
-      - if: inputs.beispiel == '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == '' && inputs.zeiten == '' && !inputs.foerder && inputs.recherche == '' && inputs.zuschlaege == ''
+      - if: inputs.beispiel == '' && inputs.pdf == '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == '' && inputs.zeiten == '' && !inputs.foerder && inputs.recherche == '' && inputs.zuschlaege == ''
         run: python3 alarm/erkunden.py "${{ inputs.tage }}"
-      - if: inputs.beispiel == '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == '' && inputs.zeiten == '' && !inputs.foerder && inputs.recherche == '' && inputs.zuschlaege == ''
+      - if: inputs.beispiel == '' && inputs.pdf == '' && inputs.seite == '' && inputs.portale == '' && inputs.pruefen == '' && inputs.zeiten == '' && !inputs.foerder && inputs.recherche == '' && inputs.zuschlaege == ''
         run: python3 alarm/erkunden_de.py "${{ inputs.tage }}"
