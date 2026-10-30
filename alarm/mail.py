@@ -82,6 +82,8 @@ def nachricht(an: str, firma: str, neu: list, fristen: list) -> EmailMessage:
     m["To"] = an
     m["Subject"] = (f"{len(neu)} neue Ausschreibungen" if neu else "Fristen-Erinnerung") + f" für {firma}"[:150]
     m["Message-ID"] = make_msgid(domain="wpdigitalranger.com")
+    # Lets mail programs show an "unsubscribe" button; both lead to switching the mail off.
+    m["List-Unsubscribe"] = f"<mailto:{ABSENDER[1]}?subject=Jarvis-Mail%20abbestellen>, <{APP}/konto#mail>"
     m.set_content("\n".join(zeilen) + f"\n\n{fuss}\n")
     m.add_alternative(f"""<div style="font-family:system-ui,sans-serif;max-width:640px">{''.join(html_teile)}
 <p><a href="{APP}/konto">Alle Treffer in Jarvis öffnen</a></p>
