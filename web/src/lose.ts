@@ -1,10 +1,12 @@
 // Reads the lots of a Steckbrief with quantities, the workforce each lot needs and the suggested wage group
-// of the collective agreement (GVP/DGB). Cheap call (effort low) on the finished Steckbrief only.
+// of the collective agreement (GVP/DGB). Cheap call on the finished Steckbrief only: Haiku 5.5 at effort low
+// (a simple extraction; Haiku has no server-side refusal fallback, a decline just leaves the lots empty).
 import type Anthropic from "@anthropic-ai/sdk";
 import type { Los } from "./kalkulation.ts";
 import { GVP } from "./tarife.ts";
 
-const MODEL = "claude-opus-5-5";
+const MODEL = "claude-haiku-5-5";
+const PREIS = [0.1, 0.5]; // $ per million input / output tokens (prompts up to 100K tokens)
 
 export const LOSE_SCHEMA = {
   type: "object",
@@ -41,11 +43,9 @@ ${GVP.gruppen.map((g) => `  EG ${g}: ${GVP.merkmale[g]}`).join("\n")}
   Leer lassen, wenn es keine Personalleistung ist oder die Unterlagen zu wenig sagen.
 - eg_grund: ein kurzer Satz, warum diese Entgeltgruppe (welche Anforderung aus den Unterlagen).`;
 
-export async function loseLesen(client: Anthropic, steckbrief: string): Promise<{ lose: Los[]; usage: Anthropic.Beta.BetaUsage }> {
-  const message = await client.beta.messages.create({
+export async function loseLesen(client: Anthropic, steckbrief: string): Promise<{ lose: Los[]; kosten: number }> {
+  const message = await client.messages.create({
     model: MODEL,
-    betas: ["server-side-fallback-2026-07-01"],
-    fallbacks: "default",
     max_tokens: 8000,
     output_config: { effort: "low", format: { type: "json_schema", schema: LOSE_SCHEMA } },
     system: LOSE_ANLEITUNG,
@@ -53,5 +53,7 @@ export async function loseLesen(client: Anthropic, steckbrief: string): Promise<
   });
   const text = message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
   const lose = message.stop_reason === "refusal" ? [] : (JSON.parse(text).lose as Los[]);
-  return { lose, usage: message.usage };
+  const u = message.usage;
+  const eingabe = u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
+  return { lose, kosten: (eingabe * PREIS[0] + u.output_tokens * PREIS[1]) / 1e6 };
 }

@@ -33,6 +33,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 (abends, Teil 5) – Claude
+- KI-Kosten: Modell pro Aufgabe. Tägliche Bewertung + Förderprogramme (`alarm/ki.py`) und Einrichtungs-Assistent: Claude Sonnet 5.5 (2/10 $ pro Mio. Tokens, halber Opus-Preis, effort low). Lose/Arbeitskräfte/Entgeltgruppe (`web/src/lose.ts`): Claude Haiku 5.5 (0,10/0,50 $, ohne Server-Fallback). Steckbrief aus Vergabeunterlagen bleibt Claude Opus 5.5 (lange, schwierige Dokumente). Kostenzähler rechnen mit dem jeweiligen Preis.
+
 ### 30.10.2026 (abends, Teil 4) – Claude
 - Kalkulation: Seite „Kalkulation“ hat oben „Ausschreibung wählen“ (öffnet sofort die Kalkulation), dort „Los wählen“. Pro Los: „👷 Gebraucht: …“ (Arbeitskraft aus den Unterlagen), „📜 Vorschlag laut Tarifvertrag: EG x – Grund“ mit dem wörtlichen Merkmal, Entgeltgruppe vorausgewählt, Tariflohn heute und im Schnitt über die Laufzeit.
 - Merkmale EG 1–9 wörtlich aus dem Entgeltrahmentarifvertrag DGB/GVP vom 20.05.2025 (dgb.de, robots.txt geprüft, gelesen über erkunden.yml „pdf“) in `tarife.ts`. Neues Modul `web/src/lose.ts` (Lose + taetigkeit + eg + eg_grund), genutzt vom Steckbrief-Ablauf. Ältere Steckbriefe: Knopf „👷 Arbeitskräfte und Entgeltgruppen erkennen“ (`POST /auftrag/<id>/arbeitskraefte`). Angebot ohne eigene Kalkulation nimmt den Tariflohn der vorgeschlagenen EG.
