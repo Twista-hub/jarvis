@@ -33,6 +33,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 (abends) – Claude
+- Erster Suchlauf: Ladekreisel statt Dauertext. `alarm.yml` markiert am Ende `einstellungen.erstlauf_fertig` (auch ohne Treffer), dann verschwindet der Hinweis; höchstens 20 Minuten. Der Text „Suchprofil gespeichert. Jarvis durchsucht …“ hängt nicht mehr in der Adresse.
+
 ### 30.10.2026 (spät, Teil 4) – Claude
 - Auf Wunsch von Benjamin: keine manuelle Freischaltung mehr. Wer sich registriert und die E-Mail bestätigt, bekommt sofort seine Firma im Tarif `kostenlos` (Migration `20261031010000_selbst_freischalten.sql`; Freischalten-Seite, Betreiber-Mail und Tabellen `registrierungen`/`betreiber` entfernt; `firma_anlegen` ohne Freigabe). Was der kostenlose Tarif darf, legt Benjamin später fest (offener Punkt).
 - Plan-Seite (auf Wunsch von Benjamin vorerst ABGESCHALTET, kein Link, keine Route; Pläne kommen ganz zum Schluss) wie bei anderen Portalen (Free, Basis, Pro, Erfolg; `web/src/plaene.ts`): aktueller Plan, „Upgrade auf …“ öffnet vorerst eine vorbereitete Mail, bis Stripe eingerichtet ist. Preise und Inhalte: „Preis folgt“, legt Benjamin fest. „kostenlos“ steht nicht mehr in Registrierung und Startseite.

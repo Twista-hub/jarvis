@@ -244,10 +244,9 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     // Remembered for the "Jarvis is searching" notice in the overview and the 2-hour limit.
     await db(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null`, { method: "PATCH", body: JSON.stringify({ einstellungen: { ...einstellungen, erstlauf: new Date().toISOString() } }) });
   }
-  const hinweis = gestartet
-    ? "Suchprofil gespeichert. Jarvis durchsucht jetzt die Ausschreibungen der letzten 7 Tage, die Treffer erscheinen in etwa 5 Minuten hier."
-    : "Suchprofil gespeichert. Ab morgen früh sucht Jarvis damit nach Ausschreibungen.";
-  return weiterleiten(`/konto?firma=${firma}&hinweis=${encodeURIComponent(hinweis)}`);
+  // While the first run is busy the overview shows its own notice with a spinner, which disappears when it is done.
+  if (gestartet) return weiterleiten(`/konto?firma=${firma}`);
+  return weiterleiten(`/konto?firma=${firma}&hinweis=${encodeURIComponent("Suchprofil gespeichert. Ab morgen früh sucht Jarvis damit nach Ausschreibungen.")}`);
 }
 
 /** Starts the alarm for this firm only (last 7 days) via GitHub Actions. */

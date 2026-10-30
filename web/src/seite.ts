@@ -44,6 +44,10 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   button { font: inherit; font-weight: 600; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); cursor: pointer; }
   .knopf { display: block; text-align: center; font-weight: 700; font-size: 1.1rem; padding: 14px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; }
   .fehler { color: var(--error); font-weight: 600; }
+  .laedt { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
+  .kreisel { flex-shrink: 0; width: 24px; height: 24px; margin-top: 2px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: kreisen 0.9s linear infinite; }
+  @keyframes kreisen { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .kreisel { animation-duration: 3s; } }
   .klein { color: var(--muted); font-size: 14px; }
   .tabelle { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 15px; }

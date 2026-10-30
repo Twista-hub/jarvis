@@ -166,7 +166,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
   const [profil, mail] = await Promise.all([
-    db<{ id: string; beschreibung: string; erstlauf: string | null }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,erstlauf:einstellungen->>erstlauf&limit=1`),
+    db<{ id: string; beschreibung: string; erstlauf: string | null; fertig: string | null }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig&limit=1`),
     db<{ stunde: number | null; kanal: string }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde,kanal`),
   ]);
   const hinterlegt = dateiProfil(m.firma_id);
@@ -174,7 +174,9 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   // First run after the setup assistant: about 5 minutes; the page reloads until then.
   const erstlauf = profil.ok && profil.daten[0]?.erstlauf ? Date.now() - Date.parse(profil.daten[0].erstlauf) : Infinity;
   const start = Date.now() - erstlauf;
-  const sucht = erstlauf < 15 * 60_000 && !(vorgaenge.ok && vorgaenge.daten.some((v) => Date.parse(v.erstellt) > start));
+  // Searching until the run marks itself done (alarm.yml "Erster Lauf fertig"); at most 20 minutes.
+  const fertig = profil.ok && profil.daten[0]?.fertig ? Date.parse(profil.daten[0].fertig) : 0;
+  const sucht = erstlauf < 20 * 60_000 && fertig < start;
   const stunde = mail.ok && mail.daten[0] ? mail.daten[0].stunde : null;
   const kanal = mail.ok && mail.daten[0] ? mail.daten[0].kanal : "mail";
   const name = (id: string | null | undefined) => b.find((x) => x.id === id)?.name ?? "";
@@ -194,7 +196,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const neu = liste.filter((v) => ["neu", "pruefen"].includes(v.status)).length;
   const labels: Record<string, string> = { treffer: "Ausschreibungen", fristen: "Fristen", unterlagen: "Unterlagen prüfen", kalkulation: "Kalkulation", team: "Firma & Team", einstellungen: "Einstellungen", profil: "Mein Profil", suchprofil: "Suchprofil" };
   const rahmen = (body: string) => `${kopf}${body}`;
-  const meldungen = sucht ? `<p><strong>⏳ Jarvis durchsucht gerade die Ausschreibungen der letzten 7 Tage.</strong> Die Treffer erscheinen in etwa 5 Minuten hier, die Seite lädt sich von selbst neu.</p>` : "";
+  const meldungen = sucht ? `<p class="laedt" role="status"><span class="kreisel" aria-hidden="true"></span><span><strong>Jarvis durchsucht gerade die Ausschreibungen der letzten 7 Tage.</strong><br><span class="klein">Das dauert etwa 5 bis 10 Minuten. Du kannst die App ruhig schließen. Die Treffer stehen danach hier, diese Seite aktualisiert sich von selbst.</span></span></p>` : "";
   const cards = [
     ["treffer", "📋", "Ausschreibungen", `${neu} neue Treffer`],
     ["fristen", "⏰", "Fristen", `${bald} Fristen diese Woche`],

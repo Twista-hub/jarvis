@@ -57,6 +57,21 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: python alarm/mail.py --sofort "$FIRMA"
+      - name: Erster Lauf fertig
+        # Ends the "Jarvis is searching" notice in the app, also when nothing was found or a step failed.
+        if: always() && inputs.firma != ''
+        continue-on-error: true
+        env:
+          FIRMA: ${{ inputs.firma }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          cd alarm && python - <<'PY'
+          import os
+          from profile_db import verbinden
+          with verbinden() as c:
+              c.execute("update public.suchprofile set einstellungen = einstellungen || jsonb_build_object('erstlauf_fertig', now()) where firma_id = %s::uuid and bereich_id is null", (os.environ["FIRMA"],))
+          print("Erster Lauf als fertig markiert.")
+          PY
       - name: Datenbank wach halten
         # Free Supabase projects pause after 7 days without access; one query a day prevents that.
         continue-on-error: true
