@@ -34,4 +34,5 @@ Regionen: Berlin, Norden (Hamburg, Bremen, Lübeck, Hannover), NRW (9 Standorte)
 
 ## Öffentliche Aufträge
 - TED (EU-weit, ab Schwellenwert): **kein Treffer** für „PerLease“ (Volltextsuche, 30.10.2026; zum Vergleich findet dieselbe Suche für Randstad viele Zuschläge).
-- Bekanntmachungsservice (Deutschland, auch unter Schwellenwert): siehe unten.
+- Bekanntmachungsservice (Deutschland, auch unter Schwellenwert, alle Bekanntmachungen inkl. Zuschläge): **kein Treffer** für „perlease“ in den Tagesexporten vom 03.05. bis 29.10.2026. 43 der 180 Tage waren nicht abrufbar (Server lehnte ab), 137 Tage wurden durchsucht.
+- Fazit: PerLease hat in dieser Zeit keinen veröffentlichten öffentlichen Auftrag gewonnen. Öffentliche Ausschreibungen wären für PerLease ein neuer Vertriebsweg.
