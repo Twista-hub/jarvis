@@ -107,7 +107,7 @@ test("Tarifvertrag wählt nur eigene Entgeltgruppen; Qualifikationen sind mehrfa
 
 test("Mitarbeiterformular zeigt die Anzahl hinterlegter Tarifwerke und führt zur Verwaltung", () => {
   const html = kraftFormular({}, "/save", "Speichern", [], [tarif]);
-  assert.match(html, /1 Tarifwerk oder Branchenmindestlohn/);
+  assert.match(html, /Hinterlegt sind 1 Tarif-\/Mindestlohneintrag/);
   assert.match(html, /href="\/konto\/team#tarifvertraege"/);
   const verwaltung = tarifvertraegeBlock([tarif], true);
   assert.match(verwaltung, /id="tarifvertraege"/);
