@@ -12,6 +12,20 @@ document.querySelectorAll("input[data-sofort]").forEach(function (i) {
   });
 });
 
+// Mail links (login, confirmation, new password) bring the login in the URL fragment; hand it to the server.
+var anmeldung = document.getElementById("anmeldung");
+if (anmeldung) {
+  var h = new URLSearchParams(location.hash.slice(1));
+  history.replaceState(null, "", location.pathname + location.search);
+  var fehlgeschlagen = function () { anmeldung.hidden = true; document.getElementById("anmeldung-fehler").hidden = false; };
+  if (h.get("access_token") && h.get("refresh_token")) {
+    fetch("/anmelden/sitzung", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ access_token: h.get("access_token"), refresh_token: h.get("refresh_token"), expires_in: Number(h.get("expires_in")), typ: h.get("type") || "", weiter: anmeldung.dataset.weiter }) })
+      .then(function (r) { return r.ok ? r.json() : Promise.reject(r.status); })
+      .then(function (d) { location.replace(d.weiter); })
+      .catch(fehlgeschlagen);
+  } else fehlgeschlagen();
+}
+
 var knopf = document.getElementById("push-an");
 var test = document.getElementById("push-test");
 var meldung = document.getElementById("push-status");

@@ -5,7 +5,7 @@ create extension if not exists pgcrypto;
 do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$;
 do $$ begin create role anon nologin; exception when duplicate_object then null; end $$;
 create schema auth;
-create table auth.users (id uuid primary key, email text);
+create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
 create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
 grant usage on schema auth to authenticated;
 \ir ../migrations/20261029120000_firmen_und_rechte.sql
@@ -15,10 +15,11 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261030220000_push.sql
 \ir ../migrations/20261030141331_mitarbeiter_freigaben_angebote.sql
 \ir ../migrations/20261030230000_angebotsfreigabe_abgabe.sql
+\ir ../migrations/20261031000000_registrierung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
-insert into auth.users values
+insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'chef@perlease.test'),
   ('00000000-0000-0000-0000-00000000000b', 'berlin@perlease.test'),
   ('00000000-0000-0000-0000-00000000000c', 'fremd@andere.test');
@@ -183,4 +184,26 @@ select test_als('00000000-0000-0000-0000-00000000000b');
 insert into public.angebotsabgaben(firma_id,mappe_id,portal,dateiname,mime,groesse)
 values (:'firma',:'mappe','Testportal','eingang.pdf','application/pdf',10);
 select pruefe((select count(*)=1 from public.angebotsabgaben),'Freigegebenes Angebot samt Eingangsbeleg protokolliert');
+
+-- Registration: waits until unlocked, then the firm is created with the address; only operators unlock.
+reset role;
+insert into auth.users values
+  ('00000000-0000-0000-0000-0000000000d1', 'neu@firma.test', '{"vorname":"Eva","nachname":"Neu","firma":"Neu GmbH","strasse":"Weg 1","plz":"52531","ort":"Übach"}'),
+  ('00000000-0000-0000-0000-0000000000d2', 'benschiffer79@gmail.com', '{}');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000d1');
+select pruefe(public.registrierung_abschliessen() is null, 'Registrierung wartet ohne Freischaltung');
+select pruefe((select count(*)=1 from public.registrierungen), 'Registrierung für die Person selbst sichtbar');
+do $$ begin perform public.registrierung_freischalten('00000000-0000-0000-0000-0000000000d1'); raise exception 'FEHLER: Kunde schaltet sich selbst frei';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; raise notice 'ok: nur Betreiber schalten frei'; end $$;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*)=0 from public.registrierungen), 'Fremde sehen keine Registrierungen');
+select test_als('00000000-0000-0000-0000-0000000000d2');
+select pruefe((select count(*)=1 from public.registrierungen_offen()), 'Betreiber sieht offene Registrierung');
+select pruefe(public.registrierung_freischalten('00000000-0000-0000-0000-0000000000d1') = 'neu@firma.test', 'Betreiber schaltet frei');
+select test_als('00000000-0000-0000-0000-0000000000d1');
+select public.registrierung_abschliessen() as neufirma \gset
+select pruefe((select plz='52531' and name='Neu GmbH' from public.firmen where id=:'neufirma'), 'Firma mit Anschrift angelegt');
+select pruefe((select rolle='inhaber' and anzeigename='Eva Neu' from public.mitglieder where firma_id=:'neufirma'), 'Registrierte Person ist Inhaber');
+select pruefe(public.registrierung_abschliessen() is null, 'Kein zweites Anlegen');
 \echo ALLE TESTS OK

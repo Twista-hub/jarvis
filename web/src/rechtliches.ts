@@ -54,7 +54,7 @@ export function datenschutz(): string {
 <h2>3. Welche Daten wir verarbeiten</h2>
 <ul>
 <li><strong>Beim Aufruf der Seite:</strong> technisch nötige Daten (IP-Adresse, Zeitpunkt, aufgerufene Seite, Browser). Sie werden vom Betreiber der Server (Cloudflare) kurz zur Sicherheit und Fehlersuche gespeichert. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (sicherer Betrieb).</li>
-<li><strong>Konto:</strong> E-Mail-Adresse, Zeitpunkt der Anmeldung, Zugehörigkeit zu Firmen, Funktion im Betrieb, Zugriffsrechte und Bereiche. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertrag).</li>
+<li><strong>Konto:</strong> Name, E-Mail-Adresse, Passwort (nur verschlüsselt gespeichert), Name, Anschrift und freiwillig Telefonnummer der Firma, Zeitpunkt der Registrierung, der Zustimmung und der Anmeldung, Zugehörigkeit zu Firmen, Funktion im Betrieb, Zugriffsrechte und Bereiche. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertrag).</li>
 <li><strong>Firmendaten:</strong> Firmenname, Standorte, Suchprofil, Ausschreibungen mit Stand und Notizen, Kalkulationswerte.</li>
 <li><strong>Hochgeladene Unterlagen:</strong> Vergabeunterlagen einer Ausschreibung. Sie können Namen und Kontaktdaten von Ansprechpartnern des Auftraggebers enthalten. Sie werden nur für den Steckbrief gelesen und <strong>nach 30 Tagen gelöscht</strong>. Bitte keine Unterlagen mit Daten eurer Mitarbeiter hochladen (z. B. Lebensläufe).</li>
 <li><strong>Firmenunterlagen, Angebotsvorlagen, Angebotsmappen und Abgabenachweise:</strong> Von der Firma bewusst hinterlegte Nachweise, Vorlagen und Eingangsbelege sowie Angebotsentwürfe bleiben bis zur Löschung durch die Administration bzw. zum Ende des Firmenkontos gespeichert. Der Zugriff erfolgt entsprechend den vergebenen Rechten. Ein Ablaufdatum eines Nachweises verhindert die Verwendung in einer neuen Angebotsmappe nach diesem Datum, löscht die Datei aber nicht automatisch. Wenn Firmenmails eingeschaltet sind, werden Ablauf-Erinnerungen 30, 14, 7 und 2 Tage vorher an Mitglieder mit Finanzzugriff versendet.</li>
@@ -135,7 +135,7 @@ ${dienstleisterTabelle()}
 <h2>6. Technische und organisatorische Maßnahmen</h2>
 <ul>
 <li>Verschlüsselte Übertragung (HTTPS), Speicherung der Unterlagen in Rechenzentren in der EU.</li>
-<li>Anmeldung ohne Passwort per E-Mail-Link; Sitzungs-Cookies nur über HTTPS und nicht für Skripte lesbar.</li>
+<li>Anmeldung mit Passwort (nur verschlüsselt gespeichert, mindestens 8 Zeichen) oder per E-Mail-Link; Sitzungs-Cookies nur über HTTPS und nicht für Skripte lesbar.</li>
 <li>Rechte auf Datenbank-Ebene: Jeder sieht nur die Daten seiner Firma und seiner Bereiche.</li>
 <li>Hochgeladene Unterlagen werden automatisch nach 30 Tagen gelöscht.</li>
 <li>Zugänge zu den Dienstleistern sind auf den Auftragsverarbeiter beschränkt und mit starker Anmeldung geschützt.</li>
@@ -154,8 +154,9 @@ export function startseite(beispiel: string): string {
 <li><strong>Steckbrief auf einen Blick:</strong> Fristen, Lose, Mengen, geforderte Nachweise und Referenzen, Zuschlagskriterien und eine klare Empfehlung.</li>
 <li><strong>Unterlagen prüfen und kalkulieren:</strong> Tippe auf „Hier runterladen“, wähle die Datei aus, und Jarvis liest alle Vergabeunterlagen. Danach rechnet er mit deinen Löhnen den Angebotspreis pro Stunde und pro Los aus.</li>
 </ol>
-<p><a class="knopf" href="/konto">Anmelden</a></p>
-<p class="klein">Anmelden geht ohne Passwort: Du bekommst einen Link per E-Mail. Neue Firmen schaltet WP Digital Ranger frei; schreib an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>.</p>
+<p><a class="knopf" href="/registrieren">Jetzt registrieren</a></p>
+<p>Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
+<p class="klein">Nach der Registrierung schaltet WP Digital Ranger deine Firma frei, meist innerhalb eines Werktags. Fragen an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>.</p>
 <h2>Beispiel-Steckbrief</h2>
 <details><summary>Leihpersonal für die Gastronomie der Deutschen Bundesbank (aufklappen)</summary>${beispiel}</details>`;
 }

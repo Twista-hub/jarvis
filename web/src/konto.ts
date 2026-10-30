@@ -1,4 +1,4 @@
-// Accounts: login by e-mail link (Supabase Auth, PKCE on the server, no scripts) and the firm pages
+// Accounts: login (anmeldung.ts, Supabase Auth) and the firm pages
 // (create a firm, areas, invitations). All data access runs with the user's token, so the database
 // rules (row level security) decide what each person may see and change.
 import { bereichOptionen as optionenFuerBereiche } from "./bereiche.ts";
@@ -9,6 +9,7 @@ import { CSP } from "./app.ts";
 import { FELDER, STANDARD, felderHtml, fmt, zahl, type Eingaben } from "./kalkulation.ts";
 import { escape, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
+import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 
 export interface KontoEnv {
@@ -41,15 +42,15 @@ const ROLLEN: Record<string, string> = {
   mitarbeiter: "Mitarbeiter (nur Freigaben)",
 };
 const ARTEN: Record<string, string> = { standort: "Standort", abteilung: "Abteilung", team: "Team" };
-const COOKIE = "Path=/; HttpOnly; Secure; SameSite=Lax";
+export const COOKIE = "Path=/; HttpOnly; Secure; SameSite=Lax";
 
 /** Handles /konto, /anmelden, /einladung and /abmelden; null for other paths. */
 export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma: string) => { beschreibung: string } | undefined = () => undefined): Promise<Response | null> {
   const url = new URL(request.url);
   const p = url.pathname;
   const post = request.method === "POST";
-  if (p === "/anmelden" && post) return anmelden(request, env);
-  if (p === "/anmelden/fertig") return angemeldet(url, request, env);
+  const a = await anmeldung(request, env);
+  if (a) return a;
   if (p === "/abmelden" && post) return abmelden(request, env);
   if (!post && ["/konto/ausschreibungen", "/konto/firma-team"].includes(p)) return weiterleiten(p === "/konto/ausschreibungen" ? "/konto/treffer" : "/konto/team");
   if (p === "/konto/kalkulation" && post) return mitSitzung(request, env, vorlageSpeichern);
@@ -71,59 +72,7 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   return null;
 }
 
-// ---------- Login ----------
-
-function anmeldeFormular(fehler = "", weiter = "/konto", hinweis = ""): string {
-  return `${hinweis ? `<p>${hinweis}</p>` : ""}
-<form method="post" action="/anmelden">
-  ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}
-  <label>E-Mail-Adresse <input type="email" name="email" required autocomplete="email"></label>
-  <input type="hidden" name="weiter" value="${escape(weiter)}">
-  <button>Anmelde-Link schicken</button>
-  <p class="klein">Du bekommst eine E-Mail mit einem Link. Ein Passwort brauchst du nicht.</p>
-</form>`;
-}
-
-async function anmelden(request: Request, env: KontoEnv): Promise<Response> {
-  const form = await request.formData();
-  const email = String(form.get("email") ?? "").trim().toLowerCase();
-  const weiter = sicherWeiter(String(form.get("weiter") ?? ""));
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return html(seite("Anmelden", anmeldeFormular("Bitte eine gültige E-Mail-Adresse eingeben.", weiter)), 400);
-  const verifier = zufall(48);
-  const zurueck = new URL("/anmelden/fertig", request.url);
-  zurueck.searchParams.set("weiter", weiter);
-  const r = await fetch(`${env.SUPABASE_URL}/auth/v1/otp?redirect_to=${encodeURIComponent(zurueck.toString())}`, {
-    method: "POST",
-    headers: { apikey: env.SUPABASE_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ email, create_user: true, code_challenge: await challenge(verifier), code_challenge_method: "s256" }),
-  });
-  if (!r.ok) {
-    const zuViele = r.status === 429;
-    return html(seite("Anmelden", anmeldeFormular(zuViele ? "Gerade wurden zu viele Links verschickt. Bitte in einer Stunde noch einmal versuchen." : "Der Link konnte nicht verschickt werden. Bitte später noch einmal versuchen.", weiter)), zuViele ? 429 : 502);
-  }
-  return html(
-    seite("Link ist unterwegs", `<p>Wir haben einen Anmelde-Link an <strong>${escape(email)}</strong> geschickt. Öffne ihn auf diesem Gerät und in diesem Browser.</p><p class="klein">Keine Mail da? Schau im Spam-Ordner nach.</p>`),
-    200,
-    [`jv_pkce=${verifier}; ${COOKIE}; Max-Age=3600`],
-  );
-}
-
-async function angemeldet(url: URL, request: Request, env: KontoEnv): Promise<Response> {
-  const code = url.searchParams.get("code");
-  const verifier = cookie(request, "jv_pkce");
-  if (!code || !verifier) {
-    const grund = url.searchParams.get("error_description") ?? "Der Link ist abgelaufen oder wurde in einem anderen Browser geöffnet.";
-    return html(seite("Anmelden", anmeldeFormular(grund)), 400);
-  }
-  const r = await fetch(`${env.SUPABASE_URL}/auth/v1/token?grant_type=pkce`, {
-    method: "POST",
-    headers: { apikey: env.SUPABASE_KEY, "content-type": "application/json" },
-    body: JSON.stringify({ auth_code: code, code_verifier: verifier }),
-  });
-  if (!r.ok) return html(seite("Anmelden", anmeldeFormular("Der Link ist abgelaufen. Bitte einen neuen anfordern.")), 400);
-  const t = (await r.json()) as { access_token: string; refresh_token: string; expires_in: number };
-  return weiterleiten(sicherWeiter(url.searchParams.get("weiter") ?? ""), [...tokenCookies(t), `jv_pkce=; ${COOKIE}; Max-Age=0`]);
-}
+// ---------- Login (pages in anmeldung.ts) ----------
 
 async function abmelden(request: Request, env: KontoEnv): Promise<Response> {
   const s = await sitzung(request, env);
@@ -178,6 +127,18 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const meine = await db<(Mitglied & { firmen: { name: string; paket: string } })[]>(s, env, `mitglieder?user_id=eq.${s.userId}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id,anzeigename,funktion,finanzen,alle_bereiche,firmen(name,paket)&order=erstellt`);
   const kopf = hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : "";
   const abmelden = `<form method="post" action="/abmelden"><button>Abmelden</button></form>`;
+  if (meine.ok && !meine.daten.length) {
+    // Registered with firm data: create the firm now (if unlocked) and go straight to the setup assistant.
+    const neu = await db<string | null>(s, env, "rpc/registrierung_abschliessen", { method: "POST", body: "{}" });
+    if (neu.ok && typeof neu.daten === "string") return weiterleiten(`/konto/einrichtung?firma=${neu.daten}`, [...s.cookies, `jv_firma=${neu.daten}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`]);
+    const wartet = await db<{ firma: string }[]>(s, env, `registrierungen?user_id=eq.${s.userId}&freigeschaltet=is.null&select=firma`);
+    if (wartet.ok && wartet.daten.length) {
+      return html(seite("Fast geschafft", `${kopf}
+<p>Danke für deine Registrierung für <strong>${escape(wartet.daten[0].firma)}</strong>. WP Digital Ranger schaltet deinen Zugang frei, meist innerhalb eines Werktags. Du bekommst dann eine Mail und kannst direkt loslegen.</p>
+<p class="klein">Fragen? Schreib an <a href="mailto:kontakt@wpdigitalranger.com">kontakt@wpdigitalranger.com</a>.</p>
+<h2>Konto</h2>${abmelden}`), 200, s.cookies);
+    }
+  }
   if (!meine.ok || !meine.daten.length) {
     return html(seite("Deine Firma", `${kopf}
 <p>Du gehörst noch zu keiner Firma. Öffne den Einladungs-Link, den du bekommen hast, oder lege deine Firma an, wenn WP Digital Ranger dein Konto freigeschaltet hat.</p>
@@ -307,7 +268,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     }
     inhalt = rahmen(team);
   } else if (unterseite === "profil") {
-    inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p>${wechsel}<h2>Abmelden</h2>${abmelden}`);
+    inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p><a href="/konto/passwort">Passwort ändern</a></p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p>${wechsel}<h2>Abmelden</h2>${abmelden}`);
   } else if (unterseite === "suchprofil") {
     const beschreibung = (profil.ok ? profil.daten[0]?.beschreibung : "") || hinterlegt?.beschreibung || "";
     inhalt = rahmen(`${!profil.ok ? `<p class="fehler">Der aktuelle Stand des Suchprofils konnte nicht geladen werden. Bitte versuche es erneut.</p>` : sucheEingerichtet ? `<p><strong>Die Suche für ${escape(m.firmen.name)} ist eingerichtet.</strong></p>` : `<p>Für diese Firma ist noch keine Suche eingerichtet.</p>`}${beschreibung ? `<p>${escape(beschreibung)}</p>` : ""}${admin && (profil.ok || sucheEingerichtet) ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">${sucheEingerichtet ? "Suchprofil anpassen" : "Suche einrichten"}</a></p>` : !admin ? `<p class="klein">Ein Inhaber oder Admin kann das Suchprofil anpassen.</p>` : ""}`);
@@ -605,7 +566,7 @@ export async function db<T = unknown>(s: Sitzung, env: KontoEnv, pfad: string, i
   return { ok: true, daten: (text ? JSON.parse(text) : null) as T };
 }
 
-function tokenCookies(t: { access_token: string; refresh_token: string; expires_in: number }): string[] {
+export function tokenCookies(t: { access_token: string; refresh_token: string; expires_in: number }): string[] {
   return [`jv_at=${t.access_token}; ${COOKIE}; Max-Age=${t.expires_in}`, `jv_rt=${t.refresh_token}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 30}`];
 }
 
@@ -633,10 +594,6 @@ export function cookie(request: Request, name: string): string | null {
 
 function zufall(bytes: number): string {
   return base64url(crypto.getRandomValues(new Uint8Array(bytes)));
-}
-
-export async function challenge(verifier: string): Promise<string> {
-  return base64url(new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier))));
 }
 
 async function sha256(text: string): Promise<string> {
