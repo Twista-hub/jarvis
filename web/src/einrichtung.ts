@@ -3,7 +3,8 @@
 // confirms or edits it. Saved in suchprofile (firm level); the daily alarm reads it from there.
 import Anthropic from "@anthropic-ai/sdk";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
-import { escape, seite } from "./seite.ts";
+import { escape, seite as allgemeineSeite } from "./seite.ts";
+const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 0, "einstellungen");
 
 export interface EinrichtungEnv extends KontoEnv {
   ANTHROPIC_API_KEY: string;

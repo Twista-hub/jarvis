@@ -3,8 +3,9 @@ import kunden from "../kunden.json";
 import { euro, FELDER, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los } from "./kalkulation";
 import profile from "../../alarm/profile.json";
 import { CSP, statisch } from "./app";
+import { unterlagenOhneTreffer } from "./unterlagen";
 import { einrichtung } from "./einrichtung";
-import { konto, vorgangZugriff, type KontoEnv } from "./konto";
+import { db, konto, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { escape, markdown, seite } from "./seite";
@@ -41,6 +42,13 @@ export default {
     if (datei) return datei;
     const u = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/unterlagen$/);
     if (u && request.method === "POST") return unterlagenAmVorgang(u[1], request, env);
+    if (url.pathname === "/konto/unterlagen" && request.method === "POST") return unterlagenOhneTreffer(request, env, {
+      pruefen: (dateien) => pruefenUndZaehlen(dateien, env),
+      starten: (dateien, kontext) => {
+        const profil = Object.entries(profile as Record<string, { firma_id?: string; name: string }>).find(([, p]) => p.firma_id === kontext.firma);
+        return starten(env, dateien, { profil: profil?.[0] ?? `firma-${kontext.firma}`, kunde: profil?.[1].name ?? "", titel: kontext.titel, vorgang: kontext.vorgang });
+      },
+    });
     const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");
     if (e) return e;
     const k = await konto(request, env);
@@ -55,10 +63,11 @@ export default {
     if (url.pathname === "/hochladen" && request.method === "POST") return hochladen(request, env);
     const m = url.pathname.match(/^\/auftrag\/([^/]+)(\/kalkulation)?$/);
     if (m && ID.test(m[1]) && m[2] && request.method === "POST") return kalkulieren(m[1], request, env);
-    if (m && ID.test(m[1]) && !m[2]) return auftrag(m[1], env);
+    if (m && ID.test(m[1]) && !m[2]) return auftrag(m[1], env, request);
     return html(seite("Nicht gefunden", "<p>Diese Seite gibt es nicht.</p>"), 404);
   },
 };
+
 
 async function hochladen(request: Request, env: Env): Promise<Response> {
   const form = await request.formData();
@@ -136,12 +145,12 @@ async function starten(env: Env, dateien: File[], daten: Omit<Job, "id" | "erste
   return job;
 }
 
-async function auftrag(id: string, env: Env): Promise<Response> {
+async function auftrag(id: string, env: Env, request: Request): Promise<Response> {
   const meta = await env.DATEN.get(`auftraege/${id}/auftrag.json`);
   if (!meta) return html(seite("Nicht gefunden", "<p>Diesen Auftrag gibt es nicht (mehr). Unterlagen werden nach 30 Tagen gelöscht.</p>"), 404);
   const job = (await meta.json()) as Job;
   const ergebnis = await env.DATEN.get(`auftraege/${id}/ergebnis.md`);
-  if (ergebnis) return html(seite(job.titel || "Steckbrief", markdown(await ergebnis.text()) + (await kalkulationsTeil(job, env))));
+  if (ergebnis) return html(seite(job.titel || "Steckbrief", markdown(await ergebnis.text()) + (await kalkulationsTeil(job, env, request)), 0, job.vorgang ? "unterlagen" : undefined));
   let status = "running";
   try {
     status = (await (await env.STECKBRIEF.get(id)).status()).status;
@@ -152,7 +161,7 @@ async function auftrag(id: string, env: Env): Promise<Response> {
     return html(seite("Fehler", "<p>Beim Lesen der Unterlagen ist etwas schiefgegangen. Jarvis meldet das an WP Digital Ranger.</p>"));
   }
   return html(seite("Wird geprüft …", `<p>Jarvis liest gerade die Unterlagen${job.titel ? ` zu <strong>${escape(job.titel)}</strong>` : ""}.</p>
-    <p>Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu. Du kannst sie auch schließen und den Link später öffnen.</p>`, 20));
+    <p>Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu. Du kannst sie auch schließen und den Link später öffnen.</p>`, 20, job.vorgang ? "unterlagen" : undefined));
 }
 
 async function jsonAus<T>(env: Env, key: string): Promise<T | null> {
@@ -163,10 +172,13 @@ async function jsonAus<T>(env: Env, key: string): Promise<T | null> {
 type Gespeichert = { eingaben: Eingaben; mengen: Record<string, number> };
 
 /** Calculation form below the Steckbrief; remembers the customer's last inputs. */
-async function kalkulationsTeil(job: Job, env: Env): Promise<string> {
+async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<string> {
   const lose = (await jsonAus<Los[]>(env, `auftraege/${job.id}/lose.json`)) ?? [];
   const eigene = await jsonAus<Gespeichert>(env, `auftraege/${job.id}/kalkulation.json`);
-  const vorlage = eigene?.eingaben ?? (await jsonAus<Eingaben>(env, `kunden/${job.profil}/kalkulation.json`)) ?? STANDARD;
+  const zugriff = job.vorgang ? await vorgangZugriff(request, env, job.vorgang) : null;
+  const firmendaten = zugriff ? await db<{ eingaben: Eingaben }[]>(zugriff.s, env, `kalkulationsvorlagen?firma_id=eq.${zugriff.v.firma_id}&bereich_id=is.null&select=eingaben`) : null;
+  const firmenwerte = firmendaten?.ok ? firmendaten.daten[0]?.eingaben : undefined;
+  const vorlage = { ...STANDARD, ...(eigene?.eingaben ?? firmenwerte ?? (await jsonAus<Eingaben>(env, `kunden/${job.profil}/kalkulation.json`))) };
   const mengen = eigene?.mengen ?? {};
   const felder = FELDER.map((f) => `<label>${f.label} (${f.einheit})<input name="${f.key}" inputmode="decimal" value="${fmt(vorlage[f.key])}"><span class="klein">${f.hilfe}</span></label>`).join("");
   const loseFelder = lose.map((l) => `<label>Los ${escape(l.nr)}: ${escape(l.name)} – Stunden${l.zeitraum ? ` (${escape(l.zeitraum)})` : ""}

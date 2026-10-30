@@ -11,6 +11,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Einrichtungs-Assistent: Firma beschreiben → KI schlägt Suchprofil vor → speichern → Alarm sucht sofort die letzten 7 Tage.
   - Tägliche Nachricht pro Person: Uhrzeit 7–20 Uhr, per Mail, Handy oder beides; Fristen-Erinnerung 7 und 2 Tage vorher.
   - Handy-Nachrichten (Web-Push) und als App installierbar.
+  - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Link.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
@@ -18,7 +19,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - (ChatGPT) Seiten-Umbau
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
-1. Seiten-Umbau: aufgeräumte Übersicht mit Kacheln und Unterseiten (docs/auftrag-seiten.md).
+1. Seiten-Umbau implementiert; Ausrollen und Seitentest werden von ChatGPT geprüft.
 2. Rechtstexte von Benjamin prüfen lassen.
 3. Zuständige Person pro Ausschreibung zuweisen (Fahrplan Punkt 9).
 4. Kalkulationsvorlagen pro Standort, Mitarbeiterliste mit Namen (Fahrplan 10, 11).
@@ -31,7 +32,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 30.10.2026 – ChatGPT
 - Erste Konto-Unterseiten mit Kacheln, Zurück-Link und Handy-Leiste erstellt; Tests grün.
 - GitHub-Verbindung über die Netzwerkfreigabe der Ausführungsumgebung wiederhergestellt. Claudes Push-Korrektur und die jetzt vorhandene Auftragsdatei werden berücksichtigt.
-- In Arbeit: fehlende Punkte aus dem vollständigen Auftrag ergänzen, prüfen und auf main pushen.
+- Vollständigen Auftrag umgesetzt: /konto/treffer mit Status-Reitern, /konto/team, Fristen sortiert und markiert, Upload ohne Treffer, bisherige Steckbriefe und Firmenwerte der Kalkulation. Push-Ziele und Weiterleitungen angepasst. Claudes Push-Reparatur bleibt erhalten.
+- Netzwerkfreigabe und GitHub-Schreibrechte funktionieren; Benjamin braucht dafür nichts einzurichten. Routineablauf in AGENTS.md festgehalten.
+- Typprüfung und alle 22 Tests grün; Ausrollen und Seitentest werden anschließend geprüft.
 
 ### 30.10.2026 (Nachmittag) – Claude
 - Handy-Nachrichten funktionieren auf Benjamins Android (Test-Knopf und Server-Push kommen an, Tipp öffnet die Trefferliste). Fehler war die Skript-Variable `status` (= window.status).
