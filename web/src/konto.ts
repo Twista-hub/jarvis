@@ -13,7 +13,7 @@ export interface KontoEnv {
 type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
 type Mitglied = { firma_id: string; rolle: string; erstellt: string; user_id: string };
 type Bereich = { id: string; name: string; art: string; parent_id: string | null };
-type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; steckbrief?: string | null };
+type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; steckbrief?: string | null };
 const STATUS: Record<string, string> = {
   neu: "neu",
   pruefen: "prüfen",
@@ -164,24 +164,39 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
 </form>
 <h2>Konto</h2>${abmelden}`), 200, s.cookies);
   }
-  const m = meine.daten[0];
+  // Several firms (e.g. a preview account): the choice is kept in a cookie.
+  const url = new URL(request.url);
+  const gewaehlt = url.searchParams.get("firma") ?? cookie(request, "jv_firma") ?? "";
+  const m = meine.daten.find((x) => x.firma_id === gewaehlt) ?? meine.daten[0];
+  if (url.searchParams.get("firma") === m.firma_id) s.cookies.push(`jv_firma=${m.firma_id}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`);
   const admin = m.rolle === "inhaber" || m.rolle === "admin";
-  const alle = new URL(request.url).searchParams.get("alle") === "1";
-  const [vorgaenge, bereiche, mitglieder, einladungen, anzahl] = await Promise.all([
-    db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${alle ? "" : "&status=not.in.(verworfen,verloren)"}&select=id,titel,link,frist,status,punkte,erstellt&order=punkte.desc.nullslast,erstellt.desc&limit=100`),
-    db<Bereich[]>(s, env, `bereiche?firma_id=eq.${m.firma_id}&select=id,name,art,parent_id&order=name`),
+  const alle = url.searchParams.get("alle") === "1";
+  const bereiche = await db<Bereich[]>(s, env, `bereiche?firma_id=eq.${m.firma_id}&select=id,name,art,parent_id&order=name`);
+  const b = bereiche.ok ? bereiche.daten : [];
+  // Filter by area, including its sub-areas.
+  const filter = b.find((x) => x.id === url.searchParams.get("bereich"));
+  const unter = (id: string): string[] => [id, ...b.filter((x) => x.parent_id === id).flatMap((x) => unter(x.id))];
+  const bereichFilter = filter ? `&bereich_id=in.(${unter(filter.id).join(",")})` : "";
+  const [vorgaenge, mitglieder, einladungen, anzahl] = await Promise.all([
+    db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${alle ? "" : "&status=not.in.(verworfen,verloren)"}${bereichFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id&order=punkte.desc.nullslast,erstellt.desc&limit=100`),
     db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id&order=erstellt`),
     admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date().toISOString()}&select=id,email,rolle,gueltig_bis,angenommen&order=erstellt.desc`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
-  const b = bereiche.ok ? bereiche.daten : [];
-  const name = (id: string | null) => b.find((x) => x.id === id)?.name ?? "";
+  const name = (id: string | null | undefined) => b.find((x) => x.id === id)?.name ?? "";
   const bereichOptionen = b.map((x) => `<option value="${x.id}">${escape(x.name)}</option>`).join("");
 
-  let inhalt = `${kopf}
+  const wechsel = meine.daten.length > 1
+    ? `<form method="get" action="/konto" style="display:flex;gap:8px;align-items:end"><label style="flex:1">Firma <select name="firma">${meine.daten.map((x) => `<option value="${x.firma_id}"${x.firma_id === m.firma_id ? " selected" : ""}>${escape(x.firmen.name)}</option>`).join("")}</select></label><button>Wechseln</button></form>`
+    : "";
+  const regionen = b.filter((x) => !x.parent_id);
+  const bereichWahl = regionen.length
+    ? `<p class="klein">Bereich: ${[`<a href="/konto${alle ? "?alle=1" : ""}">${filter ? "alle" : "<strong>alle</strong>"}</a>`, ...regionen.map((x) => `<a href="/konto?bereich=${x.id}${alle ? "&alle=1" : ""}">${x.id === filter?.id ? `<strong>${escape(x.name)}</strong>` : escape(x.name)}</a>`)].join(" · ")}</p>`
+    : "";
+  let inhalt = `${kopf}${wechsel}
 <p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p>
 <p><a href="/">Unterlagen prüfen lassen</a></p>
-${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle)}
+${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle, name, bereichWahl)}
 <h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
   inhalt += b.length
     ? `<div class="tabelle"><table><tr><th>Name</th><th>Art</th><th>gehört zu</th></tr>${b.map((x) => `<tr><td>${escape(x.name)}</td><td>${ARTEN[x.art] ?? x.art}</td><td>${escape(name(x.parent_id))}</td></tr>`).join("")}</table></div>`
@@ -286,18 +301,18 @@ async function einladungAnnehmen(s: Sitzung, form: FormData, _r: Request, env: K
   return html(seite("Einladung", `<p class="fehler">${grund}</p><p><a href="/konto">Zur Übersicht</a></p>`), 400);
 }
 
-function trefferListe(liste: Vorgang[], alle: boolean): string {
+function trefferListe(liste: Vorgang[], alle: boolean, bereichName: (id: string | null | undefined) => string, bereichWahl: string): string {
   const umschalten = alle ? `<a href="/konto">nur offene zeigen</a>` : `<a href="/konto?alle=1">auch verworfene zeigen</a>`;
-  if (!liste.length) return `<h2>Ausschreibungen</h2><p class="klein">Noch keine Treffer. Der Morgenbericht trägt passende Ausschreibungen jeden Tag hier ein. ${umschalten}</p>`;
+  if (!liste.length) return `<h2>Ausschreibungen</h2>${bereichWahl}<p class="klein">Noch keine Treffer. Der Morgenbericht trägt passende Ausschreibungen jeden Tag hier ein. ${umschalten}</p>`;
   const optionen = (aktuell: string) => Object.entries(STATUS).map(([k, t]) => `<option value="${k}"${k === aktuell ? " selected" : ""}>${t}</option>`).join("");
   const zeilen = liste.map((v) => `<tr>
   <td>${v.punkte ? `<strong>${v.punkte}/10</strong>` : "–"}</td>
-  <td><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a></td>
+  <td><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a>${v.bereich_id ? `<br><span class="klein">${escape(bereichName(v.bereich_id))}</span>` : ""}</td>
   <td>${v.frist ? datum(v.frist) : "–"}</td>
   <td><form method="post" action="/konto/status" style="display:flex;gap:6px;padding:0;border:0;background:none">
     <input type="hidden" name="id" value="${v.id}"><select name="status">${optionen(v.status)}</select><button>OK</button></form></td>
 </tr>`).join("");
-  return `<h2>Ausschreibungen</h2><div class="tabelle"><table><tr><th>Punkte</th><th>Titel</th><th>Frist</th><th>Stand</th></tr>${zeilen}</table></div><p class="klein">${umschalten}</p>`;
+  return `<h2>Ausschreibungen</h2>${bereichWahl}<div class="tabelle"><table><tr><th>Punkte</th><th>Titel</th><th>Frist</th><th>Stand</th></tr>${zeilen}</table></div><p class="klein">${umschalten}</p>`;
 }
 
 async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
