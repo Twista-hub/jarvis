@@ -47,8 +47,13 @@ const MAX_BYTES = 60 * 1024 * 1024;
 const MAX_FILES = 40;
 const ID = /^[0-9a-f-]{36}$/;
 
+export const ADRESSE = "https://app.wpdigitalranger.com";
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    // The app lives at app.wpdigitalranger.com; the old workers.dev address forwards there (links in older mails keep working).
+    const alt = new URL(request.url);
+    if (alt.hostname.endsWith(".workers.dev")) return Response.redirect(`${ADRESSE}${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
     const r = await verarbeiten(request,env);
     if (!new URL(request.url).pathname.startsWith("/auftrag/")) return r;
     const s = await sitzung(request,env);
