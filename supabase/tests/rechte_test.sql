@@ -17,6 +17,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261030230000_angebotsfreigabe_abgabe.sql
 \ir ../migrations/20261031000000_registrierung.sql
 \ir ../migrations/20261031010000_selbst_freischalten.sql
+\ir ../migrations/20261031020000_personal.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -73,9 +74,18 @@ do $$ begin
   raise notice 'ok: Bearbeiter kann sich nicht hochstufen';
 end $$;
 
+-- Personnel pool: editors add people at their own locations only.
+insert into public.personal (firma_id, bereich_id, vorname, berufe) values (:'firma', :'berlin', 'Eva', '{Servicekraft}');
+select pruefe((select count(*) = 1 from public.personal), 'Bearbeiter trägt Personal in Berlin ein');
+do $$ begin
+  insert into public.personal (firma_id, bereich_id, vorname) values (current_setting('test.firma')::uuid, (select id from public.bereiche where name = 'Hamburg'), 'Heimlich');
+  raise exception 'FEHLER: Personal in fremdem Standort eingetragen';
+exception when insufficient_privilege then raise notice 'ok: kein Personal in fremden Standorten'; end $$;
+
 -- Outsider sees nothing.
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) from public.vorgaenge) = 0 and (select count(*) from public.firmen) = 0, 'Fremde sehen nichts');
+select pruefe((select count(*) = 0 from public.personal), 'Fremde sehen kein Personal');
 do $$ begin
   perform public.einladung_annehmen('geheim');
   raise exception 'FEHLER: Einladung zweimal nutzbar';
