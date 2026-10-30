@@ -1,0 +1,17 @@
+# Test the TED Search API (other European countries): prints the number of contract notices and samples.
+name: TED testen
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Veröffentlichungstag YYYY-MM-DD"
+        required: true
+      laender:
+        description: "Länder (ISO3, mit Komma), z. B. AUT,NLD"
+        default: "AUT,NLD,BEL,LUX,POL,CZE,FRA,DNK,CHE"
+jobs:
+  ted:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 alarm/ted.py "${{ inputs.tag }}" "${{ inputs.laender }}"
