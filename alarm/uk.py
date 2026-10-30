@@ -22,7 +22,7 @@ def _get(url: str) -> dict:
 
 
 def find_a_tender(tag: str) -> list[dict]:
-    url = f"{FTS}?{urllib.parse.urlencode({'stages': 'tender', 'updatedFrom': f'{tag}T00:00:00', 'updatedTo': f'{tag}T23:59:59', 'limit': 100})}"
+    url = f"{FTS}?{urllib.parse.urlencode({'updatedFrom': f'{tag}T00:00:00', 'updatedTo': f'{tag}T23:59:59', 'limit': 100})}"
     out = []
     for _ in range(MAX_SEITEN):
         daten = _get(url)
@@ -53,8 +53,9 @@ if __name__ == "__main__":
     for name, holen in (("Find a Tender", find_a_tender),):
         try:
             r = holen(sys.argv[1])
-            print(f"{name}: {len(r)} Releases")
-            for rel in r[:3]:
+            from collections import Counter
+            print(f"{name}: {len(r)} Releases, Arten: {Counter(t for rel in r for t in rel.get('tag') or []).most_common()}")
+            for rel in [x for x in r if any(str(t).startswith("tender") for t in x.get("tag") or [])][:3]:
                 t = rel.get("tender") or {}
                 print(" -", rel.get("ocid"), rel.get("tag"), "|", t.get("title"), "|", (t.get("tenderPeriod") or {}).get("endDate"), "|", (rel.get("buyer") or {}).get("name"))
         except Exception as e:  # noqa: BLE001
