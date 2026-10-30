@@ -55,7 +55,8 @@ test("Unterseiten bieten Zurück und behalten Einstellungen mit Handy-Nachrichte
   ]) {
     const html = await seite(pfad);
     assert.ok(html.includes(titel), `${pfad} zeigt Überschrift`);
-    assert.ok(html.includes("← Zurück"), `${pfad} zeigt Zurück-Link`);
+    assert.match(html, /aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←<\/span>/);
+    assert.doesNotMatch(html, /← Zurück/);
     assert.ok(html.includes("class=\"konto-nav\""), `${pfad} zeigt Mobilnavigation`);
   }
   const einstellungen = await seite("/konto/einstellungen");
@@ -78,6 +79,10 @@ test("Status-Reiter trennen Vorgänge, Fristen berücksichtigen nur laufende Aus
   mockKontoApi(t, [{ ...basis, titel: "Neuer Auftrag", status: "neu" }, { ...basis, titel: "Angebot läuft", status: "angebot" }, { ...basis, titel: "Schon abgegeben", status: "abgegeben" }, { ...basis, titel: "Archivierter Auftrag", status: "gewonnen" }]);
   const neu = await seite("/konto/treffer");
   assert.match(neu, /Neuer Auftrag/);
+  assert.match(neu, /<article class="treffer-karte">/);
+  assert.doesNotMatch(neu, /<table>/);
+  assert.match(neu, /action="\/konto\/status"/);
+  assert.match(neu, /name="weiter" value="\/konto\/treffer\?stand=neu"/);
   assert.doesNotMatch(neu, /Archivierter Auftrag/);
   const archiv = await seite("/konto/treffer?stand=archiv");
   assert.match(archiv, /Archivierter Auftrag/);
@@ -114,17 +119,17 @@ test("Kalkulationswerte werden mit Firmenbezug über den Personentoken gespeiche
   assert.equal(body.eingaben.lohn, 18.5);
 });
 
-test("Übersicht bleibt ohne Kontodaten und Einrichtung; Profil und Firmenwechsel sitzen oben", async (t) => {
+test("Übersicht bleibt ohne Kontodaten und Einrichtung; Firmenwechsel ist nur im Profil", async (t) => {
   mockKontoApi(t, [], "inhaber", [], true);
   const html = await seite("/konto");
   const body = html.slice(html.indexOf("<body>"));
   assert.doesNotMatch(body, /Angemeldet als|test@example.de|Deine Rolle|Paket:|Suche einrichten/);
   assert.match(body, /href="\/konto\/profil" aria-label="Mein Profil"/);
-  assert.ok(body.indexOf('class="firmenwechsel"') < body.indexOf("<h1>"));
-  assert.match(body, /<details class="firmenwechsel"><summary>Firma wechseln<\/summary>/);
-  assert.match(body, /<option value="44444444-4444-4444-8444-444444444444">Zweite Firma/);
+  assert.doesNotMatch(body, /Firma wechseln|name="firma"/);
   const profil = await seite("/konto/profil");
   assert.match(profil, /test@example.de/);
+  assert.match(profil, /action="\/konto\/profil"/);
+  assert.match(profil, /<option value="44444444-4444-4444-8444-444444444444">Zweite Firma/);
   assert.match(profil, /action="\/abmelden"/);
 });
 
