@@ -1,0 +1,17 @@
+name = "jarvis-katalog"
+main = "src/katalog-worker.ts"
+compatibility_date = "2026-09-20"
+compatibility_flags = ["nodejs_compat"]
+workers_dev = false
+
+[vars]
+AKTIV = "0"
+
+[triggers]
+crons = ["11 * * * *"]
+
+[[workflows]]
+name = "jarvis-katalog-sammeln"
+binding = "SAMMLER"
+class_name = "KatalogSammler"
+

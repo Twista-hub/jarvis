@@ -72,10 +72,10 @@ def score(profile: dict, text: str, codes: list[str]) -> tuple[int, str]:
 
 
 def frist(tender: dict) -> str | None:
-    """Submission deadline: for the whole tender, else the earliest one of its lots (eForms BT-131 per lot)."""
+    """Whole procedure deadline; otherwise the last lot deadline. Individual lots remain separate."""
     ende = (tender.get("tenderPeriod") or {}).get("endDate")
     lose = [(l.get("tenderPeriod") or {}).get("endDate") for l in tender.get("lots") or []]
-    return ende or min(filter(None, lose), default=None)
+    return max(filter(None, [ende, *lose]), default=None)
 
 
 def link(rel: dict) -> str:
@@ -166,7 +166,9 @@ def kurzbrief(rel: dict, day: str) -> str:
 def steckbrief_datei(name: str, day: str, rel: dict) -> Path:
     t = rel.get("tender") or {}
     slug = re.sub(r"[^a-z0-9]+", "-", t.get("title", "").lower())[:50].strip("-")
-    return ROOT / "steckbriefe" / f"{day}-{name}-{slug}.md"
+    import hashlib
+    version = hashlib.sha256((str(rel.get("ocid") or rel.get("id")) + str(rel.get("_katalog_version", ""))).encode()).hexdigest()[:12]
+    return ROOT / "steckbriefe" / f"{day}-{name}-{slug}-{version}.md"
 
 
 def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str) -> Path | None:
@@ -201,6 +203,7 @@ def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str)
 
 def run(days: list[str]) -> str:
     from profile_db import laden
+    import katalog
     profiles = laden()
     if FIRMA:  # first run right after the setup assistant: only this firm
         profiles = {k: p for k, p in profiles.items() if p.get("firma_id") == FIRMA}
@@ -208,37 +211,51 @@ def run(days: list[str]) -> str:
             sys.exit(f"Kein Suchprofil für Firma {FIRMA}")
     hits = {k: [] for k in profiles}
     seen, total, licence = set(), 0, ""
-    for day in days:
-        for licence, rel in releases(fetch(day)):
-            if "tender" not in (rel.get("tag") or []):
-                continue
-            total += 1
-            t = rel.get("tender") or {}
-            key = (t.get("title", "").strip().lower(), (rel.get("buyer") or {}).get("name", ""))
-            if key in seen:
-                continue
-            seen.add(key)
-            text = f"{t.get('title', '')} {t.get('description', '')}".lower()
-            codes = cpv_codes(t)
-            for name, profile in profiles.items():
-                points, reason = score(profile, text, codes)
-                if points:
-                    hits[name].append((points, day, rel, reason))
+    gemeinsam = katalog.bestand()
+    inputs = gemeinsam if gemeinsam is not None else [(day, rel) for day in sorted(days, reverse=True) for _, rel in releases(fetch(day))]
+    for day, rel in sorted(inputs, key=lambda r: (r[0], r[1].get("date", "")), reverse=True):
+        key = rel.get("ocid") or rel.get("id") or link(rel)
+        if key in seen:
+            continue
+        seen.add(key)
+        if gemeinsam is None and not any(str(tag).startswith("tender") for tag in rel.get("tag") or []):
+            continue
+        if not katalog.offen(rel):
+            continue
+        total += 1
+        t = rel.get("tender") or {}
+        text = f"{t.get('title', '')} {t.get('description', '')}".lower()
+        codes = cpv_codes(t)
+        for name, profile in profiles.items():
+            points, reason = score(profile, text, codes)
+            beobachtet = rel.get("_auftraggeber_id") in profile.get("beobachtete_auftraggeber", [])
+            if points or beobachtet:
+                hits[name].append((max(points, 1), day, dict(rel, _beobachtet=beobachtet), "Beobachteter Auftraggeber" if beobachtet else reason))
     ki = None
     if os.environ.get("ANTHROPIC_API_KEY"):
         import ki
     lines = [f"# Ausschreibungs-Alarm {', '.join(days)}", "",
-             f"{total} neue Ausschreibungen geprüft. Quelle: Bekanntmachungsservice (oeffentlichevergabe.de), Lizenz: {licence or 'siehe Datei'}.", ""]
+             f"{total} offene Bekanntmachungen im erfassten Bestand geprüft. Quelle: Bekanntmachungsservice (oeffentlichevergabe.de), Lizenz: {licence or 'siehe Datei'}.", ""]
     briefe = 0
     treffer = []  # for the firms' accounts in the app (alarm/speichern.py)
     for name, profile in profiles.items():
-        rows = sorted(hits[name], key=lambda h: -h[0])[:40]
-        bewertung = ki.score(profile["beschreibung"], [item(i, rel) for i, (_, _, rel, _) in enumerate(rows)]) if ki and rows else {}
+        alle = sorted(hits[name], key=lambda h: -h[0])
+        cache = katalog.bewertungen(profile)
+        neu = [r for r in alle if katalog.schluessel(r[2]) not in cache][:40]
+        neue_bewertung = ki.score(profile["beschreibung"], [item(i, r[2]) for i, r in enumerate(neu)]) if ki and neu else {}
+        for i, ergebnis in neue_bewertung.items():
+            if 0 <= i < len(neu):
+                rel = neu[i][2]
+                katalog.bewertung_speichern(profile, rel, ergebnis)
+                cache[katalog.schluessel(rel)] = ergebnis
+        # Include cached hits as well as new deterministic matches; no daily re-scoring of unchanged texts.
+        rows = alle[:200]
+        bewertung = {i: cache[katalog.schluessel(r[2])] for i, r in enumerate(rows) if katalog.schluessel(r[2]) in cache}
         if bewertung:
             rows = [(bewertung.get(i, {}), *r) for i, r in enumerate(rows)]
             rows.sort(key=lambda r: (-r[0].get("punkte", 0), -r[1]))
-            weg = [r for r in rows if r[0].get("punkte", 0) < 4]
-            rows = [r for r in rows if r[0].get("punkte", 0) >= 4]
+            weg = [r for r in rows if r[0] and r[0].get("punkte", 0) < 4 and not r[3].get("_beobachtet")]
+            rows = [r for r in rows if not r[0] or r[0].get("punkte", 0) >= 4 or r[3].get("_beobachtet")]
         else:
             rows, weg = [({}, *r) for r in rows], []
         lines += [f"## {profile['name']}: {len(rows)} Treffer", ""]
@@ -265,7 +282,7 @@ def run(days: list[str]) -> str:
             lines += [links, ""]
             treffer.append({"profil": name, "quelle_id": rel.get("ocid") or rel.get("id") or url, "titel": t.get("title", "").strip(),
                             "link": url, "frist": frist(t),
-                            "punkte": b.get("punkte") or None, "plz": plz(rel), "steckbrief": pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day), "steckbrief_kurz": not bool(pfad)})
+                            "punkte": b.get("punkte") or None, "plz": plz(rel), "steckbrief": pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day), "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version")})
         if weg:
             lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
         if not rows:

@@ -1,13 +1,14 @@
 // Setup assistant: the firm describes itself in a few sentences, Claude proposes the search profile
 // (services with CPV codes and search words, exclusions, locations with postal code areas), the admin
 // confirms or edits it. Saved in suchprofile (firm level); the daily alarm reads it from there.
-import Anthropic from "@anthropic-ai/sdk";
+import { apiClient } from "./api-budget.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
 const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 0, "einstellungen");
 
 export interface EinrichtungEnv extends KontoEnv {
   ANTHROPIC_API_KEY: string;
+  SUPABASE_DB_PASSWORD?: string;
   ACTIONS_TOKEN?: string; // GitHub token (Actions: write on Twista-hub/jarvis) to start the first run right away
 }
 
@@ -116,7 +117,7 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
   if (beschreibung.length < 20) return html(seite("Suche einrichten", startFormular(firma, beschreibung, orte, "Bitte beschreib deine Firma in ein paar Sätzen.")), 400);
   let vorschlag: Vorschlag;
   try {
-    const message = await new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }).beta.messages.create({
+    const message = await apiClient(env).beta.messages.create({
       model: MODEL,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",

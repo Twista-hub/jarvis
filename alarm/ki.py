@@ -5,6 +5,7 @@ Uses the official Anthropic SDK; the key comes from ANTHROPIC_API_KEY.
 import json
 import os
 from pathlib import Path
+import katalog
 
 import anthropic
 
@@ -14,7 +15,7 @@ MODEL = "claude-opus-5-5"
 MODEL_BEWERTEN = "claude-sonnet-5-5"
 PREISE = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0)}  # $ per million input / output tokens
 LIMIT = float(os.environ.get("KI_LIMIT_DOLLAR", "3"))  # hard stop per run
-client = anthropic.Anthropic()
+client = anthropic.Anthropic(max_retries=0)
 _kosten = [0.0]
 
 
@@ -57,10 +58,26 @@ SCORE_SCHEMA = {
 }
 
 
+def _reservieren(kwargs):
+    # Byte length bounds input tokens. Account for the most expensive configured fallback.
+    body = json.dumps(kwargs, ensure_ascii=False)
+    worst = (len(body.encode()) * 5 + kwargs.get("max_tokens", 32000) * 20) / 1e6
+    try:
+        return katalog.reservieren(round(worst + 0.0001, 4), "alarm")
+    except Exception:
+        print("Zentrales KI-Budget nicht prüfbar; API-Anfrage übersprungen.")
+        return None
+
+
 def _create(**kwargs):
     # fallbacks="default": a safety decline is retried server-side on Anthropic's recommended model.
+    reservierung = _reservieren(kwargs)
+    if not reservierung:
+        return None
+    vorher = kosten()
     response = client.beta.messages.create(model=MODEL_BEWERTEN, betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
     _zaehlen(response.usage, MODEL_BEWERTEN)
+    katalog.abschliessen(reservierung, kosten() - vorher)
     return response
 
 
@@ -80,7 +97,7 @@ def score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
         output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCORE_SCHEMA}},
         messages=[{"role": "user", "content": user}],
     )
-    if response.stop_reason == "refusal":
+    if response is None or response.stop_reason == "refusal":
         return {}
     text = next(b.text for b in response.content if b.type == "text")
     return {b["nr"]: b for b in json.loads(text)["bewertungen"]}
@@ -103,7 +120,7 @@ def foerder_score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
         output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCORE_SCHEMA}},
         messages=[{"role": "user", "content": user}],
     )
-    if response.stop_reason == "refusal":
+    if response is None or response.stop_reason == "refusal":
         return {}
     text = next(b.text for b in response.content if b.type == "text")
     return {b["nr"]: b for b in json.loads(text)["bewertungen"] if 0 <= b["nr"] < len(items)}
@@ -116,6 +133,10 @@ STECKBRIEF_ANLEITUNG = (Path(__file__).parent / "steckbrief-anleitung.txt").read
 def steckbrief(beschreibung: str, kopf: str, dokumente: str) -> str:
     if _bremse():
         return ""
+    reservierung = _reservieren({"max_tokens": 32000, "messages": [beschreibung, kopf, dokumente], "system": STECKBRIEF_ANLEITUNG})
+    if not reservierung:
+        return ""
+    vorher = kosten()
     with client.beta.messages.stream(
         model=MODEL,
         betas=["server-side-fallback-2026-07-01"],
@@ -127,6 +148,7 @@ def steckbrief(beschreibung: str, kopf: str, dokumente: str) -> str:
     ) as stream:
         message = stream.get_final_message()
     _zaehlen(message.usage)
+    katalog.abschliessen(reservierung, kosten() - vorher)
     if message.stop_reason == "refusal":
         return ""
     return "\n".join(b.text for b in message.content if b.type == "text").strip()

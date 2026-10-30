@@ -23,17 +23,17 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
     neu = 0
     for t in treffer:
         row = con.execute(
-            """insert into public.vorgaenge (firma_id, quelle_id, titel, link, frist, punkte, steckbrief, bereich_id)
-               values (%s, %s, %s, %s, %s, %s, %s, %s)
+            """insert into public.vorgaenge (firma_id, quelle_id, titel, link, frist, punkte, steckbrief, bereich_id,katalog_id,katalog_version)
+               values (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s)
                on conflict (firma_id, quelle_id) do update set
                  punkte = coalesce(excluded.punkte, vorgaenge.punkte),
                  frist = coalesce(excluded.frist, vorgaenge.frist),
                  steckbrief = case when %s and nullif(trim(vorgaenge.steckbrief),'') is not null
                    then vorgaenge.steckbrief else coalesce(excluded.steckbrief, vorgaenge.steckbrief) end,
-                 link = excluded.link,
+                 link = excluded.link, katalog_id=coalesce(excluded.katalog_id,vorgaenge.katalog_id),katalog_version=coalesce(excluded.katalog_version,vorgaenge.katalog_version),
                  bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id)
                returning (xmax = 0)""",
-            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), t.get("steckbrief"), bereich(regionen, t.get("plz", "")), t.get("steckbrief_kurz", False)),
+            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), t.get("steckbrief"), bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"), t.get("steckbrief_kurz", False)),
         ).fetchone()
         neu += bool(row and row[0])
     return neu

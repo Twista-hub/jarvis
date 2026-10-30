@@ -21,6 +21,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031030000_einsaetze.sql
 \ir ../migrations/20261031040000_standortleitung_qualifikationen.sql
 \ir ../migrations/20261031050000_personal_tarifvertraege.sql
+\ir ../migrations/20261030181644_vergabekatalog.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -257,4 +258,47 @@ select pruefe((select rolle='inhaber' and anzeigename='Eva Neu' from public.mitg
 select pruefe(public.registrierung_abschliessen() is null, 'Kein zweites Anlegen');
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe(public.registrierung_abschliessen() is null, 'Ohne Registrierungsdaten keine Firma');
+-- Shared public facts must never grant access to another firm's operational records.
+reset role;
+insert into public.vergabekatalog(id,quelle,quelle_id,version,quell_datum,titel,link,auftraggeber,auftraggeber_id,status,frist)
+values('bks:test','bks','test','v1','2026-10-30','Elektriker für die Verwaltung','https://example.test/notice','Stadt Test','buyer-1','offen','2100-01-01');
+insert into public.vergabekatalog(id,quelle,quelle_id,version,quell_datum,titel,link,auftraggeber,auftraggeber_id,status,frist)
+values('bks:alt','bks','alt','v1','2026-10-30','Geschlossene Ausschreibung','https://example.test/old','Stadt Test','buyer-1','offen','2000-01-01');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+select pruefe((select count(*)=1 from public.katalog_suche(:'firma','','','','offen')),'Bestandssuche schließt abgelaufene Fristen aus');
+select pruefe((select count(*)=0 from public.katalog_suche(:'selbst','','','','offen')),'Katalogsuche verlangt Mitgliedschaft der angegebenen Firma');
+select public.katalog_uebernehmen(:'firma','bks:test',null) as katalog_vorgang \gset
+select pruefe((select katalog_id='bks:test' from public.vorgaenge where id=:'katalog_vorgang'),'Katalogtreffer wird ohne doppelte Ausschreibung übernommen');
+select pruefe(public.katalog_uebernehmen(:'firma','bks:test',null)=:'katalog_vorgang','Wiederholte Übernahme bleibt idempotent');
+insert into public.treffer_feedback(firma_id,vorgang_id,grund) values(:'firma',:'katalog_vorgang','region');
+insert into public.partnerprofile(firma_id,name,leistungen) values(:'firma','Testpartner','Elektroarbeiten');
+select test_als('00000000-0000-0000-0000-0000000000d1');
+select pruefe(not exists(select 1 from public.treffer_feedback),'Andere Firma sieht keine Rückmeldungen');
+select pruefe(not exists(select 1 from public.partnerprofile),'Partnerprofile sind ohne Opt-in unsichtbar');
+select test_als('00000000-0000-0000-0000-00000000000a');
+update public.partnerprofile set sichtbar=true where firma_id=:'firma';
+select test_als('00000000-0000-0000-0000-0000000000d1');
+select pruefe((select count(*)=1 from public.partnerprofile),'Nur freigegebenes Partnerprofil sichtbar');
+reset role;
+select jarvis_katalog.aufnehmen(jsonb_build_array(to_jsonb(k)||'{"version":"v2","quell_datum":"2026-10-31T10:00:00Z","frist":"2101-01-01T00:00:00Z"}'::jsonb)) from public.vergabekatalog k where id='bks:test';
+select pruefe((select version='v2' and frist='2101-01-01' from public.vergabekatalog where id='bks:test'),'Änderungen aktualisieren zentralen Bestand');
+select pruefe((select count(*)=1 from public.katalog_aenderungen where katalog_id='bks:test'),'Änderungsverlauf wird gespeichert');
+select pruefe((select frist='2101-01-01' from public.vorgaenge where id=:'katalog_vorgang'),'Geänderte Frist wird im eigenen Vorgang nachgeführt');
+select jarvis_katalog.aufnehmen(jsonb_build_array(to_jsonb(k)||'{"version":"v0","quell_datum":"2025-01-01T10:00:00Z","frist":"2000-01-01T00:00:00Z"}'::jsonb)) from public.vergabekatalog k where id='bks:test';
+select pruefe((select version='v2' from public.vergabekatalog where id='bks:test'),'Ältere Exporte überschreiben neue Fristen nicht');
+select jarvis_katalog.aufnehmen(jsonb_build_array(to_jsonb(k)||'{"quell_datum":"2026-11-01T10:00:00Z"}'::jsonb)) from public.vergabekatalog k where id='bks:test';
+select pruefe((select count(*)=1 from public.katalog_aenderungen where katalog_id='bks:test'),'Gleicher Inhalt erzeugt keine neue kostenpflichtige Version');
+select jarvis_katalog.ki_reservieren(1.5,'test') as reservierung \gset
+select pruefe(jarvis_katalog.ki_reservieren(1.6,'test') is null,'KI-Tageslimit wird vor Anfrage atomar geprüft');
+select jarvis_katalog.ki_abschliessen(:'reservierung',0.1);
+select jarvis_katalog.ki_abschliessen(:'reservierung',0.01);
+select pruefe((select reserviert=0.1 from jarvis_katalog.ki_kosten where id=:'reservierung'),'Abrechnung gibt Reservierung nur einmal frei');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*)=0 from public.vergabekatalog),'Nichtmitglieder sehen keinen Katalog');
+do $$ begin
+ perform jarvis_katalog.ki_reservieren(0.1,'heimlich');
+ raise exception 'FEHLER: Nutzer durfte Budget direkt verändern';
+exception when insufficient_privilege then raise notice 'ok: Budgetledger ist intern'; end $$;
 \echo ALLE TESTS OK

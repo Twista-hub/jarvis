@@ -11,13 +11,14 @@ import { freigaben } from "./freigaben";
 import { mitarbeiterVerwalten } from "./mitarbeiter";
 import { einrichtung } from "./einrichtung";
 import { personal } from "./personal";
+import { markt } from "./markt.ts";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { escape, markdown, seite, stapeln } from "./seite";
 import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
 import { loseLesen } from "./lose";
-import Anthropic from "@anthropic-ai/sdk";
+import { apiClient } from "./api-budget.ts";
 
 export { Steckbrief } from "./workflow";
 
@@ -26,6 +27,7 @@ export interface Env extends KontoEnv {
   AI: Ai;
   STECKBRIEF: Workflow<Job>;
   ANTHROPIC_API_KEY: string;
+  SUPABASE_DB_PASSWORD?: string;
   ACTIONS_TOKEN?: string;
   TEST_CODE_HASH?: string;
   TAGES_LIMIT: string;
@@ -83,6 +85,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (mv) return mv;
     const fg = await freigaben(request, env);
     if (fg) return fg;
+    const ma = await markt(request, env);
+    if (ma) return ma;
     const pe = await personal(request, env);
     if (pe) return pe;
     const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");
@@ -303,7 +307,7 @@ async function arbeitskraefte(id: string, request: Request, env: Env): Promise<R
   if (!(await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true))) return html(seite("Nicht erlaubt","<p>Für die Kalkulation brauchst du eine Finanzfreigabe.</p>"),403);
   const ergebnis = await env.DATEN.get(`auftraege/${id}/ergebnis.md`);
   if (ergebnis) {
-    const { lose } = await loseLesen(new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }), await ergebnis.text());
+    const { lose } = await loseLesen(apiClient(env), await ergebnis.text());
     if (lose.length) await env.DATEN.put(`auftraege/${id}/lose.json`, JSON.stringify(lose));
   }
   return Response.redirect(new URL(`/auftrag/${id}#kalkulation`, request.url).toString(), 303);
