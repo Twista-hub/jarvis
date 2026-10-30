@@ -35,3 +35,24 @@ test("german number input", () => {
   assert.equal(zahl("abc", 7), 7);
   assert.equal(zahl("-3", 7), 7);
 });
+
+test("shift model: night, Sunday and overtime surcharges on their share of hours", () => {
+  const e = { ...STANDARD, lohn: 20, nebenkosten: 0, ausfall: 0, gemeinkosten: 0, gewinn: 0, anteilNacht: 20, zuschlagNacht: 25, anteilSonntag: 10, zuschlagSonntag: 50 };
+  // 0.2 * 25 % + 0.1 * 50 % = 10 % on average → 22 €
+  assert.equal(rechnen(e, [], {}).preisProStunde, 22);
+});
+
+test("assignment costs per hour, accommodation only for lots away from home, own wage per lot", () => {
+  const e = { ...STANDARD, lohn: 20, nebenkosten: 0, ausfall: 0, gemeinkosten: 0, gewinn: 0, stundenTag: 8, fahrt: 8, unterkunft: 40, einmalig: 100, stundenKraft: 100 };
+  const r = rechnen(e, lose, {}, { "1": { lohn: 24, auswaerts: true } });
+  // base: 20 + 8/8 + 100/100 = 22
+  assert.equal(r.preisProStunde, 22);
+  // lot 1: 24 + (8 + 40)/8 + 1 = 31
+  assert.equal(r.lose[0].preisProStunde, 31);
+  assert.equal(r.lose[0].netto, 31000);
+});
+
+test("old saved values without the new fields still calculate", () => {
+  const alt = { lohn: 15, nebenkosten: 20, ausfall: 0, zuschlaege: 0, gemeinkosten: 10, gewinn: 10, sonstiges: 1 };
+  assert.equal(rechnen(alt, [], {}).preisProStunde, 22.88);
+});

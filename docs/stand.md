@@ -20,18 +20,22 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (Claude) Kalkulation: Lohn pro Los, Schichtmodell mit einzelnen Zuschlägen, Einsatzkosten (Fahrt, Verpflegung, Unterkunft, einmalige Kosten je Kraft).
 - (Claude) Treffer-Seite: Knopfleiste oben, kein seitliches Scrollen am Handy, Hinweise auf fehlende Nachweise, Kalkulation sichtbar, Angebot mit Vorauswahl der Lose.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 1. Rechtstexte von Benjamin prüfen lassen.
 2. Zuständige Person pro Ausschreibung zuweisen (Fahrplan Punkt 9).
-3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
+3. Kalkulation Schritt 2: Tarif-Auswahl Zeitarbeit; Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
 4. Aussehen/Design mit Logo WP Digital Ranger.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 (spät) – Claude
+- Kalkulation erweitert (`web/src/kalkulation.ts`): Formular in Gruppen Lohn · Schichten und Zuschläge · Einsatzkosten · Aufschläge. Schichtmodell (Anteil und Zuschlag für Nacht, Sonntag, Feiertag, Überstunden), Einsatzkosten (Fahrt und Verpflegung pro Tag, Unterkunft pro Nacht nur für Lose „auswärts“, einmalige Kosten je Kraft verteilt auf Einsatzstunden).
+- Pro Los eigener Stundenlohn und Haken „Auswärts mit Unterkunft“ (gespeichert als `proLos` in kalkulation.json); Ergebnis zeigt Lohn und Preis pro Stunde je Los. Alte gespeicherte Werte rechnen weiter (fehlende Felder = Standard).
+- Offen (Schritt 2, mit Benjamin abgesprochen): Tarif-Auswahl Zeitarbeit (GVP/iGZ, Entgeltgruppen, Branchenzuschläge, Tariferhöhung über Laufzeit) – Tariftabellen nur aus aktueller Quelle übernehmen.
 
 ### 30.10.2026 – ChatGPT (Angebotsfreigabe und Nachweise)
 - Angebotsversionen warten auf die Freigabe von Inhaber oder Administration; Ablehnung kann eine Notiz enthalten. Download und Einreichungsprotokoll sind bis zur Freigabe gesperrt.
