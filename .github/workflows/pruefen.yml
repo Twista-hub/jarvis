@@ -4,10 +4,21 @@ name: Prüfen
 on:
   push:
     branches: [main]
-    paths: ["web/**", "supabase/**", ".github/workflows/pruefen.yml"]
+    paths: ["web/**", "supabase/**", "alarm/**", ".github/workflows/pruefen.yml"]
   workflow_dispatch:
 
 jobs:
+  alarm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q cryptography
+      - run: python -m py_compile alarm/*.py
+      - run: python -m unittest alarm.test_mail
+
   web:
     runs-on: ubuntu-latest
     defaults:
