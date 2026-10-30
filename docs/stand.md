@@ -32,7 +32,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- Zurzeit nichts.
+- (ChatGPT) Nutzerlöschung: Angebots-Eingangsbeleg muss bei gelöschtem Verfasser erhalten bleiben; referenzierende Datenbankbeziehung korrigieren und prüfen.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -56,6 +56,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (Kontolöschung in Supabase)
+- Supabase meldete beim Löschen eines Nutzers „Database error deleting user“. Im Jarvis-Schema war `angebotsabgaben.abgegeben_von` verpflichtend und ohne Löschregel an `auth.users` gebunden. Ein vorhandener Eingangsbeleg kann dadurch das Löschen blockieren.
+- Neue Migration macht die Verfasserreferenz optional und setzt sie beim Löschen auf `NULL`; Angebotsbeleg und übrige Firmendaten bleiben erhalten. Rechte-Test ergänzt, der Löschung bei erhaltenem Beleg prüft.
+- Offen: Datenbanktest und Migration laufen nach Push. Danach Löschversuch im Dashboard wiederholen. Falls der Fehler bleibt, kommt der Blocker aus einer anderen Live-Referenz (z. B. Supabase-Storage); dieser Zugriff kann die tatsächlichen Produktionsdaten hier nicht abfragen. Der Screenshot belegt den allgemeinen Fehler, aber nicht die konkrete betroffene Zeile.
+- Benjamin muss jetzt nichts tun; nach erfolgreichem Datenbanklauf den Delete-Knopf im Supabase-Dialog erneut versuchen.
 
 ### 30.10.2026 – ChatGPT (Firmenwebsite und erster Suchlauf)
 - Registrierung speichert optional die Firmenwebsite in den Anmeldedaten und übernimmt sie beim bestätigten Konto in `firmen.website`. Im Suchprofil kann der Inhaber sie später ändern.

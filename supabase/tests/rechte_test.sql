@@ -25,6 +25,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031060000_einsatzplaene.sql
 \ir ../migrations/20261031070000_tarifkatalog_branchen.sql
 \ir ../migrations/20261031080000_onboarding_firmenwebsite_suchprofil.sql
+\ir ../migrations/20261031090000_angebotsabgabe_verfasser_bei_kontoloeschung.sql
 \ir ../migrations/20261030224121_kaufverantwortung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -266,8 +267,14 @@ insert into public.angebotsabgaben(firma_id,mappe_id,portal,dateiname,mime,groes
 values (:'firma',:'mappe','Testportal','eingang.pdf','application/pdf',10);
 select pruefe((select count(*)=1 from public.angebotsabgaben),'Freigegebenes Angebot samt Eingangsbeleg protokolliert');
 
--- Registration: with a confirmed e-mail the firm is created at once, free plan, with the address.
+-- Deleting the person who logged the proof keeps the proof but clears the author reference.
 reset role;
+insert into auth.users values ('00000000-0000-0000-0000-0000000000e1', 'test-loeschen@firma.test', '{}');
+update public.angebotsabgaben set abgegeben_von='00000000-0000-0000-0000-0000000000e1' where dateiname='eingang.pdf';
+delete from auth.users where id='00000000-0000-0000-0000-0000000000e1';
+select pruefe((select abgegeben_von is null and dateiname='eingang.pdf' from public.angebotsabgaben where dateiname='eingang.pdf'), 'Angebotsbeleg bleibt bei Kontolöschung erhalten');
+
+-- Registration: with a confirmed e-mail the firm is created at once, free plan, with the address.
 insert into auth.users values
   ('00000000-0000-0000-0000-0000000000d1', 'neu@firma.test', '{"vorname":"Eva","nachname":"Neu","firma":"Neu GmbH","strasse":"Weg 1","plz":"52531","ort":"Übach","website":"https://www.neu-firma.example"}');
 set role authenticated;
