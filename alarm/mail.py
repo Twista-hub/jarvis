@@ -53,7 +53,7 @@ def handy(con, schl, user_id: str, firma_id: str, firma: str, neu: list, fristen
     else:
         kopf = f"{len(neu)} neue Ausschreibungen für {firma}"
         text = neu[0][1] + (f" · und {len(fristen)} Fristen bald" if fristen else "")
-        url = f"/konto?firma={firma_id}"
+        url = f"/konto/treffer?firma={firma_id}"
     geraete = con.execute("select id, endpoint from public.push_abos where user_id = %s", (user_id,)).fetchall()
     if not geraete:
         return 0

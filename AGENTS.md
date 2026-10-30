@@ -17,7 +17,7 @@ Pflichten. Wer an Jarvis arbeitet, liest zuerst diese Datei und dann `docs/stand
   Steuernummer beantragt). Rochusstraße 19, 52531 Übach-Palenberg (NRW). Telefon nicht veröffentlichen.
 - Schreibt Deutsch, schnell, oft vom Handy, mit Diktierfehlern. Antworten: Deutsch, kurz, Wichtigstes zuerst.
 - Kein Konsolen-Fan. Für Schritte im Browser immer den **direkten Link** und den **genauen Buttontext**, Schritt für Schritt.
-- Will, dass möglichst alles automatisch und ohne ihn läuft.
+- Will, dass möglichst alles automatisch und ohne ihn läuft. Pull, Konflikte lösen, Tests, Push und die Ausroll-Prüfung übernimmt die KI selbst. Bei Netzwerkfehlern die vorgesehene Netzwerkfreigabe der Ausführungsumgebung prüfen; Benjamin soll keine Konsolenarbeit übernehmen.
 
 ## 3. Regeln (gelten ausnahmslos)
 - **Strikte Trennung** von RestockHero (Repo Twista-hub/restockhero) und Demopin: eigene Repos, Datenbanken, Worker,

@@ -35,7 +35,7 @@ if ("serviceWorker" in navigator) {
     });
     // Shows a notification on this device without the server: tells whether the phone displays them at all.
     if (test) test.addEventListener("click", function () {
-      reg.showNotification("Jarvis: Test", { body: "So sehen Jarvis-Nachrichten aus. Tippen öffnet die Trefferliste.", icon: "/icon-192.png", badge: "/icon-192.png", tag: "jarvis-test", data: { url: "/konto" } })
+      reg.showNotification("Jarvis: Test", { body: "So sehen Jarvis-Nachrichten aus. Tippen öffnet die Trefferliste.", icon: "/icon-192.png", badge: "/icon-192.png", tag: "jarvis-test", data: { url: "/konto/treffer" } })
         .then(function () { zeige("Test geschickt. Kommt nichts, sind Benachrichtigungen für Chrome im Handy abgeschaltet."); })
         .catch(function (e) { zeige("Test ging nicht: " + (e.message || e)); });
     });

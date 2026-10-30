@@ -2,7 +2,7 @@ import { marked } from "marked";
 
 // Page frame: plain HTML (the only script is /app.js, see app.ts), readable on a phone, light and dark.
 
-export function seite(titel: string, inhalt: string, neuLadenSekunden = 0): string {
+export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, kontoBereich?: string): string {
   return `<!doctype html>
 <html lang="de">
 <head>
@@ -54,6 +54,10 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .konto-linkliste li, .fristen-liste li { display: grid; gap: 3px; padding: 14px 4px; border-bottom: 1px solid var(--line); }
   .fristen-liste time { font-weight: 700; }
   .konto-nav { display: none; }
+  .reiter { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0; }
+  .reiter a { padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; }
+  [aria-current="page"] { font-weight: 750; color: var(--accent) !important; }
+  .frist-bald { color: var(--error); }
   @media (max-width: 600px) {
     main { padding-bottom: 104px; }
     .konto-kacheln { grid-template-columns: 1fr; gap: 10px; }
@@ -66,11 +70,16 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 </head>
 <body><main>
 <header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>
-${inhalt.trimStart().startsWith("<h1") || inhalt.trimStart().startsWith('<p class="konto-zurueck"') ? "" : `<h1>${escape(titel)}</h1>`}
+${kontoBereich ? `<p class="konto-zurueck"><a href="/konto">← Zurück</a></p>` : ""}
+${inhalt.trimStart().startsWith("<h1") ? "" : `<h1>${escape(titel)}</h1>`}
 ${inhalt.replace(/<table>/g, '<div class="tabelle"><table>').replace(/<\/table>/g, "</table></div>")}
 <p class="klein">WP Digital Ranger · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> · <a href="/avv">Auftragsverarbeitung</a></p>
-</main></body>
+</main>${kontoBereich !== undefined ? kontoNavigation(kontoBereich) : ""}</body>
 </html>`;
+}
+
+export function kontoNavigation(aktiv: string): string {
+  return `<nav class="konto-nav" aria-label="Konto-Navigation">${[["", "🏠", "Übersicht"], ["treffer", "🔎", "Treffer"], ["fristen", "⏰", "Fristen"], ["einstellungen", "⚙️", "Mehr"]].map(([pfad, icon, text]) => `<a href="/konto${pfad ? `/${pfad}` : ""}"${aktiv === pfad ? ' aria-current="page"' : ""}><span aria-hidden="true">${icon}</span><span>${text}</span></a>`).join("")}</nav>`;
 }
 
 export function escape(s: string): string {
