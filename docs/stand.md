@@ -31,7 +31,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## In Arbeit
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
-1. **Logo und Design:** Vorschlag mit Kompassmarke, Wortmarke und heller/dunkler Handyansicht liegt unter `docs/design/` vor. Benjamin sieht zuerst die Vorschau; danach die gewählte Gestaltung in die tatsächliche App und deren Symbole übernehmen (aktuell weiterhin blaues „J“).
+1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
 2. **Kalkulationsvorlagen pro Standort:** Tabelle `kalkulationsvorlagen` hat schon `bereich_id` (unique firma_id+bereich_id). Fehlt: Auswahl „Werte für Standort …“ auf `/konto/kalkulation` (`vorlageSpeichern` in `web/src/konto.ts` speichert bisher nur `bereich_id: null`), und beim Rechnen die Vorlage des Standorts der Ausschreibung bzw. seiner Region nehmen, sonst die Firmenwerte (`web/src/index.ts` kalkulationsTeil, `web/src/angebote.ts`). Noch nicht angefangen.
 3. Mitarbeiter sperren/austreten lassen.
 4. Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen.
@@ -246,3 +246,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 30.10.2026 – ChatGPT (Logo-Kontrast nachgeschärft)
 - Auf Benjamins Rückmeldung das Logo überarbeitet: nun klar erkennbare Kompassrose mit Ring, oranger Nordspitze und blauer Südspitze auf dunklem Petrol. Die Farbchips und hell/dunklen Handyansichten zeigen stärkere Orange-/Blau-Akzente.
 - SVG-Logo und Wortmarke sowie HTML-/PNG-Vorschau aktualisiert. Noch kein Einbau in die App.
+
+
+### 30.10.2026 – ChatGPT (Rückmeldung zum Design umgesetzt)
+- Farbnamen und Farbmuster aus der Designvorschau entfernt. Kompassfarben im Logo bleiben. Untertitel in der Wortmarke lautet jetzt „Digitale Lösungen“.
+- Das Kompasssymbol erscheint im Kopf der Konto-Unterseiten neben Jarvis und WP Digital Ranger.

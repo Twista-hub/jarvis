@@ -21,3 +21,6 @@
 
 Benjamin sieht zuerst diesen konkreten Entwurf (Vorgabe in `docs/stand.md`, Abschnitt „Nächste Schritte“). Nach seiner Rückmeldung die gewählte Gestaltung in den tatsächlichen Seitenrahmen, die Konto-Kacheln und die App-Symbole übernehmen. Bestehende Funktionen, Rechte, Uploads und Push-Elemente bleiben dabei erhalten. Danach die Web- und Handyprüfungen ausführen und ausrollen.
 
+
+
+Benjamins Rückmeldung: die Farblegende unter dem Logo wurde entfernt; die Darstellung des Logos und der beiden Handyansichten bleibt bestehen. Untertitel ist als „Digitale Lösungen“ gesetzt.
