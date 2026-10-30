@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test, type TestContext } from "node:test";
 import { personFormular } from "../src/mitarbeiter.ts";
-import { BERUFE, ausFormular, kraftFormular, kraftKarte, nachrichtText, passt, personal, personalTeil, qualifikationenBlock, standortKacheln, waNummer, type Kraft, type Tarifvertrag } from "../src/personal.ts";
+import { BERUFE, ausFormular, kraftFormular, kraftKarte, nachrichtText, passt, personal, personalTeil, qualifikationenBlock, standortKacheln, tarifvertraegeBlock, waNummer, type Kraft, type Tarifvertrag } from "../src/personal.ts";
 
 const firma = "11111111-1111-4111-8111-111111111111";
 const ort = "22222222-2222-4222-8222-222222222222";
@@ -103,6 +103,16 @@ test("Tarifvertrag wählt nur eigene Entgeltgruppen; Qualifikationen sind mehrfa
   assert.equal(parsed.tarifvertrag_id, tarifId);
   assert.equal(parsed.eg, "2a");
   assert.deepEqual(parsed.qualifikationen, ["Staplerschein", "Ersthelfer"]);
+});
+
+test("Mitarbeiterformular zeigt, wenn nur GVP hinterlegt ist, und führt direkt zur Tarifverwaltung", () => {
+  const html = kraftFormular({}, "/save", "Speichern", [], [tarif]);
+  assert.match(html, /Aktuell ist nur der Zeitarbeitstarif GVP\/DGB hinterlegt/);
+  assert.match(html, /href="\/konto\/team#tarifvertraege"/);
+  const verwaltung = tarifvertraegeBlock([tarif], true);
+  assert.match(verwaltung, /id="tarifvertraege"/);
+  assert.match(verwaltung, /Tarifvertrag hinzufügen/);
+  assert.match(verwaltung, /Entgelttarifvertrag.*2025|Originalvertrag/);
 });
 
 function mock(t: TestContext) {
