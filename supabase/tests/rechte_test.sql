@@ -23,6 +23,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031050000_personal_tarifvertraege.sql
 \ir ../migrations/20261030181644_vergabekatalog.sql
 \ir ../migrations/20261031060000_einsatzplaene.sql
+\ir ../migrations/20261030224121_kaufverantwortung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -319,5 +320,22 @@ do $$ begin
 exception when raise_exception then
  if sqlerrm = 'FEHLER: Letzter Inhaber wurde gesperrt' then raise; end if;
  raise notice 'ok: Letzter aktiver Inhaber bleibt geschützt';
+end $$;
+update public.vorgaenge set kaufverantwortlich_id='00000000-0000-0000-0000-00000000000b' where titel='Messe-Catering ITB';
+select pruefe((select kaufverantwortlich_id='00000000-0000-0000-0000-00000000000b' from public.vorgaenge where titel='Messe-Catering ITB'),'Kaufmännische Zuständigkeit wird für passenden Bereich gespeichert');
+do $$ begin
+ update public.vorgaenge set kaufverantwortlich_id='00000000-0000-0000-0000-00000000000b' where titel='Hotel Hamburg';
+ raise exception 'FEHLER: Bearbeiter ohne Bereichszugriff wurde zugewiesen';
+exception when raise_exception then
+ if sqlerrm = 'FEHLER: Bearbeiter ohne Bereichszugriff wurde zugewiesen' then raise; end if;
+ raise notice 'ok: kaufmännische Zuweisung prüft den Bereichszugriff';
+end $$;
+update public.mitglieder set aktiv=false where firma_id=:'firma' and user_id='00000000-0000-0000-0000-00000000000b';
+do $$ begin
+ update public.vorgaenge set kaufverantwortlich_id='00000000-0000-0000-0000-00000000000b' where titel='Bundesweit';
+ raise exception 'FEHLER: Gesperrter Mitarbeiter wurde zugewiesen';
+exception when raise_exception then
+ if sqlerrm = 'FEHLER: Gesperrter Mitarbeiter wurde zugewiesen' then raise; end if;
+ raise notice 'ok: kaufmännische Zuweisung verlangt ein aktives Mitglied';
 end $$;
 \echo ALLE TESTS OK

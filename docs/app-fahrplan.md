@@ -32,7 +32,7 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 
 ### C. Arbeiten mit Ausschreibungen
 8. ~~Unterlagen am Treffer hochladen~~ (erledigt 30.10.). Später: Portal-Mails an Jarvis weiterleiten (braucht Mail-Empfang).
-9. ~~Personal je Ausschreibung einplanen~~ (erledigt 30.10.: Status geplant/angefragt/zugesagt und passende Personen zuerst). Separater kaufmännischer Verantwortlicher für den Vorgang bleibt offen (nächster Schritt). ~~Fristen-Erinnerung~~ 7 und 2 Tage vorher steht in der täglichen Mail.
+9. ~~Personal je Ausschreibung einplanen~~ (erledigt 30.10.: Status geplant/angefragt/zugesagt und passende Personen zuerst). Kaufmännisch Verantwortliche Person pro Ausschreibung wird unter Inhaber-/Bereichsrechten zugewiesen. ~~Fristen-Erinnerung~~ 7 und 2 Tage vorher steht in der täglichen Mail.
 10. ~~**Kalkulationsvorlagen pro Standort**~~ (umgesetzt: Standort → Region → Firma; Bearbeitung und Speicherung auf `/konto/kalkulation`).
 11. **Mitarbeiterliste**: Namen, Funktion, Rechte, Bereiche und firmenspezifisches Sperren/Reaktivieren umgesetzt.
 12. **Berufs- und Tarifdatenbank (nächster größerer Schritt)**: kanonische Berufe/Synonyme aus einem breiten Berufskatalog, Vorschläge aus Ausschreibungstexten mit Fundstelle und Bestätigung; Personal, Anforderungen und Einsätze verknüpfen. Tarifregeln separat nach Vertrag, Branche/Region und Gültigkeitszeitraum führen. Konzept: `docs/personalkatalog.md`.
