@@ -355,15 +355,16 @@ ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
 ${portal ? `<p><a class="knopf" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Hier runterladen</a></p>
 <p class="klein">Öffnet das Vergabeportal. Dort „Alle herunterladen“ bzw. „Vergabeunterlagen“ tippen (meist eine ZIP-Datei; manche Portale wollen eine kostenlose Anmeldung).</p>` : `<p class="klein">Die Ausschreibung beim Vergabeportal öffnen und die Unterlagen herunterladen.</p>`}
 <form method="post" action="/konto/vorgang/${v.id}/unterlagen" enctype="multipart/form-data">
-  <label>Danach die heruntergeladene Datei hier auswählen – Jarvis legt sofort los<input name="dateien" type="file" multiple required data-sofort accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label>
+  <label>Danach die heruntergeladenen Dateien hier auswählen (eine oder mehrere) – Jarvis legt sofort los<input name="dateien" type="file" multiple required data-sofort accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label>
   <button>Prüfen lassen</button>
 </form>
+<p class="klein"><strong>Mehrere Dateien:</strong> Im Auswahlfenster die erste Datei lange drücken, dann die anderen antippen und oben auf „Auswählen“ bzw. „Fertig“. Einfacher ist meist „Alle herunterladen“ beim Portal: Dann kommt eine ZIP-Datei mit allem, und die reicht. Vergessene Dateien kannst du später nachreichen, Jarvis liest dann alle zusammen.</p>
 <p class="klein">Am Handy liegt die Datei unter „Downloads“. Jarvis schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p>
 <script>${SOFORT_JS}</script>`;
   let teil: string;
   if (aus?.text) {
     teil = `<h2>Steckbrief aus den Vergabeunterlagen</h2>${markdown(aus.text)}
-<p><a href="/auftrag/${aus.auftrag}#kalkulation"><strong>💶 Zur Kalkulation</strong></a></p>${hochladen.replace("📥 Vergabeunterlagen", "📥 Neue Unterlagen hochladen")}
+<p><a href="/auftrag/${aus.auftrag}#kalkulation"><strong>💶 Zur Kalkulation</strong></a></p>${hochladen.replace("📥 Vergabeunterlagen", "📥 Dateien nachreichen")}
 ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summary>${markdown(v.steckbrief)}</details>` : ""}`;
   } else if (aus) {
     return html(seite(v.titel, `${kopf}<p><strong>Jarvis liest gerade die Unterlagen.</strong> Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu; du kannst sie auch schließen.</p>

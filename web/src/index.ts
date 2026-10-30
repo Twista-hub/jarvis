@@ -63,12 +63,14 @@ async function unterlagenAmVorgang(id: string, request: Request, env: Env): Prom
   const fehler = await pruefenUndZaehlen(dateien, env);
   if (fehler) return zurueck(fehler[0]);
   const eintrag = Object.entries(profile as Record<string, { firma_id?: string; name: string }>).find(([, p]) => p.firma_id === z.v.firma_id);
+  // Files sent later are added to the earlier ones, so the Steckbrief covers everything.
+  const vorher = (await jsonAus<{ auftrag: string }>(env, `auftraege/vorgaenge/${id}.json`))?.auftrag;
   const job = await starten(env, dateien, {
     profil: eintrag?.[0] ?? `firma-${z.v.firma_id}`,
     kunde: eintrag?.[1].name ?? "",
     titel: [z.v.titel, z.v.link].filter(Boolean).join(" – "),
     vorgang: id,
-  });
+  }, vorher);
   await env.DATEN.put(`auftraege/vorgaenge/${id}.json`, JSON.stringify({ auftrag: job.id, erstellt: job.erstellt }));
   return zurueck();
 }
@@ -87,12 +89,23 @@ async function pruefenUndZaehlen(dateien: File[], env: Env): Promise<[string, nu
 }
 
 /** Stores the files in R2 and starts the Steckbrief workflow. */
-async function starten(env: Env, dateien: File[], daten: Omit<Job, "id" | "erstellt">): Promise<Job> {
+async function starten(env: Env, dateien: File[], daten: Omit<Job, "id" | "erstellt">, vorher?: string): Promise<Job> {
   const job: Job = { ...daten, titel: daten.titel.slice(0, 300), id: crypto.randomUUID(), erstellt: new Date().toISOString() };
   const dir = `auftraege/${job.id}`;
+  const namen = new Set<string>();
   for (const f of dateien) {
     const name = f.name.replace(/[^\p{L}\p{N}._ -]+/gu, "_").slice(-120) || "datei";
+    namen.add(name);
     await env.DATEN.put(`${dir}/dateien/${name}`, f.stream());
+  }
+  if (vorher && ID.test(vorher)) {
+    const alt = `auftraege/${vorher}/dateien/`;
+    for (const obj of (await env.DATEN.list({ prefix: alt })).objects) {
+      const name = obj.key.slice(alt.length);
+      if (namen.has(name)) continue; // a new upload with the same name replaces the old file
+      const inhalt = await env.DATEN.get(obj.key);
+      if (inhalt) await env.DATEN.put(`${dir}/dateien/${name}`, inhalt.body);
+    }
   }
   await env.DATEN.put(`${dir}/auftrag.json`, JSON.stringify(job));
   await env.STECKBRIEF.create({ id: job.id, params: job });
