@@ -11,6 +11,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Ausschreibungen als Handy-Karten mit Punkten, Frist, Stand und Bereichsfilter; Treffer-Seite mit Steckbrief, Knopf „Hier runterladen“
     (zum Portal) und Upload, Jarvis schreibt daraus den ausführlichen Steckbrief (ergänzt den aus der Bekanntmachung) und die Kalkulation.
   - Einrichtungs-Assistent: Firma beschreiben → KI schlägt Suchprofil vor → speichern → Alarm sucht sofort die letzten 7 Tage.
+  - Registrierung und Einrichtungs-Assistent nehmen optional die Firmenwebsite an. Jarvis liest ausschließlich die angegebene Startseite und beachtet robots.txt; bei KI-Ausfall werden Beschreibung und Standorte in einen bearbeitbaren Profilvorschlag übernommen. Scheitert der Sofortstart, bleibt das Profil gespeichert und ein direkter Wiederholungsstart wird angeboten.
   - Tägliche Nachricht pro Person: Uhrzeit 7–20 Uhr, per Mail, Handy oder beides; Fristen-Erinnerung 7 und 2 Tage vorher.
   - Handy-Nachrichten (Web-Push) und als App installierbar.
   - Profil-Icon oben rechts (/konto/profil), Firmenwechsel im Profil; Suchprofil als eigener Bereich (/konto/suchprofil). Keine E-Mail-Zeile oder Einrichtung auf der Übersicht.
@@ -43,6 +44,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
+- **Erster Suchlauf nach Registrierung:** Der Sofortstart aus der App benötigt `ACTIONS_TOKEN` mit `actions:write`. Die aktuelle GitHub-Verbindung erlaubt nicht, die Verfügbarkeit dieses Secrets zu prüfen; bei fehlendem oder abgelaufenem Token bleibt der gespeicherte Suchauftrag über den regulären Alarm erhalten, der Sofortstart muss anhand der Live-Anmeldung noch bestätigt werden. Keine öffentliche Firmendatenbank für Namensvorschläge eingebunden: beim Signup wird deshalb die Firmenwebsite optional abgefragt, statt private Kundenbestände oder unzuverlässige Trefferlisten offenzulegen.
 - **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). Offen: API-Bedingungen auf open.gsa.gov vollständig lesen, bevor USA beworben wird; Schlüssel läuft nach ca. 90 Tagen ab (Ende Januar 2027 erneuern). Mehr als 1.000 pro Tag würden abgeschnitten (bisher nicht nötig).
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
@@ -54,6 +56,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (Firmenwebsite und erster Suchlauf)
+- Registrierung speichert optional die Firmenwebsite in den Anmeldedaten und übernimmt sie beim bestätigten Konto in `firmen.website`. Im Suchprofil kann der Inhaber sie später ändern.
+- Jarvis liest bei Angabe nur die Startseite der genannten Domain, prüft zuerst `robots.txt`, folgt keinen Weiterleitungen und begrenzt Zeit und Datenmenge. Die Website ergänzt die selbst eingegebene Beschreibung; die Inhaberin oder der Inhaber prüft den Vorschlag weiterhin.
+- Wenn der KI-Vorschlag nicht erreichbar ist, öffnet sich ein einfacher Vorschlag aus den eingegebenen Leistungen und Orten. Wenn der GitHub-Sofortstart fehlschlägt, wird das Profil nicht als „gestartet“ ausgegeben: es bleibt gespeichert und kann per Knopf erneut gestartet werden.
+- `cd web && npm run check && npm test`: grün, 20 Testdateien. Die neue Datenbankmigration und Registrierung mit Website werden nach Push durch den Datenbank-Workflow geprüft und ausgerollt.
+- Offen: GitHub verweigert diesem Zugriff das Lesen der Secret-Namen (`403`); die Verfügbarkeit von `ACTIONS_TOKEN` und damit der konkrete Sofortstart nach der Live-Anmeldung ließ sich hier nicht feststellen. Ein öffentliches, vollständiges Firmenverzeichnis für sichere Namensvorschläge wurde nicht gefunden/eingebunden. Benjamin muss nichts manuell migrieren; bei einer neuen Live-Anmeldung bitte nur prüfen, ob der Sofortlauf sichtbar startet.
 
 ### 30.10.2026 – ChatGPT (quellengebundener Tarifkatalog)
 - Migration `20261031070000_tarifkatalog_branchen.sql`: gemeinsamer lesbarer Tarifkatalog mit Branche/Region, Gruppe, Berufsbezug, Quelle, Laufzeit, Prüfstand und Datenhinweis; Firmen erhalten RLS-geschützte Auswahlkopien, auch neu angelegte Firmen. In Mitarbeiterformular und Tarifverwaltung werden Verträge samt Branche, Gruppenart und Herkunft sichtbar.

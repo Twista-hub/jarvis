@@ -5,6 +5,7 @@ import { apiClient } from "./api-budget.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
 import { AUSSERHALB, LAENDER, NACHBARN, WEITERE, laenderBereinigen } from "./laender.ts";
+import { websiteKontext, websiteNormalisieren } from "./webseite.ts";
 const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 0, "einstellungen");
 
 export interface EinrichtungEnv extends KontoEnv {
@@ -72,36 +73,45 @@ export async function einrichtung(request: Request, env: EinrichtungEnv, vorlage
   if (!f) return html(seite("Suchprofil", `<p class="fehler">Das Suchprofil kann nur ein Inhaber oder Admin der Firma einrichten.</p><p><a href="/konto">Zur Übersicht</a></p>`), 403, s.cookies);
 
   let antwort: Response;
-  if (url.pathname === "/konto/einrichtung" && !post) antwort = await anzeigen(s, env, firma, f.name, url.searchParams.get("neu") === "1", vorlage);
+  if (url.pathname === "/konto/einrichtung" && !post) antwort = await anzeigen(s, env, firma, f.name, f.website, url.searchParams.get("neu") === "1", vorlage);
   else if (url.pathname === "/konto/einrichtung/vorschlag" && post) antwort = await vorschlagen(env, firma, f.name, form!);
-  else if (url.pathname === "/konto/einrichtung/speichern" && post) antwort = await speichern(s, env, firma, f.name, form!);
+  else if (url.pathname === "/konto/einrichtung/speichern" && post) antwort = await speichern(s, env, firma, f.name, f.website, f.rolle, form!);
+  else if (url.pathname === "/konto/einrichtung/starten" && post) antwort = await gespeicherteSucheStarten(s, env, firma);
   else return null;
   for (const c of s.cookies) antwort.headers.append("set-cookie", c);
   return antwort;
 }
 
-async function adminVon(s: Sitzung, env: KontoEnv, firma: string): Promise<{ name: string } | null> {
-  const r = await db<{ rolle: string; firmen: { name: string } }[]>(s, env, `mitglieder?firma_id=eq.${firma}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle,firmen(name)`);
-  const m = r.ok ? r.daten[0] : undefined;
-  return m && (m.rolle === "inhaber" || m.rolle === "admin") ? { name: m.firmen.name } : null;
+async function adminVon(s: Sitzung, env: KontoEnv, firma: string): Promise<{ name: string; website: string; rolle: string } | null> {
+  const r = await db<{ rolle: string; firmen: { name: string; website?: string } }[]>(s, env, `mitglieder?firma_id=eq.${firma}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle,firmen(name,website)`);
+  if (r.ok) {
+    const m = r.daten[0];
+    return m && (m.rolle === "inhaber" || m.rolle === "admin") ? { name: m.firmen.name, website: m.firmen.website ?? "", rolle: m.rolle } : null;
+  }
+  // Keep the setup page usable while the database migration and web deployment roll out.
+  const alt = await db<{ rolle: string; firmen: { name: string } }[]>(s, env, `mitglieder?firma_id=eq.${firma}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle,firmen(name)`);
+  const m = alt.ok ? alt.daten[0] : undefined;
+  return m && (m.rolle === "inhaber" || m.rolle === "admin") ? { name: m.firmen.name, website: "", rolle: m.rolle } : null;
 }
 
-async function anzeigen(s: Sitzung, env: KontoEnv, firma: string, name: string, neu: boolean, vorlage: (firma: string) => string): Promise<Response> {
+async function anzeigen(s: Sitzung, env: KontoEnv, firma: string, name: string, website: string, neu: boolean, vorlage: (firma: string) => string): Promise<Response> {
   const r = await db<{ beschreibung: string; einstellungen: Partial<Vorschlag> }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=beschreibung,einstellungen&limit=1`);
   const gespeichert = r.ok ? r.daten[0] : undefined;
   if (gespeichert?.einstellungen?.leistungen && !neu) {
-    return html(seite(`Suchprofil: ${name}`, profilFormular(firma, { ...leer(), ...gespeichert.einstellungen, beschreibung: gespeichert.beschreibung }, "")));
+    return html(seite(`Suchprofil: ${name}`, profilFormular(firma, { ...leer(), ...gespeichert.einstellungen, beschreibung: gespeichert.beschreibung }, "", website)));
   }
   const orte = (gespeichert?.einstellungen?.standorte ?? []).map((o) => o.name).join("\n");
-  return html(seite(`Suche einrichten: ${name}`, startFormular(firma, gespeichert?.beschreibung || vorlage(firma), orte, "")));
+  return html(seite(`Suche einrichten: ${name}`, startFormular(firma, gespeichert?.beschreibung || vorlage(firma), orte, website, "")));
 }
 
-function startFormular(firma: string, beschreibung: string, orte: string, fehler: string): string {
+function startFormular(firma: string, beschreibung: string, orte: string, website: string, fehler: string): string {
   return `${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}
 ${hilfe("Tipp für eine gute Suche", "Schreib konkret, welche Leistungen und Einsatzorte wichtig sind. Nenne auch Aufträge, die ihr nicht übernehmen wollt. Jarvis erstellt daraus einen Vorschlag, den du vor dem Start prüfst.")}
 <p>In zwei Schritten: Du beschreibst deine Firma, Jarvis schlägt das Suchprofil vor, du prüfst es und speicherst.</p>
 <form method="post" action="/konto/einrichtung/vorschlag">
   <input type="hidden" name="firma" value="${firma}">
+  <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" value="${escape(website)}"></label>
+  <p class="klein">Jarvis liest nur diese Startseite, falls robots.txt es erlaubt. Die Website ist ein zusätzlicher Hinweis und wird vor dem Speichern geprüft.</p>
   <label>Was macht deine Firma? (2 bis 5 Sätze)
     <textarea name="beschreibung" required minlength="20" maxlength="3000" placeholder="z. B. Wir sind eine Zeitarbeitsfirma für Gastronomie und Events. Wir stellen Servicekräfte, Köche und Hostessen für Messen und Kantinen. Keine Reinigung, keine Pflege.">${escape(beschreibung)}</textarea></label>
   <label>Standorte (eine Stadt pro Zeile, freiwillig)
@@ -115,7 +125,11 @@ ${hilfe("Tipp für eine gute Suche", "Schreib konkret, welche Leistungen und Ein
 async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, form: FormData): Promise<Response> {
   const beschreibung = String(form.get("beschreibung") ?? "").trim().slice(0, 3000);
   const orte = String(form.get("orte") ?? "").trim().slice(0, 1000);
-  if (beschreibung.length < 20) return html(seite("Suche einrichten", startFormular(firma, beschreibung, orte, "Bitte beschreib deine Firma in ein paar Sätzen.")), 400);
+  const rohWebsite = String(form.get("website") ?? "").trim().slice(0, 300);
+  const website = websiteNormalisieren(rohWebsite);
+  if (rohWebsite && !website) return html(seite("Suche einrichten", startFormular(firma, beschreibung, orte, "", "Bitte eine gültige Website-Adresse angeben.")), 400);
+  if (beschreibung.length < 20) return html(seite("Suche einrichten", startFormular(firma, beschreibung, orte, website, "Bitte beschreib deine Firma in ein paar Sätzen.")), 400);
+  const websiteDaten = website ? await websiteKontext(website) : { text: "", hinweis: "" };
   let vorschlag: Vorschlag;
   try {
     const message = await apiClient(env).beta.messages.create({
@@ -125,15 +139,24 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
       max_tokens: 8000,
       output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
       system: ANLEITUNG,
-      messages: [{ role: "user", content: `Firma: ${name}\n\nBeschreibung der Firma:\n${beschreibung}\n\nStandorte:\n${orte || "keine angegeben"}` }],
+      messages: [{ role: "user", content: `Firma: ${name}\nWebsite: ${website || "keine angegeben"}\n\nVom Nutzer beschriebene Leistungen:\n${beschreibung}\n\nStandorte:\n${orte || "keine angegeben"}\n\nLesbare Angaben von der angegebenen Website (nur als Ergänzung, keine weiteren Leistungen erfinden):\n${websiteDaten.text || "keine Website-Informationen verfügbar"}` }],
     });
     if (message.stop_reason === "refusal") throw new Error("abgelehnt");
     vorschlag = bereinigen(JSON.parse(message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("")));
   } catch (e) {
     console.warn(`Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
-    return html(seite("Suche einrichten", startFormular(firma, beschreibung, orte, "Der Vorschlag hat nicht geklappt. Bitte noch einmal versuchen.")), 502);
+    vorschlag = beschreibungFallback(beschreibung, orte);
+    return html(seite(`Vorschlag für ${name}`, profilFormular(firma, vorschlag, `Der automatische Vorschlag antwortet gerade nicht. Deine Angaben sind übernommen; prüfe die Leistungen und Suchwörter. ${websiteDaten.hinweis}`.trim(), website)));
   }
-  return html(seite(`Vorschlag für ${name}`, profilFormular(firma, vorschlag, "Das schlägt Jarvis vor. Nimm Haken weg, wo etwas nicht passt, und ändere Wörter nach Belieben.")));
+  return html(seite(`Vorschlag für ${name}`, profilFormular(firma, vorschlag, `Das schlägt Jarvis vor. Nimm Haken weg, wo etwas nicht passt, und ändere Wörter nach Belieben. ${websiteDaten.hinweis}`.trim(), website)));
+}
+
+export function beschreibungFallback(beschreibung: string, orte: string): Vorschlag {
+  const stop = new Set(["aber", "alle", "auch", "dass", "diese", "einer", "eines", "eine", "einem", "einen", "einer", "firma", "für", "haben", "hier", "ihre", "sind", "und", "uns", "von", "werden", "wir", "mit", "nicht", "sowie", "das", "der", "die", "den", "dem", "des"]);
+  const woerter = [...new Set(beschreibung.toLocaleLowerCase("de").match(/[a-zäöüß]{4,}/g) ?? [])].filter((w) => !stop.has(w)).slice(0, 12);
+  const ersterSatz = beschreibung.split(/[.!?\n]+/).map((s) => s.trim()).find(Boolean) ?? beschreibung;
+  const standorte = orte.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean).slice(0, 20).map((name) => ({ name, plz_praefixe: [] }));
+  return bereinigen({ beschreibung, leistungen: [{ name: ersterSatz.slice(0, 120) || "Leistung aus Firmenbeschreibung", cpv: [], woerter: woerter.length ? woerter : ["ausschreibung"] }], standorte });
 }
 
 function leer(): Vorschlag {
@@ -142,7 +165,7 @@ function leer(): Vorschlag {
 
 const liste = (x: string[] | undefined) => escape((x ?? []).join(", "));
 
-export function profilFormular(firma: string, v: Vorschlag, hinweis: string): string {
+export function profilFormular(firma: string, v: Vorschlag, hinweis: string, website = ""): string {
   const leistungen = [...v.leistungen, { name: "", cpv: [], woerter: [] }].map((l, i) => `<fieldset>
   <label class="zeile"><input type="checkbox" name="l${i}_an" value="1"${l.name ? " checked" : ""}> ${l.name ? escape(l.name) : "Weitere Leistung"}</label>
   <label>Name<input name="l${i}_name" maxlength="120" value="${escape(l.name)}"></label>
@@ -159,6 +182,7 @@ export function profilFormular(firma: string, v: Vorschlag, hinweis: string): st
 ${hilfe("Was kann ich hier ändern?", "Passe Leistungen, Suchwörter, CPV-Codes und Standorte an. Haken entfernen deaktiviert einen Eintrag. Bei PLZ-Präfixen reichen die ersten zwei Ziffern. Ausschlüsse helfen, unpassende Treffer zu vermeiden.")}
 <form method="post" action="/konto/einrichtung/speichern">
   <input type="hidden" name="firma" value="${firma}">
+  <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" value="${escape(website)}"></label>
   <label>Beschreibung (danach bewertet die KI jede Ausschreibung)
     <textarea name="beschreibung" required minlength="20" maxlength="3000">${escape(v.beschreibung)}</textarea></label>
   <h2>Leistungen</h2>
@@ -215,8 +239,14 @@ export function ausFormular(form: FormData): Vorschlag {
   return bereinigen({ beschreibung: String(form.get("beschreibung") ?? ""), leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
 }
 
-async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, form: FormData): Promise<Response> {
+async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, alteWebsite: string, rolle: string, form: FormData): Promise<Response> {
   const v = ausFormular(form);
+  const roheWebsite = String(form.get("website") ?? "").trim().slice(0, 300);
+  const website = websiteNormalisieren(roheWebsite);
+  if (roheWebsite && !website) return html(seite("Suchprofil", profilFormular(firma, v, "Bitte eine gültige Website-Adresse angeben.", alteWebsite)), 400);
+  if (website !== alteWebsite && rolle !== "inhaber") {
+    return html(seite("Suchprofil", profilFormular(firma, v, "Nur der Inhaber kann die gemeinsame Firmenwebsite ändern.", alteWebsite)), 403);
+  }
   if (v.beschreibung.length < 20 || !v.leistungen.length) {
     return html(seite("Suchprofil", profilFormular(firma, v, "Bitte eine Beschreibung und mindestens eine Leistung angeben.")), 400);
   }
@@ -256,6 +286,10 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     ? await db(s, env, `suchprofile?id=eq.${alt.daten[0].id}`, { method: "PATCH", body: JSON.stringify(zeile) })
     : await db(s, env, "suchprofile", { method: "POST", body: JSON.stringify(zeile) });
   if (!r.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Speichern hat nicht geklappt. Bitte noch einmal versuchen.")), 500);
+  if (rolle === "inhaber" && website !== alteWebsite) {
+    const firmenseite = await db(s, env, `firmen?id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ website }) });
+    if (!firmenseite.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Das Suchprofil wurde gespeichert, aber die Website nicht. Bitte erneut speichern.", alteWebsite)), 500);
+  }
   await mailZeitSetzen(s, env, firma, form.get("stunde"));
   const gestartet = sofort && (await ersterLauf(env, firma));
   if (gestartet) {
@@ -264,7 +298,23 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   }
   // While the first run is busy the overview shows its own notice with a spinner, which disappears when it is done.
   if (gestartet) return weiterleiten(`/konto?firma=${firma}`);
-  return weiterleiten(`/konto?firma=${firma}&hinweis=${encodeURIComponent("Suchprofil gespeichert. Ab morgen früh sucht Jarvis damit nach Ausschreibungen.")}`);
+  const erneut = `<p class="fehler" role="status">Dein Suchprofil ist gespeichert, aber die Sofortsuche konnte nicht gestartet werden. Du kannst die Suche jetzt erneut starten; deine Angaben bleiben erhalten.</p><form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${firma}"><button>Gespeicherte Suche jetzt starten</button></form><p><a href="/konto?firma=${firma}">Zur Übersicht</a></p>`;
+  return html(seite("Suchprofil gespeichert", erneut));
+}
+
+async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: string): Promise<Response> {
+  const profil = await db<{ id: string; einstellungen: Record<string, unknown> }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,einstellungen&limit=1`);
+  if (!profil.ok || !profil.daten[0]) return weiterleiten(`/konto/einrichtung?firma=${firma}`);
+  const alt = profil.daten[0];
+  const zuletzt = alt.einstellungen?.erstlauf ? Date.parse(String(alt.einstellungen.erstlauf)) : 0;
+  if (Date.now() - zuletzt < 2 * 3600_000) return weiterleiten(`/konto?firma=${firma}&hinweis=${encodeURIComponent("Eine Suche wurde vor weniger als zwei Stunden gestartet.")}`);
+  if (!(await ersterLauf(env, firma))) {
+    const retry = `<p class="fehler" role="alert">Der Start ist noch fehlgeschlagen. Deine Suche bleibt gespeichert. Bitte versuche es später erneut.</p><form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${firma}"><button>Erneut versuchen</button></form><p><a href="/konto?firma=${firma}">Zur Übersicht</a></p>`;
+    return html(seite("Suche gespeichert", retry), 503);
+  }
+  const einstellungen = { ...alt.einstellungen, erstlauf: new Date().toISOString() };
+  await db(s, env, `suchprofile?id=eq.${alt.id}`, { method: "PATCH", body: JSON.stringify({ einstellungen }) });
+  return weiterleiten(`/konto?firma=${firma}`);
 }
 
 /** Starts the alarm for this firm only (last 7 days) via GitHub Actions. */

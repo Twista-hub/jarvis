@@ -24,6 +24,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261030181644_vergabekatalog.sql
 \ir ../migrations/20261031060000_einsatzplaene.sql
 \ir ../migrations/20261031070000_tarifkatalog_branchen.sql
+\ir ../migrations/20261031080000_onboarding_firmenwebsite_suchprofil.sql
 \ir ../migrations/20261030224121_kaufverantwortung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -268,11 +269,11 @@ select pruefe((select count(*)=1 from public.angebotsabgaben),'Freigegebenes Ang
 -- Registration: with a confirmed e-mail the firm is created at once, free plan, with the address.
 reset role;
 insert into auth.users values
-  ('00000000-0000-0000-0000-0000000000d1', 'neu@firma.test', '{"vorname":"Eva","nachname":"Neu","firma":"Neu GmbH","strasse":"Weg 1","plz":"52531","ort":"Übach"}');
+  ('00000000-0000-0000-0000-0000000000d1', 'neu@firma.test', '{"vorname":"Eva","nachname":"Neu","firma":"Neu GmbH","strasse":"Weg 1","plz":"52531","ort":"Übach","website":"https://www.neu-firma.example"}');
 set role authenticated;
 select test_als('00000000-0000-0000-0000-0000000000d1');
 select public.registrierung_abschliessen() as neufirma \gset
-select pruefe((select plz='52531' and name='Neu GmbH' and paket='kostenlos' from public.firmen where id=:'neufirma'), 'Firma kostenlos mit Anschrift angelegt');
+select pruefe((select plz='52531' and name='Neu GmbH' and paket='kostenlos' and website='https://www.neu-firma.example' from public.firmen where id=:'neufirma'), 'Firma kostenlos mit Anschrift und Website angelegt');
 select pruefe((select rolle='inhaber' and anzeigename='Eva Neu' from public.mitglieder where firma_id=:'neufirma'), 'Registrierte Person ist Inhaber');
 select pruefe(public.registrierung_abschliessen() is null, 'Kein zweites Anlegen');
 select test_als('00000000-0000-0000-0000-00000000000c');
