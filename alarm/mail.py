@@ -91,14 +91,14 @@ def ablaufende_nachweise(con, firma_id: str, user_id: str) -> list[tuple]:
     """One reminder on 30/14/7/2 days, only for people with enabled firm email and finance access."""
     heute = datetime.now(BERLIN).date()
     faellig = [heute + timedelta(days=d) for d in (30, 14, 7, 2)]
-    return con.execute("""select d.id::text, d.name, d.gueltig_bis, (d.gueltig_bis-current_date)::int
+    return con.execute("""select d.id::text, d.name, d.gueltig_bis, (d.gueltig_bis-%s)::int
         from public.firmenunterlagen d
         join public.mitglieder m on m.firma_id=d.firma_id and m.user_id=%s and m.aktiv
         join public.benachrichtigungen b on b.firma_id=m.firma_id and b.user_id=m.user_id and b.stunde is not null and b.kanal in ('mail','beides')
         where d.firma_id=%s and d.art='nachweis' and d.gueltig_bis=any(%s)
           and (m.rolle in ('inhaber','admin') or (m.rolle in ('bearbeiter','leser') and m.finanzen))
           and not exists(select 1 from public.nachweis_erinnerungen e where e.dokument_id=d.id and e.user_id=m.user_id and e.tage=(d.gueltig_bis-%s)::int)
-        order by d.gueltig_bis,d.name""", (user_id, firma_id, faellig, heute)).fetchall()
+        order by d.gueltig_bis,d.name""", (heute, user_id, firma_id, faellig, heute)).fetchall()
 
 
 def datum(t) -> str:
