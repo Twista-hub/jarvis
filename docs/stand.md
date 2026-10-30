@@ -13,23 +13,31 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Handy-Nachrichten (Web-Push) und als App installierbar.
   - Profil-Icon oben rechts (/konto/profil), Firmenwechsel im Profil; Suchprofil als eigener Bereich (/konto/suchprofil). Keine E-Mail-Zeile oder Einrichtung auf der Übersicht.
   - Mitarbeiter: Name und Funktion (z. B. Serviceleitung/Facharbeiter) unabhängig von Rollen, Bereichszuordnung und Finanzfreigabe; gezielte Textweitergabe mit Vorschau/Widerruf und eigener Mitarbeiteransicht.
-  - Firmenunterlagen und Word-/Textvorlagen; Angebotsmappe mit bearbeitbarem Entwurf, Angebotspreis aus Kalkulation, Nachweisauswahl, Ablaufprüfung und ZIP-Export. Abgabe weiterhin über das vorgeschriebene Vergabeportal.
+  - Firmenunterlagen und Word-/Textvorlagen; Angebotsmappe mit bearbeitbarem Entwurf, Chef-Freigabe vor Download, Ablaufprüfung, Ablauf-Erinnerungen und protokolliertem Eingangsbeleg nach manueller Portalabgabe.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
+- (ChatGPT) Erinnerungen für auslaufende Nachweise, Chef-Freigabe und Eingangsbeleg für Angebotsabgaben
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 1. Rechtstexte von Benjamin prüfen lassen.
 2. Zuständige Person pro Ausschreibung zuweisen (Fahrplan Punkt 9).
 3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
 4. Aussehen/Design mit Logo WP Digital Ranger.
-5. Später: Stripe-Abrechnung, Nachweis-Erinnerungen, Chef-Freigabe und Eingangsbestätigung für Angebote; Portal-Schnittstellen erst nach Prüfung/Freigabe.
+5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (Angebotsfreigabe und Nachweise)
+- Angebotsversionen warten auf die Freigabe von Inhaber oder Administration; Ablehnung kann eine Notiz enthalten. Download und Einreichungsprotokoll sind bis zur Freigabe gesperrt.
+- Nach manueller Abgabe im Vergabeportal kann der Nutzer Portalname und Eingangsbeleg speichern. Zeitpunkt/Person werden festgehalten; Belegdatei bleibt nur mit Finanzfreigabe abrufbar.
+- Befristete Nachweise werden in der Unterlagen-Seite bis 30 Tage vor Ablauf hervorgehoben. Die tägliche Mail erinnert aktive finanzberechtigte Mitglieder, die Firmenmail gewählt haben, 30/14/7/2 Tage vorher, jeweils einmal.
+- Typprüfung, 35 Web-Tests, Python-Syntax und lokaler PostgreSQL-Test („ALLE TESTS OK“) grün. Noch nicht ausgerollt.
+- Offen: automatische Benachrichtigung der Firmenleitung über wartende Angebote und erlaubte Portal-Schnittstellen. Benjamin muss nichts für Einrichtung tun.
 
 ### 30.10.2026 – ChatGPT (Mitarbeiter und Angebote)
 - Alle Regionen und untergeordneten Standorte erscheinen mit vollständigem Pfad im Filter. Funktionen im Betrieb, Zugriffsrollen, Bereichszuordnungen und Finanzfreigabe getrennt; Name/Funktion/Rechte bestehender Mitglieder änderbar.

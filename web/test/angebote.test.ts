@@ -29,7 +29,7 @@ test("Paket enthält nur die ausgewählten Nachweise und den freigegebenen Angeb
   t.mock.method(globalThis,"fetch",async(input:string)=>{
     const url=new URL(input);const table=url.pathname.split("/").pop();
     let daten:unknown=[];
-    if(table==="angebotsmappen")daten=[{id:mappe,firma_id:firma,vorgang_id:vorgang,text:"Unser Angebot: 100 € netto",unterlagen_ids:[datei],vorlage_id:null,erstellt:"2026-10-30"}];
+    if(table==="angebotsmappen")daten=[{id:mappe,firma_id:firma,vorgang_id:vorgang,text:"Unser Angebot: 100 € netto",unterlagen_ids:[datei],vorlage_id:null,erstellt:"2026-10-30",freigabe_status:"genehmigt",freigabe_von:"user",freigabe_am:"2026-10-30",freigabe_notiz:""}];
     if(table==="vorgaenge")daten=[{id:vorgang,firma_id:firma,titel:"Servicepersonal",frist:null}];
     if(table==="mitglieder")daten=[{rolle:"inhaber"}];
     if(table==="firmen")daten=[{name:"Beispielfirma"}];
@@ -44,6 +44,21 @@ test("Paket enthält nur die ausgewählten Nachweise und den freigegebenen Angeb
   assert.deepEqual(Object.keys(paket).sort(),["01_Versicherung.pdf","Angebot.html","Pruefliste.txt"].sort());
   assert.match(strFromU8(paket["Angebot.html"]),/100 € netto/);
   assert.deepEqual(keys,[`bibliothek/${firma}/${datei}`]);
+});
+
+test("Angebotsdownload bleibt gesperrt bis die Firmenleitung freigegeben hat",async(t)=>{
+  let getDateien=0;
+  t.mock.method(globalThis,"fetch",async(input:string)=>{
+    const url=new URL(input);const table=url.pathname.split("/").pop();let daten:unknown=[];
+    if(table==="angebotsmappen")daten=[{id:mappe,firma_id:firma,vorgang_id:vorgang,text:"Fertiger Angebotstext",unterlagen_ids:[],vorlage_id:null,erstellt:"2026-10-30",freigabe_status:"wartet",freigabe_von:null,freigabe_am:null,freigabe_notiz:""}];
+    if(table==="vorgaenge")daten=[{id:vorgang,firma_id:firma,titel:"Servicepersonal",frist:null}];
+    if(table==="mitglieder")daten=[{rolle:"inhaber"}];
+    return Response.json(daten);
+  });
+  const env={SUPABASE_URL:"https://db.test",SUPABASE_KEY:"public",DATEN:{get:async()=>{getDateien++;return null;}} as any};
+  const r=await angebote(new Request(`https://x/konto/angebotsmappe/${mappe}/herunterladen`,{headers:{cookie:`jv_at=${token}`}}),env);
+  assert.equal(r!.status,403);assert.equal(getDateien,0);
+  assert.match(await r!.text(),/Firmenleitung muss/);
 });
 
 test("Finanzfreigabe allein erlaubt Lesern keine Bibliotheks-Uploads",async(t)=>{
