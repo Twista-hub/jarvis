@@ -99,12 +99,12 @@ do $$ begin
   raise exception 'FEHLER: authentifizierter Nutzer ändert den gemeinsamen Tarifkatalog';
 exception when insufficient_privilege then raise notice 'ok: gemeinsamer Tarifkatalog kann nicht geändert werden'; end $$;
 insert into public.personal (firma_id, bereich_id, vorname, tarifvertrag_id, eg)
-  select :'firma', :'berlin', 'Tarifkraft', id, '2a' from public.firmen_tarifvertraege where firma_id=:'firma' and vorgegeben;
+  select :'firma', :'berlin', 'Tarifkraft', id, '2a' from public.firmen_tarifvertraege where firma_id=:'firma' and name='Zeitarbeit GVP/DGB' and vorgegeben;
 select pruefe((select count(*) = 1 from public.personal where vorname='Tarifkraft' and eg='2a'), 'Entgeltgruppe des gewählten Vertrags ist zulässig');
 do $$ begin
   insert into public.personal (firma_id, bereich_id, vorname, tarifvertrag_id, eg)
     select current_setting('test.firma')::uuid, (select id from public.bereiche where name='Berlin'), 'Falsche Gruppe', id, 'Meister'
-    from public.firmen_tarifvertraege where firma_id=current_setting('test.firma')::uuid and vorgegeben;
+    from public.firmen_tarifvertraege where firma_id=current_setting('test.firma')::uuid and name='Zeitarbeit GVP/DGB' and vorgegeben;
   raise exception 'FEHLER: fremde Entgeltgruppe akzeptiert';
 exception when raise_exception then
   if sqlerrm like 'FEHLER%' then raise; end if;
