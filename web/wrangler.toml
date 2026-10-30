@@ -3,6 +3,8 @@ main = "src/index.ts"
 compatibility_date = "2026-09-20"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
+# Own address (DNS at Cloudflare). The workers.dev address stays reachable during the switch.
+routes = [{ pattern = "app.wpdigitalranger.com", custom_domain = true }]
 
 # Uploaded documents and Steckbriefe; a lifecycle rule deletes auftraege/ after 30 days.
 [[r2_buckets]]
