@@ -13,6 +13,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261030200000_einrichtung.sql
 \ir ../migrations/20261030210000_benachrichtigungen.sql
 \ir ../migrations/20261030220000_push.sql
+\ir ../migrations/20261030141331_mitarbeiter_freigaben_angebote.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -130,4 +131,38 @@ select pruefe(not exists (select 1 from public.push_nachrichten), 'Fremde Push-T
 select test_als('00000000-0000-0000-0000-00000000000b');
 select pruefe(not exists (select 1 from public.push_abos), 'Fremde Geräte nicht lesbar');
 select pruefe((select count(*) from public.push_nachrichten) = 1, 'Eigene Push-Texte lesbar');
+-- Selected snapshots never grant access to the original brief or financial rows.
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.kalkulationsvorlagen(firma_id,eingaben) values (:'firma','{"gewinn":30}');
+select id as vorgang from public.vorgaenge where titel='Messe-Catering ITB' \gset
+insert into public.vorgang_freigaben(firma_id,vorgang_id,empfaenger_id,titel,inhalte) values
+  (:'firma',:'vorgang','00000000-0000-0000-0000-00000000000b','Einsatz ITB','{"leistungen":"Service am Messestand"}');
+select public.mitglied_aktualisieren(:'firma','00000000-0000-0000-0000-00000000000b','Berlin Service','Serviceleiter/in','mitarbeiter',false,false,array[:'berlin']::uuid[]);
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select funktion from public.mitglieder where user_id=auth.uid())='Serviceleiter/in','Funktion unabhängig von Zugriff gespeichert');
+select pruefe(not exists(select 1 from public.vorgaenge),'Eingeschränkte Mitarbeiter sehen keine Original-Steckbriefe');
+select pruefe(not exists(select 1 from public.kalkulationsvorlagen),'Eingeschränkte Mitarbeiter sehen keine Finanzwerte');
+select pruefe((select count(*) from public.vorgang_freigaben)=1,'Empfänger sieht nur ausgewählte Freigabe');
+select pruefe((select inhalte from public.vorgang_freigaben)='{"leistungen":"Service am Messestand"}'::jsonb,'Freigabe enthält nur ausgewählte Texte');
+update public.mitglieder set finanzen=true where user_id=auth.uid();
+select pruefe(not (select finanzen from public.mitglieder where user_id=auth.uid()),'Mitarbeiter kann sich Finanzrechte nicht selbst geben');
+do $$ begin
+  perform public.mitglied_aktualisieren(current_setting('test.firma')::uuid,auth.uid(),'Ich','Chef','admin',true,true,'{}');
+  raise exception 'FEHLER: Mitarbeiter durfte sich selbst hochstufen';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe(not exists(select 1 from public.vorgang_freigaben),'Fremde sehen auch mit Freigabe-ID nichts');
+select test_als('00000000-0000-0000-0000-00000000000a');
+select public.mitglied_aktualisieren(:'firma','00000000-0000-0000-0000-00000000000b','Berlin Service','Serviceleiter/in','bearbeiter',false,false,array[:'berlin']::uuid[]);
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe(exists(select 1 from public.vorgaenge),'Vollständige Steckbriefe nach ausdrücklicher Rechteänderung sichtbar');
+select pruefe(not exists(select 1 from public.kalkulationsvorlagen),'Bearbeiter ohne Finanzfreigabe sieht keine Kalkulation');
+select test_als('00000000-0000-0000-0000-00000000000a');
+select public.mitglied_aktualisieren(:'firma','00000000-0000-0000-0000-00000000000b','Berlin Service','Serviceleiter/in','bearbeiter',true,false,array[:'berlin']::uuid[]);
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe(exists(select 1 from public.kalkulationsvorlagen),'Ausdrückliche Finanzfreigabe greift');
+select test_als('00000000-0000-0000-0000-00000000000a');
+delete from public.vorgang_freigaben;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe(not exists(select 1 from public.vorgang_freigaben),'Widerruf wirkt sofort');
 \echo ALLE TESTS OK

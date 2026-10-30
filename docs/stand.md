@@ -17,6 +17,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
+- (ChatGPT) Mitarbeiter-Freigaben, Funktionen/Zugriffsrechte, alle Standorte und Angebotsmappen mit Firmenunterlagen/Vorlagen
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 1. Rechtstexte von Benjamin prüfen lassen.
@@ -27,6 +28,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (Mitarbeiter und Angebote)
+- Alle Regionen und untergeordneten Standorte erscheinen mit vollständigem Pfad im Filter. Funktionen im Betrieb, Zugriffsrollen, Bereichszuordnungen und Finanzfreigabe getrennt; Name/Funktion/Rechte bestehender Mitglieder änderbar.
+- Weitergabe ausgewählter Textabschnitte mit Empfängervorschau, gespeichertem Freigabestand und Widerruf; eingeschränkte Mitarbeiter erhalten keinen Zugriff auf Original-Steckbrief oder Finanzdaten. Direkte R2-Ergebnislinks und Kalkulations-POSTs werden zusätzlich geprüft.
+- Firmenunterlagen und Word-/Textvorlagen wiederverwendbar in EU-Speicher; Angebotsentwurf mit vorhandenem Angebotspreis, Nachweisauswahl, Ablaufprüfung, Vorlagen-Platzhaltern und ZIP-Download. Keine automatische Abgabe im Vergabeportal. Bedienung und Grenzen: docs/angebot-und-freigabe.md.
+- Datenbankrechte lokal gegen Postgres geprüft („ALLE TESTS OK“); weitere Tests, Migration und Ausrollen laufen noch. Benjamin muss keine Zugangsdaten oder Konsolenbefehle eingeben.
 
 ### 30.10.2026 – ChatGPT (Ausschreibungen am Handy)
 - Firmenwechsel ins Profil verschoben, sichtbares „Zurück“ durch einen beschrifteten Pfeil für Bildschirmleser ersetzt.

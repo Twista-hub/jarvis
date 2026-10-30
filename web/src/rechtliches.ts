@@ -54,9 +54,10 @@ export function datenschutz(): string {
 <h2>3. Welche Daten wir verarbeiten</h2>
 <ul>
 <li><strong>Beim Aufruf der Seite:</strong> technisch nötige Daten (IP-Adresse, Zeitpunkt, aufgerufene Seite, Browser). Sie werden vom Betreiber der Server (Cloudflare) kurz zur Sicherheit und Fehlersuche gespeichert. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (sicherer Betrieb).</li>
-<li><strong>Konto:</strong> E-Mail-Adresse, Zeitpunkt der Anmeldung, Zugehörigkeit zu Firmen, Rolle und Bereiche. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertrag).</li>
+<li><strong>Konto:</strong> E-Mail-Adresse, Zeitpunkt der Anmeldung, Zugehörigkeit zu Firmen, Funktion im Betrieb, Zugriffsrechte und Bereiche. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertrag).</li>
 <li><strong>Firmendaten:</strong> Firmenname, Standorte, Suchprofil, Ausschreibungen mit Stand und Notizen, Kalkulationswerte.</li>
 <li><strong>Hochgeladene Unterlagen:</strong> Vergabeunterlagen einer Ausschreibung. Sie können Namen und Kontaktdaten von Ansprechpartnern des Auftraggebers enthalten. Sie werden nur für den Steckbrief gelesen und <strong>nach 30 Tagen gelöscht</strong>. Bitte keine Unterlagen mit Daten eurer Mitarbeiter hochladen (z. B. Lebensläufe).</li>
+<li><strong>Firmenunterlagen, Angebotsvorlagen und Angebotsmappen:</strong> Von der Firma bewusst hinterlegte Nachweise und Vorlagen bleiben bis zur Löschung durch die Administration bzw. zum Ende des Firmenkontos gespeichert. Angebotsentwürfe und ausgewählte Textfreigaben bleiben als Firmendaten gespeichert. Der Zugriff erfolgt entsprechend den vergebenen Rechten. Ein Ablaufdatum eines Nachweises verhindert die Verwendung in einer neuen Angebotsmappe nach diesem Datum, löscht die Datei aber nicht automatisch.</li>
 <li><strong>Tägliche Nachricht:</strong> Nur wenn du selbst eine Uhrzeit wählst, schicken wir dir einmal am Tag neue Treffer und Fristen-Erinnerungen per Mail oder aufs Handy. Für Handy-Nachrichten speichern wir die Push-Adresse, die dein Browser dafür vergibt; die Nachricht läuft über den Push-Dienst deines Browsers (z. B. Google oder Apple), enthält dabei aber keinen Text: den holt dein Handy danach direkt bei uns. Abschalten jederzeit in der Übersicht unter „Tägliche Nachricht“. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</li>
 <li><strong>Einladungen:</strong> E-Mail-Adresse der eingeladenen Person, damit wir den Einladungs-Link schicken können.</li>
 </ul>
@@ -66,7 +67,7 @@ export function datenschutz(): string {
 <p>Wir nutzen diese Dienstleister als Auftragsverarbeiter (Art. 28 DSGVO). Einige sitzen in den USA. Die Übermittlung ist durch die genannten Garantien abgesichert.</p>
 ${dienstleisterTabelle()}
 <h2>6. Speicherdauer</h2>
-<p>Hochgeladene Unterlagen und daraus erstellte Steckbriefe: 30 Tage. Kontodaten und Firmendaten: solange das Konto besteht; danach werden sie gelöscht, außer wir müssen sie aus gesetzlichen Gründen aufbewahren (z. B. Rechnungen 8 bis 10 Jahre).</p>
+<p>Hochgeladene Unterlagen und daraus erstellte Steckbriefe: 30 Tage. Wiederverwendbare Firmenunterlagen und Vorlagen: bis zur Löschung durch die Administration oder bis zum Ende des Firmenkontos. Angebotsentwürfe und Textfreigaben sowie weitere Kontodaten und Firmendaten: solange das Konto besteht; danach werden sie gelöscht, außer wir müssen sie aus gesetzlichen Gründen aufbewahren (z. B. Rechnungen 8 bis 10 Jahre).</p>
 <h2>7. Deine Rechte</h2>
 <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch gegen Verarbeitungen nach Art. 6 Abs. 1 lit. f DSGVO. Schreib dazu an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>. Du kannst dich außerdem bei einer Datenschutz-Aufsichtsbehörde beschweren${FIRMA.aufsicht ? `, zum Beispiel bei der für uns zuständigen: ${escape(FIRMA.aufsicht)}` : ""}.</p>
 <h2>8. Pflicht zur Angabe</h2>
@@ -81,6 +82,7 @@ export function nutzungsbedingungen(): string {
 <ul>
 <li>Jarvis sucht täglich öffentliche Ausschreibungen nach dem Suchprofil des Kunden, bewertet sie und schreibt Steckbriefe aus der öffentlichen Bekanntmachung.</li>
 <li>Der Kunde kann Vergabeunterlagen hochladen. Jarvis schreibt daraus einen ausführlichen Steckbrief und hilft bei der Kalkulation.</li>
+<li>Firmen können Nachweise und eigene Vorlagen hinterlegen, Angebotsentwürfe bearbeiten und eine Angebotsmappe herunterladen. Die Abgabe erfolgt durch den Kunden über den vorgesehenen Weg der Vergabestelle; das Erstellen oder Herunterladen einer Mappe ist keine Abgabe.</li>
 <li>Jarvis lädt Vergabeunterlagen nicht selbst von Portalen herunter, deren Bedingungen das verbieten. Den Download macht der Kunde selbst über den Link zum Portal.</li>
 </ul>
 <h2>3. KI und keine Gewähr</h2>

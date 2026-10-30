@@ -4,6 +4,11 @@ import { euro, FELDER, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los } f
 import profile from "../../alarm/profile.json";
 import { CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
+import { angebote } from "./angebote";
+import { darfAuftrag } from "./auftragsrechte";
+import { firmenunterlagen } from "./firmenunterlagen";
+import { freigaben } from "./freigaben";
+import { mitarbeiterVerwalten } from "./mitarbeiter";
 import { einrichtung } from "./einrichtung";
 import { db, konto, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
@@ -49,6 +54,14 @@ export default {
         return starten(env, dateien, { profil: profil?.[0] ?? `firma-${kontext.firma}`, kunde: profil?.[1].name ?? "", titel: kontext.titel, vorgang: kontext.vorgang });
       },
     });
+    const am = await angebote(request, env);
+    if (am) return am;
+    const fu = await firmenunterlagen(request, env);
+    if (fu) return fu;
+    const mv = await mitarbeiterVerwalten(request, env);
+    if (mv) return mv;
+    const fg = await freigaben(request, env);
+    if (fg) return fg;
     const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");
     if (e) return e;
     const k = await konto(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma));
@@ -149,6 +162,7 @@ async function auftrag(id: string, env: Env, request: Request): Promise<Response
   const meta = await env.DATEN.get(`auftraege/${id}/auftrag.json`);
   if (!meta) return html(seite("Nicht gefunden", "<p>Diesen Auftrag gibt es nicht (mehr). Unterlagen werden nach 30 Tagen gelöscht.</p>"), 404);
   const job = (await meta.json()) as Job;
+  if (!(await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id))) return html(seite("Nicht erlaubt",`<p>Bitte mit einem Konto mit Finanzfreigabe anmelden.</p><p><a href="/konto">Zum Konto</a></p>`),403);
   const ergebnis = await env.DATEN.get(`auftraege/${id}/ergebnis.md`);
   if (ergebnis) return html(seite(job.titel || "Steckbrief", markdown(await ergebnis.text()) + (await kalkulationsTeil(job, env, request)), 0, job.vorgang ? "unterlagen" : undefined));
   let status = "running";
@@ -203,16 +217,17 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   return `<h2 id="kalkulation">💶 Kalkulation</h2>
     <p>Trag deine Werte ein. Jarvis rechnet den Preis pro Stunde und pro Los aus und merkt sich deine Werte für die nächste Ausschreibung.</p>
     ${ergebnis}
-    <form method="post" action="/auftrag/${job.id}/kalkulation">
+    ${await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true) ? `<form method="post" action="/auftrag/${job.id}/kalkulation">
       ${felder}
       ${loseFelder ? `<h3>Mengen</h3>${loseFelder}` : ""}
       <button>Berechnen</button>
-    </form>`;
+    </form>` : `<p>Als Leser kannst du die Kalkulation ansehen, aber nicht ändern.</p>`}`;
 }
 
 async function kalkulieren(id: string, request: Request, env: Env): Promise<Response> {
   const job = await jsonAus<Job>(env, `auftraege/${id}/auftrag.json`);
   if (!job) return html(seite("Nicht gefunden", "<p>Diesen Auftrag gibt es nicht (mehr).</p>"), 404);
+  if (!(await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true))) return html(seite("Nicht erlaubt","<p>Für die Kalkulation brauchst du eine Finanzfreigabe.</p>"),403);
   const form = await request.formData();
   const eingaben = Object.fromEntries(FELDER.map((f) => [f.key, zahl(form.get(f.key), STANDARD[f.key])])) as Eingaben;
   const lose = (await jsonAus<Los[]>(env, `auftraege/${id}/lose.json`)) ?? [];
@@ -227,7 +242,7 @@ async function kundeZuCode(code: string, env: Env): Promise<{ profil: string; na
   if (clean.length < 8) return null;
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(clean));
   const hash = [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
-  if (env.TEST_CODE_HASH && hash === env.TEST_CODE_HASH) return { profil: "perlease", name: "Test" };
+  if (env.TEST_CODE_HASH && hash === env.TEST_CODE_HASH) return { profil: "jarvis-test", name: "Öffentlicher Funktionstest" };
   return (kunden as Record<string, { profil: string; name: string }>)[hash] ?? null;
 }
 

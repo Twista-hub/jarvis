@@ -7,7 +7,9 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 - Firma, Bereiche (Regionen/Standorte), Rollen, Einladungen per Mail
 - Tägliche Treffer mit KI-Punkten, Frist, Stand, Filter nach Region, Umschalter zwischen Firmen
 - Steckbrief aus Unterlagen, Kalkulation (auf der Upload-Seite)
-- Vorschau „PerLease (Vorschau)“ mit 16 Standorten
+- Vorschau „PerLease (Vorschau)“ mit 16 Standorten; Filter zeigt auch untergeordnete Standorte
+- Mitarbeiter-Funktionen, Bereichsrechte, Finanzfreigaben und gezielte Textweitergabe mit Vorschau/Widerruf
+- Firmenunterlagen und Angebotsvorlagen; bearbeitbare Angebotsmappen mit Nachweisen als Download
 - Am Treffer: Direktlink zu den Unterlagen beim Portal und „Hochladen und prüfen“ (ohne Zugangscode); der Steckbrief aus den Unterlagen erscheint direkt am Treffer
 - Kurz-Steckbrief aus der vollständigen Bekanntmachung (eForms) mit Fristen und Eignungskriterien, soweit veröffentlicht
 
@@ -28,9 +30,9 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 8. ~~Unterlagen am Treffer hochladen~~ (erledigt 30.10.). Später: Portal-Mails an Jarvis weiterleiten (braucht Mail-Empfang).
 9. **Zuständige Person** zuweisen (offen). ~~Fristen-Erinnerung~~ 7 und 2 Tage vorher steht in der täglichen Mail.
 10. **Kalkulationsvorlagen** pro Standort (Löhne je Stadt).
-11. **Mitarbeiterliste** mit Namen und E-Mail, Rechte ändern, sperren.
+11. **Mitarbeiterliste**: Namen, Funktion, Rechte und Bereiche ändern umgesetzt; Sperren/Austritt als eigener Ablauf noch offen.
 
 ### D. Später
 12. Abrechnung (Stripe, pro Nutzer), Paketwahl.
-13. Angebotsentwurf aus Steckbrief und Kalkulation.
+13. **Angebotsmappe umgesetzt**: Ausgangsentwurf mit Angebotspreis, eigene Word-/Textvorlagen, ausgewählte Nachweise und ZIP-Export. Später: weitere Automatisierung und erlaubte Portal-Schnittstellen.
 14. Mehr Quellen (weitere Vergabeportale nach Freigabe).
