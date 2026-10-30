@@ -8,7 +8,7 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anzeigen, einspielen]
+        options: [anzeigen, einspielen, anmeldungen]
         default: anzeigen
       bestaetigung:
         description: "Zum Einspielen hier EINSPIELEN eintippen"
@@ -37,7 +37,14 @@ jobs:
             fi
           done
           echo "::error::Keine Verbindung (Passwort falsch oder Projekt pausiert)."; exit 1
+      - name: Letzte Anmeldungen (Fehlersuche Login)
+        if: inputs.aktion == 'anmeldungen'
+        run: |
+          # E-Mail-Adressen nur gekürzt (erste 3 Zeichen + Domain).
+          psql "$DB_URL" -c "select created_at, payload->>'action' as aktion, regexp_replace(coalesce(payload->>'actor_username', payload->'traits'->>'user_email', ''), '^(.{3})[^@]*', '\\1…') as wer, payload->>'log_type' as art from auth.audit_log_entries order by created_at desc limit 25"
+          psql "$DB_URL" -c "select created_at, authentication_method, auth_code_issued_at, updated_at from auth.flow_state order by created_at desc limit 10"
       - name: Migrationen
+        if: inputs.aktion != 'anmeldungen'
         run: |
           if [ "${{ inputs.aktion }}" = einspielen ] && [ "${{ inputs.bestaetigung }}" = EINSPIELEN ]; then
             npx -y supabase@2.48.3 db push --db-url "$DB_URL" --include-all --yes
