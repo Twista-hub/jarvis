@@ -15,12 +15,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (Claude) Handy-Nachrichten: Server meldet „gesendet“, auf Benjamins Android kam noch nichts an. Ursache für fehlende
-  Knöpfe gefunden (Skript-Variable `status` = window.status, behoben 30.10. 13:13). Benjamin testet mit „🔔 Test auf diesem
-  Handy“; danach Server-Nachricht erneut senden (`mail.yml`, test = benschiffer79@gmail.com).
+- (frei) Seiten-Umbau, Auftrag siehe docs/auftrag-seiten.md – soll Codex übernehmen.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
-1. Handy-Nachrichten auf Benjamins Handy zum Laufen bringen (siehe oben).
+1. Seiten-Umbau: aufgeräumte Übersicht mit Kacheln und Unterseiten (docs/auftrag-seiten.md).
 2. Rechtstexte von Benjamin prüfen lassen.
 3. Zuständige Person pro Ausschreibung zuweisen (Fahrplan Punkt 9).
 4. Kalkulationsvorlagen pro Standort, Mitarbeiterliste mit Namen (Fahrplan 10, 11).
@@ -29,6 +27,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 7. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 (Nachmittag) – Claude
+- Handy-Nachrichten funktionieren auf Benjamins Android (Test-Knopf und Server-Push kommen an, Tipp öffnet die Trefferliste). Fehler war die Skript-Variable `status` (= window.status).
+- Auftrag Seiten-Umbau geschrieben (docs/auftrag-seiten.md), Benjamin hat den Vorschlag gesehen.
 
 ### 30.10.2026 – Claude
 - Unterlagen am Treffer hochladen (Mehrfachauswahl, nachreichen), „Hier runterladen“-Knopf, Steckbrief aus Unterlagen ergänzt die Bekanntmachung.
