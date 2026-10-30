@@ -2,7 +2,7 @@ import { marked } from "marked";
 
 // Page frame: plain HTML (the only script is /app.js, see app.ts), readable on a phone, light and dark.
 
-export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, kontoBereich?: string): string {
+export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, kontoBereich?: string, kopfleiste = ""): string {
   return `<!doctype html>
 <html lang="de">
 <head>
@@ -24,6 +24,14 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
   main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
   header { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
+  .konto-kopf { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; }
+  .konto-marke { text-decoration: none; font-size: 1.1rem; font-weight: 750; }
+  .konto-aktionen { display: flex; align-items: center; gap: 10px; }
+  .profil-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); }
+  .profil-icon svg { width: 24px; height: 24px; }
+  .firmenwechsel { position: relative; font-size: 14px; }
+  .firmenwechsel summary { padding: 10px 4px; cursor: pointer; }
+  .firmenwechsel form { position: absolute; right: 0; top: 100%; z-index: 20; width: min(300px, calc(100vw - 32px)); box-shadow: 0 8px 24px #00000018; }
   h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 16px; }
   h2 { font-size: 1.2rem; margin: 28px 0 8px; }
   a { color: var(--accent); }
@@ -69,7 +77,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 </style>
 </head>
 <body><main>
-<header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>
+${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto">Jarvis</a><div class="konto-aktionen">${kopfleiste}<a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>`}
 ${kontoBereich ? `<p class="konto-zurueck"><a href="/konto">← Zurück</a></p>` : ""}
 ${inhalt.trimStart().startsWith("<h1") ? "" : `<h1>${escape(titel)}</h1>`}
 ${inhalt.replace(/<table>/g, '<div class="tabelle"><table>').replace(/<\/table>/g, "</table></div>")}

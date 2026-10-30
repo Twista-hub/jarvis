@@ -7,7 +7,7 @@ const user = "22222222-2222-4222-8222-222222222222";
 const vorgang = "33333333-3333-4333-8333-333333333333";
 const token = `h.${btoa(JSON.stringify({ sub: user, email: "test@example.de", exp: 4_000_000_000 })).replace(/=+$/, "")}.s`;
 
-function mockKontoApi(t: TestContext, liste: unknown[] = [], rolle = "inhaber") {
+function mockKontoApi(t: TestContext, liste: unknown[] = [], rolle = "inhaber", suchprofile: unknown[] = [], mehrereFirmen = false) {
   t.mock.method(globalThis, "fetch", async (input: string | URL | Request) => {
     const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url);
     const pfad = url.pathname.split("/rest/v1/")[1] ?? "";
@@ -20,14 +20,16 @@ function mockKontoApi(t: TestContext, liste: unknown[] = [], rolle = "inhaber") 
       daten = [{ id: vorgang, firma_id: firma, titel: "Beispielauftrag", link: "https://portal.test/auftrag", frist: null, status: "neu", punkte: 8, erstellt: "2026-01-01T00:00:00Z", steckbrief: "Bekanntmachung" }];
     }
     if (pfad === "vorgaenge" && !url.searchParams.has("id")) daten = liste;
+    if (pfad === "suchprofile") daten = suchprofile;
+    if (mehrereFirmen && pfad === "mitglieder" && url.searchParams.has("user_id")) (daten as any[]).push({ firma_id: "44444444-4444-4444-8444-444444444444", rolle, erstellt: "2026-01-02T00:00:00Z", user_id: user, firmen: { name: "Zweite Firma", paket: "kostenlos" } });
     return new Response(JSON.stringify(daten), { status: 200, headers: { "content-type": "application/json" } });
   });
 }
 
-async function seite(pfad: string): Promise<string> {
+async function seite(pfad: string, dateiProfil?: (firma: string) => { beschreibung: string } | undefined): Promise<string> {
   const response = await konto(new Request(`https://jarvis.test${pfad}`, { headers: { cookie: `jv_at=${token}` } }), {
     SUPABASE_URL: "https://supabase.test", SUPABASE_KEY: "public",
-  });
+  }, dateiProfil);
   assert.ok(response);
   assert.equal(response.status, 200);
   return response.text();
@@ -36,7 +38,7 @@ async function seite(pfad: string): Promise<string> {
 test("Konto-Übersicht zeigt die sechs großen Bereiche und feste Mobilnavigation", async (t) => {
   mockKontoApi(t);
   const html = await seite("/konto");
-  for (const titel of ["Ausschreibungen", "Fristen", "Unterlagen", "Kalkulation", "Firma &#38; Team", "Einstellungen"]) {
+  for (const titel of ["Ausschreibungen", "Fristen", "Unterlagen", "Kalkulation", "Firma &#38; Team", "Suchprofil"]) {
     assert.ok(html.includes(titel), `Kachel fehlt: ${titel}`);
   }
   assert.match(html, /class="konto-kacheln"/);
@@ -110,4 +112,41 @@ test("Kalkulationswerte werden mit Firmenbezug über den Personentoken gespeiche
   assert.equal(body.firma_id, firma);
   assert.equal(body.bereich_id, null);
   assert.equal(body.eingaben.lohn, 18.5);
+});
+
+test("Übersicht bleibt ohne Kontodaten und Einrichtung; Profil und Firmenwechsel sitzen oben", async (t) => {
+  mockKontoApi(t, [], "inhaber", [], true);
+  const html = await seite("/konto");
+  const body = html.slice(html.indexOf("<body>"));
+  assert.doesNotMatch(body, /Angemeldet als|test@example.de|Deine Rolle|Paket:|Suche einrichten/);
+  assert.match(body, /href="\/konto\/profil" aria-label="Mein Profil"/);
+  assert.ok(body.indexOf('class="firmenwechsel"') < body.indexOf("<h1>"));
+  assert.match(body, /<details class="firmenwechsel"><summary>Firma wechseln<\/summary>/);
+  assert.match(body, /<option value="44444444-4444-4444-8444-444444444444">Zweite Firma/);
+  const profil = await seite("/konto/profil");
+  assert.match(profil, /test@example.de/);
+  assert.match(profil, /action="\/abmelden"/);
+});
+
+test("Bereits hinterlegtes Firmenprofil wird als eingerichtet erkannt", async (t) => {
+  mockKontoApi(t);
+  const vorlage = (id: string) => id === firma ? { beschreibung: "Wir vermitteln Servicepersonal." } : undefined;
+  const html = await seite("/konto/suchprofil", vorlage);
+  assert.match(html, /Die Suche für Musterfirma ist eingerichtet/);
+  assert.match(html, /Suchprofil anpassen/);
+  assert.doesNotMatch(html, />Suche einrichten</);
+  assert.match(html, /Wir vermitteln Servicepersonal/);
+});
+
+test("Gespeichertes Suchprofil wird erkannt, Einrichtung erscheint nur ohne Profil", async (t) => {
+  const profile: unknown[] = [{ id: "profil", beschreibung: "Software für Firmen", erstlauf: null }];
+  mockKontoApi(t, [], "inhaber", profile);
+  const eingerichtet = await seite("/konto/suchprofil");
+  assert.match(eingerichtet, /Die Suche für Musterfirma ist eingerichtet/);
+  assert.match(eingerichtet, /Suchprofil anpassen/);
+  profile.length = 0;
+  const leer = await seite("/konto/suchprofil");
+  assert.match(leer, /noch keine Suche eingerichtet/);
+  assert.match(leer, />Suche einrichten</);
+  assert.doesNotMatch(leer, /Suchprofil anpassen/);
 });
