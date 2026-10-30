@@ -70,7 +70,7 @@ async function unterlagenAmVorgang(id: string, request: Request, env: Env): Prom
     kunde: eintrag?.[1].name ?? "",
     titel: [z.v.titel, z.v.link].filter(Boolean).join(" – "),
     vorgang: id,
-  }, vorher);
+  }, vorher, z.v.steckbrief ?? undefined);
   await env.DATEN.put(`auftraege/vorgaenge/${id}.json`, JSON.stringify({ auftrag: job.id, erstellt: job.erstellt }));
   return zurueck();
 }
@@ -89,7 +89,7 @@ async function pruefenUndZaehlen(dateien: File[], env: Env): Promise<[string, nu
 }
 
 /** Stores the files in R2 and starts the Steckbrief workflow. */
-async function starten(env: Env, dateien: File[], daten: Omit<Job, "id" | "erstellt">, vorher?: string): Promise<Job> {
+async function starten(env: Env, dateien: File[], daten: Omit<Job, "id" | "erstellt">, vorher?: string, bekanntmachung?: string): Promise<Job> {
   const job: Job = { ...daten, titel: daten.titel.slice(0, 300), id: crypto.randomUUID(), erstellt: new Date().toISOString() };
   const dir = `auftraege/${job.id}`;
   const namen = new Set<string>();
@@ -107,6 +107,8 @@ async function starten(env: Env, dateien: File[], daten: Omit<Job, "id" | "erste
       if (inhalt) await env.DATEN.put(`${dir}/dateien/${name}`, inhalt.body);
     }
   }
+  // The Steckbrief from the public notice: the workflow merges it with the documents instead of dropping it.
+  if (bekanntmachung) await env.DATEN.put(`${dir}/bekanntmachung.md`, bekanntmachung);
   await env.DATEN.put(`${dir}/auftrag.json`, JSON.stringify(job));
   await env.STECKBRIEF.create({ id: job.id, params: job });
   return job;

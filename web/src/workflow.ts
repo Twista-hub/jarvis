@@ -87,6 +87,15 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
 
     const ki = await step.do("Steckbrief schreiben", { retries: { limit: 2, delay: "30 seconds" }, timeout: "15 minutes" }, async () => {
       const dokumente = await (await this.env.DATEN.get(`${dir}/text.md`))!.text();
+      const bekanntmachung = await (await this.env.DATEN.get(`${dir}/bekanntmachung.md`))?.text();
+      const bisher = bekanntmachung
+        ? `\n\nBisheriger Steckbrief aus der öffentlichen Bekanntmachung:\n${bekanntmachung}\n\n` +
+          "WICHTIG: Schreibe EINEN Steckbrief aus beiden Quellen. Übernimm jede Angabe aus dem bisherigen Steckbrief " +
+          "(Fristen, Eignung, Nachweise, Referenzen, Lose, Orte, Zuschlag), auch wenn sie in den Vergabeunterlagen fehlt. " +
+          "Schreibe „nicht angegeben“ nur, wenn die Angabe in KEINER der beiden Quellen steht. Ergänze, was die Unterlagen zusätzlich " +
+          "enthalten. Widersprechen sich die Quellen, nenne beide Angaben und welche Quelle was sagt; die Vergabeunterlagen sind meist " +
+          "aktueller. Lass den Fußtext des bisherigen Steckbriefs weg."
+        : "";
       const kunde = (profile as Record<string, { beschreibung: string }>)[job.profil] ?? { beschreibung: job.kunde || "Keine Firmenbeschreibung hinterlegt." };
       const message = await this.client().beta.messages
         .stream({
@@ -98,16 +107,17 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
           system: ANLEITUNG,
           messages: [{
             role: "user",
-            content: `Kunde:\n${kunde.beschreibung}\n\nAusschreibung (Angaben des Kunden):\n${job.titel || "nicht angegeben"}\n\nVergabeunterlagen:\n${dokumente}`,
+            content: `Kunde:\n${kunde.beschreibung}\n\nAusschreibung (Angaben des Kunden):\n${job.titel || "nicht angegeben"}\n\nVergabeunterlagen:\n${dokumente}${bisher}`,
           }],
         })
         .finalMessage();
       const kosten = kostenVon(message.usage);
-      if (message.stop_reason === "refusal") return { text: "", kosten };
-      return { text: message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim(), kosten };
+      if (message.stop_reason === "refusal") return { text: "", kosten, bekanntmachung: !!bekanntmachung };
+      return { text: message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim(), kosten, bekanntmachung: !!bekanntmachung };
     });
 
     const fuss = `\n\n---\n_Automatisch erstellt von Jarvis aus ${lesen.gelesen} Dateien` +
+      (ki.bekanntmachung ? " und der öffentlichen Bekanntmachung" : "") +
       (lesen.ausgelassen.length ? ` (nicht gelesen: ${lesen.ausgelassen.join(", ")})` : "") +
       `. Ohne Gewähr, vor dem Angebot bitte die Originalunterlagen prüfen._\n`;
     // Lots and quantities for the calculation form; read from the Steckbrief only, so it is cheap.
