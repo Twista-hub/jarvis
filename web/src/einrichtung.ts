@@ -4,6 +4,7 @@
 import { apiClient } from "./api-budget.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
+import { LAENDER, NACHBARN, WEITERE, laenderBereinigen } from "./laender.ts";
 const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 0, "einstellungen");
 
 export interface EinrichtungEnv extends KontoEnv {
@@ -14,7 +15,7 @@ export interface EinrichtungEnv extends KontoEnv {
 
 export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
-export type Vorschlag = { beschreibung: string; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[] };
+export type Vorschlag = { beschreibung: string; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; laender?: string[] };
 
 // Once per firm, short text: Sonnet 5.5 is enough (half the price of Opus).
 const MODEL = "claude-sonnet-5-5";
@@ -169,12 +170,23 @@ ${hilfe("Was kann ich hier ändern?", "Passe Leistungen, Suchwörter, CPV-Codes 
   <h2>Standorte</h2>
   <p class="klein">Treffer werden dem Standort zugeordnet, in dessen Postleitzahl-Bereich der Auftrag liegt. Jarvis legt die Standorte als Bereiche an.</p>
   ${standorte}
+  <h2>Länder</h2>
+  <p class="klein">Deutschland kommt aus dem Bekanntmachungsservice. Andere Länder liest Jarvis aus TED, der EU-Ausschreibungsdatenbank (meist größere Aufträge ab den EU-Schwellenwerten). Titel stehen dort meist auch auf Deutsch.</p>
+  ${laenderAuswahl(laenderBereinigen(v.laender))}
   <h2>Tägliche Mail</h2>
   <label>Neue Treffer per Mail an dich um<select name="stunde">${stundenOptionen(7)}</select>
     <span class="klein">Jeder im Team stellt seine Uhrzeit selbst ein (in der Übersicht unter „Tägliche Mail“).</span></label>
   <button>Speichern und Suche starten</button>
 </form>
 <p class="klein"><a href="/konto/einrichtung?firma=${firma}&neu=1">Neu beschreiben</a> · <a href="/konto">Abbrechen</a></p>`;
+}
+
+function laenderAuswahl(gewaehlt: string[]): string {
+  const chip = (code: string, name: string) => `<label><input type="checkbox" name="laender" value="${code}"${gewaehlt.includes(code) ? " checked" : ""}><span>${escape(name)}</span></label>`;
+  const weitere = Object.keys(WEITERE).some((c) => gewaehlt.includes(c));
+  return `<div class="chips">${chip("DEU", LAENDER.DEU)}</div>
+  <details${Object.keys(NACHBARN).some((c) => gewaehlt.includes(c)) ? " open" : ""}><summary>Nachbarländer</summary><div class="chips">${Object.entries(NACHBARN).map(([c, n]) => chip(c, n)).join("")}</div></details>
+  <details${weitere ? " open" : ""}><summary>Weitere Länder in Europa</summary><div class="chips">${Object.entries(WEITERE).map(([c, n]) => chip(c, n)).join("")}</div></details>`;
 }
 
 /** Cleans model or form input: only digits for CPV and postal codes, short lower-case words. */
@@ -187,6 +199,7 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
     ausschluss: woerter(v.ausschluss),
     ausschluss_cpv: ziffern(v.ausschluss_cpv, 2, 8),
     standorte: (v.standorte ?? []).map((o) => ({ name: String(o.name ?? "").trim().slice(0, 120), plz_praefixe: ziffern(o.plz_praefixe, 2, 2), ...(o.bereich_id && ID.test(o.bereich_id) ? { bereich_id: o.bereich_id } : {}) })).filter((o) => o.name).slice(0, 40),
+    laender: laenderBereinigen(v.laender),
   };
 }
 
@@ -198,7 +211,7 @@ export function ausFormular(form: FormData): Vorschlag {
     if (form.get(`l${i}_an`)) leistungen.push({ name: String(form.get(`l${i}_name`) ?? ""), cpv: teile(`l${i}_cpv`), woerter: teile(`l${i}_woerter`) });
     if (form.get(`o${i}_an`)) standorte.push({ name: String(form.get(`o${i}_name`) ?? ""), plz_praefixe: teile(`o${i}_plz`), bereich_id: String(form.get(`o${i}_bereich`) ?? "") || undefined });
   }
-  return bereinigen({ beschreibung: String(form.get("beschreibung") ?? ""), leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte });
+  return bereinigen({ beschreibung: String(form.get("beschreibung") ?? ""), leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
 }
 
 async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, form: FormData): Promise<Response> {
@@ -230,7 +243,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     woerter: [...new Set(v.leistungen.flatMap((l) => l.woerter))].join(", "),
     ausschluss: v.ausschluss.join(", "),
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
-    einstellungen: { leistungen: v.leistungen, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte },
+    einstellungen: { leistungen: v.leistungen, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
   };
   const alt = await db<{ id: string; erstlauf: string | null }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf&limit=1`);
   // First hit list right away (last 7 days) instead of waiting for tomorrow; at most every 2 hours (costs).
