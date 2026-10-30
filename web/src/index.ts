@@ -14,6 +14,7 @@ import { db, konto, sitzung, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { escape, markdown, seite, stapeln } from "./seite";
+import { GVP, lohnAm, standardTarif, type TarifWahl } from "./tarife";
 
 export { Steckbrief } from "./workflow";
 
@@ -192,7 +193,7 @@ async function jsonAus<T>(env: Env, key: string): Promise<T | null> {
   return obj ? ((await obj.json()) as T) : null;
 }
 
-type Gespeichert = { eingaben: Eingaben; mengen: Record<string, number>; proLos?: LosWerte };
+type Gespeichert = { eingaben: Eingaben; mengen: Record<string, number>; proLos?: LosWerte; tarif?: TarifWahl };
 
 /** Calculation form below the Steckbrief; remembers the customer's last inputs. */
 async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<string> {
@@ -204,16 +205,28 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   const vorlage = { ...STANDARD, ...(eigene?.eingaben ?? firmenwerte ?? (await jsonAus<Eingaben>(env, `kunden/${job.profil}/kalkulation.json`))) };
   const mengen = eigene?.mengen ?? {};
   const proLos = eigene?.proLos ?? {};
-  const felder = felderHtml(vorlage);
+  const tarif = eigene?.tarif ?? standardTarif();
+  const heute = new Date().toISOString().slice(0, 10);
+  const egOptionen = (gewaehlt?: string) => `<option value="">eigener Stundenlohn</option>${GVP.gruppen.map((g) => `<option value="${g}"${g === gewaehlt ? " selected" : ""}>EG ${g} (heute ${fmt(lohnAm(g, heute, 0))} €)</option>`).join("")}`;
+  // Collective wages: lots with a wage group get the average tariff wage over the contract period.
+  const tarifFelder = `<fieldset><legend>Tarif Zeitarbeit (${GVP.name})</legend>
+      <span class="klein">Wähle unten pro Los eine Entgeltgruppe. Jarvis rechnet den Durchschnittslohn über die Laufzeit, mit den bekannten Erhöhungen. Quelle: ${GVP.quelle}.</span>
+      <label>Vertragsbeginn<input type="date" name="tarif_beginn" value="${escape(tarif.beginn)}"></label>
+      <label>Laufzeit (Monate)<input name="tarif_monate" inputmode="numeric" value="${tarif.monate}"></label>
+      <label>Erwartete Erhöhung pro Jahr nach der letzten bekannten Tabelle (%)<input name="tarif_steigerung" inputmode="decimal" value="${fmt(tarif.steigerung)}"></label>
+      <label class="zeile"><input type="checkbox" name="tarif_erfahrung" value="1"${tarif.erfahrung ? " checked" : ""}> Erfahrungszuschläge einrechnen (1,5 % nach 9, 3 % nach 12 Monaten beim selben Kunden)</label>
+    </fieldset>`;
+  const felder = felderHtml(vorlage) + tarifFelder;
   // Per lot: hours, own wage (empty = standard) and "away from home" for accommodation costs.
   const loseFelder = lose.map((l) => `<fieldset><legend>Los ${escape(l.nr)}: ${escape(l.name)}</legend>
       <label>Stunden${l.zeitraum ? ` (${escape(l.zeitraum)})` : ""}<input name="los_${escape(l.nr)}" inputmode="decimal" value="${fmt(mengen[l.nr] ?? (/stunde|std/i.test(l.einheit) ? l.menge : 0))}"></label>
-      <label>Eigener Stundenlohn (€, leer = Standard)<input name="lohn_${escape(l.nr)}" inputmode="decimal" value="${proLos[l.nr]?.lohn ? fmt(proLos[l.nr].lohn!) : ""}" placeholder="${fmt(vorlage.lohn)}"></label>
+      <label>Entgeltgruppe<select name="eg_${escape(l.nr)}">${egOptionen(proLos[l.nr]?.eg)}</select></label>
+      <label>Eigener Stundenlohn (€, leer = Standard; gilt nur ohne Entgeltgruppe)<input name="lohn_${escape(l.nr)}" inputmode="decimal" value="${proLos[l.nr]?.lohn ? fmt(proLos[l.nr].lohn!) : ""}" placeholder="${fmt(vorlage.lohn)}"></label>
       <label class="zeile"><input type="checkbox" name="auswaerts_${escape(l.nr)}" value="1"${proLos[l.nr]?.auswaerts ? " checked" : ""}> Auswärts mit Unterkunft</label>
       ${l.hinweis ? `<span class="klein">${escape(l.hinweis)}</span>` : ""}</fieldset>`).join("");
   let ergebnis = "";
   if (eigene) {
-    const r = rechnen(eigene.eingaben, lose, eigene.mengen, proLos);
+    const r = rechnen(eigene.eingaben, lose, eigene.mengen, proLos, tarif);
     ergebnis = `<h3>Ergebnis</h3>
       ${r.warnungen.map((w) => `<p class="fehler">⚠️ ${escape(w)}</p>`).join("")}
       <div class="tabelle"><table><tbody>
@@ -221,7 +234,7 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
         <tr><th>Angebotspreis pro Stunde (netto)</th><th>${euro(r.preisProStunde)}</th></tr>
       </tbody></table></div>
       ${r.lose.length ? stapeln(`<table><thead><tr><th>Los</th><th>Lohn</th><th>Preis/Std</th><th>Stunden</th><th>Netto</th></tr></thead><tbody>
-        ${r.lose.map((z) => `<tr><td>${escape(z.los.nr)} ${escape(z.los.name)}${z.auswaerts ? " (auswärts)" : ""}</td><td>${euro(z.lohn)}</td><td>${euro(z.preisProStunde)}</td><td>${fmt(z.stunden)}</td><td>${euro(z.netto)}</td></tr>`).join("")}
+        ${r.lose.map((z) => `<tr><td>${escape(z.los.nr)} ${escape(z.los.name)}${z.auswaerts ? " (auswärts)" : ""}</td><td>${euro(z.lohn)}${z.eg ? ` (EG ${escape(z.eg)}, Schnitt)` : ""}</td><td>${euro(z.preisProStunde)}</td><td>${fmt(z.stunden)}</td><td>${euro(z.netto)}</td></tr>`).join("")}
         <tr><td><strong>Gesamt netto</strong></td><td></td><td></td><td></td><td><strong>${euro(r.netto)}</strong></td></tr>
         <tr><td>Gesamt brutto (19 % USt)</td><td></td><td></td><td></td><td>${euro(r.brutto)}</td></tr>
       </tbody></table>`) : ""}
@@ -245,8 +258,18 @@ async function kalkulieren(id: string, request: Request, env: Env): Promise<Resp
   const eingaben = Object.fromEntries(FELDER.map((f) => [f.key, zahl(form.get(f.key), STANDARD[f.key])])) as Eingaben;
   const lose = (await jsonAus<Los[]>(env, `auftraege/${id}/lose.json`)) ?? [];
   const mengen = Object.fromEntries(lose.map((l) => [l.nr, zahl(form.get(`los_${l.nr}`), 0)]));
-  const proLos: LosWerte = Object.fromEntries(lose.map((l) => [l.nr, { lohn: zahl(form.get(`lohn_${l.nr}`), 0) || undefined, auswaerts: form.get(`auswaerts_${l.nr}`) === "1" }]));
-  await env.DATEN.put(`auftraege/${id}/kalkulation.json`, JSON.stringify({ eingaben, mengen, proLos }));
+  const proLos: LosWerte = Object.fromEntries(lose.map((l) => {
+    const eg = String(form.get(`eg_${l.nr}`) ?? "");
+    return [l.nr, { lohn: zahl(form.get(`lohn_${l.nr}`), 0) || undefined, auswaerts: form.get(`auswaerts_${l.nr}`) === "1", eg: GVP.gruppen.includes(eg) ? eg : undefined }];
+  }));
+  const beginn = String(form.get("tarif_beginn") ?? "");
+  const tarif: TarifWahl = {
+    beginn: /^\d{4}-\d{2}-\d{2}$/.test(beginn) ? beginn : standardTarif().beginn,
+    monate: Math.min(120, Math.max(1, Math.round(zahl(form.get("tarif_monate"), 24)))),
+    steigerung: Math.min(20, zahl(form.get("tarif_steigerung"), 3)),
+    erfahrung: form.get("tarif_erfahrung") === "1",
+  };
+  await env.DATEN.put(`auftraege/${id}/kalkulation.json`, JSON.stringify({ eingaben, mengen, proLos, tarif }));
   await env.DATEN.put(`kunden/${job.profil}/kalkulation.json`, JSON.stringify(eingaben));
   return Response.redirect(new URL(`/auftrag/${id}#kalkulation`, request.url).toString(), 303);
 }

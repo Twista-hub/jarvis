@@ -1,4 +1,5 @@
 // Price calculation for a tender: the customer's wages and surcharges -> price per hour and per lot.
+import { tarifHinweise, tariflohn, type TarifWahl } from "./tarife.ts";
 
 export type Eingaben = {
   lohn: number; // gross hourly wage, € (default for all lots; a lot can have its own)
@@ -28,7 +29,7 @@ export type Eingaben = {
 
 export type Los = { nr: string; name: string; menge: number; einheit: string; zeitraum: string; hinweis: string };
 /** Per lot: own hourly wage (e.g. cook vs. kitchen help) and whether workers stay overnight away from home. */
-export type LosWerte = Record<string, { lohn?: number; auswaerts?: boolean }>;
+export type LosWerte = Record<string, { lohn?: number; auswaerts?: boolean; eg?: string }>;
 
 export const STANDARD: Eingaben = {
   lohn: 15, nebenkosten: 23, ausfall: 20,
@@ -73,7 +74,7 @@ export function felderHtml(werte: Eingaben, nurLesen = false): string {
 export type Ergebnis = {
   schritte: { name: string; betrag: number }[];
   preisProStunde: number;
-  lose: { los: Los; stunden: number; netto: number; lohn: number; auswaerts: boolean; preisProStunde: number }[];
+  lose: { los: Los; stunden: number; netto: number; lohn: number; auswaerts: boolean; preisProStunde: number; eg?: string }[];
   netto: number;
   brutto: number;
   warnungen: string[];
@@ -107,21 +108,24 @@ function stundenpreis(e: Eingaben, lohn: number, auswaerts: boolean) {
   };
 }
 
-export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record<string, number>, proLos: LosWerte = {}): Ergebnis {
+/** tarif: contract start and length for lots paid by a collective wage group (eg) instead of an own wage. */
+export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record<string, number>, proLos: LosWerte = {}, tarif?: TarifWahl): Ergebnis {
   const e = { ...STANDARD, ...eingaben }; // values saved before new fields existed
   const basis = stundenpreis(e, e.lohn, false);
   const zeilen = lose.map((los) => {
-    const lohn = proLos[los.nr]?.lohn || e.lohn;
+    const eg = tarif ? proLos[los.nr]?.eg : undefined;
+    const lohn = eg ? tariflohn(eg, tarif!) : proLos[los.nr]?.lohn || e.lohn;
     const auswaerts = !!proLos[los.nr]?.auswaerts;
     const preis = runden(stundenpreis(e, lohn, auswaerts).preis);
     const stunden = mengen[los.nr] ?? (stundenEinheit(los.einheit) ? los.menge : 0);
-    return { los, stunden, netto: runden(stunden * preis), lohn, auswaerts, preisProStunde: preis };
+    return { los, stunden, netto: runden(stunden * preis), lohn, auswaerts, preisProStunde: preis, eg };
   });
   const netto = runden(zeilen.reduce((s, z) => s + z.netto, 0));
   const warnungen: string[] = [];
   if ([e.lohn, ...zeilen.map((z) => z.lohn)].some((l) => l < MINDESTLOHN_2026)) warnungen.push(`Ein Stundenlohn liegt unter dem gesetzlichen Mindestlohn (${fmt(MINDESTLOHN_2026)} € ab 1.1.2026).`);
   if (e.gewinn <= 0) warnungen.push("Ohne Aufschlag für Wagnis und Gewinn arbeitest du zum Selbstkostenpreis.");
   if (e.anteilNacht + e.anteilSonntag + e.anteilFeiertag > 100) warnungen.push("Nacht-, Sonntags- und Feiertagsanteil zusammen über 100 %. Bitte prüfen.");
+  if (tarif && zeilen.some((z) => z.eg)) warnungen.push(...tarifHinweise(tarif));
   if (lose.some((l) => !stundenEinheit(l.einheit))) warnungen.push("Manche Lose sind nicht in Stunden angegeben. Trag die Stunden dort selbst ein.");
   return {
     schritte: basis.schritte,

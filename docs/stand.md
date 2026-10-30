@@ -25,12 +25,17 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Offene Punkte (Reihenfolge = Vorschlag)
 1. Rechtstexte von Benjamin prüfen lassen.
 2. Zuständige Person pro Ausschreibung zuweisen (Fahrplan Punkt 9).
-3. Kalkulation Schritt 2: Tarif-Auswahl Zeitarbeit; Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
+3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
 4. Aussehen/Design mit Logo WP Digital Ranger.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 (spät, Teil 2) – Claude
+- Tarif-Auswahl Zeitarbeit: Tabellen GVP/DGB (EG 1, 2a, 2b, 3–9; ab 01.01.2026, 01.09.2026, 01.04.2027) aus dem Original-PDF des Entgelttarifvertrags vom 12.09.2025 (dgb.de, robots.txt geprüft, gelesen über erkunden.yml „pdf“) in `web/src/tarife.ts`.
+- Kalkulation: pro Los Entgeltgruppe wählbar → Durchschnittslohn über die Laufzeit (Vertragsbeginn, Monate, erwartete Erhöhung nach 04/2027, Erfahrungszuschläge 1,5 %/3 % nach 9/12 Monaten); Hinweis auf Equal Pay ab dem 10. Monat (§ 8 Abs. 4 AÜG).
+- **Pflege:** Der Vertrag ist frühestens zum 30.09.2027 kündbar. Sobald ein neuer Entgelttarifvertrag erscheint, Tabelle in tarife.ts ergänzen (nur aus dem Original). Branchenzuschläge nicht als Tabelle (für Gastro/Event/Pflege meist keine), dafür Feld „Weitere Zuschläge“.
 
 ### 30.10.2026 (spät) – Claude
 - Kalkulation erweitert (`web/src/kalkulation.ts`): Formular in Gruppen Lohn · Schichten und Zuschläge · Einsatzkosten · Aufschläge. Schichtmodell (Anteil und Zuschlag für Nacht, Sonntag, Feiertag, Überstunden), Einsatzkosten (Fahrt und Verpflegung pro Tag, Unterkunft pro Nacht nur für Lose „auswärts“, einmalige Kosten je Kraft verteilt auf Einsatzstunden).
