@@ -54,6 +54,10 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (p === "/abmelden" && post) return abmelden(request, env);
   if (!post && ["/konto/ausschreibungen", "/konto/firma-team"].includes(p)) return weiterleiten(p === "/konto/ausschreibungen" ? "/konto/treffer" : "/konto/team");
   if (p === "/konto/kalkulation" && post) return mitSitzung(request, env, vorlageSpeichern);
+  if (p === "/konto/kalkulation/oeffnen") {
+    const auftrag = url.searchParams.get("auftrag") ?? "";
+    return weiterleiten(/^[0-9a-f-]{36}$/.test(auftrag) ? `/auftrag/${auftrag}#kalkulation` : "/konto/kalkulation");
+  }
   if (p === "/konto" && !post && (url.searchParams.has("bereich") || url.searchParams.has("alle"))) return weiterleiten(`/konto/treffer${url.search}`);
   if (p === "/konto" && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "", "", dateiProfil);
   const kontoSeite = p.match(/^\/konto\/(treffer|fristen|unterlagen|kalkulation|team|einstellungen|profil|suchprofil)$/);
@@ -232,7 +236,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   } else if (unterseite === "kalkulation") {
     const vorlagen = await db<{ eingaben: Eingaben }[]>(s, env, `kalkulationsvorlagen?firma_id=eq.${m.firma_id}&bereich_id=is.null&select=eingaben`);
     const werte = { ...STANDARD, ...(vorlagen.ok ? vorlagen.daten[0]?.eingaben : {}) };
-    inhalt = rahmen(`<p>Diese Standardwerte gelten für die Firma. Du kannst sie bei jeder Ausschreibung anpassen.</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>Standardwerte speichern</button>` : ""}</form>`}<h2>Kalkulationen aus Unterlagen</h2>${await unterlagenListe(liste, env, true) || `<p>Noch keine Kalkulation vorhanden. Lade zuerst Vergabeunterlagen hoch.</p>`}`);
+    inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte der Firma</h2><p>Diese Standardwerte gelten für die Firma. Du kannst sie bei jeder Ausschreibung anpassen.</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>Standardwerte speichern</button>` : ""}</form>`}`);
   } else if (unterseite === "team") {
     let team = `<h2>Firma & Team</h2><p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p><h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
     team += b.length
@@ -314,9 +318,17 @@ async function vorlageSpeichern(s: Sitzung, form: FormData, _r: Request, env: Ko
   return weiterleiten(`/konto/kalkulation?firma=${firma}&hinweis=${encodeURIComponent(r.ok ? "Standardwerte gespeichert." : "Die Werte konnten nicht gespeichert werden. Bitte prüfe deine Berechtigung.")}`);
 }
 
-async function unterlagenListe(liste: Vorgang[], env: KontoEnv, kalkulation = false): Promise<string> {
+/** Calculation page: pick a tender with checked documents, its calculation opens right away. */
+async function kalkulationsAuswahl(liste: Vorgang[], env: KontoEnv): Promise<string> {
+  const mit = (await Promise.all(liste.map(async (v) => ({ v, aus: await unterlagenSteckbrief(env, v.id) })))).filter((x) => x.aus?.text);
+  if (!mit.length) return `<p>Noch keine Ausschreibung mit geprüften Unterlagen. <a href="/konto/unterlagen">Unterlagen hochladen →</a></p>`;
+  const kurz = (t: string) => (t.length > 70 ? `${t.slice(0, 67)}…` : t);
+  return `<form method="get" action="/konto/kalkulation/oeffnen"><label>Ausschreibung wählen<select name="auftrag" data-oeffnen required><option value="">Bitte auswählen …</option>${mit.sort((a, b) => b.v.erstellt.localeCompare(a.v.erstellt)).map(({ v, aus }) => `<option value="${escape(aus!.auftrag)}">${escape(kurz(v.titel))}</option>`).join("")}</select></label><button>Kalkulation öffnen</button><p class="klein">Danach wählst du das Los. Jarvis zeigt, welche Arbeitskraft gebraucht wird, und setzt den Lohn laut Tarifvertrag ein.</p></form>`;
+}
+
+async function unterlagenListe(liste: Vorgang[], env: KontoEnv): Promise<string> {
   const mitUnterlagen = (await Promise.all(liste.map(async (v) => ({ v, aus: await unterlagenSteckbrief(env, v.id) })))).filter((x) => x.aus);
-  return mitUnterlagen.length ? `<ul class="konto-linkliste">${mitUnterlagen.map(({ v, aus }) => `<li><a href="${aus!.text && kalkulation ? `/auftrag/${aus!.auftrag}#kalkulation` : `/konto/vorgang/${v.id}`}">${escape(v.titel)}</a><span class="klein">${aus!.text ? kalkulation ? "Kalkulation ansehen" : "Steckbrief ansehen / Dateien nachreichen" : "Unterlagen werden geprüft …"}</span></li>`).join("")}</ul>` : "";
+  return mitUnterlagen.length ? `<ul class="konto-linkliste">${mitUnterlagen.map(({ v, aus }) => `<li><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a><span class="klein">${aus!.text ? "Steckbrief ansehen / Dateien nachreichen" : "Unterlagen werden geprüft …"}</span></li>`).join("")}</ul>` : "";
 }
 
 async function bereichAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {

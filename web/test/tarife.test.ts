@@ -35,3 +35,19 @@ test("lots with a wage group use the tariff wage and warn about equal pay", () =
   // without a tariff choice the own wage counts
   assert.equal(rechnen({ ...STANDARD }, lose, {}, { "1": { eg: "1", lohn: 30 } }).lose[0].lohn, 30);
 });
+
+test("Lose: Anleitung enthält die Merkmale aller Entgeltgruppen wörtlich aus dem Rahmentarifvertrag", async () => {
+  const { LOSE_ANLEITUNG, LOSE_SCHEMA } = await import("../src/lose.ts");
+  const { GVP } = await import("../src/tarife.ts");
+  for (const g of GVP.gruppen) assert.ok(LOSE_ANLEITUNG.includes(`EG ${g}: ${GVP.merkmale[g]}`), `EG ${g} fehlt`);
+  assert.deepEqual(LOSE_SCHEMA.properties.lose.items.properties.eg.enum, ["", ...GVP.gruppen]);
+});
+
+test("Angebot ohne eigene Kalkulation nimmt den Tariflohn der vorgeschlagenen Entgeltgruppe", async () => {
+  const { preise } = await import("../src/angebotsauswahl.ts");
+  const { STANDARD } = await import("../src/kalkulation.ts");
+  const los = { nr: "1", name: "Service", menge: 1000, einheit: "Stunden", zeitraum: "pro Jahr", hinweis: "" };
+  const ohne = preise([los], null, STANDARD);
+  const mit = preise([{ ...los, eg: "4", taetigkeit: "Koch mit Ausbildung" }], null, STANDARD);
+  assert.ok(mit.zeilen[0].netto > ohne.zeilen[0].netto, "EG 4 liegt über dem Standardlohn");
+});

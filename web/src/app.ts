@@ -51,6 +51,17 @@ document.querySelectorAll("select[data-vorschlag]").forEach(function (w) {
   zeigen(false);
 });
 
+// Calculation: show only the chosen lot.
+document.querySelectorAll("select[data-los-wahl]").forEach(function (w) {
+  w.addEventListener("change", function () {
+    w.form.querySelectorAll("fieldset[data-los]").forEach(function (f) { f.hidden = !!w.value && f.getAttribute("data-los") !== w.value; });
+  });
+});
+// Pick a tender and open its calculation right away.
+document.querySelectorAll("select[data-oeffnen]").forEach(function (w) {
+  w.addEventListener("change", function () { if (w.value) w.form.submit(); });
+});
+
 var knopf = document.getElementById("push-an");
 var test = document.getElementById("push-test");
 var meldung = document.getElementById("push-status");

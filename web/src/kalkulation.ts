@@ -27,7 +27,8 @@ export type Eingaben = {
   gewinn: number; // risk and profit, %
 };
 
-export type Los = { nr: string; name: string; menge: number; einheit: string; zeitraum: string; hinweis: string };
+/** taetigkeit/eg/eg_grund: the workforce the lot needs and the suggested wage group (Steckbriefe since 30.10.2026). */
+export type Los = { nr: string; name: string; menge: number; einheit: string; zeitraum: string; hinweis: string; taetigkeit?: string; eg?: string; eg_grund?: string };
 /** Per lot: own hourly wage (e.g. cook vs. kitchen help) and whether workers stay overnight away from home. */
 export type LosWerte = Record<string, { lohn?: number; auswaerts?: boolean; eg?: string }>;
 

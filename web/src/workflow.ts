@@ -6,33 +6,10 @@ import ANLEITUNG from "../../alarm/steckbrief-anleitung.txt";
 import profile from "../../alarm/profile.json";
 import { baseName, bundle, mimeType, wanted, type Text } from "./bundle";
 import type { Env, Job } from "./index";
+import { loseLesen } from "./lose";
 
 const MODEL = "claude-opus-5-5";
 const PREIS = [4, 20]; // $ per million input / output tokens
-
-const LOSE_SCHEMA = {
-  type: "object",
-  properties: {
-    lose: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          nr: { type: "string" },
-          name: { type: "string" },
-          menge: { type: "number" },
-          einheit: { type: "string" },
-          zeitraum: { type: "string" },
-          hinweis: { type: "string" },
-        },
-        required: ["nr", "name", "menge", "einheit", "zeitraum", "hinweis"],
-        additionalProperties: false,
-      },
-    },
-  },
-  required: ["lose"],
-  additionalProperties: false,
-};
 
 function kostenVon(u: { input_tokens: number; output_tokens: number; cache_creation_input_tokens?: number | null; cache_read_input_tokens?: number | null }) {
   const eingabe = u.input_tokens + (u.cache_creation_input_tokens ?? 0) + (u.cache_read_input_tokens ?? 0);
@@ -120,23 +97,13 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
       (ki.bekanntmachung ? " und der öffentlichen Bekanntmachung" : "") +
       (lesen.ausgelassen.length ? ` (nicht gelesen: ${lesen.ausgelassen.join(", ")})` : "") +
       `. Ohne Gewähr, vor dem Angebot bitte die Originalunterlagen prüfen._\n`;
-    // Lots and quantities for the calculation form; read from the Steckbrief only, so it is cheap.
+    // Lots, quantities, workforce and wage group for the calculation form; read from the Steckbrief only, so it is cheap.
     // Saved before the Steckbrief, because the result page appears as soon as ergebnis.md exists.
     const lose = ki.text
       ? await step.do("Lose erfassen", { retries: { limit: 2, delay: "10 seconds" } }, async () => {
-          const message = await this.client().beta.messages.create({
-            model: MODEL,
-            betas: ["server-side-fallback-2026-07-01"],
-            fallbacks: "default",
-            max_tokens: 8000,
-            output_config: { effort: "low", format: { type: "json_schema", schema: LOSE_SCHEMA } },
-            system: "Lies aus dem Steckbrief die Lose bzw. Leistungen mit ihren Mengen. menge: Zahl (Stunden pro Jahr oder Gesamt, wie angegeben; 0, wenn unbekannt). einheit: z. B. Stunden, Tage, Stück, pauschal. zeitraum: z. B. pro Jahr oder Laufzeit. Gibt es keine Lose, nimm die ganze Leistung als ein Los.",
-            messages: [{ role: "user", content: ki.text }],
-          });
-          const text = message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("");
-          const lose = message.stop_reason === "refusal" ? [] : (JSON.parse(text).lose as unknown[]);
+          const { lose, usage } = await loseLesen(this.client(), ki.text);
           await this.env.DATEN.put(`${dir}/lose.json`, JSON.stringify(lose));
-          return { anzahl: lose.length, kosten: kostenVon(message.usage) };
+          return { anzahl: lose.length, kosten: kostenVon(usage) };
         })
       : { anzahl: 0, kosten: 0 };
     await step.do("Ergebnis speichern", async () => {
