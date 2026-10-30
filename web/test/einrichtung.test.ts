@@ -30,3 +30,17 @@ test("form round trip keeps checked services and locations only", () => {
   assert.deepEqual(v.leistungen, [{ name: "Messepersonal", cpv: ["79620"], woerter: ["messepersonal", "hostess"] }]);
   assert.deepEqual(v.standorte, []); // location not ticked
 });
+
+test("Länder im Suchprofil: Deutschland als Standard, nur bekannte Länder, Auswahl im Formular", async () => {
+  const { bereinigen, ausFormular, profilFormular } = await import("../src/einrichtung.ts");
+  assert.deepEqual(bereinigen({}).laender, ["DEU"]);
+  assert.deepEqual(bereinigen({ laender: ["AUT", "XXX", "AUT", "NLD"] }).laender, ["AUT", "NLD"]);
+  const f = new FormData();
+  f.set("beschreibung", "Personaldienstleister für Gastronomie und Logistik");
+  f.append("laender", "DEU");
+  f.append("laender", "AUT");
+  assert.deepEqual(ausFormular(f).laender, ["DEU", "AUT"]);
+  const html = profilFormular("f", bereinigen({ laender: ["DEU", "AUT"] }), "");
+  assert.match(html, /value="AUT" checked/);
+  assert.match(html, /<details open><summary>Nachbarländer/);
+});

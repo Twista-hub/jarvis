@@ -50,6 +50,8 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict) -> dict:
         "beschreibung": beschreibung,
         "firma_id": firma_id,
         "regionen": {o["bereich_id"]: o.get("plz_praefixe", []) for o in e.get("standorte") or [] if o.get("bereich_id")},
+        # Countries to search (ISO3). Germany = Bekanntmachungsservice, others = TED. Default: Germany only.
+        "laender": [l for l in e.get("laender") or ["DEU"] if isinstance(l, str) and len(l) == 3] or ["DEU"],
     }
 
 

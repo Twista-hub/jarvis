@@ -157,7 +157,8 @@ def kurzbrief(rel: dict, day: str) -> str:
             f"**Auftraggeber:** {(rel.get('buyer') or {}).get('name') or 'nicht angegeben'}\n\n"
             f"**Ort:** {place(rel) or 'nicht angegeben'}\n\n"
             f"**Veröffentlicht:** {day}\n\n"
-            f"**Angebotsfrist:** {frist(t) or 'nicht angegeben'}\n\n"
+            + (f"**Land:** {(rel.get('buyer') or {}).get('address', {}).get('countryName', '')} · Quelle: TED (Amt für Veröffentlichungen der EU)\n\n" if rel.get("_quelle") == "TED" else "")
+            + f"**Angebotsfrist:** {frist(t) or 'nicht angegeben'}\n\n"
             f"{beschreibung or 'Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.'}\n\n"
             "_Dieser Kurzüberblick enthält Angaben aus der öffentlichen Bekanntmachung. "
             "Die Vergabeunterlagen wurden nicht geprüft. Für die ausführliche Analyse bitte die Unterlagen hochladen._")
@@ -213,6 +214,11 @@ def run(days: list[str]) -> str:
     seen, total, licence = set(), 0, ""
     gemeinsam = katalog.bestand()
     inputs = gemeinsam if gemeinsam is not None else [(day, rel) for day in sorted(days, reverse=True) for _, rel in releases(fetch(day))]
+    # Other European countries via TED, only for profiles that chose them (Germany comes from the Bekanntmachungsservice).
+    ausland = sorted({l for p in profiles.values() for l in p.get("laender", ["DEU"]) if l != "DEU"})
+    if ausland:
+        import ted
+        inputs = list(inputs) + [(day, rel) for day in days for rel in ted.releases(day, ausland)]
     for day, rel in sorted(inputs, key=lambda r: (r[0], r[1].get("date", "")), reverse=True):
         key = rel.get("ocid") or rel.get("id") or link(rel)
         if key in seen:
@@ -226,7 +232,10 @@ def run(days: list[str]) -> str:
         t = rel.get("tender") or {}
         text = f"{t.get('title', '')} {t.get('description', '')}".lower()
         codes = cpv_codes(t)
+        land = rel.get("_land") or "DEU"
         for name, profile in profiles.items():
+            if land not in profile.get("laender", ["DEU"]):
+                continue
             points, reason = score(profile, text, codes)
             beobachtet = rel.get("_auftraggeber_id") in profile.get("beobachtete_auftraggeber", [])
             if points or beobachtet:

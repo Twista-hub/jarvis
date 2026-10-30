@@ -41,6 +41,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 (Nacht, Teil 2) – Claude (Ausschreibungen aus anderen Ländern)
+- Neu `alarm/ted.py`: TED-Such-API v3 (ohne Schlüssel, Weiterverwendung erlaubt) für Auftragsbekanntmachungen (cn-standard, cn-social, cn-desg, subco) eines Tages in den gewählten Ländern; wandelt sie in das gleiche Format wie die deutsche Quelle (ocid `ted-<nummer>`, Frist als Tagesende, Land in `_land`). Ausfall von TED stoppt den deutschen Alarm nicht.
+- Suchprofil: Abschnitt „Länder“ (Deutschland Standard, Nachbarländer, weitere Länder in Europa) → `einstellungen.laender` (ISO3). `profile_db.py` liefert `laender`; `alarm.py` holt TED nur für gewählte Auslandsländer und bewertet Auslandstreffer nur für Firmen mit diesem Land. Kurzüberblick nennt Land und Quelle TED.
+- Testlauf-Workflow `ted.yml` (Tag + Länder). Tests: `alarm/test_ted.py`, Länder-Test im Web.
+- Später möglich: Großbritannien (Find a Tender), USA (SAM.gov, Schlüssel nötig, Benjamin beantragt selbst), Kalkulation mit Löhnen anderer Länder.
+
 ### 30.10.2026 (Nacht) – Claude (neue Ausschreibungsquellen geprüft)
 - Abdeckung gemessen: Der Bekanntmachungsservice enthält schon fast alle Landes-/Kommunalplattformen (14 Tage, 7.038 Ausschreibungen). Neue Kandidaten in `alarm/quellen.md` (Abschnitt „Neue Kandidaten“). Erlaubt und sinnvoll: TED-API für Nachbarländer/EU-Institutionen. Offen: auftraege.bayern.de (Legalinfo lesen, Bayern/BW wirken unterrepräsentiert), NRW-Open-Data-ZIP (Kennung nötig, Anfrage nur mit Benjamins OK). Nicht: HAD-Suche (robots), Metropole Ruhr (blockt Skripte).
 
