@@ -67,6 +67,15 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .standort-kacheln .konto-icon { font-size: 1.4rem; }
   .standort-kacheln strong { font-size: 1rem; }
   .standort-kacheln .konto-pfeil { top: 12px; right: 12px; }
+  .einsatz-liste { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 8px; }
+  .einsatz-zeile { display: grid; gap: 8px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .einsatz-zeile > div:first-child { display: grid; gap: 2px; }
+  .einsatz-status, .einsatz-zeile form { padding: 0; border: 0; background: none; }
+  .einsatz-zeile .person-aktionen { align-items: center; }
+  .einsatz-zeile .knopf-leise { padding: 8px 12px; }
+  .einsatz-kurz { margin: 0; padding-left: 0; list-style: none; font-size: 14px; display: grid; gap: 2px; }
+  .einplanen { margin-top: 10px; }
+  @media (min-width: 601px) { .einsatz-zeile { grid-template-columns: 1fr auto auto; align-items: center; } }
   .personal-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin: 14px 0 20px; }
   .person-karte { min-width: 0; display: grid; gap: 8px; align-content: start; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: 0 2px 8px #0000000a; }
   .person-karte h3 { margin: 0; font-size: 1.05rem; }

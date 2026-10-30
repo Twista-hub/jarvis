@@ -10,7 +10,7 @@ import { FELDER, STANDARD, felderHtml, fmt, zahl, type Eingaben } from "./kalkul
 import { escape, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
-import { personalTeil, standortKacheln, type Kraft } from "./personal.ts";
+import { einsaetzeLaden, einsatzTeil, personalTeil, standortKacheln, type Kraft } from "./personal.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 
 export interface KontoEnv {
@@ -240,7 +240,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       // Only one location: the personnel is shown right here, no extra page.
       const ort = b[0]?.id ?? null;
       const pool = await db<Kraft[]>(s, env, `personal?firma_id=eq.${m.firma_id}&bereich_id=${ort ? `eq.${ort}` : "is.null"}&select=*&order=status,vorname`);
-      team = `<h2>Personal${b[0] ? ` · ${escape(b[0].name)}` : ""}</h2>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`)}`;
+      team = `<h2>Personal${b[0] ? ` · ${escape(b[0].name)}` : ""}</h2>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, await einsaetzeLaden(s, env, m.firma_id))}`;
     } else {
       const pool = await db<{ bereich_id: string | null; status: string }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=bereich_id,status`);
       team = `<h2>Standorte & Personal</h2><p class="klein">Tippe einen Standort an, um dort Personal mit Berufen und Telefonnummern einzutragen und anzuschreiben.</p>`;
@@ -488,7 +488,8 @@ ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief
   } else {
     teil = `${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
   }
-  return html(seite(v.titel, kopf + teil, 0, "treffer"), 200, s.cookies);
+  const personalBlock = rolle === "leser" || rolle === "mitarbeiter" ? "" : await einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle));
+  return html(seite(v.titel, kopf + teil + personalBlock, 0, "treffer"), 200, s.cookies);
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */

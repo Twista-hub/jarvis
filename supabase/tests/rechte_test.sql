@@ -18,6 +18,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031000000_registrierung.sql
 \ir ../migrations/20261031010000_selbst_freischalten.sql
 \ir ../migrations/20261031020000_personal.sql
+\ir ../migrations/20261031030000_einsaetze.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -81,11 +82,20 @@ do $$ begin
   insert into public.personal (firma_id, bereich_id, vorname) values (current_setting('test.firma')::uuid, (select id from public.bereiche where name = 'Hamburg'), 'Heimlich');
   raise exception 'FEHLER: Personal in fremdem Standort eingetragen';
 exception when insufficient_privilege then raise notice 'ok: kein Personal in fremden Standorten'; end $$;
+insert into public.einsaetze (firma_id, vorgang_id, personal_id)
+  select :'firma', (select id from public.vorgaenge where titel = 'Messe-Catering ITB'), (select id from public.personal where vorname = 'Eva');
+select pruefe((select count(*) = 1 from public.einsaetze), 'Bearbeiter plant Eva für Messe-Catering ein');
+do $$ begin
+  insert into public.einsaetze (firma_id, vorgang_id, personal_id)
+    select current_setting('test.firma')::uuid, (select id from public.vorgaenge where titel = 'Hotel Hamburg'), (select id from public.personal where vorname = 'Eva');
+  raise exception 'FEHLER: Einsatz für unsichtbare Ausschreibung';
+exception when insufficient_privilege or not_null_violation then raise notice 'ok: kein Einsatz für fremde Ausschreibungen'; end $$;
 
 -- Outsider sees nothing.
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) from public.vorgaenge) = 0 and (select count(*) from public.firmen) = 0, 'Fremde sehen nichts');
 select pruefe((select count(*) = 0 from public.personal), 'Fremde sehen kein Personal');
+select pruefe((select count(*) = 0 from public.einsaetze), 'Fremde sehen keine Einsätze');
 do $$ begin
   perform public.einladung_annehmen('geheim');
   raise exception 'FEHLER: Einladung zweimal nutzbar';

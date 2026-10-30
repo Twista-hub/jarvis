@@ -91,3 +91,19 @@ test("Nachrichtenseite: passende Ausschreibung zuerst, WhatsApp-Link mit Text", 
   assert.match(html, /<option value="">Allgemein[^<]*<\/option><option value="55555555[^"]*" selected>⭐ Servicekräfte Bankett/);
   assert.match(html, /href="https:\/\/wa\.me\/491701234567\?text=Hallo%20Eva/);
 });
+
+test("Ausschreibung: eingeplantes Personal mit Status und Auswahl, passende zuerst", async (t) => {
+  const { einsatzTeil } = await import("../src/personal.ts");
+  const tom: Kraft = { ...eva, id: "66666666-6666-4666-8666-666666666666", vorname: "Tom", berufe: ["Reinigungskraft"] };
+  const ina: Kraft = { ...eva, id: "77777777-7777-4777-8777-777777777777", vorname: "Ina", berufe: ["Servicekraft"] };
+  t.mock.method(globalThis, "fetch", async (input: string | URL | Request) => {
+    const pfad = new URL(String(input)).pathname.split("/rest/v1/")[1];
+    const daten = pfad === "einsaetze" ? [{ id: "e1", personal_id: pid, vorgang_id: "v1", status: "zugesagt", personal: eva }] : [eva, tom, ina];
+    return new Response(JSON.stringify(daten), { status: 200 });
+  });
+  const html = await einsatzTeil({ token: "t", userId: "u", email: "", cookies: [] }, env, { id: "v1", firma_id: firma, titel: "Servicekräfte Bankett" }, true);
+  assert.match(html, /1 eingeplant · 1 zugesagt/);
+  assert.match(html, /<option value="zugesagt" selected>✅ Zugesagt/);
+  assert.match(html, /<option value="">Bitte auswählen …<\/option><option value="77777777[^"]*">⭐ Ina/);
+  assert.doesNotMatch(html, new RegExp(`<option value="${pid}">`), "schon Eingeplante nicht noch einmal anbieten");
+});

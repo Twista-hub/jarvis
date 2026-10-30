@@ -33,11 +33,15 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 (abends, Teil 8) – Claude
+- Nur ein Standort: Personal steht direkt unter „Firma & Team“ (keine zweite Seite).
+- Einsätze: Tabelle `einsaetze` (Migration `20261031030000_einsaetze.sql`, Status geplant/angefragt/zugesagt/abgesagt). Ausschreibungsseite: Abschnitt „👷 Personal für diesen Auftrag“ (Status-Dropdown, 📞, 💬 Nachricht, ✕ austragen, „Person einplanen“-Dropdown, ⭐ passender Beruf und Verfügbare zuerst). Personenkarte zeigt ihre Einsätze. Nachrichtenseite: „📨 als angefragt eintragen“.
+
 ### 30.10.2026 (abends, Teil 7) – Claude
 - Firma & Team: Standorte als Kacheln (Regionen als Überschrift, Zahlen „verfügbar · gesamt“). Tippen → `/konto/standort/<id>` mit dem Personal als Karten (Initialen, Status 🟢/🔵/⚪, Berufe als Marken, EG, Qualifikationen, 📞 Anrufen, 💬 Nachricht, ✏️ Bearbeiten, 🗑️ Löschen), „➕ Person hinzufügen“, Filter nach Beruf und Status. Berufe und Qualifikationen als Auswahl-Chips, Entgeltgruppe mit Tariflohn.
 - Nachricht: `/konto/personal/<id>/nachricht` mit Dropdown „Worum geht es?“ (⭐ = Ausschreibung passt zum Beruf), fertiger Text, Knöpfe WhatsApp/SMS/E-Mail (öffnen die Apps am Handy; Jarvis verschickt nichts).
 - Migration `20261031020000_personal.sql` (Tabelle `personal`, RLS über darf_bereich/darf_bearbeiten), Test erweitert. Datenschutzerklärung ergänzt. Neues Modul `web/src/personal.ts`.
-- Idee für später: mehrere Personen auf einmal anschreiben, Einsatz einer Person einer Ausschreibung zuordnen.
+- Idee für später: mehrere Personen auf einmal anschreiben.
 
 ### 30.10.2026 (abends, Teil 6) – Claude
 - Kalkulation: statt Dropdown jetzt Karten mit allen offenen Ausschreibungen (Titel zweizeilig, Frist, Stand). Mit geprüften Unterlagen öffnet die Kalkulation, sonst der Upload bei der Ausschreibung. Route `/konto/kalkulation/oeffnen` entfernt.
