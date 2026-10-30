@@ -13,14 +13,19 @@
       "79954",
       "55120",
       "79621",
-      "79623"
+      "79623",
+      "79624",
+      "79625",
+      "79710",
+      "79713",
+      "79714"
     ],
     "cpv_needs_context": {
       "79620": "gastro|service|event|messe|veranstalt|empfang|hostess|catering|küche|kueche|bankett|bewirt|kantine|theke|bar\\b|zeitarbeit|arbeitnehmer(ü|ue)berlassung|personal(ü|ue)berlassung|(ü|ue)berlassung von (personal|arbeitskr)|leiharbeit|zeitarbeitskr(ä|ae)fte"
     },
-    "words": "servicepersonal|messepersonal|hostess|garderobenpersonal|garderobendienst|einlassdienst|eventpersonal|veranstaltungsservice|veranstaltungspersonal|personalgestellung|leihpersonal|servicekr(ä|ae)fte|thekenpersonal|bankettpersonal|bankettservice|messecatering|eventcatering|veranstaltungscatering|empfangsdienst|eventmanagement|teilnehmermanagement|zeitarbeit|arbeitnehmer(ü|ue)berlassung|personal(ü|ue)berlassung|(ü|ue)berlassung von (personal|arbeitskr)|leiharbeit|zeitarbeitskr(ä|ae)fte",
+    "words": "servicepersonal|messepersonal|hostess|garderobenpersonal|garderobendienst|einlassdienst|eventpersonal|veranstaltungsservice|veranstaltungspersonal|personalgestellung|leihpersonal|servicekr(ä|ae)fte|thekenpersonal|bankettpersonal|bankettservice|messecatering|eventcatering|veranstaltungscatering|empfangsdienst|eventmanagement|teilnehmermanagement|zeitarbeit|arbeitnehmer(ü|ue)berlassung|personal(ü|ue)berlassung|(ü|ue)berlassung von (personal|arbeitskr)|leiharbeit|zeitarbeitskr(ä|ae)fte|pflegepersonal|pflegekr(ä|ae)fte|pflegefachkr|sicherheitspersonal|sicherheitsdienst|ordnungsdienst|wachdienst|bewachung|veranstaltungsschutz",
     "strong": "servicepersonal|messepersonal|hostess|leihpersonal|eventpersonal|personalgestellung|messestand|messecatering|empfang|bankettpersonal|veranstaltungspersonal|arbeitnehmer(ü|ue)berlassung|zeitarbeitskr(ä|ae)fte",
-    "exclude": "kita|kindertages|kindergarten|schulverpflegung|mittagsverpflegung|mensa|asylbewerber|krankenhausverpflegung|rettungsdienst|pflegekr(ä|ae)fte|it-|software|ingenieur|elektro|nuklear|sicherheitsdienst|werkschutz|wachdienst|bewachung|stellenausschreibung|executive search|headhunt|personalberatung|personalgewinnung",
+    "exclude": "kita|kindertages|kindergarten|schulverpflegung|mittagsverpflegung|mensa|asylbewerber|krankenhausverpflegung|pflegekr(ä|ae)fte|it-|software|ingenieur|elektro|nuklear|stellenausschreibung|executive search|headhunt|personalberatung|personalgewinnung",
     "exclude_cpv": [
       "45",
       "71",
@@ -35,7 +40,7 @@
       "33",
       "5552400"
     ],
-    "beschreibung": "PerLease GmbH, Personaldienstleister (Arbeitnehmerüberlassung und Vermittlung), gegründet 2010, Zentrale Berlin, 16 Standorte laut Webseite: Berlin, Hamburg, Bremen, Lübeck, Hannover, Aachen, Bochum, Bonn, Dortmund, Düsseldorf, Gelsenkirchen, Köln, Leverkusen, Neuss, Frankfurt am Main, Mainz (laut Presse 19 Niederlassungen), ca. 1.800–2.000 Mitarbeitende. Schwerpunkt: Personal für Hotellerie, Catering, Events, Arenen und Messen – Servicekräfte, Hostessen, Barpersonal, Logistik, Eventleitung, Arbeitnehmerüberlassung in der Gastronomie. Außerdem Zeitarbeit für Housekeeping, Industrie/Produktion und kaufmännische Berufe – dazu passen auch allgemeine Rahmenverträge für Zeitarbeit/Arbeitnehmerüberlassung öffentlicher Auftraggeber. Liefert KEINE Speisen, keine IT-Fachkräfte, keine Ingenieure, kein Executive Search und baut keine Messestände; Pflege- und Wachdienste nicht im Fokus."
+    "beschreibung": "PerLease GmbH, Personaldienstleister (Arbeitnehmerüberlassung und Vermittlung), gegründet 2010, Zentrale Berlin, 16 Standorte laut Webseite: Berlin, Hamburg, Bremen, Lübeck, Hannover, Aachen, Bochum, Bonn, Dortmund, Düsseldorf, Gelsenkirchen, Köln, Leverkusen, Neuss, Frankfurt am Main, Mainz (laut Presse 19 Niederlassungen), ca. 1.800–2.000 Mitarbeitende. Schwerpunkt: Personal für Hotellerie, Catering, Events, Arenen und Messen – Servicekräfte, Hostessen, Barpersonal, Logistik, Eventleitung, Arbeitnehmerüberlassung in der Gastronomie. Außerdem Zeitarbeit für Housekeeping, Industrie/Produktion und kaufmännische Berufe – dazu passen auch allgemeine Rahmenverträge für Zeitarbeit/Arbeitnehmerüberlassung öffentlicher Auftraggeber. Liefert KEINE Speisen, keine IT-Fachkräfte, keine Ingenieure, kein Executive Search und baut keine Messestände. Bietet laut Webseite auch Gesundheits- und Pflegepersonal sowie Sicherheitspersonal (z. B. für Veranstaltungen) an."
   },
   "wpdr": {
     "name": "WP Digital Ranger (Webseiten, Apps, Barrierefreiheit)",
