@@ -28,6 +28,7 @@ UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger
 PORTALE: set[str] = set()
 MAX_STECKBRIEFE = int(os.environ.get("MAX_STECKBRIEFE", "2"))
 STECKBRIEF_AB = 7
+FIRMA = os.environ.get("FIRMA", "") if re.fullmatch(r"[0-9a-f-]{36}", os.environ.get("FIRMA", "")) else ""
 
 
 def fetch(day: str) -> bytes:
@@ -183,6 +184,10 @@ def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str)
 def run(days: list[str]) -> str:
     from profile_db import laden
     profiles = laden()
+    if FIRMA:  # first run right after the setup assistant: only this firm
+        profiles = {k: p for k, p in profiles.items() if p.get("firma_id") == FIRMA}
+        if not profiles:
+            sys.exit(f"Kein Suchprofil für Firma {FIRMA}")
     hits = {k: [] for k in profiles}
     seen, total, licence = set(), 0, ""
     for day in days:
@@ -254,9 +259,10 @@ def run(days: list[str]) -> str:
 
 
 if __name__ == "__main__":
-    days = sys.argv[1:] or [(date.today() - timedelta(days=1)).isoformat()]
+    # First run for a new firm: the last 7 days, so the first hit list comes right away.
+    days = sys.argv[1:] or [(date.today() - timedelta(days=d)).isoformat() for d in (range(7, 0, -1) if FIRMA else [1])]
     report = run(days)
-    out = ROOT / "berichte" / f"{days[-1]}.md"
+    out = ROOT / "berichte" / (f"erstlauf-{FIRMA[:8]}-{days[-1]}.md" if FIRMA else f"{days[-1]}.md")
     out.parent.mkdir(exist_ok=True)
     out.write_text(report, encoding="utf-8")
     print(report)

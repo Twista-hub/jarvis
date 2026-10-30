@@ -51,6 +51,7 @@ export async function konto(request: Request, env: KontoEnv): Promise<Response |
   if (p === "/konto/bereich" && post) return mitSitzung(request, env, bereichAnlegen);
   if (p === "/konto/einladen" && post) return mitSitzung(request, env, einladen);
   if (p === "/konto/status" && post) return mitSitzung(request, env, statusSetzen);
+  if (p === "/konto/mail" && post) return mitSitzung(request, env, mailSetzen);
   const v = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})$/);
   if (v && !post) return vorgangZeigen(v[1], request, env);
   if (p === "/einladung") return post ? mitSitzung(request, env, einladungAnnehmen) : einladungZeigen(url, request, env);
@@ -187,8 +188,16 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
     admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date().toISOString()}&select=id,email,rolle,gueltig_bis,angenommen&order=erstellt.desc`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
-  const profil = admin ? await db<{ id: string }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&select=id&limit=1`) : null;
-  const ohneProfil = !!profil?.ok && !profil.daten.length && !(vorgaenge.ok && vorgaenge.daten.length);
+  const [profil, mail] = await Promise.all([
+    db<{ id: string; erstlauf: string | null }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf&limit=1`),
+    db<{ stunde: number | null }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde`),
+  ]);
+  const ohneProfil = admin && profil.ok && !profil.daten.length && !(vorgaenge.ok && vorgaenge.daten.length);
+  // First run after the setup assistant: about 5 minutes; the page reloads until then.
+  const erstlauf = profil.ok && profil.daten[0]?.erstlauf ? Date.now() - Date.parse(profil.daten[0].erstlauf) : Infinity;
+  const start = Date.now() - erstlauf;
+  const sucht = erstlauf < 15 * 60_000 && !(vorgaenge.ok && vorgaenge.daten.some((v) => Date.parse(v.erstellt) > start));
+  const stunde = mail.ok && mail.daten[0] ? mail.daten[0].stunde : null;
   const name = (id: string | null | undefined) => b.find((x) => x.id === id)?.name ?? "";
   const bereichOptionen = b.map((x) => `<option value="${x.id}">${escape(x.name)}</option>`).join("");
 
@@ -201,6 +210,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
     : "";
   let inhalt = `${kopf}${wechsel}
 <p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p>
+${sucht ? `<p><strong>⏳ Jarvis durchsucht gerade die Ausschreibungen der letzten 7 Tage.</strong> Die Treffer erscheinen in etwa 5 Minuten hier, die Seite lädt sich von selbst neu.</p>` : ""}
 ${ohneProfil ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suche einrichten (2 Minuten)</a></p><p class="klein">Beschreib kurz deine Firma, Jarvis schlägt Suchbegriffe und Standorte vor. Danach kommen jeden Morgen passende Ausschreibungen.</p>` : admin ? `<p class="klein"><a href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suchprofil anpassen</a></p>` : ""}
 ${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle, name, bereichWahl)}
 <h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
@@ -233,8 +243,15 @@ ${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle, name, bereichWahl)}
   <p class="klein">Du bekommst einen Link, den du der Person schickst. Er gilt 14 Tage und nur für diese Adresse.</p>
 </form>`;
   }
-  inhalt += `<h2>Konto</h2>${abmelden}`;
-  return html(seite(m.firmen.name, inhalt), 200, s.cookies);
+  inhalt += `<h2 id="mail">📬 Tägliche Mail</h2>
+<form method="post" action="/konto/mail">
+  <input type="hidden" name="firma" value="${m.firma_id}">
+  <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) per Mail an ${escape(s.email)} um<select name="stunde">${stundenOptionen(stunde)}</select></label>
+  <button>Speichern</button>
+  <p class="klein">Nur wenn es etwas Neues gibt. Jeder im Team stellt seine Uhrzeit selbst ein.</p>
+</form>
+<h2>Konto</h2>${abmelden}`;
+  return html(seite(m.firmen.name, inhalt, sucht ? 30 : 0), 200, s.cookies);
 }
 
 async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
@@ -388,6 +405,33 @@ async function unterlagenSteckbrief(env: KontoEnv, id: string): Promise<{ auftra
   if (ergebnis) return { auftrag, text: await ergebnis.text() };
   // Still no result after 30 minutes: the run failed, offer the upload again.
   return Date.now() - Date.parse(erstellt) > 30 * 60_000 ? null : { auftrag, text: "" };
+}
+
+// ---------- Daily mail ----------
+
+export function stundenOptionen(aktuell: number | null): string {
+  const stunden = Array.from({ length: 14 }, (_, i) => i + 7);
+  return `<option value=""${aktuell === null ? " selected" : ""}>keine Mail</option>` +
+    stunden.map((h) => `<option value="${h}"${h === aktuell ? " selected" : ""}>${h}:00 Uhr</option>`).join("");
+}
+
+/** Saves the person's own mail hour (null = no mail). */
+export async function mailZeitSetzen(s: Sitzung, env: KontoEnv, firma: string, wert: unknown): Promise<boolean> {
+  const h = typeof wert === "string" && wert !== "" ? Number(wert) : null;
+  const stunde = h !== null && Number.isInteger(h) && h >= 7 && h <= 20 ? h : null;
+  const r = await db(s, env, "benachrichtigungen?on_conflict=firma_id,user_id", {
+    method: "POST",
+    headers: { prefer: "resolution=merge-duplicates,return=minimal" },
+    body: JSON.stringify({ firma_id: firma, user_id: s.userId, stunde }),
+  });
+  return r.ok;
+}
+
+async function mailSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
+  const firma = String(form.get("firma") ?? "");
+  const ok = /^[0-9a-f-]{36}$/.test(firma) && (await mailZeitSetzen(s, env, firma, form.get("stunde")));
+  const h = String(form.get("stunde") ?? "");
+  return weiterleiten(`/konto?hinweis=${encodeURIComponent(!ok ? "Die Mail-Zeit konnte nicht gespeichert werden." : h ? `Tägliche Mail um ${h}:00 Uhr.` : "Keine tägliche Mail mehr.")}#mail`);
 }
 
 // ---------- Helpers ----------

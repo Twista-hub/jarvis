@@ -2,11 +2,12 @@
 // (services with CPV codes and search words, exclusions, locations with postal code areas), the admin
 // confirms or edits it. Saved in suchprofile (firm level); the daily alarm reads it from there.
 import Anthropic from "@anthropic-ai/sdk";
-import { db, html, sitzung, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
+import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 
 export interface EinrichtungEnv extends KontoEnv {
   ANTHROPIC_API_KEY: string;
+  ACTIONS_TOKEN?: string; // GitHub token (Actions: write on Twista-hub/jarvis) to start the first run right away
 }
 
 export type Leistung = { name: string; cpv: string[]; woerter: string[] };
@@ -163,6 +164,9 @@ export function profilFormular(firma: string, v: Vorschlag, hinweis: string): st
   <h2>Standorte</h2>
   <p class="klein">Treffer werden dem Standort zugeordnet, in dessen Postleitzahl-Bereich der Auftrag liegt. Jarvis legt die Standorte als Bereiche an.</p>
   ${standorte}
+  <h2>Tägliche Mail</h2>
+  <label>Neue Treffer per Mail an dich um<select name="stunde">${stundenOptionen(7)}</select>
+    <span class="klein">Jeder im Team stellt seine Uhrzeit selbst ein (in der Übersicht unter „Tägliche Mail“).</span></label>
   <button>Speichern und Suche starten</button>
 </form>
 <p class="klein"><a href="/konto/einrichtung?firma=${firma}&neu=1">Neu beschreiben</a> · <a href="/konto">Abbrechen</a></p>`;
@@ -192,7 +196,7 @@ export function ausFormular(form: FormData): Vorschlag {
   return bereinigen({ beschreibung: String(form.get("beschreibung") ?? ""), leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte });
 }
 
-async function speichern(s: Sitzung, env: KontoEnv, firma: string, name: string, form: FormData): Promise<Response> {
+async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, form: FormData): Promise<Response> {
   const v = ausFormular(form);
   if (v.beschreibung.length < 20 || !v.leistungen.length) {
     return html(seite("Suchprofil", profilFormular(firma, v, "Bitte eine Beschreibung und mindestens eine Leistung angeben.")), 400);
@@ -223,10 +227,36 @@ async function speichern(s: Sitzung, env: KontoEnv, firma: string, name: string,
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
     einstellungen: { leistungen: v.leistungen, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte },
   };
-  const alt = await db<{ id: string }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id&limit=1`);
+  const alt = await db<{ id: string; erstlauf: string | null }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf&limit=1`);
+  // First hit list right away (last 7 days) instead of waiting for tomorrow; at most every 2 hours (costs).
+  const zuletzt = alt.ok && alt.daten[0]?.erstlauf ? Date.parse(alt.daten[0].erstlauf) : 0;
+  const sofort = Date.now() - zuletzt > 2 * 3600_000;
+  const einstellungen: Record<string, unknown> = zeile.einstellungen;
+  if (zuletzt) einstellungen.erstlauf = new Date(zuletzt).toISOString();
   const r = alt.ok && alt.daten[0]
     ? await db(s, env, `suchprofile?id=eq.${alt.daten[0].id}`, { method: "PATCH", body: JSON.stringify(zeile) })
     : await db(s, env, "suchprofile", { method: "POST", body: JSON.stringify(zeile) });
   if (!r.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Speichern hat nicht geklappt. Bitte noch einmal versuchen.")), 500);
-  return weiterleiten(`/konto?firma=${firma}&hinweis=${encodeURIComponent("Suchprofil gespeichert. Ab morgen früh sucht Jarvis damit nach Ausschreibungen.")}`);
+  await mailZeitSetzen(s, env, firma, form.get("stunde"));
+  const gestartet = sofort && (await ersterLauf(env, firma));
+  if (gestartet) {
+    // Remembered for the "Jarvis is searching" notice in the overview and the 2-hour limit.
+    await db(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null`, { method: "PATCH", body: JSON.stringify({ einstellungen: { ...einstellungen, erstlauf: new Date().toISOString() } }) });
+  }
+  const hinweis = gestartet
+    ? "Suchprofil gespeichert. Jarvis durchsucht jetzt die Ausschreibungen der letzten 7 Tage, die Treffer erscheinen in etwa 5 Minuten hier."
+    : "Suchprofil gespeichert. Ab morgen früh sucht Jarvis damit nach Ausschreibungen.";
+  return weiterleiten(`/konto?firma=${firma}&hinweis=${encodeURIComponent(hinweis)}`);
+}
+
+/** Starts the alarm for this firm only (last 7 days) via GitHub Actions. */
+async function ersterLauf(env: EinrichtungEnv, firma: string): Promise<boolean> {
+  if (!env.ACTIONS_TOKEN) return false;
+  const r = await fetch("https://api.github.com/repos/Twista-hub/jarvis/actions/workflows/alarm.yml/dispatches", {
+    method: "POST",
+    headers: { authorization: `Bearer ${env.ACTIONS_TOKEN}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "jarvis-alarm" },
+    body: JSON.stringify({ ref: "main", inputs: { firma } }),
+  });
+  if (!r.ok) console.warn(`Erster Lauf nicht gestartet: ${r.status} ${(await r.text()).slice(0, 200)}`);
+  return r.ok;
 }
