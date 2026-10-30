@@ -11,11 +11,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Einrichtungs-Assistent: Firma beschreiben → KI schlägt Suchprofil vor → speichern → Alarm sucht sofort die letzten 7 Tage.
   - Tägliche Nachricht pro Person: Uhrzeit 7–20 Uhr, per Mail, Handy oder beides; Fristen-Erinnerung 7 und 2 Tage vorher.
   - Handy-Nachrichten (Web-Push) und als App installierbar.
+  - Profil-Icon oben rechts (/konto/profil), Firmenwechsel kompakt in der Kopfleiste; Suchprofil als eigener Bereich (/konto/suchprofil). Keine E-Mail-Zeile oder Einrichtung auf der Übersicht.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Link.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
+- (ChatGPT) Profil-Icon, kompakter Firmenwechsel und Suchprofil-Anzeige
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 1. Rechtstexte von Benjamin prüfen lassen.
@@ -26,6 +28,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (Profil und Übersicht)
+- Profil-Seite und Icon oben rechts ergänzt; E-Mail und Kontodaten von der Übersicht entfernt, Firmenwechsel als kompaktes Menü nach oben verschoben.
+- Suchprofil ersetzt die Einstellungen-Kachel. Nachrichten/Einstellungen bleiben über Profil und „Mehr“ erreichbar. Einrichtung ausschließlich im Suchprofil-Bereich.
+- Falschen Einrichtungshinweis korrigiert: bereits über alarm/profile.json hinterlegte Firmenprofile werden jetzt ebenso wie aktive Datenbankprofile erkannt.
+- Typprüfung und Tests grün; Regressionstests für Profil, Firmenwechsel und beide Suchprofil-Quellen ergänzt. Ausrollen wird anschließend geprüft.
+- Offen bleiben die bisherigen Fahrplanpunkte; Benjamin muss nichts einrichten.
 
 ### 30.10.2026 – ChatGPT
 - Erste Konto-Unterseiten mit Kacheln, Zurück-Link und Handy-Leiste erstellt; Tests grün.

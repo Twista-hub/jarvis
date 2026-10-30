@@ -51,7 +51,7 @@ export default {
     });
     const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");
     if (e) return e;
-    const k = await konto(request, env);
+    const k = await konto(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma));
     if (k) return k;
     if (request.method === "GET") {
       const titel = url.searchParams.get("titel");

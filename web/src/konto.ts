@@ -38,7 +38,7 @@ const ARTEN: Record<string, string> = { standort: "Standort", abteilung: "Abteil
 const COOKIE = "Path=/; HttpOnly; Secure; SameSite=Lax";
 
 /** Handles /konto, /anmelden, /einladung and /abmelden; null for other paths. */
-export async function konto(request: Request, env: KontoEnv): Promise<Response | null> {
+export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma: string) => { beschreibung: string } | undefined = () => undefined): Promise<Response | null> {
   const url = new URL(request.url);
   const p = url.pathname;
   const post = request.method === "POST";
@@ -48,9 +48,9 @@ export async function konto(request: Request, env: KontoEnv): Promise<Response |
   if (!post && ["/konto/ausschreibungen", "/konto/firma-team"].includes(p)) return weiterleiten(p === "/konto/ausschreibungen" ? "/konto/treffer" : "/konto/team");
   if (p === "/konto/kalkulation" && post) return mitSitzung(request, env, vorlageSpeichern);
   if (p === "/konto" && !post && (url.searchParams.has("bereich") || url.searchParams.has("alle"))) return weiterleiten(`/konto/treffer${url.search}`);
-  if (p === "/konto" && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "");
-  const kontoSeite = p.match(/^\/konto\/(treffer|fristen|unterlagen|kalkulation|team|einstellungen)$/);
-  if (kontoSeite && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "", kontoSeite[1]);
+  if (p === "/konto" && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "", "", dateiProfil);
+  const kontoSeite = p.match(/^\/konto\/(treffer|fristen|unterlagen|kalkulation|team|einstellungen|profil|suchprofil)$/);
+  if (kontoSeite && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "", kontoSeite[1], dateiProfil);
   if (p === "/konto/firma" && post) return mitSitzung(request, env, firmaAnlegen);
   if (p === "/konto/bereich" && post) return mitSitzung(request, env, bereichAnlegen);
   if (p === "/konto/einladen" && post) return mitSitzung(request, env, einladen);
@@ -160,11 +160,11 @@ async function mitSitzung(request: Request, env: KontoEnv, f: (s: Sitzung, form:
 
 // ---------- Firm pages ----------
 
-async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unterseite = ""): Promise<Response> {
+async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unterseite = "", dateiProfil: (firma: string) => { beschreibung: string } | undefined = () => undefined): Promise<Response> {
   const s = await sitzung(request, env);
   if (!s) return html(seite("Anmelden", anmeldeFormular("", new URL(request.url).pathname + new URL(request.url).search, "Melde dich an, um Ausschreibungen, Bereiche und Mitarbeiter deiner Firma zu verwalten.")));
   const meine = await db<(Mitglied & { firmen: { name: string; paket: string } })[]>(s, env, `mitglieder?user_id=eq.${s.userId}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id,firmen(name,paket)&order=erstellt`);
-  const kopf = `<p class="klein">Angemeldet als ${escape(s.email)}</p>${hinweis ? `<p><strong>${escape(hinweis)}</strong></p>` : ""}`;
+  const kopf = hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : "";
   const abmelden = `<form method="post" action="/abmelden"><button>Abmelden</button></form>`;
   if (!meine.ok || !meine.daten.length) {
     return html(seite("Deine Firma", `${kopf}
@@ -199,10 +199,11 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
   const [profil, mail] = await Promise.all([
-    db<{ id: string; erstlauf: string | null }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf&limit=1`),
+    db<{ id: string; beschreibung: string; erstlauf: string | null }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,erstlauf:einstellungen->>erstlauf&limit=1`),
     db<{ stunde: number | null; kanal: string }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde,kanal`),
   ]);
-  const ohneProfil = admin && profil.ok && !profil.daten.length;
+  const hinterlegt = dateiProfil(m.firma_id);
+  const sucheEingerichtet = (profil.ok && profil.daten.length > 0) || Boolean(hinterlegt);
   // First run after the setup assistant: about 5 minutes; the page reloads until then.
   const erstlauf = profil.ok && profil.daten[0]?.erstlauf ? Date.now() - Date.parse(profil.daten[0].erstlauf) : Infinity;
   const start = Date.now() - erstlauf;
@@ -213,7 +214,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const bereichOptionen = b.map((x) => `<option value="${x.id}">${escape(x.name)}</option>`).join("");
 
   const wechsel = meine.daten.length > 1
-    ? `<form method="get" action="/konto" style="display:flex;gap:8px;align-items:end"><label style="flex:1">Firma <select name="firma">${meine.daten.map((x) => `<option value="${x.firma_id}"${x.firma_id === m.firma_id ? " selected" : ""}>${escape(x.firmen.name)}</option>`).join("")}</select></label><button>Wechseln</button></form>`
+    ? `<details class="firmenwechsel"><summary>Firma wechseln</summary><form method="get" action="${escape(url.pathname)}"><label>Firma<select name="firma">${meine.daten.map((x) => `<option value="${x.firma_id}"${x.firma_id === m.firma_id ? " selected" : ""}>${escape(x.firmen.name)}</option>`).join("")}</select></label><button>Wechseln</button></form></details>`
     : "";
   const regionen = b.filter((x) => !x.parent_id);
   const link = (stand: string, bereich = filter?.id ?? "") => `/konto/treffer?stand=${stand}${bereich ? `&bereich=${bereich}` : ""}`;
@@ -224,21 +225,21 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const fristen = liste.filter((v) => v.frist && ["neu", "pruefen", "angebot"].includes(v.status)).sort((a, b) => (a.frist ?? "").localeCompare(b.frist ?? ""));
   const bald = fristen.filter((v) => v.frist!.slice(0, 10) >= heute && v.frist!.slice(0, 10) <= in7Tagen).length;
   const neu = liste.filter((v) => ["neu", "pruefen"].includes(v.status)).length;
-  const labels: Record<string, string> = { treffer: "Ausschreibungen", fristen: "Fristen", unterlagen: "Unterlagen prüfen", kalkulation: "Kalkulation", team: "Firma & Team", einstellungen: "Einstellungen" };
-  const rahmen = (body: string) => `${kopf}${wechsel}${body}`;
-  const meldungen = `${sucht ? `<p><strong>⏳ Jarvis durchsucht gerade die Ausschreibungen der letzten 7 Tage.</strong> Die Treffer erscheinen in etwa 5 Minuten hier, die Seite lädt sich von selbst neu.</p>` : ""}${ohneProfil ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suche einrichten (2 Minuten)</a></p><p class="klein">Beschreib kurz deine Firma, Jarvis schlägt Suchbegriffe und Standorte vor. Danach kommen jeden Morgen passende Ausschreibungen.</p>` : ""}`;
+  const labels: Record<string, string> = { treffer: "Ausschreibungen", fristen: "Fristen", unterlagen: "Unterlagen prüfen", kalkulation: "Kalkulation", team: "Firma & Team", einstellungen: "Einstellungen", profil: "Mein Profil", suchprofil: "Suchprofil" };
+  const rahmen = (body: string) => `${kopf}${body}`;
+  const meldungen = sucht ? `<p><strong>⏳ Jarvis durchsucht gerade die Ausschreibungen der letzten 7 Tage.</strong> Die Treffer erscheinen in etwa 5 Minuten hier, die Seite lädt sich von selbst neu.</p>` : "";
   const cards = [
     ["treffer", "📋", "Ausschreibungen", `${neu} neue Treffer`],
     ["fristen", "⏰", "Fristen", `${bald} Fristen diese Woche`],
     ["unterlagen", "📥", "Unterlagen", "Dateien hochladen und prüfen lassen"],
     ["kalkulation", "💶", "Kalkulation", "Ergebnisse aus Unterlagen ansehen"],
     ["team", "👥", "Firma & Team", "Standorte und Einladungen verwalten"],
-    ["einstellungen", "⚙️", "Einstellungen", "Suchprofil und Nachrichten"],
+    ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? "Suche ansehen und anpassen" : "Passende Ausschreibungen finden"],
   ];
   const kacheln = `<div class="konto-kacheln">${cards.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
   let inhalt: string;
   if (!unterseite) {
-    inhalt = rahmen(`<p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p>${meldungen}<h2>Was möchtest du tun?</h2><p>${neu} neue Treffer · ${bald} Fristen diese Woche</p>${kacheln}`);
+    inhalt = rahmen(`${meldungen}<h2>Was möchtest du tun?</h2><p>${neu} neue Treffer · ${bald} Fristen diese Woche</p>${kacheln}`);
   } else if (unterseite === "treffer") {
     const tabs = `<nav class="reiter" aria-label="Stand">${[["neu", "Neu"], ["arbeit", "In Arbeit"], ["abgegeben", "Abgegeben"], ["archiv", "Archiv"]].map(([key, label]) => `<a href="${link(key)}"${key === reiter ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
     inhalt = rahmen(`${meldungen}${tabs}${trefferListe(liste.filter((v) => gruppen[reiter].includes(v.status)), name, bereichWahl, link(reiter))}`);
@@ -283,8 +284,13 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
 </form>`;
     }
     inhalt = rahmen(team);
+  } else if (unterseite === "profil") {
+    inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p><h2>Abmelden</h2>${abmelden}`);
+  } else if (unterseite === "suchprofil") {
+    const beschreibung = (profil.ok ? profil.daten[0]?.beschreibung : "") || hinterlegt?.beschreibung || "";
+    inhalt = rahmen(`${!profil.ok ? `<p class="fehler">Der aktuelle Stand des Suchprofils konnte nicht geladen werden. Bitte versuche es erneut.</p>` : sucheEingerichtet ? `<p><strong>Die Suche für ${escape(m.firmen.name)} ist eingerichtet.</strong></p>` : `<p>Für diese Firma ist noch keine Suche eingerichtet.</p>`}${beschreibung ? `<p>${escape(beschreibung)}</p>` : ""}${admin && (profil.ok || sucheEingerichtet) ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">${sucheEingerichtet ? "Suchprofil anpassen" : "Suche einrichten"}</a></p>` : !admin ? `<p class="klein">Ein Inhaber oder Admin kann das Suchprofil anpassen.</p>` : ""}`);
   } else {
-    inhalt = rahmen(`<p><a href="/konto/team">Firma & Team</a> · <a href="/konto/kalkulation">Kalkulation</a> · <a href="/konto/unterlagen">Unterlagen prüfen</a></p>${meldungen}${admin ? `<p><a href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suchprofil anpassen</a></p>` : ""}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    inhalt = rahmen(`<p><a href="/konto/suchprofil">Suchprofil</a> · <a href="/konto/profil">Mein Profil</a> · <a href="/konto/team">Firma & Team</a> · <a href="/konto/kalkulation">Kalkulation</a> · <a href="/konto/unterlagen">Unterlagen prüfen</a></p>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
@@ -296,7 +302,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
 <p class="klein" id="push-status"></p>
 <h2>Konto</h2>${abmelden}`);
   }
-  return html(seite(unterseite ? labels[unterseite] : m.firmen.name, inhalt, sucht ? 30 : 0, unterseite), 200, s.cookies);
+  return html(seite(unterseite ? labels[unterseite] : m.firmen.name, inhalt, sucht ? 30 : 0, unterseite, wechsel), 200, s.cookies);
 }
 
 async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
