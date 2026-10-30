@@ -4,6 +4,7 @@
 // After the e-mail is confirmed, /konto creates the firm in the free plan (registrierung_abschliessen).
 import { COOKIE, html, sicherWeiter, sitzung, tokenCookies, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
+import { websiteNormalisieren } from "./webseite.ts";
 
 const EMAIL = /^[^\s@<>,;"]+@[^\s@<>,;"]+\.[a-z]{2,}$/i;
 const MIN_PASSWORT = 8;
@@ -48,7 +49,7 @@ export function anmeldeFormular(fehler = "", weiter = "/konto", hinweis = "", em
 </form></details>`;
 }
 
-export type Registrierung = Partial<Record<"vorname" | "nachname" | "firma" | "strasse" | "plz" | "ort" | "telefon" | "email", string>>;
+export type Registrierung = Partial<Record<"vorname" | "nachname" | "firma" | "website" | "strasse" | "plz" | "ort" | "telefon" | "email", string>>;
 
 /** weiter=/einladung…: invited employees only need name, e-mail and password (the firm already exists). */
 export function registrierFormular(w: Registrierung, fehler = "", weiter = "/konto"): string {
@@ -64,6 +65,8 @@ export function registrierFormular(w: Registrierung, fehler = "", weiter = "/kon
   </fieldset>
   ${eingeladen ? "" : `<fieldset><legend>Firma</legend>
     ${feld("firma", "Name der Firma", `required minlength="2" maxlength="200" autocomplete="organization" placeholder="z. B. Muster GmbH"`)}
+    ${feld("website", "Website der Firma (freiwillig)", `type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de"`)}
+    <p class="klein">Damit kann Jarvis eure Leistungen genauer erkennen. Es wird nur die von dir angegebene Website berücksichtigt.</p>
     ${feld("strasse", "Straße und Hausnummer", `required maxlength="200" autocomplete="street-address"`)}
     ${feld("plz", "PLZ", `required pattern="[0-9]{5}" inputmode="numeric" maxlength="5" autocomplete="postal-code"`)}
     ${feld("ort", "Ort", `required maxlength="100" autocomplete="address-level2"`)}
@@ -174,6 +177,7 @@ export function registrierungPruefen(w: Registrierung, passwort: string, zustimm
     if (!w.firma || w.firma.length < 2) return "Bitte den Namen der Firma angeben.";
     if (!w.strasse || !w.ort) return "Bitte die Anschrift der Firma angeben.";
     if (!/^\d{5}$/.test(w.plz ?? "")) return "Bitte eine fünfstellige Postleitzahl angeben.";
+    if (w.website?.trim() && !websiteNormalisieren(w.website)) return "Bitte eine gültige Website-Adresse mit https:// angeben.";
   }
   if (!EMAIL.test(w.email ?? "")) return "Bitte eine gültige E-Mail-Adresse eingeben.";
   if (passwort.length < MIN_PASSWORT) return `Das Passwort braucht mindestens ${MIN_PASSWORT} Zeichen.`;
@@ -188,11 +192,12 @@ async function registrieren(request: Request, env: KontoEnv): Promise<Response> 
   const eingeladen = weiter.startsWith("/einladung");
   const w: Registrierung = {
     vorname: text("vorname", 100), nachname: text("nachname", 100), email: text("email", 200).toLowerCase(),
-    ...(eingeladen ? {} : { firma: text("firma", 200), strasse: text("strasse", 200), plz: text("plz", 10), ort: text("ort", 100), telefon: text("telefon", 40) }),
+    ...(eingeladen ? {} : { firma: text("firma", 200), website: text("website", 300), strasse: text("strasse", 200), plz: text("plz", 10), ort: text("ort", 100), telefon: text("telefon", 40) }),
   };
   const passwort = String(form.get("passwort") ?? "");
   const fehler = registrierungPruefen(w, passwort, form.get("zustimmung") === "ja", eingeladen);
   if (fehler) return html(seite("Registrieren", registrierFormular(w, fehler, weiter)), 400);
+  if (!eingeladen) w.website = websiteNormalisieren(w.website ?? "");
   const { email, ...daten } = w;
   const r = await auth(env, `signup?redirect_to=${encodeURIComponent(zurueck(request, weiter))}`, { email, password: passwort, data: { ...daten, zustimmung: new Date().toISOString() } });
   if (!r.ok) {

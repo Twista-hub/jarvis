@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test, type TestContext } from "node:test";
 import { anmeldung, registrierFormular, registrierungPruefen } from "../src/anmeldung.ts";
+import { websiteNormalisieren } from "../src/webseite.ts";
 
 const env = { SUPABASE_URL: "https://sb.test", SUPABASE_KEY: "pk" };
 const token = `h.${btoa(JSON.stringify({ sub: "u1", email: "neu@example.de", exp: 4_000_000_000 })).replace(/=+$/, "")}.s`;
@@ -23,6 +24,7 @@ const formular = (pfad: string, felder: Record<string, string>) =>
 test("registration needs name, firm, address, e-mail, password and consent", () => {
   const w = { vorname: "Eva", nachname: "Muster", firma: "Muster GmbH", strasse: "Weg 1", plz: "52531", ort: "Übach", email: "eva@muster.de" };
   assert.equal(registrierungPruefen(w, "geheim123", true, false), "");
+  assert.match(registrierungPruefen({ ...w, website: "javascript:alert(1)" }, "geheim123", true, false), /Website-Adresse/);
   assert.match(registrierungPruefen({ ...w, plz: "123" }, "geheim123", true, false), /Postleitzahl/);
   assert.match(registrierungPruefen(w, "kurz", true, false), /8 Zeichen/);
   assert.match(registrierungPruefen(w, "geheim123", false, false), /zustimmen/);
@@ -31,17 +33,27 @@ test("registration needs name, firm, address, e-mail, password and consent", () 
 
 test("invited people see no firm fields", () => {
   assert.match(registrierFormular({}, "", "/konto"), /name="firma"/);
+  assert.match(registrierFormular({}, "", "/konto"), /name="website"/);
   assert.doesNotMatch(registrierFormular({}, "", "/einladung?token=abc"), /name="firma"/);
+  assert.doesNotMatch(registrierFormular({}, "", "/einladung?token=abc"), /name="website"/);
+});
+
+test("company website is normalized and restricted to HTTPS addresses", () => {
+  assert.equal(websiteNormalisieren("www.muster.de"), "https://www.muster.de");
+  assert.equal(websiteNormalisieren("http://muster.de/leistungen#team"), "https://muster.de/leistungen");
+  assert.equal(websiteNormalisieren("https://user:pass@muster.de"), "");
+  assert.equal(websiteNormalisieren("javascript:alert(1)"), "");
 });
 
 test("sign-up sends the firm data and no PKCE challenge, so the mail link works in any browser", async (t) => {
   const aufrufe = mockAuth(t, () => [200, { id: "u1" }]);
-  const r = await anmeldung(formular("/registrieren", { vorname: "Eva", nachname: "Muster", firma: "Muster GmbH", strasse: "Weg 1", plz: "52531", ort: "Übach", email: "Eva@Muster.de", passwort: "geheim123", zustimmung: "ja", weiter: "/konto" }), env);
+  const r = await anmeldung(formular("/registrieren", { vorname: "Eva", nachname: "Muster", firma: "Muster GmbH", website: "www.muster.de", strasse: "Weg 1", plz: "52531", ort: "Übach", email: "Eva@Muster.de", passwort: "geheim123", zustimmung: "ja", weiter: "/konto" }), env);
   assert.equal(r?.status, 200);
   assert.match(await r!.text(), /Fast geschafft/);
   const signup = aufrufe.find((a) => a.pfad.startsWith("/auth/v1/signup"))!;
   assert.equal(signup.body.email, "eva@muster.de");
   assert.equal(signup.body.data.firma, "Muster GmbH");
+  assert.equal(signup.body.data.website, "https://www.muster.de");
   assert.equal(signup.body.code_challenge, undefined);
   assert.match(decodeURIComponent(decodeURIComponent(signup.pfad)), /redirect_to=https:\/\/jarvis\.test\/anmelden\/fertig\?weiter=\/konto/);
 });

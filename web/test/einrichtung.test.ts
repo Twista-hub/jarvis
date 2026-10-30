@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ausFormular, bereinigen, profilFormular } from "../src/einrichtung.ts";
+import { ausFormular, bereinigen, beschreibungFallback, profilFormular } from "../src/einrichtung.ts";
 
 test("cleans the proposal: digits only, lower-case words, no empty services", () => {
   const v = bereinigen({
@@ -13,6 +13,17 @@ test("cleans the proposal: digits only, lower-case words, no empty services", ()
   assert.deepEqual(v.leistungen, [{ name: "Service", cpv: ["79620000"], woerter: ["servicekräfte"] }]);
   assert.deepEqual(v.standorte, [{ name: "Köln", plz_praefixe: ["50", "51"] }]);
   assert.equal(v.beschreibung, "Zeitarbeit für Events.");
+});
+
+test("KI-Fallback übernimmt selbst beschriebene Leistungen und Stadt, damit man trotzdem speichern kann", () => {
+  const v = beschreibungFallback("Wir stellen Elektriker und Elektroniker für Wartung und Reparaturen in Berlin. Keine Gebäudereinigung.", "Berlin\nPotsdam");
+  assert.equal(v.standorte.map((o) => o.name).join(", "), "Berlin, Potsdam");
+  assert.ok(v.leistungen.length);
+  assert.ok(v.leistungen[0].woerter.includes("elektriker"));
+  assert.ok(v.leistungen[0].woerter.includes("wartung"));
+  const html = profilFormular("firm", v, "Automatischer Vorschlag gerade nicht verfügbar.", "https://firma.example");
+  assert.match(html, /value="https:\/\/firma\.example"/);
+  assert.match(html, /name="o0_name"[^>]*value="Berlin"/);
 });
 
 test("form round trip keeps checked services and locations only", () => {
