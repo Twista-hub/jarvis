@@ -10,6 +10,7 @@ import { FELDER, STANDARD, felderHtml, fmt, zahl, type Eingaben } from "./kalkul
 import { escape, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
+import { planName, planSeite } from "./plaene.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 
 export interface KontoEnv {
@@ -56,7 +57,7 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (p === "/konto/kalkulation" && post) return mitSitzung(request, env, vorlageSpeichern);
   if (p === "/konto" && !post && (url.searchParams.has("bereich") || url.searchParams.has("alle"))) return weiterleiten(`/konto/treffer${url.search}`);
   if (p === "/konto" && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "", "", dateiProfil);
-  const kontoSeite = p.match(/^\/konto\/(treffer|fristen|unterlagen|kalkulation|team|einstellungen|profil|suchprofil)$/);
+  const kontoSeite = p.match(/^\/konto\/(treffer|fristen|unterlagen|kalkulation|team|einstellungen|profil|suchprofil|plan)$/);
   if (kontoSeite && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "", kontoSeite[1], dateiProfil);
   if (p === "/konto/firma" && post) return mitSitzung(request, env, firmaAnlegen);
   if (p === "/konto/bereich" && post) return mitSitzung(request, env, bereichAnlegen);
@@ -138,7 +139,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
 <form method="post" action="/konto/firma">
   <label>Name der Firma <input name="name" required minlength="2" maxlength="200" placeholder="z. B. Muster GmbH"></label>
   <button>Firma anlegen</button>
-  <p class="klein">Du wirst Inhaber und startest im kostenlosen Tarif. Danach kannst du Standorte anlegen und Mitarbeiter einladen.</p>
+  <p class="klein">Du wirst Inhaber und kannst danach Standorte anlegen und Mitarbeiter einladen.</p>
 </form>
 <h2>Konto</h2>${abmelden}`), 200, s.cookies);
   }
@@ -192,7 +193,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const fristen = liste.filter((v) => v.frist && ["neu", "pruefen", "angebot"].includes(v.status)).sort((a, b) => (a.frist ?? "").localeCompare(b.frist ?? ""));
   const bald = fristen.filter((v) => v.frist!.slice(0, 10) >= heute && v.frist!.slice(0, 10) <= in7Tagen).length;
   const neu = liste.filter((v) => ["neu", "pruefen"].includes(v.status)).length;
-  const labels: Record<string, string> = { treffer: "Ausschreibungen", fristen: "Fristen", unterlagen: "Unterlagen prüfen", kalkulation: "Kalkulation", team: "Firma & Team", einstellungen: "Einstellungen", profil: "Mein Profil", suchprofil: "Suchprofil" };
+  const labels: Record<string, string> = { treffer: "Ausschreibungen", fristen: "Fristen", unterlagen: "Unterlagen prüfen", kalkulation: "Kalkulation", team: "Firma & Team", einstellungen: "Einstellungen", profil: "Mein Profil", suchprofil: "Suchprofil", plan: "Plan" };
   const rahmen = (body: string) => `${kopf}${body}`;
   const meldungen = sucht ? `<p><strong>⏳ Jarvis durchsucht gerade die Ausschreibungen der letzten 7 Tage.</strong> Die Treffer erscheinen in etwa 5 Minuten hier, die Seite lädt sich von selbst neu.</p>` : "";
   const cards = [
@@ -224,7 +225,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const werte = { ...STANDARD, ...(vorlagen.ok ? vorlagen.daten[0]?.eingaben : {}) };
     inhalt = rahmen(`<p>Diese Standardwerte gelten für die Firma. Du kannst sie bei jeder Ausschreibung anpassen.</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>Standardwerte speichern</button>` : ""}</form>`}<h2>Kalkulationen aus Unterlagen</h2>${await unterlagenListe(liste, env, true) || `<p>Noch keine Kalkulation vorhanden. Lade zuerst Vergabeunterlagen hoch.</p>`}`);
   } else if (unterseite === "team") {
-    let team = `<h2>Firma & Team</h2><p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p><h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
+    let team = `<h2>Firma & Team</h2><p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Plan: <a href="/konto/plan">${escape(planName(m.firmen.paket))}</a> · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p><h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
     team += b.length
     ? `<div class="tabelle"><table><tr><th>Name</th><th>Art</th><th>gehört zu</th></tr>${b.map((x) => `<tr><td>${escape(x.name)}</td><td>${ARTEN[x.art] ?? x.art}</td><td>${escape(name(x.parent_id))}</td></tr>`).join("")}</table></div>`
       : `<p class="klein">Noch keine Bereiche. Ohne Bereiche sieht jeder in der Firma alles.</p>`;
@@ -261,7 +262,9 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     }
     inhalt = rahmen(team);
   } else if (unterseite === "profil") {
-    inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p><a href="/konto/passwort">Passwort ändern</a></p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p>${wechsel}<h2>Abmelden</h2>${abmelden}`);
+    inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p>Plan: <a href="/konto/plan">${escape(planName(m.firmen.paket))}</a></p><p><a href="/konto/passwort">Passwort ändern</a></p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p>${wechsel}<h2>Abmelden</h2>${abmelden}`);
+  } else if (unterseite === "plan") {
+    inhalt = rahmen(planSeite(m.firmen.paket, m.firmen.name, admin, "kontakt@wpdigitalranger.com"));
   } else if (unterseite === "suchprofil") {
     const beschreibung = (profil.ok ? profil.daten[0]?.beschreibung : "") || hinterlegt?.beschreibung || "";
     inhalt = rahmen(`${!profil.ok ? `<p class="fehler">Der aktuelle Stand des Suchprofils konnte nicht geladen werden. Bitte versuche es erneut.</p>` : sucheEingerichtet ? `<p><strong>Die Suche für ${escape(m.firmen.name)} ist eingerichtet.</strong></p>` : `<p>Für diese Firma ist noch keine Suche eingerichtet.</p>`}${beschreibung ? `<p>${escape(beschreibung)}</p>` : ""}${admin && (profil.ok || sucheEingerichtet) ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">${sucheEingerichtet ? "Suchprofil anpassen" : "Suche einrichten"}</a></p>` : !admin ? `<p class="klein">Ein Inhaber oder Admin kann das Suchprofil anpassen.</p>` : ""}`);

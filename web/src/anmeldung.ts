@@ -203,7 +203,7 @@ async function registrieren(request: Request, env: KontoEnv): Promise<Response> 
     return html(seite("Registrieren", registrierFormular(w, grund, weiter)), r.status === 429 ? 429 : 400);
   }
   if (typeof r.daten.access_token === "string") return weiterleiten(weiter, tokenCookies(r.daten as unknown as Tokens));
-  return html(seite("Fast geschafft", `<p>Wir haben dir eine Mail an <strong>${escape(email!)}</strong> geschickt. Tippe auf den Link darin, um deine E-Mail-Adresse zu bestätigen. Danach bist du direkt angemeldet und kannst kostenlos loslegen.</p>
+  return html(seite("Fast geschafft", `<p>Wir haben dir eine Mail an <strong>${escape(email!)}</strong> geschickt. Tippe auf den Link darin, um deine E-Mail-Adresse zu bestätigen. Danach bist du direkt angemeldet.</p>
 <p class="klein">Keine Mail da? Schau im Spam-Ordner nach. Hast du schon ein Konto, <a href="/anmelden">melde dich an</a>.</p>`));
 }
 

@@ -155,3 +155,11 @@ test("Gespeichertes Suchprofil wird erkannt, Einrichtung erscheint nur ohne Prof
   assert.match(leer, />Suche einrichten</);
   assert.doesNotMatch(leer, /Suchprofil anpassen/);
 });
+
+test("Plan-Seite zeigt den aktuellen Plan und Upgrades wie bei anderen Portalen", async (t) => {
+  mockKontoApi(t);
+  const html = await seite("/konto/plan");
+  assert.match(html, /Dein Plan: Free/);
+  assert.match(html, /Upgrade auf Pro/);
+  assert.doesNotMatch(html, /Upgrade auf Free/);
+});
