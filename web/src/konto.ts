@@ -13,7 +13,7 @@ export interface KontoEnv {
 
 export type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
 type Mitglied = { firma_id: string; rolle: string; erstellt: string; user_id: string };
-type Bereich = { id: string; name: string; art: string; parent_id: string | null };
+export type Bereich = { id: string; name: string; art: string; parent_id: string | null };
 type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; steckbrief?: string | null };
 const STATUS: Record<string, string> = {
   neu: "neu",
@@ -120,7 +120,7 @@ async function abmelden(request: Request, env: KontoEnv): Promise<Response> {
 }
 
 /** The logged-in user from the cookies; refreshes an expired access token. */
-async function sitzung(request: Request, env: KontoEnv): Promise<Sitzung | null> {
+export async function sitzung(request: Request, env: KontoEnv): Promise<Sitzung | null> {
   let token = cookie(request, "jv_at");
   let cookies: string[] = [];
   let daten = token ? jwt(token) : null;
@@ -187,6 +187,8 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
     admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date().toISOString()}&select=id,email,rolle,gueltig_bis,angenommen&order=erstellt.desc`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
+  const profil = admin ? await db<{ id: string }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&select=id&limit=1`) : null;
+  const ohneProfil = !!profil?.ok && !profil.daten.length && !(vorgaenge.ok && vorgaenge.daten.length);
   const name = (id: string | null | undefined) => b.find((x) => x.id === id)?.name ?? "";
   const bereichOptionen = b.map((x) => `<option value="${x.id}">${escape(x.name)}</option>`).join("");
 
@@ -199,7 +201,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
     : "";
   let inhalt = `${kopf}${wechsel}
 <p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p>
-<p><a href="/">Unterlagen prüfen lassen</a></p>
+${ohneProfil ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suche einrichten (2 Minuten)</a></p><p class="klein">Beschreib kurz deine Firma, Jarvis schlägt Suchbegriffe und Standorte vor. Danach kommen jeden Morgen passende Ausschreibungen.</p>` : admin ? `<p class="klein"><a href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suchprofil anpassen</a></p>` : ""}
 ${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle, name, bereichWahl)}
 <h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
   inhalt += b.length
@@ -241,6 +243,7 @@ async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoE
   const fehler = !r.ok && r.fehler.includes("nicht freigeschaltet")
     ? "Firmen-Konten schaltet WP Digital Ranger frei. Schreib uns an kontakt@wpdigitalranger.com, oder öffne den Einladungs-Link deiner Firma."
     : "Die Firma konnte nicht angelegt werden.";
+  if (r.ok && typeof r.daten === "string") return weiterleiten(`/konto/einrichtung?firma=${r.daten}`, [`jv_firma=${r.daten}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`]);
   return weiterleiten(`/konto?hinweis=${encodeURIComponent(r.ok ? "Firma angelegt." : fehler)}`);
 }
 
@@ -389,10 +392,10 @@ async function unterlagenSteckbrief(env: KontoEnv, id: string): Promise<{ auftra
 
 // ---------- Helpers ----------
 
-async function db<T = unknown>(s: Sitzung, env: KontoEnv, pfad: string, init: RequestInit = {}): Promise<{ ok: true; daten: T } | { ok: false; fehler: string }> {
+export async function db<T = unknown>(s: Sitzung, env: KontoEnv, pfad: string, init: RequestInit = {}): Promise<{ ok: true; daten: T } | { ok: false; fehler: string }> {
   const r = await fetch(`${env.SUPABASE_URL}/rest/v1/${pfad}`, {
     ...init,
-    headers: { apikey: env.SUPABASE_KEY, authorization: `Bearer ${s.token}`, "content-type": "application/json", prefer: "return=minimal" },
+    headers: { apikey: env.SUPABASE_KEY, authorization: `Bearer ${s.token}`, "content-type": "application/json", prefer: "return=minimal", ...(init.headers as Record<string, string> | undefined) },
   });
   const text = await r.text();
   if (!r.ok) return { ok: false, fehler: text.slice(0, 500) };
@@ -446,13 +449,13 @@ function datum(iso: string): string {
   return new Date(iso).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" });
 }
 
-function weiterleiten(ziel: string, cookies: string[] = []): Response {
+export function weiterleiten(ziel: string, cookies: string[] = []): Response {
   const h = new Headers({ location: ziel });
   for (const c of cookies) h.append("set-cookie", c);
   return new Response(null, { status: 303, headers: h });
 }
 
-function html(body: string, status = 200, cookies: string[] = []): Response {
+export function html(body: string, status = 200, cookies: string[] = []): Response {
   const h = new Headers({
     "content-type": "text/html; charset=utf-8",
     "content-security-policy": `default-src 'none'; style-src 'unsafe-inline'; script-src '${SOFORT_HASH}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,

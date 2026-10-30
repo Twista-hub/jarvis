@@ -10,6 +10,7 @@ create function auth.uid() returns uuid language sql stable as $$ select nullif(
 grant usage on schema auth to authenticated;
 \ir ../migrations/20261029120000_firmen_und_rechte.sql
 \ir ../migrations/20261030010000_firmen_freigabe.sql
+\ir ../migrations/20261030200000_einrichtung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -86,4 +87,16 @@ exception when raise_exception then
   raise notice 'ok: letzter Inhaber bleibt';
 end $$;
 select pruefe((select count(*) from public.protokoll) = 2, 'Protokoll hat 2 Einträge');
+
+-- Setup assistant: the owner saves one firm-wide search profile, the reader cannot change it.
+insert into public.suchprofile (firma_id, name, beschreibung, einstellungen)
+  values (:'firma', 'Perlease GmbH', 'Zeitarbeit', '{"leistungen": [{"name": "Service", "cpv": ["79620"], "woerter": ["servicepersonal"]}]}');
+do $$ begin
+  insert into public.suchprofile (firma_id, name) select firma_id, 'zweites' from public.suchprofile limit 1;
+  raise exception 'FEHLER: zweites Firmen-Suchprofil angelegt';
+exception when unique_violation then raise notice 'ok: ein Suchprofil pro Firma'; end $$;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select count(*) from public.suchprofile) = 1, 'Mitarbeiter sieht das Suchprofil');
+update public.suchprofile set beschreibung = 'gehackt';
+select pruefe((select beschreibung from public.suchprofile) = 'Zeitarbeit', 'Leser ändert das Suchprofil nicht');
 \echo ALLE TESTS OK

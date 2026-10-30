@@ -181,7 +181,8 @@ def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str)
 
 
 def run(days: list[str]) -> str:
-    profiles = json.loads((ROOT / "profile.json").read_text(encoding="utf-8"))
+    from profile_db import laden
+    profiles = laden()
     hits = {k: [] for k in profiles}
     seen, total, licence = set(), 0, ""
     for day in days:

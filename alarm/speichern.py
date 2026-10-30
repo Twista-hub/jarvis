@@ -1,29 +1,17 @@
 """Writes the hits of the morning report into the firms' Jarvis accounts (Supabase table vorgaenge).
 
 Which firm gets which profile: "firma_id" in alarm/profile.json (by id, not by name: anyone can
-create a firm with any name). Reads alarm/treffer.json written by alarm.py.
+create a firm with any name) or the firm of a profile saved in the app (profile_db.py). Reads alarm/treffer.json written by alarm.py.
 Usage: SUPABASE_DB_PASSWORD=... python3 alarm/speichern.py
 """
 import json
-import os
-import sys
-import urllib.parse
 from pathlib import Path
 
 import psycopg
 
+from profile_db import laden, verbinden
+
 ROOT = Path(__file__).parent
-REF = "juuuifrcxmitkqudqngq"
-
-
-def verbinden() -> psycopg.Connection:
-    pw = urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe="")
-    for host in ("aws-1-eu-central-1", "aws-0-eu-central-1"):
-        try:
-            return psycopg.connect(f"postgresql://postgres.{REF}:{pw}@{host}.pooler.supabase.com:5432/postgres", connect_timeout=10)
-        except psycopg.OperationalError:
-            continue
-    sys.exit("Keine Verbindung zur Datenbank")
 
 
 def bereich(regionen: dict, plz: str) -> str | None:
@@ -56,7 +44,7 @@ def main() -> None:
         print("Keine Treffer-Datei.")
         return
     treffer = json.loads(datei.read_text(encoding="utf-8"))
-    profile = json.loads((ROOT / "profile.json").read_text(encoding="utf-8"))
+    profile = laden()
     with verbinden() as con:
         for name, profil in profile.items():
             firma_id = profil.get("firma_id")
