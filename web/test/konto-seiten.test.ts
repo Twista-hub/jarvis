@@ -156,3 +156,15 @@ test("Gespeichertes Suchprofil wird erkannt, Einrichtung erscheint nur ohne Prof
   assert.doesNotMatch(leer, /Suchprofil anpassen/);
 });
 
+
+test("Unterlagen: Schnellauswahl der vorhandenen Ausschreibungen, neueste zuerst", async (t) => {
+  mockKontoApi(t, [
+    { id: vorgang, titel: "Alte Ausschreibung", link: null, frist: "2026-11-20T10:00:00Z", status: "neu", punkte: 9, erstellt: "2026-10-01T00:00:00Z" },
+    { id: "55555555-5555-4555-8555-555555555555", titel: "Neue Ausschreibung", link: null, frist: null, status: "pruefen", punkte: 5, erstellt: "2026-10-29T00:00:00Z" },
+    { id: "66666666-6666-4666-8666-666666666666", titel: "Verworfen", link: null, frist: null, status: "verworfen", punkte: 2, erstellt: "2026-10-30T00:00:00Z" },
+  ]);
+  const html = await seite("/konto/unterlagen");
+  assert.match(html, /<select name="vorgang" data-auswahl><option value="">➕ Neue Ausschreibung<\/option><option value="55555555[^"]*">Neue Ausschreibung<\/option><option value="33333333[^"]*">Alte Ausschreibung \(Frist 20\.11\.2026\)/);
+  assert.doesNotMatch(html, />Verworfen</);
+  assert.doesNotMatch(html, /name="titel" required/);
+});
