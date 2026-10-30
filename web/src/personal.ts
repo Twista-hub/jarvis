@@ -21,6 +21,8 @@ export const BERUFE: Record<string, string[]> = {
 };
 export const QUALIFIKATIONEN = ["Führerschein B", "Führerschein C/CE", "Staplerschein", "Gesundheitszeugnis (§ 43 IfSG)", "Erste Hilfe", "Sachkunde § 34a", "Deutsch fließend", "Englisch", "Schichtbereit", "Eigenes Auto"];
 export const STATUS: Record<string, [string, string]> = { verfuegbar: ["🟢", "Verfügbar"], einsatz: ["🔵", "Im Einsatz"], nicht: ["⚪", "Nicht verfügbar"] };
+export const EINSATZ: Record<string, [string, string]> = { geplant: ["📌", "Eingeplant"], angefragt: ["📨", "Angefragt"], zugesagt: ["✅", "Zugesagt"], abgesagt: ["❌", "Abgesagt"] };
+export type Einsatz = { id: string; personal_id: string; vorgang_id: string; status: string; vorgaenge?: { titel: string } | null };
 const ID = /^[0-9a-f-]{36}$/;
 
 /** Phone number for wa.me: digits only, German numbers with country code. */
@@ -85,7 +87,7 @@ function ausFormular(f: FormData): Omit<Kraft, "id" | "firma_id" | "bereich_id">
   };
 }
 
-export function kraftKarte(k: Kraft, darfAendern: boolean): string {
+export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] = []): string {
   const [icon, text] = STATUS[k.status] ?? STATUS.verfuegbar;
   const name = `${k.vorname} ${k.nachname}`.trim();
   const initialen = (k.vorname[0] ?? "") + (k.nachname[0] ?? "");
@@ -94,6 +96,7 @@ export function kraftKarte(k: Kraft, darfAendern: boolean): string {
   ${k.berufe.length ? `<p class="person-berufe">${k.berufe.map((b) => `<span class="marke">${escape(b)}</span>`).join("")}</p>` : ""}
   ${k.qualifikationen.length || k.eg ? `<p class="klein">${[k.eg ? `EG ${escape(k.eg)}` : "", ...k.qualifikationen.map(escape)].filter(Boolean).join(" · ")}</p>` : ""}
   ${k.notiz ? `<p class="klein">📝 ${escape(k.notiz)}</p>` : ""}
+  ${einsaetze.length ? `<ul class="einsatz-kurz">${einsaetze.map((e) => `<li><a href="/konto/vorgang/${e.vorgang_id}#personal">${(EINSATZ[e.status] ?? EINSATZ.geplant)[0]} ${escape(e.vorgaenge?.titel ?? "Ausschreibung")}</a></li>`).join("")}</ul>` : ""}
   <div class="person-aktionen">${k.telefon ? `<a class="knopf-klein" href="tel:${escape(k.telefon.replace(/[^\d+]/g, ""))}">📞 Anrufen</a>` : ""}<a class="knopf-klein" href="/konto/personal/${k.id}/nachricht">💬 Nachricht</a></div>
   ${darfAendern ? `<details id="bearbeiten-${k.id}" class="bearbeiten"><summary>✏️ Bearbeiten</summary>${kraftFormular(k, `/konto/personal/${k.id}`, "Änderungen speichern")}<form method="post" action="/konto/personal/${k.id}"><input type="hidden" name="aktion" value="loeschen"><button class="knopf-leise">🗑️ Aus der Liste löschen</button></form></details>` : ""}
 </article>`;
@@ -116,7 +119,7 @@ ${gruppen.map((g) => `<h3>${escape(g.name)}</h3><div class="konto-kacheln stando
 }
 
 /** The personnel of one location: numbers, filter, cards and the add form (also shown directly on "Firma & Team"). */
-export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, aktion: string): string {
+export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, aktion: string, einsaetze: Einsatz[] = []): string {
   // Filter by occupation and status (GET form, works without scripts).
   const beruf = url.searchParams.get("beruf") ?? "";
   const st = url.searchParams.get("status") ?? "";
@@ -126,9 +129,40 @@ export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, akti
   return `<p class="klein">${alle.filter((k) => k.status === "verfuegbar").length} verfügbar · ${alle.filter((k) => k.status === "einsatz").length} im Einsatz · ${alle.length} gesamt</p>
 ${darfAendern && alle.length ? `<p><a class="knopf" href="#neu" data-oeffne="neu">➕ Person hinzufügen</a></p>` : ""}
 ${filter}
-<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
+<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"))).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
 ${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>➕ Person hinzufügen</summary>${kraftFormular({}, aktion, "Person speichern")}</details>` : ""}
 <p class="klein">Die Daten sieht nur, wer Zugriff auf diesen Standort hat. Trag nur ein, was für die Einsatzplanung nötig ist, und lösche Personen, die nicht mehr für euch arbeiten.</p>`;
+}
+
+export async function einsaetzeLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string): Promise<Einsatz[]> {
+  const r = await db<Einsatz[]>(s, env, `einsaetze?firma_id=eq.${firma}&select=id,personal_id,vorgang_id,status,vorgaenge(titel)`);
+  return r.ok ? r.daten : [];
+}
+
+/** On a tender: the planned people with their status, and a dropdown to plan someone (matching and available first). */
+export async function einsatzTeil(s: Parameters<typeof db>[0], env: KontoEnv, v: { id: string; firma_id: string; titel: string }, darfAendern: boolean): Promise<string> {
+  const [geplant, pool] = await Promise.all([
+    db<(Einsatz & { personal: Kraft | null })[]>(s, env, `einsaetze?vorgang_id=eq.${v.id}&select=id,personal_id,vorgang_id,status,personal(*)&order=erstellt`),
+    db<Kraft[]>(s, env, `personal?firma_id=eq.${v.firma_id}&select=*&order=vorname`),
+  ]);
+  const liste = geplant.ok ? geplant.daten.filter((e) => e.personal) : [];
+  const schon = new Set(liste.map((e) => e.personal_id));
+  const frei = (pool.ok ? pool.daten : []).filter((k) => !schon.has(k.id))
+    .map((k) => ({ k, rang: (passt(v.titel, k.berufe) ? 0 : 2) + (k.status === "verfuegbar" ? 0 : 1) }))
+    .sort((a, b) => a.rang - b.rang);
+  const zeilen = liste.map((e) => {
+    const k = e.personal!;
+    const statusWahl = darfAendern
+      ? `<form method="post" action="/konto/einsatz/${e.id}" class="einsatz-status"><select name="status" data-sofort-wahl aria-label="Stand für ${escape(k.vorname)}">${Object.entries(EINSATZ).map(([w, [i, t]]) => `<option value="${w}"${w === e.status ? " selected" : ""}>${i} ${t}</option>`).join("")}</select><noscript><button>OK</button></noscript></form>`
+      : `<span>${(EINSATZ[e.status] ?? EINSATZ.geplant).join(" ")}</span>`;
+    return `<li class="einsatz-zeile"><div><strong>${escape(`${k.vorname} ${k.nachname}`.trim())}</strong><span class="klein">${escape(k.berufe.slice(0, 3).join(", ") || "ohne Beruf")}</span></div>${statusWahl}<div class="person-aktionen">${k.telefon ? `<a class="knopf-klein" href="tel:${escape(k.telefon.replace(/[^\d+]/g, ""))}">📞</a>` : ""}<a class="knopf-klein" href="/konto/personal/${k.id}/nachricht?vorgang=${v.id}">💬 Nachricht</a>${darfAendern ? `<form method="post" action="/konto/einsatz/${e.id}"><input type="hidden" name="aktion" value="entfernen"><button class="knopf-leise" aria-label="${escape(k.vorname)} austragen">✕</button></form>` : ""}</div></li>`;
+  }).join("");
+  const zugesagt = liste.filter((e) => e.status === "zugesagt").length;
+  const wahl = darfAendern && frei.length ? `<form method="post" action="/konto/vorgang/${v.id}/einsatz" class="einplanen"><label>Person einplanen<select name="personal" required><option value="">Bitte auswählen …</option>${frei.map(({ k }) => `<option value="${k.id}">${passt(v.titel, k.berufe) ? "⭐ " : ""}${escape(`${k.vorname} ${k.nachname}`.trim())}${k.berufe[0] ? ` · ${escape(k.berufe[0])}` : ""}${k.status !== "verfuegbar" ? ` (${STATUS[k.status]?.[1] ?? k.status})` : ""}</option>`).join("")}</select></label><button>📌 Einplanen</button></form>` : "";
+  const leer = pool.ok && !pool.daten.length ? `<p class="klein">Noch kein Personal eingetragen. <a href="/konto/team">Personal unter „Firma & Team“ anlegen →</a></p>` : "";
+  return `<h2 id="personal">👷 Personal für diesen Auftrag</h2>
+${liste.length ? `<p class="klein">${liste.length} eingeplant · ${zugesagt} zugesagt</p><ul class="einsatz-liste">${zeilen}</ul>` : `<p class="klein">Noch niemand eingeplant.</p>`}
+${wahl}${leer}${frei.some(({ rang }) => rang === 0) ? `<p class="klein">⭐ Beruf passt zur Ausschreibung.</p>` : ""}`;
 }
 
 /** With at most one location everything lives on "Firma & Team", so changes lead back there. */
@@ -139,6 +173,30 @@ async function heimat(f: { s: Parameters<typeof db>[0]; m: { firma_id: string } 
 
 export async function personal(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
+  const einplanen = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/einsatz$/);
+  const einsatz = url.pathname.match(/^\/konto\/einsatz\/([0-9a-f-]{36})$/);
+  if ((einplanen || einsatz) && request.method === "POST") {
+    const f = await aktiveFirma(request, env);
+    if (!f) return weiterleiten("/konto");
+    const form = await request.formData();
+    const zurueck = String(form.get("zurueck") ?? "");
+    if (einplanen) {
+      const pid = String(form.get("personal") ?? "");
+      const status = String(form.get("status") ?? "geplant");
+      const ok = ID.test(pid) && (await db(f.s, env, "einsaetze?on_conflict=vorgang_id,personal_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ firma_id: f.m.firma_id, vorgang_id: einplanen[1], personal_id: pid, status: EINSATZ[status] ? status : "geplant" }) })).ok;
+      const hinweis = ok ? "Eingeplant." : "Einplanen hat nicht geklappt.";
+      return weiterleiten(zurueck.startsWith("/konto/personal/") ? `${zurueck}${zurueck.includes("?") ? "&" : "?"}hinweis=${encodeURIComponent(hinweis)}` : `/konto/vorgang/${einplanen[1]}${ok ? "" : `?fehler=${encodeURIComponent(hinweis)}`}#personal`, f.s.cookies);
+    }
+    const e = await db<{ vorgang_id: string }[]>(f.s, env, `einsaetze?id=eq.${einsatz![1]}&select=vorgang_id`);
+    const vid = e.ok ? e.daten[0]?.vorgang_id : undefined;
+    if (!vid) return weiterleiten("/konto/treffer", f.s.cookies);
+    if (form.get("aktion") === "entfernen") await db(f.s, env, `einsaetze?id=eq.${einsatz![1]}`, { method: "DELETE" });
+    else {
+      const status = String(form.get("status") ?? "");
+      if (EINSATZ[status]) await db(f.s, env, `einsaetze?id=eq.${einsatz![1]}`, { method: "PATCH", body: JSON.stringify({ status }) });
+    }
+    return weiterleiten(`/konto/vorgang/${vid}#personal`, f.s.cookies);
+  }
   const standort = url.pathname.match(/^\/konto\/standort\/([0-9a-f-]{36}|firma)$/);
   const einzeln = url.pathname.match(/^\/konto\/personal\/([0-9a-f-]{36})(\/nachricht)?$/);
   if (!standort && !einzeln) return null;
@@ -161,12 +219,13 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
       db<Bereich[]>(f.s, env, `bereiche?firma_id=eq.${f.m.firma_id}&select=id,name,art,parent_id`),
       db<Kraft[]>(f.s, env, `personal?firma_id=eq.${f.m.firma_id}&bereich_id=${bid ? `eq.${bid}` : "is.null"}&select=*&order=status,vorname`),
     ]);
+    const einsaetze = await einsaetzeLaden(f.s, env, f.m.firma_id);
     const b = bereiche.ok ? bereiche.daten.find((x) => x.id === bid) : undefined;
     if (bid && !b) return antwort("Nicht gefunden", "<p>Diesen Standort gibt es nicht oder du hast keinen Zugriff.</p>", 404);
     const titel = b ? bereichPfad(bereiche.ok ? bereiche.daten : [], b) : "Ganze Firma";
     const alle = liste.ok ? liste.daten : [];
     const hinweis = url.searchParams.get("hinweis");
-    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`)}`);
+    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`, einsaetze)}`);
   }
 
   const pid = einzeln![1];
@@ -213,6 +272,8 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
   <label>Text (kannst du ändern)<textarea name="text" rows="9" maxlength="2000" data-nachricht>${escape(text)}</textarea></label>
   <noscript><button class="knopf-leise">Geänderten Text übernehmen</button></noscript>
 </form>
+${url.searchParams.get("hinweis") ? `<p role="status"><strong>${escape(url.searchParams.get("hinweis")!)}</strong></p>` : ""}
 <div class="person-aktionen gross">${knoepfe || `<p>Für ${escape(kraft.vorname)} ist keine Telefonnummer oder E-Mail eingetragen.</p>`}</div>
+${gewaehlt && darfAendern ? `<form method="post" action="/konto/vorgang/${gewaehlt.id}/einsatz"><input type="hidden" name="personal" value="${pid}"><input type="hidden" name="status" value="angefragt"><input type="hidden" name="zurueck" value="/konto/personal/${pid}/nachricht?vorgang=${gewaehlt.id}"><button>📨 Bei der Ausschreibung als „angefragt“ eintragen</button></form>` : ""}
 <p class="klein">Die Nachricht geht von deinem Handy aus, mit deiner Nummer bzw. deinem Mailprogramm. Jarvis verschickt selbst nichts.</p>`);
 }
