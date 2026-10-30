@@ -10,6 +10,7 @@ import { FELDER, STANDARD, felderHtml, fmt, zahl, type Eingaben } from "./kalkul
 import { escape, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
+import { standortKacheln } from "./personal.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 
 export interface KontoEnv {
@@ -234,20 +235,19 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const werte = { ...STANDARD, ...(vorlagen.ok ? vorlagen.daten[0]?.eingaben : {}) };
     inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte der Firma</h2><p>Diese Standardwerte gelten für die Firma. Du kannst sie bei jeder Ausschreibung anpassen.</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>Standardwerte speichern</button>` : ""}</form>`}`);
   } else if (unterseite === "team") {
-    let team = `<h2>Firma & Team</h2><p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p><h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
-    team += b.length
-    ? `<div class="tabelle"><table><tr><th>Name</th><th>Art</th><th>gehört zu</th></tr>${b.map((x) => `<tr><td>${escape(x.name)}</td><td>${ARTEN[x.art] ?? x.art}</td><td>${escape(name(x.parent_id))}</td></tr>`).join("")}</table></div>`
-      : `<p class="klein">Noch keine Bereiche. Ohne Bereiche sieht jeder in der Firma alles.</p>`;
+    const pool = await db<{ bereich_id: string | null; status: string }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=bereich_id,status`);
+    let team = `<h2>Standorte & Personal</h2><p class="klein">Tippe einen Standort an, um dort Personal mit Berufen und Telefonnummern einzutragen und anzuschreiben.</p>`;
+    team += standortKacheln(b, pool.ok ? pool.daten : []);
     if (admin) {
-    team += `<form method="post" action="/konto/bereich">
+    team += `<details><summary>➕ Standort oder Bereich anlegen</summary><form method="post" action="/konto/bereich">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neuer Bereich <input name="name" required maxlength="200" placeholder="z. B. Berlin"></label>
   <label>Art <select name="art"><option value="standort">Standort</option><option value="abteilung">Abteilung</option><option value="team">Team</option></select></label>
   ${b.length ? `<label>Gehört zu <select name="parent"><option value="">(oberste Ebene)</option>${bereichOptionen}</select></label>` : ""}
   <button>Bereich anlegen</button>
-</form>`;
+</form></details>`;
     }
-    team += `<h2>Mitarbeiter</h2>`;
+    team += `<h2>Team in der App</h2><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}. Hier stehen die Personen, die sich bei Jarvis anmelden.</p>`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
     const zuordnungen = admin ? await db<{user_id:string;bereich_id:string}[]>(s, env, `mitglied_bereiche?firma_id=eq.${m.firma_id}&select=user_id,bereich_id`) : null;
     team += funktionsListe;

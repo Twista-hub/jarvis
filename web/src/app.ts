@@ -58,6 +58,30 @@ document.querySelectorAll("select[data-los-wahl]").forEach(function (w) {
   });
 });
 
+// Dropdowns that apply right away (filters, message topic).
+document.querySelectorAll("select[data-sofort-wahl]").forEach(function (w) {
+  w.addEventListener("change", function () { w.form.submit(); });
+});
+// Pencil / add buttons open their form and scroll to it.
+document.querySelectorAll("a[data-oeffne]").forEach(function (a) {
+  a.addEventListener("click", function (e) {
+    var d = document.getElementById(a.getAttribute("data-oeffne"));
+    if (!d) return;
+    e.preventDefault();
+    d.open = true;
+    d.scrollIntoView({ behavior: "smooth", block: "start" });
+    var feld = d.querySelector("input:not([type=hidden])");
+    if (feld) feld.focus({ preventScroll: true });
+  });
+});
+// Message page: the WhatsApp/SMS/mail buttons always carry the current text.
+document.querySelectorAll("textarea[data-nachricht]").forEach(function (t) {
+  function setzen() {
+    document.querySelectorAll("a[data-basis]").forEach(function (a) { a.href = a.getAttribute("data-basis") + encodeURIComponent(t.value); });
+  }
+  t.addEventListener("input", setzen);
+});
+
 var knopf = document.getElementById("push-an");
 var test = document.getElementById("push-test");
 var meldung = document.getElementById("push-status");

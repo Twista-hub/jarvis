@@ -1,0 +1,93 @@
+import assert from "node:assert/strict";
+import { test, type TestContext } from "node:test";
+import { kraftKarte, nachrichtText, passt, personal, standortKacheln, waNummer, type Kraft } from "../src/personal.ts";
+
+const firma = "11111111-1111-4111-8111-111111111111";
+const ort = "22222222-2222-4222-8222-222222222222";
+const pid = "33333333-3333-4333-8333-333333333333";
+const token = `h.${btoa(JSON.stringify({ sub: "u1", email: "chef@test.de", exp: 4_000_000_000 })).replace(/=+$/, "")}.s`;
+const eva: Kraft = { id: pid, firma_id: firma, bereich_id: ort, vorname: "Eva", nachname: "Muster", berufe: ["Servicekraft", "Bankettkraft"], qualifikationen: ["Gesundheitszeugnis (§ 43 IfSG)"], eg: "2a", telefon: "0170 123 45 67", email: "", status: "verfuegbar", notiz: "" };
+
+test("WhatsApp-Nummer: deutsche Nummern bekommen die 49", () => {
+  assert.equal(waNummer("0170 123 45 67"), "491701234567");
+  assert.equal(waNummer("+49 (170) 1234567"), "491701234567");
+  assert.equal(waNummer("0041 79 1234567"), "41791234567");
+});
+
+test("passende Ausschreibung erkennt den Beruf im Titel", () => {
+  assert.ok(passt("Servicekräfte für das Betriebsrestaurant", ["Servicekraft"]));
+  assert.ok(!passt("Reinigung von Büroflächen", ["Servicekraft"]));
+});
+
+test("Nachricht nennt Vorname, Ausschreibung und Firma", () => {
+  const t = nachrichtText(eva, "PerLease", { titel: "Bankett Messe", frist: "2026-11-20T10:00:00Z" });
+  assert.match(t, /^Hallo Eva,/);
+  assert.match(t, /„Bankett Messe“/);
+  assert.match(t, /PerLease$/);
+});
+
+test("Karte: Name, Berufe, Anrufen, Nachricht und Stift zum Bearbeiten", () => {
+  const html = kraftKarte(eva, true);
+  assert.match(html, />EM</);
+  assert.match(html, /Servicekraft/);
+  assert.match(html, /href="tel:01701234567"/);
+  assert.match(html, /class="stift"/);
+  assert.doesNotMatch(kraftKarte(eva, false), /class="stift"/);
+});
+
+test("Standort-Kacheln mit Zahlen pro Standort, Regionen als Überschrift", () => {
+  const html = standortKacheln([
+    { id: "r", name: "Nord", art: "standort", parent_id: null },
+    { id: ort, name: "Hamburg", art: "standort", parent_id: "r" },
+  ], [{ bereich_id: ort, status: "verfuegbar" }, { bereich_id: ort, status: "einsatz" }]);
+  assert.match(html, /<h3>Nord<\/h3>/);
+  assert.match(html, new RegExp(`href="/konto/standort/${ort}".*Hamburg.*1 verfügbar · 2 gesamt`));
+});
+
+function mock(t: TestContext) {
+  const aufrufe: { url: string; method: string; body?: string }[] = [];
+  t.mock.method(globalThis, "fetch", async (input: string | URL | Request, init?: RequestInit) => {
+    const url = new URL(String(input));
+    aufrufe.push({ url: url.pathname + url.search, method: init?.method ?? "GET", body: init?.body as string | undefined });
+    const pfad = url.pathname.split("/rest/v1/")[1] ?? "";
+    let daten: unknown = [];
+    if (pfad === "mitglieder") daten = [{ firma_id: firma, rolle: "inhaber", finanzen: true, firmen: { name: "PerLease" } }];
+    if (pfad === "bereiche") daten = [{ id: ort, name: "Hamburg", art: "standort", parent_id: null }];
+    if (pfad === "personal") daten = [eva];
+    if (pfad === "vorgaenge") daten = [{ id: "44444444-4444-4444-8444-444444444444", titel: "Reinigung Rathaus", frist: null, status: "neu" }, { id: "55555555-5555-4555-8555-555555555555", titel: "Servicekräfte Bankett", frist: null, status: "neu" }];
+    return new Response(init?.method === "POST" || init?.method === "PATCH" ? "" : JSON.stringify(daten), { status: 200 });
+  });
+  return aufrufe;
+}
+const anfrage = (pfad: string, init: RequestInit = {}) => new Request(`https://jarvis.test${pfad}`, { ...init, headers: { cookie: `jv_at=${token}`, ...(init.headers ?? {}) } });
+const env = { SUPABASE_URL: "https://sb.test", SUPABASE_KEY: "pk" };
+
+test("Standortseite zeigt das Personal als Karten und das Formular zum Hinzufügen", async (t) => {
+  mock(t);
+  const r = await personal(anfrage(`/konto/standort/${ort}`), env);
+  const html = await r!.text();
+  assert.equal(r!.status, 200);
+  assert.match(html, /📍 Hamburg/);
+  assert.match(html, /class="person-karte"/);
+  assert.match(html, /➕ Person hinzufügen/);
+});
+
+test("Person anlegen speichert Berufe und Standort", async (t) => {
+  const aufrufe = mock(t);
+  const body = new URLSearchParams([["vorname", "Tom"], ["berufe", "Koch/Köchin"], ["berufe", "Erfunden"], ["weitere", "Grillmeister"], ["eg", "4"], ["status", "einsatz"]]);
+  const r = await personal(anfrage(`/konto/standort/${ort}`, { method: "POST", body }), env);
+  assert.equal(r!.status, 303);
+  const post = JSON.parse(aufrufe.find((a) => a.method === "POST")!.body!);
+  assert.deepEqual(post.berufe, ["Koch/Köchin", "Grillmeister"]);
+  assert.equal(post.bereich_id, ort);
+  assert.equal(post.eg, "4");
+  assert.equal(post.status, "einsatz");
+});
+
+test("Nachrichtenseite: passende Ausschreibung zuerst, WhatsApp-Link mit Text", async (t) => {
+  mock(t);
+  const r = await personal(anfrage(`/konto/personal/${pid}/nachricht?vorgang=55555555-5555-4555-8555-555555555555`), env);
+  const html = await r!.text();
+  assert.match(html, /<option value="">Allgemein[^<]*<\/option><option value="55555555[^"]*" selected>⭐ Servicekräfte Bankett/);
+  assert.match(html, /href="https:\/\/wa\.me\/491701234567\?text=Hallo%20Eva/);
+});

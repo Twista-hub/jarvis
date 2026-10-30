@@ -62,6 +62,37 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .konto-pfeil { position: absolute; right: 16px; top: 18px; font-size: 1.5rem; color: var(--accent); }
   .konto-zurueck { margin: 0 0 10px; }
   .konto-zurueck a { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%; background: var(--card); text-decoration: none; font-size: 24px; }
+  .standort-kacheln { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)) !important; gap: 10px !important; margin: 10px 0 24px !important; }
+  .standort-kacheln .konto-kachel { min-height: 0 !important; padding: 14px 30px 14px 14px; gap: 4px; }
+  .standort-kacheln .konto-icon { font-size: 1.4rem; }
+  .standort-kacheln strong { font-size: 1rem; }
+  .standort-kacheln .konto-pfeil { top: 12px; right: 12px; }
+  .personal-liste { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin: 14px 0 20px; }
+  .person-karte { min-width: 0; display: grid; gap: 8px; align-content: start; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); box-shadow: 0 2px 8px #0000000a; }
+  .person-karte h3 { margin: 0; font-size: 1.05rem; }
+  .person-karte p { margin: 0; }
+  .person-kopf { display: flex; gap: 12px; align-items: center; }
+  .person-kopf > div { flex: 1; min-width: 0; }
+  .person-avatar { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 700; }
+  .stift { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; text-decoration: none; background: var(--bg); }
+  .status { font-size: 13px; color: var(--muted); }
+  .marke { display: inline-block; margin: 0 6px 6px 0; padding: 3px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 13px; }
+  .person-aktionen { display: flex; flex-wrap: wrap; gap: 8px; }
+  .person-aktionen.gross { margin: 16px 0; }
+  .knopf-klein { display: inline-block; padding: 9px 14px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
+  .knopf-leise { background: transparent; color: var(--error); border: 1px solid var(--line); }
+  .knopf.whatsapp { background: #1f8f4e; color: #fff; padding: 12px 18px; }
+  .bearbeiten summary, .neu-person summary { cursor: pointer; font-weight: 600; color: var(--accent); }
+  .neu-person { margin: 16px 0; }
+  .zwei { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
+  .filter-leiste { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 12px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .chips label { display: inline-flex; font-weight: 500; }
+  .chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+  .chips span { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); font-size: 14px; cursor: pointer; }
+  .chips input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--bg); }
+  .chips input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+  details > summary { cursor: pointer; }
   .auswahl-liste { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
   .auswahl-liste a { position: relative; display: grid; gap: 4px; padding: 12px 36px 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text); text-decoration: none; }
   .auswahl-liste a:hover, .auswahl-liste a:focus-visible { border-color: var(--accent); }

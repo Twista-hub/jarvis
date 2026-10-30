@@ -10,6 +10,7 @@ import { firmenunterlagen } from "./firmenunterlagen";
 import { freigaben } from "./freigaben";
 import { mitarbeiterVerwalten } from "./mitarbeiter";
 import { einrichtung } from "./einrichtung";
+import { personal } from "./personal";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
@@ -82,6 +83,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (mv) return mv;
     const fg = await freigaben(request, env);
     if (fg) return fg;
+    const pe = await personal(request, env);
+    if (pe) return pe;
     const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");
     if (e) return e;
     const k = await konto(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma));
