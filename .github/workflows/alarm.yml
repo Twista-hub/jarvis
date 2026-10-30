@@ -4,6 +4,8 @@ name: Ausschreibungs-Alarm
 on:
   schedule:
     - cron: "17 5 * * *"
+    # Backup: GitHub sometimes drops scheduled runs (30.10. no run at 05:17). Skips if the report exists.
+    - cron: "41 7 * * *"
   workflow_dispatch:
     inputs:
       tage:
@@ -26,7 +28,12 @@ jobs:
           sudo apt-get update -qq
           sudo apt-get install -y -qq poppler-utils
           pip install -q anthropic
-      - run: python alarm/alarm.py ${{ inputs.tage }}
+      - name: Schon gelaufen?
+        if: github.event_name == 'schedule'
+        run: |
+          if [ -f "alarm/berichte/$(date -u -d yesterday +%F).md" ]; then echo "SCHON=1" >> "$GITHUB_ENV"; echo "Bericht für gestern gibt es schon."; fi
+      - if: env.SCHON != '1'
+        run: python alarm/alarm.py ${{ inputs.tage }}
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       - name: Treffer in die App
