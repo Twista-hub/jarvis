@@ -110,7 +110,9 @@ export function statisch(pfad: string): Response | null {
   const d = DATEIEN[pfad];
   if (!d) return null;
   const inhalt = typeof d[1] === "string" ? d[1] : d[1]();
-  return new Response(inhalt, { headers: { "content-type": d[0], "cache-control": pfad.endsWith(".png") ? "public, max-age=86400" : "no-cache", // scripts: always the newest version "x-content-type-options": "nosniff" } });
+  // Scripts and manifest: always check for the newest version; icons may be cached.
+  const cache = pfad.endsWith(".png") ? "public, max-age=86400" : "no-cache";
+  return new Response(inhalt, { headers: { "content-type": d[0], "cache-control": cache, "x-content-type-options": "nosniff" } });
 }
 
 export const CSP = "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; manifest-src 'self'; worker-src 'self'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
