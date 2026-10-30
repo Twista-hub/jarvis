@@ -3,7 +3,7 @@
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { euro, fmt, rechnen, STANDARD, type Eingaben, type Los, type LosWerte } from "./kalkulation.ts";
 import { geforderte, vorhanden } from "./nachweise.ts";
-import type { TarifWahl } from "./tarife.ts";
+import { standardTarif, type TarifWahl } from "./tarife.ts";
 import { escape } from "./seite.ts";
 
 export type LosZeile = { nr: string; name: string; stunden: number; netto: number; zeitraum: string };
@@ -13,7 +13,9 @@ export type Preise = { zeilen: LosZeile[]; proStunde: number; kalkuliert: boolea
 export function preise(lose: Los[], kalk: { eingaben: Eingaben; mengen: Record<string, number>; proLos?: LosWerte; tarif?: TarifWahl } | null, vorlage: Eingaben | null): Preise {
   const eingaben = kalk?.eingaben ?? vorlage ?? STANDARD;
   const mengen = kalk?.mengen ?? Object.fromEntries(lose.map((l) => [l.nr, /stunde|std/i.test(l.einheit) ? l.menge : 0]));
-  const r = rechnen(eingaben, lose, mengen, kalk?.proLos ?? {}, kalk?.tarif);
+  // Without an own calculation the wage groups suggested from the documents apply (collective wages).
+  const proLos = kalk?.proLos ?? Object.fromEntries(lose.filter((l) => l.eg).map((l) => [l.nr, { eg: l.eg }]));
+  const r = rechnen(eingaben, lose, mengen, proLos, kalk ? kalk.tarif : standardTarif());
   return {
     zeilen: r.lose.map((z) => ({ nr: z.los.nr, name: z.los.name, stunden: z.stunden, netto: z.netto, zeitraum: z.los.zeitraum })),
     proStunde: r.preisProStunde,

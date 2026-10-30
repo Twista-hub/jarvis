@@ -14,7 +14,9 @@ import { db, konto, sitzung, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { escape, markdown, seite, stapeln } from "./seite";
-import { GVP, lohnAm, standardTarif, type TarifWahl } from "./tarife";
+import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
+import { loseLesen } from "./lose";
+import Anthropic from "@anthropic-ai/sdk";
 
 export { Steckbrief } from "./workflow";
 
@@ -92,8 +94,9 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       if (recht) return html(seite(recht[0], recht[1]()));
     }
     if (url.pathname === "/hochladen" && request.method === "POST") return hochladen(request, env);
-    const m = url.pathname.match(/^\/auftrag\/([^/]+)(\/kalkulation)?$/);
-    if (m && ID.test(m[1]) && m[2] && request.method === "POST") return kalkulieren(m[1], request, env);
+    const m = url.pathname.match(/^\/auftrag\/([^/]+)(\/kalkulation|\/arbeitskraefte)?$/);
+    if (m && ID.test(m[1]) && m[2] === "/kalkulation" && request.method === "POST") return kalkulieren(m[1], request, env);
+    if (m && ID.test(m[1]) && m[2] === "/arbeitskraefte" && request.method === "POST") return arbeitskraefte(m[1], request, env);
     if (m && ID.test(m[1]) && !m[2]) return auftrag(m[1], env, request);
     return html(seite("Nicht gefunden", "<p>Diese Seite gibt es nicht.</p>"), 404);
 }
@@ -213,7 +216,8 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   const proLos = eigene?.proLos ?? {};
   const tarif = eigene?.tarif ?? standardTarif();
   const heute = new Date().toISOString().slice(0, 10);
-  const egOptionen = (gewaehlt?: string) => `<option value="">eigener Stundenlohn</option>${GVP.gruppen.map((g) => `<option value="${g}"${g === gewaehlt ? " selected" : ""}>EG ${g} (heute ${fmt(lohnAm(g, heute, 0))} €)</option>`).join("")}`;
+  const egOptionen = (gewaehlt?: string, vorschlag?: string) => `<option value="">eigener Stundenlohn</option>${GVP.gruppen.map((g) => `<option value="${g}"${g === gewaehlt ? " selected" : ""}>EG ${g} (heute ${fmt(lohnAm(g, heute, 0))} €)${g === vorschlag ? " – Vorschlag" : ""}</option>`).join("")}`;
+  const ohneArbeitskraft = lose.length > 0 && lose.every((l) => l.taetigkeit === undefined);
   // Collective wages: lots with a wage group get the average tariff wage over the contract period.
   const tarifFelder = `<fieldset><legend>Tarif Zeitarbeit (${GVP.name})</legend>
       <span class="klein">Wähle unten pro Los eine Entgeltgruppe. Jarvis rechnet den Durchschnittslohn über die Laufzeit, mit den bekannten Erhöhungen. Quelle: ${GVP.quelle}.</span>
@@ -224,12 +228,20 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
     </fieldset>`;
   const felder = felderHtml(vorlage) + tarifFelder;
   // Per lot: hours, own wage (empty = standard) and "away from home" for accommodation costs.
-  const loseFelder = lose.map((l) => `<fieldset><legend>Los ${escape(l.nr)}: ${escape(l.name)}</legend>
+  // Lots: the workforce from the documents and the suggested wage group are filled in until the user changes them.
+  const loseFelder = lose.map((l) => {
+    const eg = eigene ? proLos[l.nr]?.eg : (proLos[l.nr]?.eg ?? l.eg) || undefined;
+    const vorschlag = l.eg && GVP.merkmale[l.eg] ? `<p class="klein">📜 Vorschlag laut Tarifvertrag: <strong>EG ${escape(l.eg)}</strong>${l.eg_grund ? ` – ${escape(l.eg_grund)}` : ""}<br>Merkmal EG ${escape(l.eg)}: „${escape(GVP.merkmale[l.eg])}“</p>` : "";
+    return `<fieldset data-los="${escape(l.nr)}"><legend>Los ${escape(l.nr)}: ${escape(l.name)}</legend>
+      ${l.taetigkeit ? `<p>👷 <strong>Gebraucht:</strong> ${escape(l.taetigkeit)}</p>` : ""}${vorschlag}
       <label>Stunden${l.zeitraum ? ` (${escape(l.zeitraum)})` : ""}<input name="los_${escape(l.nr)}" inputmode="decimal" value="${fmt(mengen[l.nr] ?? (/stunde|std/i.test(l.einheit) ? l.menge : 0))}"></label>
-      <label>Entgeltgruppe<select name="eg_${escape(l.nr)}">${egOptionen(proLos[l.nr]?.eg)}</select></label>
+      <label>Entgeltgruppe<select name="eg_${escape(l.nr)}">${egOptionen(eg, l.eg)}</select></label>
+      ${eg ? `<p class="klein">Tariflohn EG ${escape(eg)}: heute ${euro(lohnAm(eg, heute, 0))}, im Schnitt über ${tarif.monate} Monate ab ${escape(tarif.beginn)} ${euro(tariflohn(eg, tarif))} pro Stunde.</p>` : ""}
       <label>Eigener Stundenlohn (€, leer = Standard; gilt nur ohne Entgeltgruppe)<input name="lohn_${escape(l.nr)}" inputmode="decimal" value="${proLos[l.nr]?.lohn ? fmt(proLos[l.nr].lohn!) : ""}" placeholder="${fmt(vorlage.lohn)}"></label>
       <label class="zeile"><input type="checkbox" name="auswaerts_${escape(l.nr)}" value="1"${proLos[l.nr]?.auswaerts ? " checked" : ""}> Auswärts mit Unterkunft</label>
-      ${l.hinweis ? `<span class="klein">${escape(l.hinweis)}</span>` : ""}</fieldset>`).join("");
+      ${l.hinweis ? `<span class="klein">${escape(l.hinweis)}</span>` : ""}</fieldset>`;
+  }).join("");
+  const losWahl = lose.length > 1 ? `<label>Los wählen<select data-los-wahl><option value="">Alle Lose</option>${lose.map((l) => `<option value="${escape(l.nr)}">Los ${escape(l.nr)}: ${escape(l.name.length > 60 ? `${l.name.slice(0, 57)}…` : l.name)}</option>`).join("")}</select></label>` : "";
   let ergebnis = "";
   if (eigene) {
     const r = rechnen(eigene.eingaben, lose, eigene.mengen, proLos, tarif);
@@ -249,9 +261,10 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   return `<h2 id="kalkulation">💶 Kalkulation</h2>
     <p>Trag deine Werte ein. Jarvis rechnet den Preis pro Stunde und pro Los aus und merkt sich deine Werte für die nächste Ausschreibung.</p>
     ${ergebnis}
+    ${ohneArbeitskraft ? `<form method="post" action="/auftrag/${job.id}/arbeitskraefte"><p class="klein">Diese Unterlagen wurden vor der Arbeitskräfte-Erkennung geprüft.</p><button>👷 Arbeitskräfte und Entgeltgruppen erkennen</button><span class="klein">Dauert etwa 20 Sekunden.</span></form>` : ""}
     ${await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true) ? `<form method="post" action="/auftrag/${job.id}/kalkulation">
       ${felder}
-      ${loseFelder ? `<h3>Mengen</h3>${loseFelder}` : ""}
+      ${loseFelder ? `<h3>Lose, Arbeitskräfte und Löhne</h3>${losWahl}${loseFelder}` : ""}
       <button>Berechnen</button>
     </form>` : `<p>Als Leser kannst du die Kalkulation ansehen, aber nicht ändern.</p>`}`;
 }
@@ -277,6 +290,19 @@ async function kalkulieren(id: string, request: Request, env: Env): Promise<Resp
   };
   await env.DATEN.put(`auftraege/${id}/kalkulation.json`, JSON.stringify({ eingaben, mengen, proLos, tarif }));
   await env.DATEN.put(`kunden/${job.profil}/kalkulation.json`, JSON.stringify(eingaben));
+  return Response.redirect(new URL(`/auftrag/${id}#kalkulation`, request.url).toString(), 303);
+}
+
+/** Older Steckbriefe: read workforce and wage group per lot once (cheap call on the finished Steckbrief). */
+async function arbeitskraefte(id: string, request: Request, env: Env): Promise<Response> {
+  const job = await jsonAus<Job>(env, `auftraege/${id}/auftrag.json`);
+  if (!job) return html(seite("Nicht gefunden", "<p>Diesen Auftrag gibt es nicht (mehr).</p>"), 404);
+  if (!(await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true))) return html(seite("Nicht erlaubt","<p>Für die Kalkulation brauchst du eine Finanzfreigabe.</p>"),403);
+  const ergebnis = await env.DATEN.get(`auftraege/${id}/ergebnis.md`);
+  if (ergebnis) {
+    const { lose } = await loseLesen(new Anthropic({ apiKey: env.ANTHROPIC_API_KEY }), await ergebnis.text());
+    if (lose.length) await env.DATEN.put(`auftraege/${id}/lose.json`, JSON.stringify(lose));
+  }
   return Response.redirect(new URL(`/auftrag/${id}#kalkulation`, request.url).toString(), 303);
 }
 

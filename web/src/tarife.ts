@@ -12,6 +12,22 @@ export const GVP = {
     { ab: "2026-09-01", lohn: { "1": 15.33, "2a": 15.67, "2b": 16.08, "3": 17.11, "4": 18.09, "5": 20.27, "6": 22.52, "7": 26.2, "8": 28.04, "9": 29.42 } },
     { ab: "2027-04-01", lohn: { "1": 15.87, "2a": 16.22, "2b": 16.64, "3": 17.71, "4": 18.72, "5": 20.98, "6": 23.31, "7": 27.12, "8": 29.02, "9": 30.45 } },
   ] as { ab: string; lohn: Record<string, number> }[],
+  // § 3 Entgeltrahmentarifvertrag DGB/GVP vom 20.05.2025 (gültig ab 01.01.2026), wörtlich aus dem Original
+  // (https://www.dgb.de/fileadmin/download_center/Uploads/2025-05-20_Entgeltrahmentarifvertrag.pdf, gelesen 30.10.2026).
+  // Eingruppierung nach der tatsächlichen, überwiegenden Tätigkeit (§ 2.1).
+  merkmale: {
+    "1": "Tätigkeiten, die eine betriebliche Einweisung erfordern.",
+    "2a": "Tätigkeiten, die eine Anlernzeit erfordern oder für die fachbezogene Berufserfahrung oder fachspezifische Kenntnisse erforderlich sind.",
+    "2b": "Tätigkeiten, für die eine fachspezifische Qualifikation erforderlich ist.",
+    "3": "Ausführung von Tätigkeiten, für die eine abgeschlossene mindestens zweijährige Berufsausbildung erforderlich ist.",
+    "4": "Ausführung von Tätigkeiten, für die Kenntnisse und Fertigkeiten erforderlich sind, die durch eine mindestens dreijährige Berufsausbildung vermittelt werden.",
+    "5": "Tätigkeiten, die Kenntnisse und Fertigkeiten erfordern, die durch eine mindestens dreijährige Berufsausbildung vermittelt werden. Zusätzlich sind Spezialkenntnisse erforderlich, die durch eine Zusatzausbildung vermittelt werden, sowie eine langjährige Berufserfahrung.",
+    "6": "Tätigkeiten, die eine Meister- bzw. Technikerausbildung oder vergleichbare Qualifikationen erfordern.",
+    "7": "Tätigkeiten, die zusätzlich zu den Merkmalen der Entgeltgruppe 6 mehrjährige Berufserfahrung erfordern.",
+    "8": "Tätigkeiten, die ein Fachhochschulstudium erfordern.",
+    "9": "Tätigkeiten, die ein Hochschulstudium, bzw. Tätigkeiten, die ein Fachhochschulstudium und mehrjährige Berufserfahrung erfordern.",
+  } as Record<string, string>,
+  rahmen: "Entgeltrahmentarifvertrag DGB/GVP vom 20.05.2025",
   // § 3 ETV: experience surcharge for an uninterrupted assignment at the same customer.
   erfahrung: [{ abMonat: 9, prozent: 1.5 }, { abMonat: 12, prozent: 3 }],
 };
