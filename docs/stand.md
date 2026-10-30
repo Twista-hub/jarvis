@@ -20,7 +20,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (Claude) Registrierung mit Name, Firma, Adresse und Passwort; Anmeldung, die in jedem Browser klappt (Link-Fehler „abgelaufen“).
+- (niemand)
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 1. Rechtstexte von Benjamin prüfen lassen.
@@ -31,6 +31,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 (spät, Teil 3) – Claude
+- Login-Fehler „Link abgelaufen“ bei neuer Adresse: Ursache PKCE (Link ging nur im selben Browser, Mail-Apps öffnen oft einen anderen). Diagnose über `datenbank.yml` Aktion `anmeldungen` (flow_state: Code ausgestellt, nie eingelöst).
+- Neu `web/src/anmeldung.ts`: Registrierung (Vorname, Nachname, Firma, Straße, PLZ, Ort, Telefon freiwillig, E-Mail, Passwort ≥ 8, Zustimmung Nutzungsbedingungen/Datenschutz), Anmeldung mit Passwort, „Passwort vergessen“, `/konto/passwort`, Link-Anmeldung jetzt per Implicit Flow (Tokens im #-Teil, `/app.js` gibt sie an `/anmelden/sitzung`, nur gleiche Herkunft). Eingeladene registrieren sich ohne Firmenfelder.
+- Migration `20261031000000_registrierung.sql`: Firmen-Anschrift, Tabellen `betreiber` (Benjamin) und `registrierungen`, Funktionen `registrierung_abschliessen` (legt Firma an, sobald freigeschaltet), `registrierungen_offen`, `registrierung_freischalten`. Benjamin bekommt pro Registrierung eine Mail und schaltet auf `/konto/freischalten` frei; der Kunde bekommt dann eine Mail.
+- Tests: `test/anmeldung.test.ts`, `rechte_test.sql` erweitert (ALLE TESTS OK).
 
 ### 30.10.2026 (spät, Teil 2) – Claude
 - Tarif-Auswahl Zeitarbeit: Tabellen GVP/DGB (EG 1, 2a, 2b, 3–9; ab 01.01.2026, 01.09.2026, 01.04.2027) aus dem Original-PDF des Entgelttarifvertrags vom 12.09.2025 (dgb.de, robots.txt geprüft, gelesen über erkunden.yml „pdf“) in `web/src/tarife.ts`.
