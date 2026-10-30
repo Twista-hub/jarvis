@@ -158,6 +158,8 @@ def kurzbrief(rel: dict, day: str) -> str:
             f"**Ort:** {place(rel) or 'nicht angegeben'}\n\n"
             f"**Veröffentlicht:** {day}\n\n"
             + (f"**Land:** {(rel.get('buyer') or {}).get('address', {}).get('countryName', '')} · Quelle: TED (Amt für Veröffentlichungen der EU)\n\n" if rel.get("_quelle") == "TED" else "")
+            + ("**Land:** Großbritannien · Quelle: Find a Tender. Contains public sector information licensed under the Open Government Licence v3.0.\n\n" if rel.get("_quelle") == "Find a Tender" else "")
+            + ("**Land:** USA (Bundesbehörde) · Quelle: SAM.gov\n\n" if rel.get("_quelle") == "SAM.gov" else "")
             + f"**Angebotsfrist:** {frist(t) or 'nicht angegeben'}\n\n"
             f"{beschreibung or 'Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.'}\n\n"
             "_Dieser Kurzüberblick enthält Angaben aus der öffentlichen Bekanntmachung. "
@@ -218,7 +220,13 @@ def run(days: list[str]) -> str:
     ausland = sorted({l for p in profiles.values() for l in p.get("laender", ["DEU"]) if l != "DEU"})
     if ausland:
         import ted
-        inputs = list(inputs) + [(day, rel) for day in days for rel in ted.releases(day, ausland)]
+        inputs = list(inputs) + [(day, rel) for day in days for rel in ted.releases(day, [l for l in ausland if l not in ("GBR", "USA")])]
+    if "GBR" in ausland:  # not in TED since Brexit
+        import uk
+        inputs = list(inputs) + [(day, rel) for day in days for rel in uk.releases(day)]
+    if "USA" in ausland:  # federal agencies via SAM.gov, only with SAM_API_KEY
+        import usa
+        inputs = list(inputs) + [(day, rel) for day in days for rel in usa.releases(day)]
     for day, rel in sorted(inputs, key=lambda r: (r[0], r[1].get("date", "")), reverse=True):
         key = rel.get("ocid") or rel.get("id") or link(rel)
         if key in seen:

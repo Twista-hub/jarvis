@@ -4,7 +4,7 @@
 import { apiClient } from "./api-budget.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
-import { LAENDER, NACHBARN, WEITERE, laenderBereinigen } from "./laender.ts";
+import { AUSSERHALB, LAENDER, NACHBARN, WEITERE, laenderBereinigen } from "./laender.ts";
 const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 0, "einstellungen");
 
 export interface EinrichtungEnv extends KontoEnv {
@@ -171,7 +171,7 @@ ${hilfe("Was kann ich hier ändern?", "Passe Leistungen, Suchwörter, CPV-Codes 
   <p class="klein">Treffer werden dem Standort zugeordnet, in dessen Postleitzahl-Bereich der Auftrag liegt. Jarvis legt die Standorte als Bereiche an.</p>
   ${standorte}
   <h2>Länder</h2>
-  <p class="klein">Deutschland kommt aus dem Bekanntmachungsservice. Andere Länder liest Jarvis aus TED, der EU-Ausschreibungsdatenbank (meist größere Aufträge ab den EU-Schwellenwerten). Titel stehen dort meist auch auf Deutsch.</p>
+  <p class="klein">Deutschland kommt aus dem Bekanntmachungsservice. Andere Länder in Europa liest Jarvis aus TED, der EU-Ausschreibungsdatenbank (meist größere Aufträge ab den EU-Schwellenwerten, Titel meist auch auf Deutsch). Großbritannien kommt aus Find a Tender, die USA aus SAM.gov (beides auf Englisch).</p>
   ${laenderAuswahl(laenderBereinigen(v.laender))}
   <h2>Tägliche Mail</h2>
   <label>Neue Treffer per Mail an dich um<select name="stunde">${stundenOptionen(7)}</select>
@@ -186,7 +186,8 @@ function laenderAuswahl(gewaehlt: string[]): string {
   const weitere = Object.keys(WEITERE).some((c) => gewaehlt.includes(c));
   return `<div class="chips">${chip("DEU", LAENDER.DEU)}</div>
   <details${Object.keys(NACHBARN).some((c) => gewaehlt.includes(c)) ? " open" : ""}><summary>Nachbarländer</summary><div class="chips">${Object.entries(NACHBARN).map(([c, n]) => chip(c, n)).join("")}</div></details>
-  <details${weitere ? " open" : ""}><summary>Weitere Länder in Europa</summary><div class="chips">${Object.entries(WEITERE).map(([c, n]) => chip(c, n)).join("")}</div></details>`;
+  <details${weitere ? " open" : ""}><summary>Weitere Länder in Europa</summary><div class="chips">${Object.entries(WEITERE).map(([c, n]) => chip(c, n)).join("")}</div></details>
+  <details${Object.keys(AUSSERHALB).some((c) => gewaehlt.includes(c)) ? " open" : ""}><summary>Außerhalb Europas</summary><div class="chips">${Object.entries(AUSSERHALB).map(([c, n]) => chip(c, n)).join("")}</div><p class="klein">USA: nur Ausschreibungen der Bundesbehörden (SAM.gov), auf Englisch.</p></details>`;
 }
 
 /** Cleans model or form input: only digits for CPV and postal codes, short lower-case words. */

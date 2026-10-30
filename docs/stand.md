@@ -30,6 +30,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## In Arbeit
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
+- **USA:** Benjamin legt den SAM.gov-Schlüssel an (`docs/anleitung-sam-gov.md`, Secret `SAM_API_KEY`); danach Testlauf `ted.yml` und Nutzungsbedingungen SAM.gov prüfen.
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
@@ -40,6 +41,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 (Nacht, Teil 3) – Claude (Großbritannien und USA)
+- `alarm/uk.py`: Find a Tender (OCDS, Open Government Licence v3, Quellenhinweis im Kurzüberblick); Contracts Finder noch nicht (Nutzungsbedingungen nicht gefunden).
+- `alarm/usa.py`: SAM.gov Get Opportunities API v2 (Bundesbehörden, Ausschreibungsarten o,k), nur mit Secret `SAM_API_KEY`; ohne Schlüssel wird USA übersprungen. Anleitung für Benjamin: `docs/anleitung-sam-gov.md`. Nutzungsbedingungen von SAM.gov/api.data.gov noch prüfen, bevor USA für Kunden beworben wird.
+- Länderauswahl: Großbritannien unter „Weitere Länder in Europa“, USA unter „Außerhalb Europas“. `alarm.yml` reicht `SAM_API_KEY` durch; Testworkflow `ted.yml` prüft TED, Großbritannien und (mit Schlüssel) USA.
 
 ### 30.10.2026 (Nacht, Teil 2) – Claude (Ausschreibungen aus anderen Ländern)
 - Neu `alarm/ted.py`: TED-Such-API v3 (ohne Schlüssel, Weiterverwendung erlaubt) für Auftragsbekanntmachungen (cn-standard, cn-social, cn-desg, subco) eines Tages in den gewählten Ländern; wandelt sie in das gleiche Format wie die deutsche Quelle (ocid `ted-<nummer>`, Frist als Tagesende, Land in `_land`). Ausfall von TED stoppt den deutschen Alarm nicht.
