@@ -115,6 +115,28 @@ export function standortKacheln(bereiche: Bereich[], personal: { bereich_id: str
 ${gruppen.map((g) => `<h3>${escape(g.name)}</h3><div class="konto-kacheln standort-kacheln">${[g, ...bereiche.filter((c) => c.parent_id === g.id)].map((b) => kachel(`/konto/standort/${b.id}`, b.id === g.id ? "🗺️" : "📍", b.id === g.id ? `${b.name} (Region)` : b.name, zahl(b.id))).join("")}</div>`).join("")}`;
 }
 
+/** The personnel of one location: numbers, filter, cards and the add form (also shown directly on "Firma & Team"). */
+export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, aktion: string): string {
+  // Filter by occupation and status (GET form, works without scripts).
+  const beruf = url.searchParams.get("beruf") ?? "";
+  const st = url.searchParams.get("status") ?? "";
+  const gezeigt = alle.filter((k) => (!beruf || k.berufe.includes(beruf)) && (!st || k.status === st));
+  const berufeHier = [...new Set(alle.flatMap((k) => k.berufe))].sort((a, c) => a.localeCompare(c, "de"));
+  const filter = alle.length > 3 ? `<form method="get" class="filter-leiste"><label>Beruf<select name="beruf" data-sofort-wahl><option value="">Alle Berufe</option>${berufeHier.map((x) => `<option${x === beruf ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></label><label>Status<select name="status" data-sofort-wahl><option value="">Alle</option>${Object.entries(STATUS).map(([v, [i, t]]) => `<option value="${v}"${v === st ? " selected" : ""}>${i} ${t}</option>`).join("")}</select></label><noscript><button>Filtern</button></noscript></form>` : "";
+  return `<p class="klein">${alle.filter((k) => k.status === "verfuegbar").length} verfügbar · ${alle.filter((k) => k.status === "einsatz").length} im Einsatz · ${alle.length} gesamt</p>
+${darfAendern && alle.length ? `<p><a class="knopf" href="#neu" data-oeffne="neu">➕ Person hinzufügen</a></p>` : ""}
+${filter}
+<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
+${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>➕ Person hinzufügen</summary>${kraftFormular({}, aktion, "Person speichern")}</details>` : ""}
+<p class="klein">Die Daten sieht nur, wer Zugriff auf diesen Standort hat. Trag nur ein, was für die Einsatzplanung nötig ist, und lösche Personen, die nicht mehr für euch arbeiten.</p>`;
+}
+
+/** With at most one location everything lives on "Firma & Team", so changes lead back there. */
+async function heimat(f: { s: Parameters<typeof db>[0]; m: { firma_id: string } }, env: KontoEnv, bereich: string | null): Promise<string> {
+  const r = await db<{ id: string }[]>(f.s, env, `bereiche?firma_id=eq.${f.m.firma_id}&select=id&limit=2`);
+  return r.ok && r.daten.length <= 1 ? "/konto/team" : `/konto/standort/${bereich ?? "firma"}`;
+}
+
 export async function personal(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const standort = url.pathname.match(/^\/konto\/standort\/([0-9a-f-]{36}|firma)$/);
@@ -130,9 +152,10 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     if (request.method === "POST") {
       if (!darfAendern) return antwort("Nicht erlaubt", "<p>Nur Bearbeiter und Admins können Personal eintragen.</p>", 403);
       const daten = ausFormular(await request.formData());
-      if (!daten.vorname) return weiterleiten(`/konto/standort/${standort[1]}?hinweis=${encodeURIComponent("Bitte mindestens den Vornamen eintragen.")}`, f.s.cookies);
+      const ziel = await heimat(f, env, bid);
+      if (!daten.vorname) return weiterleiten(`${ziel}?hinweis=${encodeURIComponent("Bitte mindestens den Vornamen eintragen.")}`, f.s.cookies);
       const r = await db(f.s, env, "personal", { method: "POST", body: JSON.stringify({ ...daten, firma_id: f.m.firma_id, bereich_id: bid }) });
-      return weiterleiten(`/konto/standort/${standort[1]}?hinweis=${encodeURIComponent(r.ok ? `${daten.vorname} ist eingetragen.` : "Das hat nicht geklappt. Hast du Rechte für diesen Standort?")}`, f.s.cookies);
+      return weiterleiten(`${ziel}?hinweis=${encodeURIComponent(r.ok ? `${daten.vorname} ist eingetragen.` : "Das hat nicht geklappt. Hast du Rechte für diesen Standort?")}`, f.s.cookies);
     }
     const [bereiche, liste] = await Promise.all([
       db<Bereich[]>(f.s, env, `bereiche?firma_id=eq.${f.m.firma_id}&select=id,name,art,parent_id`),
@@ -142,29 +165,16 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     if (bid && !b) return antwort("Nicht gefunden", "<p>Diesen Standort gibt es nicht oder du hast keinen Zugriff.</p>", 404);
     const titel = b ? bereichPfad(bereiche.ok ? bereiche.daten : [], b) : "Ganze Firma";
     const alle = liste.ok ? liste.daten : [];
-    // Filter by occupation and status (GET form, works without scripts).
-    const beruf = url.searchParams.get("beruf") ?? "";
-    const st = url.searchParams.get("status") ?? "";
-    const gezeigt = alle.filter((k) => (!beruf || k.berufe.includes(beruf)) && (!st || k.status === st));
-    const berufeHier = [...new Set(alle.flatMap((k) => k.berufe))].sort((a, c) => a.localeCompare(c, "de"));
     const hinweis = url.searchParams.get("hinweis");
-    const filter = alle.length > 3 ? `<form method="get" class="filter-leiste"><label>Beruf<select name="beruf" data-sofort-wahl><option value="">Alle Berufe</option>${berufeHier.map((x) => `<option${x === beruf ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></label><label>Status<select name="status" data-sofort-wahl><option value="">Alle</option>${Object.entries(STATUS).map(([v, [i, t]]) => `<option value="${v}"${v === st ? " selected" : ""}>${i} ${t}</option>`).join("")}</select></label><noscript><button>Filtern</button></noscript></form>` : "";
-    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>
-${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}
-<p class="klein">${alle.filter((k) => k.status === "verfuegbar").length} verfügbar · ${alle.filter((k) => k.status === "einsatz").length} im Einsatz · ${alle.length} gesamt</p>
-${darfAendern && alle.length ? `<p><a class="knopf" href="#neu" data-oeffne="neu">➕ Person hinzufügen</a></p>` : ""}
-${filter}
-<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
-${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>➕ Person hinzufügen</summary>${kraftFormular({}, `/konto/standort/${standort[1]}`, "Person speichern")}</details>` : ""}
-<p class="klein">Die Daten sieht nur, wer Zugriff auf diesen Standort hat. Trag nur ein, was für die Einsatzplanung nötig ist, und lösche Personen, die nicht mehr für euch arbeiten.</p>`);
+    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`)}`);
   }
 
   const pid = einzeln![1];
   const k = await db<Kraft[]>(f.s, env, `personal?id=eq.${pid}&select=*`);
   const kraft = k.ok ? k.daten[0] : undefined;
   if (!kraft || kraft.firma_id !== f.m.firma_id) return antwort("Nicht gefunden", "<p>Diese Person gibt es nicht oder du hast keinen Zugriff.</p>", 404);
-  const zurueck = `/konto/standort/${kraft.bereich_id ?? "firma"}`;
   if (request.method === "POST" && !einzeln![2]) {
+    const zurueck = await heimat(f, env, kraft.bereich_id);
     if (!darfAendern) return antwort("Nicht erlaubt", "<p>Nur Bearbeiter und Admins können Personal ändern.</p>", 403);
     const form = await request.formData();
     if (form.get("aktion") === "loeschen") {
@@ -176,7 +186,7 @@ ${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open
     const r = await db(f.s, env, `personal?id=eq.${pid}`, { method: "PATCH", body: JSON.stringify(daten) });
     return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent(r.ok ? "Gespeichert." : "Speichern hat nicht geklappt.")}`, f.s.cookies);
   }
-  if (!einzeln![2]) return weiterleiten(zurueck);
+  if (!einzeln![2]) return weiterleiten(await heimat(f, env, kraft.bereich_id));
 
   // Message page: pick a tender (matching ones first), the text is ready, the phone sends it.
   const vorgaenge = await db<{ id: string; titel: string; frist: string | null; status: string }[]>(f.s, env, `vorgaenge?firma_id=eq.${f.m.firma_id}&status=not.in.(verworfen,verloren,abgegeben)&select=id,titel,frist,status&order=erstellt.desc&limit=60`);

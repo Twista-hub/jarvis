@@ -10,7 +10,7 @@ import { FELDER, STANDARD, felderHtml, fmt, zahl, type Eingaben } from "./kalkul
 import { escape, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
-import { standortKacheln } from "./personal.ts";
+import { personalTeil, standortKacheln, type Kraft } from "./personal.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 
 export interface KontoEnv {
@@ -235,9 +235,17 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const werte = { ...STANDARD, ...(vorlagen.ok ? vorlagen.daten[0]?.eingaben : {}) };
     inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte der Firma</h2><p>Diese Standardwerte gelten für die Firma. Du kannst sie bei jeder Ausschreibung anpassen.</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>Standardwerte speichern</button>` : ""}</form>`}`);
   } else if (unterseite === "team") {
-    const pool = await db<{ bereich_id: string | null; status: string }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=bereich_id,status`);
-    let team = `<h2>Standorte & Personal</h2><p class="klein">Tippe einen Standort an, um dort Personal mit Berufen und Telefonnummern einzutragen und anzuschreiben.</p>`;
-    team += standortKacheln(b, pool.ok ? pool.daten : []);
+    let team: string;
+    if (b.length <= 1) {
+      // Only one location: the personnel is shown right here, no extra page.
+      const ort = b[0]?.id ?? null;
+      const pool = await db<Kraft[]>(s, env, `personal?firma_id=eq.${m.firma_id}&bereich_id=${ort ? `eq.${ort}` : "is.null"}&select=*&order=status,vorname`);
+      team = `<h2>Personal${b[0] ? ` · ${escape(b[0].name)}` : ""}</h2>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`)}`;
+    } else {
+      const pool = await db<{ bereich_id: string | null; status: string }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=bereich_id,status`);
+      team = `<h2>Standorte & Personal</h2><p class="klein">Tippe einen Standort an, um dort Personal mit Berufen und Telefonnummern einzutragen und anzuschreiben.</p>`;
+      team += standortKacheln(b, pool.ok ? pool.daten : []);
+    }
     if (admin) {
     team += `<details><summary>➕ Standort oder Bereich anlegen</summary><form method="post" action="/konto/bereich">
   <input type="hidden" name="firma" value="${m.firma_id}">
