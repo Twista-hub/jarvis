@@ -5,7 +5,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Aktueller Stand (30.10.2026)
 - **App online:** https://jarvis-alarm.benschiffer79.workers.dev
   - Startseite mit Erklärung und Beispiel-Steckbrief; Impressum, Datenschutz, Nutzungsbedingungen, AVV (Entwürfe, Benjamin prüft noch).
-  - Login per Mail-Link, Firmen, Bereiche/Standorte, Rollen, Einladungen per Mail.
+  - Registrierung mit Passwort, Passwort-Anmeldung/-Wiederherstellung und Mail-Link; bestätigte neue Firmen werden zunächst kostenlos angelegt. Firmen, Bereiche/Standorte, Rollen und Einladungen.
   - Ausschreibungen als Handy-Karten mit Punkten, Frist, Stand und Bereichsfilter; Treffer-Seite mit Steckbrief, Knopf „Hier runterladen“
     (zum Portal) und Upload, Jarvis schreibt daraus den ausführlichen Steckbrief (ergänzt den aus der Bekanntmachung) und die Kalkulation.
   - Einrichtungs-Assistent: Firma beschreiben → KI schlägt Suchprofil vor → speichern → Alarm sucht sofort die letzten 7 Tage.
@@ -13,25 +13,34 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Handy-Nachrichten (Web-Push) und als App installierbar.
   - Profil-Icon oben rechts (/konto/profil), Firmenwechsel im Profil; Suchprofil als eigener Bereich (/konto/suchprofil). Keine E-Mail-Zeile oder Einrichtung auf der Übersicht.
   - Mitarbeiter: Name und Funktion (z. B. Serviceleitung/Facharbeiter) unabhängig von Rollen, Bereichszuordnung und Finanzfreigabe; gezielte Textweitergabe mit Vorschau/Widerruf und eigener Mitarbeiteransicht.
+  - Personalbestand pro Standort mit Berufen, Qualifikationen, Verfügbarkeit und Kontakt; Personen können Ausschreibungen mit Einsatzstatus zugeordnet werden. Nachrichten öffnen WhatsApp/SMS/Mail auf dem eigenen Gerät.
+  - Kalkulation pro Los mit Tarifentgeltgruppen, Laufzeit, Schicht- und Einsatzkosten, Gemeinkosten sowie Gewinn.
   - Firmenunterlagen und Word-/Textvorlagen; Angebotsmappe mit bearbeitbarem Entwurf, Chef-Freigabe vor Download, Ablaufprüfung, Ablauf-Erinnerungen und protokolliertem Eingangsbeleg nach manueller Portalabgabe.
+  - Mobile Formulare, größere Touchflächen und kurze einklappbare Erklärungen für Treffer, Rollen, Unterlagen, Suchprofil, Kalkulation und Personal.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (niemand)
+- (ChatGPT) Handy-Layout und kurze Hilfetexte
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
-2. Zuständige Person pro Ausschreibung zuweisen (Fahrplan Punkt 9).
+2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen.
 3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
-4. Aussehen/Design mit Logo WP Digital Ranger.
+4. Aussehen/Design mit Logo WP Digital Ranger; mobile Touchflächen und Kern-Erklärungen sind verbessert.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (Handy-Bedienung und Hilfen)
+- Touchflächen für Formulare, Berufsauswahl-Chips und Personalaktionen auf mindestens 44 px gebracht; sehr schmale Ansichten mit angepassten Seitenrändern, Fokusrahmen für Tastatur und bestehender fixer Handy-Leiste.
+- Einklappbare Kurz-Erklärungen zu Trefferstatus, Upload und Dateiaufbewahrung, Firmenrollen, Suchprofil, Kalkulation, Personaldaten und Einsatzstatus ergänzt.
+- Typprüfung und alle 70 Web-Tests grün. Chromium ohne horizontales Scrollen bei 320, 360, 390, 768 und 1280 px geprüft.
+- Offen: Logo/Markenbild, Hilfen auf übrigen Seiten und separates Feld für die kaufmännisch verantwortliche Person. Noch nicht ausgerollt.
 
 ### 30.10.2026 (abends, Teil 8) – Claude
 - Nur ein Standort: Personal steht direkt unter „Firma & Team“ (keine zweite Seite).

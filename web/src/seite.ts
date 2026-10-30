@@ -33,6 +33,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 16px; }
   h2 { font-size: 1.2rem; margin: 28px 0 8px; }
   a { color: var(--accent); }
+  a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
   form { min-width: 0; display: grid; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
   label { min-width: 0; display: grid; gap: 6px; font-weight: 600; }
   textarea { min-height: 7em; resize: vertical; }
@@ -43,7 +44,12 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .zeile input { width: auto; }
   input, select, textarea { min-width: 0; max-width: 100%; font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }
   button { font: inherit; font-weight: 600; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); cursor: pointer; }
+  button, input, select { min-height: 44px; }
+  input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; min-height: 22px; flex: 0 0 22px; accent-color: var(--accent); }
   .knopf { display: block; text-align: center; font-weight: 700; font-size: 1.1rem; padding: 14px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; }
+  .hilfe { margin: 12px 0 18px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; background: var(--card); }
+  .hilfe summary { display: flex; align-items: center; min-height: 44px; padding: 8px 12px; cursor: pointer; color: var(--accent); font-weight: 650; }
+  .hilfe p { margin: 0; padding: 0 12px 12px; color: var(--muted); font-size: 14px; }
   .fehler { color: var(--error); font-weight: 600; }
   .laedt { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
   .kreisel { flex-shrink: 0; width: 24px; height: 24px; margin-top: 2px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: kreisen 0.9s linear infinite; }
@@ -83,12 +89,12 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .person-kopf { display: flex; gap: 12px; align-items: center; }
   .person-kopf > div { flex: 1; min-width: 0; }
   .person-avatar { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border-radius: 50%; background: var(--accent); color: var(--bg); font-weight: 700; }
-  .stift { display: grid; place-items: center; width: 40px; height: 40px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; text-decoration: none; background: var(--bg); }
+  .stift { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; text-decoration: none; background: var(--bg); }
   .status { font-size: 13px; color: var(--muted); }
   .marke { display: inline-block; margin: 0 6px 6px 0; padding: 3px 10px; border-radius: 999px; background: var(--bg); border: 1px solid var(--line); font-size: 13px; }
   .person-aktionen { display: flex; flex-wrap: wrap; gap: 8px; }
   .person-aktionen.gross { margin: 16px 0; }
-  .knopf-klein { display: inline-block; padding: 9px 14px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
+  .knopf-klein { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 8px 14px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); text-decoration: none; font-weight: 600; font-size: 14px; }
   .knopf-leise { background: transparent; color: var(--error); border: 1px solid var(--line); }
   .knopf.whatsapp { background: #1f8f4e; color: #fff; padding: 12px 18px; }
   .bearbeiten summary, .neu-person summary { cursor: pointer; font-weight: 600; color: var(--accent); }
@@ -98,7 +104,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
   .chips label { display: inline-flex; font-weight: 500; }
   .chips input { position: absolute; opacity: 0; width: 1px; height: 1px; }
-  .chips span { padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); font-size: 14px; cursor: pointer; }
+  .chips span { display: inline-flex; align-items: center; min-height: 44px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 999px; background: var(--bg); font-size: 14px; cursor: pointer; }
   .chips input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--bg); }
   .chips input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
   details > summary { cursor: pointer; }
@@ -156,6 +162,9 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   }
   @media (max-width: 600px) {
     main { padding-bottom: 104px; }
+    form { gap: 12px; padding: 14px; border-radius: 14px; }
+    .konto-kopf { margin-bottom: 14px; }
+    .aktionsleiste a { min-height: 56px; }
     /* Tables become stacked cards on the phone: no sideways scrolling. */
     table.stapel, table.stapel tbody, table.stapel tr, table.stapel td { display: block; width: 100%; }
     table.stapel thead { display: none; }
@@ -167,6 +176,11 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
     .konto-nav { position: fixed; z-index: 10; display: grid; grid-template-columns: repeat(4, 1fr); left: 0; right: 0; bottom: 0; padding: 8px 4px max(8px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--card); box-shadow: 0 -3px 12px #00000012; }
     .konto-nav a { display: grid; justify-items: center; gap: 1px; padding: 4px 0; color: var(--text); text-decoration: none; font-size: 1.2rem; }
     .konto-nav span { font-size: 11px; line-height: 1.2; }
+  }
+  @media (max-width: 380px) {
+    main { padding-right: 12px; padding-left: 12px; }
+    .konto-kacheln { gap: 8px; }
+    .konto-zurueck a, .profil-icon { width: 44px; height: 44px; }
   }
 </style>
 </head>
@@ -186,6 +200,11 @@ export function kontoNavigation(aktiv: string): string {
 
 export function escape(s: string): string {
   return s.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/** Small, collapsed plain-language explanation for a screen or action. */
+export function hilfe(titel: string, text: string): string {
+  return `<details class="hilfe"><summary>ℹ️ ${escape(titel)}</summary><p>${escape(text)}</p></details>`;
 }
 
 /** Model output may contain text from the documents: escape all HTML, allow only http(s) links. */

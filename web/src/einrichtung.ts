@@ -3,7 +3,7 @@
 // confirms or edits it. Saved in suchprofile (firm level); the daily alarm reads it from there.
 import Anthropic from "@anthropic-ai/sdk";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
-import { escape, seite as allgemeineSeite } from "./seite.ts";
+import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
 const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 0, "einstellungen");
 
 export interface EinrichtungEnv extends KontoEnv {
@@ -96,6 +96,7 @@ async function anzeigen(s: Sitzung, env: KontoEnv, firma: string, name: string, 
 
 function startFormular(firma: string, beschreibung: string, orte: string, fehler: string): string {
   return `${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}
+${hilfe("Tipp für eine gute Suche", "Schreib konkret, welche Leistungen und Einsatzorte wichtig sind. Nenne auch Aufträge, die ihr nicht übernehmen wollt. Jarvis erstellt daraus einen Vorschlag, den du vor dem Start prüfst.")}
 <p>In zwei Schritten: Du beschreibst deine Firma, Jarvis schlägt das Suchprofil vor, du prüfst es und speicherst.</p>
 <form method="post" action="/konto/einrichtung/vorschlag">
   <input type="hidden" name="firma" value="${firma}">
@@ -153,6 +154,7 @@ export function profilFormular(firma: string, v: Vorschlag, hinweis: string): st
   ${o.bereich_id ? `<input type="hidden" name="o${i}_bereich" value="${escape(o.bereich_id)}">` : ""}
 </fieldset>`).join("");
   return `${hinweis ? `<p>${escape(hinweis)}</p>` : ""}
+${hilfe("Was kann ich hier ändern?", "Passe Leistungen, Suchwörter, CPV-Codes und Standorte an. Haken entfernen deaktiviert einen Eintrag. Bei PLZ-Präfixen reichen die ersten zwei Ziffern. Ausschlüsse helfen, unpassende Treffer zu vermeiden.")}
 <form method="post" action="/konto/einrichtung/speichern">
   <input type="hidden" name="firma" value="${firma}">
   <label>Beschreibung (danach bewertet die KI jede Ausschreibung)
