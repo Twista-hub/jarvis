@@ -21,8 +21,7 @@ export async function firmenunterlagen(request: Request, env: KontoEnv): Promise
   const url = new URL(request.url);
   const detail = url.pathname.match(/^\/konto\/firmenunterlage\/([0-9a-f-]{36})\/(herunterladen|loeschen)$/);
   if (url.pathname!=="/konto/firmenunterlagen" && !detail) return null;
-  const form = request.method==="POST" && !detail ? await request.formData() : null;
-  const f = await aktiveFirma(request,env,form ? String(form.get("firma")??"") : undefined);
+  const f = await aktiveFirma(request,env);
   if (!f) return weiterleiten("/konto");
   const antwort = (text:string,status=200) => html(seite("Firmenunterlagen & Vorlagen",text,0,"unterlagen"),status,f.s.cookies);
   if (!f.finanzen || !env.DATEN) return antwort("<p>Für diese Unterlagen brauchst du eine Finanzfreigabe.</p>",403);
@@ -44,6 +43,8 @@ export async function firmenunterlagen(request: Request, env: KontoEnv): Promise
     return new Response(obj.body,{headers});
   }
   let fehler="";
+  const form = request.method==="POST" ? await request.formData() : null;
+  if (form && String(form.get("firma") ?? "") !== f.m.firma_id) return antwort("<p>Die ausgewählte Firma hat sich geändert. Bitte die Seite neu öffnen.</p>",403);
   if (form) {
     if (!f.admin) return antwort("<p>Nur die Administration darf Dateien hochladen.</p>",403);
     const file = form.get("datei");
@@ -55,9 +56,12 @@ export async function firmenunterlagen(request: Request, env: KontoEnv): Promise
     else {
       const d = {id:crypto.randomUUID(),firma_id:f.m.firma_id,name,art,dateiname:dateiname(file.name),mime:file.type||"application/octet-stream",groesse:file.size,gueltig_bis:gueltig||null};
       await env.DATEN.put(dateiKey(d),file.stream());
-      const r = await db(f.s,env,"firmenunterlagen",{method:"POST",body:JSON.stringify(d)});
-      if (r.ok) return weiterleiten(`/konto/firmenunterlagen?firma=${d.firma_id}`,f.s.cookies);
-      await env.DATEN.delete(dateiKey(d));
+      let gespeichert = false;
+      try {
+        const r = await db(f.s,env,"firmenunterlagen",{method:"POST",body:JSON.stringify(d)});
+        gespeichert = r.ok;
+        if (gespeichert) return weiterleiten(`/konto/firmenunterlagen?firma=${d.firma_id}`,f.s.cookies);
+      } finally { if (!gespeichert) await env.DATEN.delete(dateiKey(d)); }
       fehler="Die Datei konnte nicht gespeichert werden. Je Firma sind höchstens 50 Dateien und 200 MB erlaubt.";
     }
   }

@@ -10,7 +10,7 @@ import { firmenunterlagen } from "./firmenunterlagen";
 import { freigaben } from "./freigaben";
 import { mitarbeiterVerwalten } from "./mitarbeiter";
 import { einrichtung } from "./einrichtung";
-import { db, konto, vorgangZugriff, type KontoEnv } from "./konto";
+import { db, konto, sitzung, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { escape, markdown, seite } from "./seite";
@@ -42,6 +42,17 @@ const ID = /^[0-9a-f-]{36}$/;
 
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
+    const r = await verarbeiten(request,env);
+    if (!new URL(request.url).pathname.startsWith("/auftrag/")) return r;
+    const s = await sitzung(request,env);
+    const headers = new Headers(r.headers);
+    headers.set("cache-control","private, no-store");
+    for (const c of s?.cookies ?? []) headers.append("set-cookie",c);
+    return new Response(r.body,{status:r.status,statusText:r.statusText,headers});
+  },
+};
+
+async function verarbeiten(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     const datei = request.method === "GET" ? statisch(url.pathname) : null;
     if (datei) return datei;
@@ -78,9 +89,7 @@ export default {
     if (m && ID.test(m[1]) && m[2] && request.method === "POST") return kalkulieren(m[1], request, env);
     if (m && ID.test(m[1]) && !m[2]) return auftrag(m[1], env, request);
     return html(seite("Nicht gefunden", "<p>Diese Seite gibt es nicht.</p>"), 404);
-  },
-};
-
+}
 
 async function hochladen(request: Request, env: Env): Promise<Response> {
   const form = await request.formData();
