@@ -45,7 +45,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
 2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen. Die bundesweite zentrale Tarifdatenbank bleibt offen: Recherchequellen decken nur ausgewählte Branchen/Berufe ab; Nutzungsrechte und Aktualisierung für eine automatische Übernahme müssen geklärt werden (docs/personalkatalog.md, alarm/quellen.md).
-3. Eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
+3. ~~Mitarbeiterzugänge sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Logo und Grundgestaltung in der Konto-Kopfzeile~~ (umgesetzt); übrige Seitensymbole/Farben können später vereinheitlicht werden.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
@@ -259,3 +259,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Auf `/konto/kalkulation` kann man Firmen- oder Standortwerte auswählen, bearbeiten und speichern. Ein Standort ohne eigene Vorlage übernimmt zuerst die Region und danach die Firmenwerte. Die Liste zeigt den vollständigen Bereichspfad.
 - Bei einer Ausschreibung nehmen Berechnung und Angebotsmappe die nächste passende Vorlage im Bereichsbaum. Gespeicherte Vorgangswerte bleiben vorrangig. Das bestehende Bereichs-/Finanz-RLS wird genutzt; für die vorhandene eindeutige `(firma_id, bereich_id)`-Vorlage war keine DB-Migration nötig.
 - Typprüfung und alle 19 Web-Testdateien grün; Regressionstest für Standort-/Regions-/Firmenpriorität. PostgreSQL-Rechte unverändert; kein Dockerzugriff in dieser Umgebung. Web-Rollout nach Push automatisch. Offen: Mitarbeiter sperren/austreten lassen. Benjamin muss nichts einrichten.
+
+### 30.10.2026 – ChatGPT (Mitarbeiterzugang sperren)
+- In „Firma & Team“ kann Inhaber/Administration App-Zugänge für genau diese Firma sperren und wieder aktivieren. Gesperrte Konten bleiben sichtbar und sind beschriftet. Die Deaktivierung nutzt `mitglieder.aktiv`; Rollen, Standortzuordnungen und historische Daten werden nicht gelöscht.
+- Inhaber können sich nicht über diesen Knopf selbst sperren; die Datenbank verhindert weiterhin das Sperren des letzten aktiven Inhabers. Ein alter Sitzungstoken gewährt wegen der aktiven Mitgliedschaftsprüfung keinen Zugriff auf die gesperrte Firma; Zugänge zu anderen Firmen und das Supabase-Konto bleiben bestehen.
+- Typprüfung und alle 19 Web-Testdateien grün. Isolierter PostgreSQL-Rechtestest einschließlich Sperre, RLS-Zugriffsverlust, Reaktivierung und letztem Inhaber: „ALLE TESTS OK“. Keine Schemaänderung nötig.
+- Als nächstes laut Fahrplan: kaufmännisch Verantwortliche Person je Ausschreibung. Benjamin muss nichts einrichten.
