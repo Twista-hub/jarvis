@@ -31,7 +31,7 @@ jobs:
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       ACTIONS_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      URL: https://jarvis-alarm.benschiffer79.workers.dev
+      URL: https://app.wpdigitalranger.com
     steps:
       - uses: actions/checkout@v4
       - name: Cloudflare-Schlüssel vorhanden?

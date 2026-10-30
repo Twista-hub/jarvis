@@ -45,7 +45,7 @@ ausführlichen Steckbrief und rechnet den Angebotspreis.
 ## 5. Aufbau (alles online, nichts auf Benjamins PC)
 | Teil | Wo | Datei/Ordner |
 |---|---|---|
-| Web-App (Konto, Treffer, Upload, Einrichtung, Rechtstexte, Handy-Nachrichten) | Cloudflare Worker `jarvis-alarm`: https://jarvis-alarm.benschiffer79.workers.dev | `web/` (TypeScript, keine Frameworks, Seiten ohne fremde Skripte; nur `/app.js` und `/sw.js`) |
+| Web-App (Konto, Treffer, Upload, Einrichtung, Rechtstexte, Handy-Nachrichten) | Cloudflare Worker `jarvis-alarm`: https://app.wpdigitalranger.com | `web/` (TypeScript, keine Frameworks, Seiten ohne fremde Skripte; nur `/app.js` und `/sw.js`) |
 | Steckbrief aus Unterlagen | Cloudflare Workflow `jarvis-steckbrief`, Dateien in R2 `jarvis-auftraege` (EU, 30 Tage) | `web/src/workflow.ts` |
 | Täglicher Alarm | GitHub Actions `alarm.yml` (05:17 und 07:41 UTC) | `alarm/alarm.py`, `ki.py`, `speichern.py`, `profile_db.py` |
 | Tägliche Mail und Handy-Nachricht | GitHub Actions `mail.yml` (stündlich 7–20 Uhr) | `alarm/mail.py`, `alarm/push.py` |

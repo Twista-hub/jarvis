@@ -4,7 +4,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (30.10.2026)
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
-- **App online:** https://jarvis-alarm.benschiffer79.workers.dev
+- **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
   - Startseite mit Erklärung und Beispiel-Steckbrief; Impressum, Datenschutz, Nutzungsbedingungen, AVV (Entwürfe, Benjamin prüft noch).
   - Registrierung mit Passwort, Passwort-Anmeldung/-Wiederherstellung und Mail-Link; bestätigte neue Firmen werden zunächst kostenlos angelegt. Firmen, Bereiche/Standorte, Rollen und Einladungen.
   - Ausschreibungen als Handy-Karten mit Punkten, Frist, Stand und Bereichsfilter; Treffer-Seite mit Steckbrief, Knopf „Hier runterladen“
@@ -41,6 +41,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 (Nacht, Teil 4) – Claude (eigene Adresse)
+- App unter https://app.wpdigitalranger.com (Cloudflare Custom Domain in `web/wrangler.toml`). Alte Adresse `jarvis-alarm.benschiffer79.workers.dev` leitet mit 301/308 weiter (`ADRESSE` in `web/src/index.ts`). Links in Mails (`alarm/mail.py`), Berichten (`alarm/alarm.py`) und Seitentest (`web.yml`) umgestellt. Supabase „Site URL“ und „Redirect URLs“ hat Benjamin eingetragen. Handy-Benachrichtigungen müssen auf der neuen Adresse neu eingeschaltet werden.
 
 ### 30.10.2026 (Nacht, Teil 3) – Claude (Großbritannien und USA)
 - `alarm/uk.py`: Find a Tender (OCDS, Open Government Licence v3, Quellenhinweis im Kurzüberblick); Contracts Finder noch nicht (Nutzungsbedingungen nicht gefunden).

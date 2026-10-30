@@ -21,7 +21,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 ROOT = Path(__file__).parent
-UPLOAD = "https://jarvis-alarm.benschiffer79.workers.dev/"
+UPLOAD = "https://app.wpdigitalranger.com/"
 UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"}
 # Portals whose terms and robots.txt allow downloading the documents for our service (checked by hand).
 # Not DTVP: its AGB (29.10.2026) forbid systematic downloads of notices and documents for commercial offers.
