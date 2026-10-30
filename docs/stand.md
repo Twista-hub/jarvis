@@ -54,6 +54,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 – ChatGPT (Tarifauswahl im Mitarbeiterformular)
+- Ursache bestätigt: Die Auswahlliste lädt firmeneigene Datensätze korrekt; pro Firma wird als Standard nur „Zeitarbeit GVP/DGB“ angelegt. Meine vorherige Änderung erweiterte ausschließlich Berufe/Synonyme und importierte keine weiteren Tarifverträge.
+- Mitarbeiterformular zeigt nun ausdrücklich, wenn nur GVP/DGB hinterlegt ist, und verlinkt direkt zu „Tarifverträge & Entgeltgruppen verwalten“ unter Firma & Team. Der Direktlink öffnet den Abschnitt automatisch. Dort lassen sich weitere Originalverträge mit ihren Gruppen, Region, Laufzeit und Quelle ergänzen.
+- Keine Tarifgruppen oder Löhne erfunden oder pauschal importiert. Typprüfung und alle 19 Web-Testdateien grün. Offen bleibt, weitere Verträge jeweils anhand konkreter, verlässlicher Originalquellen zu erfassen.
+
 ### 30.10.2026 – ChatGPT (Berufekatalog und Ausschreibungssynonyme)
 - Berufekatalog (`web/src/berufe.ts`) um Tätigkeiten in IT/Kommunikation, Bildung/Betreuung, Fahrzeug/Verkehr sowie Gebäudetechnik/Energie erweitert; Agrar/Tierpflege um Landwirt, Tierpfleger und Forstwirt ergänzt.
 - `web/src/katalog-daten.ts` ordnet zusätzliche Ausschreibungsbegriffe (z. B. Schreiner, Fachinformatiker Systemintegration, PV-Monteur) kanonischen Berufen zu. Der extrahierte Bedarf behält Originalfundstelle und Losbezug. Regressionstest ergänzt.
