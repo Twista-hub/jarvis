@@ -15,6 +15,7 @@ import sys
 import tempfile
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree as ET
 import zipfile
 from datetime import date, timedelta
 from pathlib import Path
@@ -109,6 +110,37 @@ def item(nr: int, rel: dict) -> dict:
             "ort": place(rel), "beschreibung": re.sub(r"\s+", " ", t.get("description", ""))[:1500], "cpv": cpv_codes(t)}
 
 
+def eforms_text(notice_id: str) -> str:
+    """The full notice (eForms XML, same CC0 source) as 'field: value' lines: selection criteria,
+    award criteria, deadlines and lots that the OCDS export leaves out. '' if not available."""
+    if not re.fullmatch(r"\d+", str(notice_id)):
+        return ""
+    for version in ("", "&noticeVersion=1"):
+        try:
+            url = f"https://oeffentlichevergabe.de/api/notices/{notice_id}?format=eforms{version}"
+            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+                root = ET.fromstring(r.read())
+            break
+        except Exception:  # noqa: BLE001
+            continue
+    else:
+        return ""
+    zeilen, pfad = [], []
+
+    def lauf(el):
+        name = el.tag.split("}")[-1]
+        pfad.append(name)
+        text = (el.text or "").strip()
+        if text and not len(el):
+            zeilen.append(f"{'/'.join(pfad[-3:])}: {text}")
+        for kind in el:
+            lauf(kind)
+        pfad.pop()
+
+    lauf(root)
+    return "\n".join(z for z in zeilen if "UBLExtension" not in z)[:50000]
+
+
 def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str) -> Path | None:
     """Let Claude write the Steckbrief: from the documents on allowed portals, otherwise from the notice itself."""
     t = rel.get("tender") or {}
@@ -125,8 +157,11 @@ def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str)
             dokumente, skipped = bundle(files)
         quelle = f"aus {len(files)} Vergabeunterlagen" + (f" (nicht gelesen: {', '.join(skipped)})" if skipped else "")
     else:
-        dokumente = "Nur die öffentliche Bekanntmachung (OCDS), keine Vergabeunterlagen:\n" + json.dumps(rel, ensure_ascii=False)[:60000]
-        quelle = "nur aus der Bekanntmachung (die Vergabeunterlagen selbst hat Jarvis nicht gelesen)"
+        voll = eforms_text(rel.get("id", ""))
+        dokumente = ("Nur die öffentliche Bekanntmachung, keine Vergabeunterlagen.\n"
+                     + (f"Vollständige Bekanntmachung (eForms, Feldname: Wert):\n{voll}\n\n" if voll else "")
+                     + "Kurzfassung (OCDS):\n" + json.dumps(rel, ensure_ascii=False)[:40000])
+        quelle = "aus der vollständigen Bekanntmachung (die Vergabeunterlagen selbst hat Jarvis nicht gelesen)"
     if not dokumente.strip():
         return None
     text = ki.steckbrief(profile["beschreibung"], kopf, dokumente)

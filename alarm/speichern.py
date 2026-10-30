@@ -40,7 +40,7 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
                on conflict (firma_id, quelle_id) do update set
                  punkte = coalesce(excluded.punkte, vorgaenge.punkte),
                  frist = coalesce(excluded.frist, vorgaenge.frist),
-                 steckbrief = coalesce(vorgaenge.steckbrief, excluded.steckbrief),
+                 steckbrief = coalesce(excluded.steckbrief, vorgaenge.steckbrief),
                  link = excluded.link,
                  bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id)
                returning (xmax = 0)""",
