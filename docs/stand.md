@@ -41,6 +41,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 (Nacht) – Claude (neue Ausschreibungsquellen geprüft)
+- Abdeckung gemessen: Der Bekanntmachungsservice enthält schon fast alle Landes-/Kommunalplattformen (14 Tage, 7.038 Ausschreibungen). Neue Kandidaten in `alarm/quellen.md` (Abschnitt „Neue Kandidaten“). Erlaubt und sinnvoll: TED-API für Nachbarländer/EU-Institutionen. Offen: auftraege.bayern.de (Legalinfo lesen, Bayern/BW wirken unterrepräsentiert), NRW-Open-Data-ZIP (Kennung nötig, Anfrage nur mit Benjamins OK). Nicht: HAD-Suche (robots), Metropole Ruhr (blockt Skripte).
+
 ### 30.10.2026 (spät) – Claude (Rundnachricht und Einsatzplan, Übernahme nach ChatGPT)
 - Stand von ChatGPT geprüft: alle Läufe bis 2227233 (Vergabekatalog) grün, nichts hängt mehr in der Warteschlange. Geplanter Maillauf „Tägliche Mail“ am 30.10. 18:31 UTC per Zeitplan erfolgreich (erster Beleg für den automatischen Lauf; Zustellung selbst nicht geprüft).
 - Neu `web/src/einsatzplan.ts`: `/konto/rundnachricht` (mehrere Personen anschreiben: Filter Standort/Beruf/Status, Ausschreibung wählen, Text änderbar; „In WhatsApp-Gruppe teilen“, „Eine SMS an alle“, „Text kopieren“, persönlich je Person WhatsApp/SMS/Mail; „alle als angefragt eintragen“) und `/konto/vorgang/<id>/einsatzplan` (Ort, Beginn/Ende, Treffpunkt, Kleidung, Ansprechpartner, Hinweise; Versand an Zugesagte oder alle Eingeplanten, Teamliste optional). Jarvis verschickt selbst nichts.
