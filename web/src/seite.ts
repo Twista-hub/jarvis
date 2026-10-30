@@ -42,11 +42,31 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 15px; }
   th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
   th { background: var(--card); }
+  .konto-kacheln { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 18px 0 36px; }
+  .konto-kachel { position: relative; display: flex; flex-direction: column; min-height: 156px; gap: 7px; padding: 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); color: var(--text); text-decoration: none; box-shadow: 0 2px 8px #0000000a; }
+  .konto-kachel:hover, .konto-kachel:focus-visible { border-color: var(--accent); outline-color: var(--accent); }
+  .konto-icon { font-size: 2rem; }
+  .konto-kachel strong { font-size: 1.12rem; }
+  .konto-pfeil { position: absolute; right: 16px; top: 18px; font-size: 1.5rem; color: var(--accent); }
+  .konto-zurueck { margin: 0 0 10px; }
+  .konto-zurueck a { text-decoration: none; font-weight: 650; }
+  .konto-linkliste, .fristen-liste { list-style: none; margin: 12px 0; padding: 0; }
+  .konto-linkliste li, .fristen-liste li { display: grid; gap: 3px; padding: 14px 4px; border-bottom: 1px solid var(--line); }
+  .fristen-liste time { font-weight: 700; }
+  .konto-nav { display: none; }
+  @media (max-width: 600px) {
+    main { padding-bottom: 104px; }
+    .konto-kacheln { grid-template-columns: 1fr; gap: 10px; }
+    .konto-kachel { min-height: 126px; }
+    .konto-nav { position: fixed; z-index: 10; display: grid; grid-template-columns: repeat(4, 1fr); left: 0; right: 0; bottom: 0; padding: 8px 4px max(8px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--card); box-shadow: 0 -3px 12px #00000012; }
+    .konto-nav a { display: grid; justify-items: center; gap: 1px; padding: 4px 0; color: var(--text); text-decoration: none; font-size: 1.2rem; }
+    .konto-nav span { font-size: 11px; line-height: 1.2; }
+  }
 </style>
 </head>
 <body><main>
 <header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>
-${inhalt.trimStart().startsWith("<h1") ? "" : `<h1>${escape(titel)}</h1>`}
+${inhalt.trimStart().startsWith("<h1") || inhalt.trimStart().startsWith('<p class="konto-zurueck"') ? "" : `<h1>${escape(titel)}</h1>`}
 ${inhalt.replace(/<table>/g, '<div class="tabelle"><table>').replace(/<\/table>/g, "</table></div>")}
 <p class="klein">WP Digital Ranger · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> · <a href="/avv">Auftragsverarbeitung</a></p>
 </main></body>
