@@ -26,6 +26,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   label { display: grid; gap: 6px; font-weight: 600; }
   input, select { font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }
   button { font: inherit; font-weight: 600; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); cursor: pointer; }
+  .knopf { display: block; text-align: center; font-weight: 700; font-size: 1.1rem; padding: 14px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; }
   .fehler { color: var(--error); font-weight: 600; }
   .klein { color: var(--muted); font-size: 14px; }
   .tabelle { overflow-x: auto; }

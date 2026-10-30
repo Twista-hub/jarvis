@@ -34,6 +34,9 @@ const ROLLEN: Record<string, string> = {
 };
 const ARTEN: Record<string, string> = { standort: "Standort", abteilung: "Abteilung", team: "Team" };
 const COOKIE = "Path=/; HttpOnly; Secure; SameSite=Lax";
+// The only script: submits the upload as soon as a file is chosen. Allowed by its hash in the CSP below.
+export const SOFORT_JS = 'document.querySelectorAll("input[data-sofort]").forEach(function(i){i.addEventListener("change",function(){if(i.files.length){i.form.querySelector("button").textContent="Wird hochgeladen …";i.form.requestSubmit();}});});';
+export const SOFORT_HASH = "sha256-VNoEX8Z3tsR5/QCXrLw24nEJXrMXtx1IAc7BCP929eo=";
 
 /** Handles /konto, /anmelden, /einladung and /abmelden; null for other paths. */
 export async function konto(request: Request, env: KontoEnv): Promise<Response | null> {
@@ -348,16 +351,15 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
   const kopf = `<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status} · <a href="/konto">Zur Übersicht</a></p>
 ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
   const hochladen = rolle === "leser" ? "" : `<h2 id="unterlagen">📥 Vergabeunterlagen</h2>
-<p>Für Eignungskriterien, Nachweise, Referenzen und das Preisblatt braucht Jarvis die Unterlagen. So geht's:</p>
-<ol>
-  <li>${portal ? `<a href="${escape(portal)}" rel="noopener" target="_blank"><strong>Unterlagen beim Vergabeportal öffnen</strong></a>` : "Die Ausschreibung beim Vergabeportal öffnen"} und dort „Alle herunterladen“ bzw. „Vergabeunterlagen“ wählen (meist eine ZIP-Datei; manche Portale wollen eine kostenlose Anmeldung).</li>
-  <li>Die Datei hier auswählen und auf „Hochladen und prüfen“ tippen. Am Handy findest du sie unter „Downloads“.</li>
-</ol>
+<p>Für Eignungskriterien, Nachweise, Referenzen und das Preisblatt braucht Jarvis die Unterlagen.</p>
+${portal ? `<p><a class="knopf" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Hier runterladen</a></p>
+<p class="klein">Öffnet das Vergabeportal. Dort „Alle herunterladen“ bzw. „Vergabeunterlagen“ tippen (meist eine ZIP-Datei; manche Portale wollen eine kostenlose Anmeldung).</p>` : `<p class="klein">Die Ausschreibung beim Vergabeportal öffnen und die Unterlagen herunterladen.</p>`}
 <form method="post" action="/konto/vorgang/${v.id}/unterlagen" enctype="multipart/form-data">
-  <label>Unterlagen (PDF, Word, Excel oder ZIP)<input name="dateien" type="file" multiple required accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label>
-  <button>Hochladen und prüfen</button>
+  <label>Danach die heruntergeladene Datei hier auswählen – Jarvis legt sofort los<input name="dateien" type="file" multiple required data-sofort accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label>
+  <button>Prüfen lassen</button>
 </form>
-<p class="klein">Jarvis schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p>`;
+<p class="klein">Am Handy liegt die Datei unter „Downloads“. Jarvis schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p>
+<script>${SOFORT_JS}</script>`;
   let teil: string;
   if (aus?.text) {
     teil = `<h2>Steckbrief aus den Vergabeunterlagen</h2>${markdown(aus.text)}
@@ -452,7 +454,7 @@ function weiterleiten(ziel: string, cookies: string[] = []): Response {
 function html(body: string, status = 200, cookies: string[] = []): Response {
   const h = new Headers({
     "content-type": "text/html; charset=utf-8",
-    "content-security-policy": "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'",
+    "content-security-policy": `default-src 'none'; style-src 'unsafe-inline'; script-src '${SOFORT_HASH}'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'`,
     "cache-control": "no-store",
     "referrer-policy": "no-referrer",
   });
