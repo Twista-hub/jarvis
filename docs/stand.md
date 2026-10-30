@@ -40,6 +40,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 – ChatGPT (Standortleitung direkt zuordnen)
+- Ursache der weiterhin nicht bedienbaren Standortleitung: Die vorherige Änderung erweiterte das Rechteformular unter App-Zugänge; die Zeile am Standort blieb statischer Text. Standortseiten und Ein-Standort-Ansicht unter Firma & Team haben jetzt direkt ein aufklappbares „Zuordnen“ mit Personenauswahl, Speichern und Link zur Einladung neuer App-Nutzer.
+- Nur Inhaber/Administration dürfen zuordnen. Inhaber-/Admin-Konten werden dabei nicht umgestuft; Standortleitungen anderer Standorte werden nicht still verschoben. Zuordnung nutzt die vorhandene atomare Rechtefunktion, genau einen Standort und keine Finanzfreigabe. Keine neue Datenbankmigration erforderlich. Mehrere Leitungen werden sichtbar als solche aufgeführt; neue Personen ergänzen die Zuordnung.
+- Person hinzufügen ohne vorderen Pfeil und ohne vorangestelltes Plus; nur ein Plus hinter dem Text. Qualifikationsauswahl ohne „Mehrfachauswahl mit Häkchen“, mit Öffnungspfeil rechts hinter dem Text. Standortleitungen können das Standortpersonal auch über die Web-Routen bearbeiten (Datenbankrechte gelten weiter).
+- Typprüfung und alle 17 Web-Testdateien grün; neue Tests für erlaubte Zuordnung, verweigerte Bearbeiter-Zuordnung und Schutz von Inhaberkonten. Vorherige Rollouts waren zuletzt wegen der GitHub-Actions-Störung verzögert; Live-Stand nach neuem Push prüfen. Benjamin muss nichts einrichten.
+
 ### 30.10.2026 – ChatGPT (Platzierung der Info-Symbole)
 - Alle zentral erzeugten Kontexthilfen werden jetzt im Seitenrahmen gesammelt: maximal ein Info-Symbol neben der Seitenüberschrift statt separater Zeilen für Personal, Team, Ausschreibungen, Kalkulation, Suchprofil, Einrichtung und Nachrichten. Nur Hinweise, die im berechtigten Seiteninhalt enthalten sind, werden übernommen.
 - Erklärung öffnet sich als Feld unterhalb der Überschrift über dem Inhalt; weder geschlossener Knopf noch geöffnetes Feld schieben die übrige Seite nach unten. 44-px-Tippfläche, Tastaturbedienung und barrierefreie Beschriftung bleiben erhalten.

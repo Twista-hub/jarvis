@@ -10,7 +10,7 @@ import { FELDER, STANDARD, felderHtml, fmt, zahl, type Eingaben } from "./kalkul
 import { escape, hilfe, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
-import { einsaetzeLaden, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, tarifvertraegeBlock, tarifvertraegeLaden, type Kraft } from "./personal.ts";
+import { einsaetzeLaden, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, standortleitungBlock, tarifvertraegeBlock, tarifvertraegeLaden, type Kraft } from "./personal.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 
@@ -250,8 +250,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
         einsaetzeLaden(s, env, m.firma_id),
       ]);
       const qs = qualifikationen.ok ? qualifikationen.daten.filter((q) => q.bereich_id === null || q.bereich_id === ort) : [];
-      const standortleitung = ort ? leitungKacheln.find((x) => x.bereich_id === ort) : undefined;
-      team = `<h2>Organisationsbaum · ${b[0] ? escape(b[0].name) : escape(m.firmen.name)}</h2>${b[0] ? `<p class="klein">📍 Standortleitung: ${standortleitung ? escape(standortleitung.name) : "noch nicht zugeordnet"}</p>` : ""}<h3>Einsatzpersonal</h3>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, einsaetze, qs.map((q) => q.name), tarife)}${qualifikationenBlock(ort, qs, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle))}`;
+      team = `<h2>Organisationsbaum · ${b[0] ? escape(b[0].name) : escape(m.firmen.name)}</h2>${ort ? standortleitungBlock(ort, (mitglieder.ok ? mitglieder.daten : []).map((x) => ({ user_id: x.user_id, rolle: x.rolle, anzeigename: x.anzeigename || "", funktion: x.funktion || "" })), zuordnungen.ok ? zuordnungen.daten : [], admin) : ""}<h3>Einsatzpersonal</h3>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, einsaetze, qs.map((q) => q.name), tarife)}${qualifikationenBlock(ort, qs, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle))}`;
     } else {
       const pool = await db<{ bereich_id: string | null; status: string }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=bereich_id,status`);
       team = `<h2>Organisationsbaum</h2><p class="klein">Firma → Region → Standort. Die Standortleitung erhält ihre Rechte über genau einen zugeordneten Standort. Einsatzpersonal und App-Zugänge werden getrennt verwaltet.</p>`;
@@ -266,7 +265,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   <button>Bereich anlegen</button>
 </form></details>`;
     }
-      team += `<h2>App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Nutzer: ${anzahl.ok ? anzahl.daten : "?"}. Standortleitung darf Personal und Einsätze nur am zugeordneten Standort verwalten; Kalkulation und Firmenunterlagen bleiben gesperrt.</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen.")}${tarifvertraegeBlock(tarife, admin)}`;
+      team += `<h2 id="app-zugaenge">App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Nutzer: ${anzahl.ok ? anzahl.daten : "?"}. Standortleitung darf Personal und Einsätze nur am zugeordneten Standort verwalten; Kalkulation und Firmenunterlagen bleiben gesperrt.</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen.")}${tarifvertraegeBlock(tarife, admin)}`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
     team += funktionsListe;
     team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"><h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3><p>${escape(x.funktion || "Mitarbeiter/in")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}</p>${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;

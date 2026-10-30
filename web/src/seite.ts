@@ -70,6 +70,13 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .hilfe-inhalt p { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
   .hilfe-inhalt p:last-child { margin-bottom: 0; }
   .fehler { color: var(--error); font-weight: 600; }
+  .neu-person > summary { display: flex; align-items: center; justify-content: space-between; min-height: 44px; cursor: pointer; list-style: none; }
+  .neu-person > summary::-webkit-details-marker { display: none; }
+  .qualifikationen-dropdown > summary { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 44px; cursor: pointer; list-style: none; }
+  .qualifikationen-dropdown > summary::-webkit-details-marker { display: none; }
+  .qualifikationen-dropdown > summary span { font-size: 24px; }
+  .qualifikationen-dropdown[open] > summary span { transform: rotate(90deg); }
+  .leitung-zuordnen > summary { min-height: 44px; padding: 8px 0; cursor: pointer; }
   .laedt { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
   .kreisel { flex-shrink: 0; width: 24px; height: 24px; margin-top: 2px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: kreisen 0.9s linear infinite; }
   @keyframes kreisen { to { transform: rotate(360deg); } }
