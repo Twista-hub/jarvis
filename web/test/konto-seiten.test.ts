@@ -168,3 +168,15 @@ test("Unterlagen: Schnellauswahl der vorhandenen Ausschreibungen, neueste zuerst
   assert.doesNotMatch(html, />Verworfen</);
   assert.doesNotMatch(html, /name="titel" required/);
 });
+
+test("Kalkulation: alle offenen Ausschreibungen als Karten, ohne Unterlagen geht es zum Hochladen", async (t) => {
+  mockKontoApi(t, [
+    { id: vorgang, titel: "Rahmenvertrag für Arbeitnehmerüberlassung im Bereich Zentrale Dienste mit sehr langem Titel", link: null, frist: "2026-11-20T10:00:00Z", status: "neu", punkte: 9, erstellt: "2026-10-01T00:00:00Z" },
+    { id: "66666666-6666-4666-8666-666666666666", titel: "Verworfen", link: null, frist: null, status: "verworfen", punkte: 2, erstellt: "2026-10-30T00:00:00Z" },
+  ]);
+  const html = await seite("/konto/kalkulation");
+  assert.match(html, /class="auswahl-liste"/);
+  assert.match(html, new RegExp(`href="/konto/vorgang/${vorgang}#unterlagen"><strong>Rahmenvertrag`));
+  assert.match(html, /Erst Unterlagen hochladen/);
+  assert.doesNotMatch(html, />Verworfen</);
+});
