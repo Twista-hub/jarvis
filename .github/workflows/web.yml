@@ -75,7 +75,9 @@ jobs:
         if: env.OHNE_SCHLUESSEL != '1'
         run: |
           sleep 10
-          curl -fsS "$URL/" | grep -q "Unterlagen prüfen lassen"
+          curl -fsS "$URL/" | grep -q "Jarvis findet passende Ausschreibungen"
+          curl -fsS "$URL/hochladen" | grep -q "Unterlagen prüfen lassen"
+          curl -fsS "$URL/impressum" | grep -q "Rochusstraße"
           echo "Upload-Seite: $URL" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Test mit Bundesbank-Unterlagen
