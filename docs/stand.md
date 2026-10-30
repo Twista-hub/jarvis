@@ -3,6 +3,7 @@
 Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (30.10.2026)
+- **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://jarvis-alarm.benschiffer79.workers.dev
   - Startseite mit Erklärung und Beispiel-Steckbrief; Impressum, Datenschutz, Nutzungsbedingungen, AVV (Entwürfe, Benjamin prüft noch).
   - Registrierung mit Passwort, Passwort-Anmeldung/-Wiederherstellung und Mail-Link; bestätigte neue Firmen werden zunächst kostenlos angelegt. Firmen, Bereiche/Standorte, Rollen und Einladungen.
@@ -27,6 +28,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - (niemand)
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
+- **Automatische tägliche Mail:** In den 100 abgefragten jüngsten Actions-Läufen sind fünf erfolgreiche manuelle Mailläufe, aber kein geplanter Maillauf belegt. Konfigurierter Stundencron allein bestätigt keinen Versand. Automatische Ausführung und tatsächliche Zustellung gesondert nachweisen; kein zusätzlicher Testversand durch diese Prüfung.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
 2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen. Die zentrale, mit Ausschreibungs-Berufen verknüpfte Berufs-/Tarifdatenbank ist als nächster größerer Personal-Schritt geplant (docs/personalkatalog.md).
@@ -36,6 +38,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (lesende Automationsprüfung, 18:26 Berlin)
+- Auf Benjamins Wunsch aktuellen Automationsstand geprüft. AGENTS.md, gemeinsames Gedächtnis und App-Fahrplan gelesen; keine Code-, Datenbank-, Secret- oder Zeitplanänderung.
+- CI/Web/DB-Läufe bis 18:10 Berlin erfolgreich. Geplanter Alarm [41048127589](https://github.com/Twista-hub/jarvis/actions/runs/41048127589) sowie späterer manueller Alarm [41085983339](https://github.com/Twista-hub/jarvis/actions/runs/41085983339) erfolgreich protokolliert.
+- Fünf erfolgreiche manuelle „Tägliche Mail“-Läufe in den jüngsten 100 Actions-Läufen, zuletzt [41061677087](https://github.com/Twista-hub/jarvis/actions/runs/41061677087). Kein geplanter Maillauf in dieser Auswahl und der ergänzenden Schedule-Abfrage: automatische Ausführung/Zustellung bleibt zu bestätigen, kein Ausfall allein aus dieser Auswahl bewiesen.
+- `mail.yml` enthält Stundencron `3 4-19 * * *` plus lokale Zeitprüfung im Code. `alarm.yml` hat 05:17 UTC und 07:41 UTC als Sicherung. Teilweise `continue-on-error`: gesamter grüner Lauf allein beweist nicht jeden Versand-/Datenschritt.
+- Kein Workflow oder Testversand ausgelöst, keine Kunden kontaktiert, keine externen Veröffentlichungen und keine Ausgaben. Projektzugänge und Daten getrennt gehalten. Benjamin muss für diese Dokumentation nichts tun; Claude sollte den nächsten automatischen Maillauf samt Versandnachweis prüfen.
 
 ### 30.10.2026 – ChatGPT (Organisationsbaum und branchenübergreifendes Personal)
 - Firma & Team klar getrennt: Organisationsbaum für Firma/Region/Standort; App-Zugänge separat vom Einsatzpersonal. Zuordnung und Name der Standortleitung sind direkt an Standortkacheln und Standortseiten sichtbar.
