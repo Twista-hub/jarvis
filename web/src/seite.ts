@@ -22,7 +22,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   }
   * { box-sizing: border-box; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 48px; overflow-wrap: anywhere; }
   header { color: var(--muted); font-size: 14px; margin-bottom: 8px; }
   .konto-kopf { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; }
   .konto-marke { text-decoration: none; font-size: 1.1rem; font-weight: 750; }
@@ -92,6 +92,13 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .treffer-leer { padding: 28px 20px; border: 1px dashed var(--line); border-radius: 18px; text-align: center; color: var(--muted); }
   .treffer-leer h2 { margin-top: 0; color: var(--text); }
   .frist-bald { color: var(--error); }
+  .aktionsleiste { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0 0 16px; }
+  .aktionsleiste a { display: grid; place-items: center; min-height: 52px; padding: 8px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; text-align: center; font-weight: 650; font-size: 14px; line-height: 1.3; }
+  .aktionsleiste a.zweit { background: var(--card); color: var(--accent); border: 1px solid var(--line); }
+  details.nachweis-fehlt { display: inline; }
+  details.nachweis-fehlt summary { display: inline; cursor: pointer; list-style: none; }
+  details.nachweis-fehlt summary::-webkit-details-marker { display: none; }
+  .nachweis-popup { display: block; margin: 6px 0; padding: 10px 12px; border: 1px solid var(--error); border-radius: 10px; background: var(--card); font-size: 14px; font-weight: 400; }
   @media (max-width: 420px) {
     .reiter { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .treffer-karte { padding: 16px; }
@@ -99,6 +106,12 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   }
   @media (max-width: 600px) {
     main { padding-bottom: 104px; }
+    /* Tables become stacked cards on the phone: no sideways scrolling. */
+    table.stapel, table.stapel tbody, table.stapel tr, table.stapel td { display: block; width: 100%; }
+    table.stapel thead { display: none; }
+    table.stapel tr { margin: 0 0 10px; padding: 6px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+    table.stapel td { border: 0; padding: 4px 0; }
+    table.stapel td[data-label]::before { content: attr(data-label) ": "; color: var(--muted); font-weight: 650; }
     .konto-kacheln { grid-template-columns: 1fr; gap: 10px; }
     .konto-kachel { min-height: 126px; }
     .konto-nav { position: fixed; z-index: 10; display: grid; grid-template-columns: repeat(4, 1fr); left: 0; right: 0; bottom: 0; padding: 8px 4px max(8px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); background: var(--card); box-shadow: 0 -3px 12px #00000012; }
@@ -111,7 +124,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 ${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto">Jarvis</a><div class="konto-aktionen"><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>`}
 ${kontoBereich ? `<p class="konto-zurueck"><a href="/konto" aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←</span></a></p>` : ""}
 ${inhalt.trimStart().startsWith("<h1") ? "" : `<h1>${escape(titel)}</h1>`}
-${inhalt.replace(/<table>/g, '<div class="tabelle"><table>').replace(/<\/table>/g, "</table></div>")}
+${inhalt.replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace(/<\/table>/g, "</table></div>")}
 <p class="klein">WP Digital Ranger · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> · <a href="/avv">Auftragsverarbeitung</a></p>
 </main>${kontoBereich !== undefined ? kontoNavigation(kontoBereich) : ""}</body>
 </html>`;
@@ -128,10 +141,22 @@ export function escape(s: string): string {
 /** Model output may contain text from the documents: escape all HTML, allow only http(s) links. */
 export function markdown(md: string): string {
   const safe = md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  return marked.parse(safe, {
+  return stapeln(marked.parse(safe, {
     async: false,
     walkTokens(token) {
       if (token.type === "link" && !/^https?:\/\//i.test(token.href)) token.href = "#";
     },
-  }) as string;
+  }) as string);
+}
+
+/** Gives each table cell its column heading (data-label), so the phone can show rows as stacked cards. */
+export function stapeln(html: string): string {
+  return html.replace(/<table>([\s\S]*?)<\/table>/g, (_t, inner: string) => {
+    const kopf = [...(inner.match(/<thead>([\s\S]*?)<\/thead>/)?.[1] ?? "").matchAll(/<th[^>]*>([\s\S]*?)<\/th>/g)].map((m) => m[1].replace(/<[^>]+>/g, "").trim());
+    const rumpf = inner.replace(/<tr>([\s\S]*?)<\/tr>/g, (_r, zellen: string) => {
+      let i = 0;
+      return `<tr>${zellen.replace(/<td([^>]*)>/g, (m, a: string) => (kopf[i] ? `<td${a} data-label="${kopf[i++].replace(/"/g, "&quot;")}">` : (i++, m)))}</tr>`;
+    });
+    return `<table class="stapel">${rumpf}</table>`;
+  });
 }
