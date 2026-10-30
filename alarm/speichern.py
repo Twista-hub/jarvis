@@ -26,19 +26,25 @@ def verbinden() -> psycopg.Connection:
     sys.exit("Keine Verbindung zur Datenbank")
 
 
-def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict]) -> int:
+def bereich(regionen: dict, plz: str) -> str | None:
+    """Area of the firm for a postal code (profile.json "regionen": area id -> two-digit prefixes)."""
+    return next((b for b, praefixe in regionen.items() if plz[:2] in praefixe), None) if plz else None
+
+
+def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict) -> int:
     neu = 0
     for t in treffer:
         row = con.execute(
-            """insert into public.vorgaenge (firma_id, quelle_id, titel, link, frist, punkte, steckbrief)
-               values (%s, %s, %s, %s, %s, %s, %s)
+            """insert into public.vorgaenge (firma_id, quelle_id, titel, link, frist, punkte, steckbrief, bereich_id)
+               values (%s, %s, %s, %s, %s, %s, %s, %s)
                on conflict (firma_id, quelle_id) do update set
                  punkte = coalesce(excluded.punkte, vorgaenge.punkte),
                  frist = coalesce(excluded.frist, vorgaenge.frist),
                  steckbrief = coalesce(vorgaenge.steckbrief, excluded.steckbrief),
-                 link = excluded.link
+                 link = excluded.link,
+                 bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id)
                returning (xmax = 0)""",
-            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), t.get("steckbrief")),
+            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), t.get("steckbrief"), bereich(regionen, t.get("plz", ""))),
         ).fetchone()
         neu += bool(row and row[0])
     return neu
@@ -57,7 +63,7 @@ def main() -> None:
             if not firma_id:
                 continue
             eigene = [t for t in treffer if t["profil"] == name]
-            print(f"{profil['name']}: {speichern(con, firma_id, eigene)} neue von {len(eigene)} Treffern")
+            print(f"{profil['name']}: {speichern(con, firma_id, eigene, profil.get('regionen', {}))} neue von {len(eigene)} Treffern")
 
 
 if __name__ == "__main__":

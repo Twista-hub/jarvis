@@ -92,6 +92,17 @@ def place(rel: dict) -> str:
     return f"{a.get('postalCode', '')} {a.get('locality', '')}".strip()
 
 
+def plz(rel: dict) -> str:
+    """German postal code of the place of performance, else of the buyer ('' if none)."""
+    orte = [i.get("deliveryAddress") or {} for i in (rel.get("tender") or {}).get("items") or []]
+    orte += [(rel.get("buyer") or {}).get("address") or {}] + [p.get("address") or {} for p in rel.get("parties") or [] if "buyer" in (p.get("roles") or [])]
+    for o in orte:
+        m = re.search(r"\b(\d{5})\b", f"{o.get('postalCode', '')} {o.get('locality', '')} {o.get('streetAddress', '')}")
+        if m:
+            return m.group(1)
+    return ""
+
+
 def item(nr: int, rel: dict) -> dict:
     t = rel.get("tender") or {}
     return {"nr": nr, "titel": t.get("title", "").strip(), "auftraggeber": (rel.get("buyer") or {}).get("name", ""),
@@ -186,7 +197,7 @@ def run(days: list[str]) -> str:
             lines += [links, ""]
             treffer.append({"profil": name, "quelle_id": rel.get("ocid") or rel.get("id") or url, "titel": t.get("title", "").strip(),
                             "link": url, "frist": frist(t),
-                            "punkte": b.get("punkte") or None, "steckbrief": pfad.read_text(encoding="utf-8") if pfad else None})
+                            "punkte": b.get("punkte") or None, "plz": plz(rel), "steckbrief": pfad.read_text(encoding="utf-8") if pfad else None})
         if weg:
             lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
         if not rows:
