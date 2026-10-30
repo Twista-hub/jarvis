@@ -78,9 +78,11 @@ jobs:
         if: env.OHNE_SCHLUESSEL != '1'
         run: |
           sleep 10
-          curl -fsS "$URL/" | grep -q "Jarvis findet passende Ausschreibungen"
-          curl -fsS "$URL/hochladen" | grep -q "Unterlagen prüfen lassen"
-          curl -fsS "$URL/impressum" | grep -q "Rochusstraße"
+          # Save first, then grep: "curl | grep -q" fails with exit 23 when grep stops reading early.
+          curl -fsS "$URL/" -o start.html && grep -q "Jarvis findet passende Ausschreibungen" start.html
+          curl -fsS "$URL/hochladen" -o hochladen.html && grep -q "Unterlagen prüfen lassen" hochladen.html
+          curl -fsS "$URL/impressum" -o impressum.html && grep -q "Rochusstraße" impressum.html
+          curl -fsS "$URL/app.js" -o app.js && grep -q "push-test" app.js
           echo "Upload-Seite: $URL" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Test mit Bundesbank-Unterlagen
