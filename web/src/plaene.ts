@@ -1,3 +1,4 @@
+// NOT ACTIVE YET (Benjamin, 30.10.2026: plans come last, when the app is finished). Not linked or routed.
 // Plans, shown like on other portals: everyone starts in Free and can upgrade on /konto/plan.
 // Prices and what each plan includes are still to be decided by Benjamin; edit them here only.
 // Until online payment (Stripe) is set up, "Upgrade" opens a prepared e-mail to WP Digital Ranger.
