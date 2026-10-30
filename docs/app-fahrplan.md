@@ -14,7 +14,7 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 ## Vorschlag, was noch fehlt (Reihenfolge = Vorschlag)
 
 ### A. Pflicht, bevor ein Kunde es sieht
-1. **Rechtliches**: Entwürfe online seit 30.10. (/impressum, /datenschutz, /nutzungsbedingungen, /avv; Daten in web/src/rechtliches.ts `FIRMA`). Offen: Anschrift, USt bzw. Kleinunternehmer, Aufsichtsbehörde; Benjamin prüft die Texte.
+1. **Rechtliches**: Entwürfe online seit 30.10. (/impressum, /datenschutz, /nutzungsbedingungen, /avv; Daten in web/src/rechtliches.ts `FIRMA`). Daten eingetragen; Benjamin prüft die Texte.
 2. ~~Startseite/Erklärseite~~ (erledigt 30.10.: 3 Schritte, Beispiel-Steckbrief zum Aufklappen).
 3. **Aussehen**: einheitliches Design mit Logo WP Digital Ranger, gut am Handy.
 
