@@ -12,6 +12,7 @@ import { mitarbeiterVerwalten } from "./mitarbeiter";
 import { einrichtung } from "./einrichtung";
 import { personal } from "./personal";
 import { markt } from "./markt.ts";
+import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
@@ -87,6 +88,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (fg) return fg;
     const ma = await markt(request, env);
     if (ma) return ma;
+    const ep = await einsatzplan(request, env);
+    if (ep) return ep;
     const pe = await personal(request, env);
     if (pe) return pe;
     const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");

@@ -59,7 +59,7 @@ document.querySelectorAll("select[data-los-wahl]").forEach(function (w) {
 });
 
 // Dropdowns that apply right away (filters, message topic).
-document.querySelectorAll("select[data-sofort-wahl]").forEach(function (w) {
+document.querySelectorAll("[data-sofort-wahl]").forEach(function (w) {
   w.addEventListener("change", function () { w.form.submit(); });
 });
 // An employee's wage group is specific to the selected tariff agreement.
@@ -110,6 +110,13 @@ document.querySelectorAll("textarea[data-nachricht]").forEach(function (t) {
     document.querySelectorAll("a[data-basis]").forEach(function (a) { a.href = a.getAttribute("data-basis") + encodeURIComponent(t.value); });
   }
   t.addEventListener("input", setzen);
+});
+
+// Copy a prepared message (for group chats or other apps).
+document.querySelectorAll("button[data-kopieren]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    navigator.clipboard.writeText(b.getAttribute("data-kopieren")).then(function () { b.textContent = "✓ Kopiert"; });
+  });
 });
 
 var knopf = document.getElementById("push-an");

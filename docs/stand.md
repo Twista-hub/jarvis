@@ -30,7 +30,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## In Arbeit
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
-- **Automatische tägliche Mail:** In den 100 abgefragten jüngsten Actions-Läufen sind fünf erfolgreiche manuelle Mailläufe, aber kein geplanter Maillauf belegt. Konfigurierter Stundencron allein bestätigt keinen Versand. Automatische Ausführung und tatsächliche Zustellung gesondert nachweisen; kein zusätzlicher Testversand durch diese Prüfung.
+- **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
 2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen. Die bundesweite zentrale Tarifdatenbank bleibt offen: Recherchequellen decken nur ausgewählte Branchen/Berufe ab; Nutzungsrechte und Aktualisierung für eine automatische Übernahme müssen geklärt werden (docs/personalkatalog.md, alarm/quellen.md).
@@ -40,6 +40,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 (spät) – Claude (Rundnachricht und Einsatzplan, Übernahme nach ChatGPT)
+- Stand von ChatGPT geprüft: alle Läufe bis 2227233 (Vergabekatalog) grün, nichts hängt mehr in der Warteschlange. Geplanter Maillauf „Tägliche Mail“ am 30.10. 18:31 UTC per Zeitplan erfolgreich (erster Beleg für den automatischen Lauf; Zustellung selbst nicht geprüft).
+- Neu `web/src/einsatzplan.ts`: `/konto/rundnachricht` (mehrere Personen anschreiben: Filter Standort/Beruf/Status, Ausschreibung wählen, Text änderbar; „In WhatsApp-Gruppe teilen“, „Eine SMS an alle“, „Text kopieren“, persönlich je Person WhatsApp/SMS/Mail; „alle als angefragt eintragen“) und `/konto/vorgang/<id>/einsatzplan` (Ort, Beginn/Ende, Treffpunkt, Kleidung, Ansprechpartner, Hinweise; Versand an Zugesagte oder alle Eingeplanten, Teamliste optional). Jarvis verschickt selbst nichts.
+- Migration `20261031060000_einsatzplaene.sql`: Tabelle `einsatzplaene`; Einsätze-Policy um `standortleitung` erweitert (Standortleitungen sollten laut Stand Einsätze verwalten, die Policy ließ das bisher nicht zu). Rechtetest „ALLE TESTS OK“, 93 Web-Tests grün.
 
 ### 30.10.2026 – ChatGPT (zentraler Vergabekatalog und Markt-Funktionen)
 - Eigenständiger Cloudflare-Worker `jarvis-katalog` mit stündlichem Cron und langlebigem Workflow: CC0-Bekanntmachungsservice, ETag/Inhaltshash, persistente Export-/Wiederholungswarteschlange, geordnete Aktualisierungen, Änderungen, Aufhebungen, Zuschläge und Lose. Startbestand schrittweise 60 Tage rückwirkend; höchstens zwei zusätzliche historische Tage je Lauf. Kein Abruf gesperrter Portale. Datenstand, Fehler und verbleibende Aufbautage sind sichtbar.
