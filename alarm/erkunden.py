@@ -9,7 +9,7 @@ import sys
 import urllib.request
 from datetime import date, timedelta
 
-UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)", "Content-Type": "application/json"}
+UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)", "Content-Type": "application/json"}
 
 SUMMARY = []
 

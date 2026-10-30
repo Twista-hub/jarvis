@@ -6,7 +6,7 @@ import sys
 import urllib.parse
 import urllib.request
 
-UA = "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)"
+UA = "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
 KEY = re.compile(r"automat|crawl|robot|scrap|systemat|auslesen|abruf|weiterverwend|weiterverwert|re-?use|reuse|commercial|kommerz|"
                  r"gewerbl|lizenz|licen[cs]e|cc[ -]?by|cc0|datenlizenz|open data|urheber|copyright|vervielf|api|schnittstelle|rss|export", re.I)
 

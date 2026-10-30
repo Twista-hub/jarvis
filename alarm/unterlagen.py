@@ -12,7 +12,7 @@ import urllib.robotparser
 from http.cookiejar import CookieJar
 from pathlib import Path
 
-UA = "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)"
+UA = "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
 
 
 def download(url: str, out: Path, limit: int = 60, verbose: bool = True) -> list[Path]:

@@ -8,9 +8,10 @@ export interface KontoEnv {
   SUPABASE_URL: string;
   SUPABASE_KEY: string; // publishable key, public by design
   SMTP_PASSWORD?: string; // kontakt@wpdigitalranger.com; without it invitations are shown as a link
+  DATEN?: R2Bucket; // uploads at a Vorgang: auftraege/vorgaenge/<id>.json points to the Steckbrief job
 }
 
-type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
+export type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
 type Mitglied = { firma_id: string; rolle: string; erstellt: string; user_id: string };
 type Bereich = { id: string; name: string; art: string; parent_id: string | null };
 type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; steckbrief?: string | null };
@@ -323,16 +324,64 @@ async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoE
   return weiterleiten(`/konto?hinweis=${encodeURIComponent(r.ok ? `Stand: ${STATUS[status]}` : "Das darfst du für diese Ausschreibung nicht ändern.")}`);
 }
 
-async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promise<Response> {
+/** The Vorgang with its firm and the user's role there, or null if the user may not see it. */
+export async function vorgangZugriff(request: Request, env: KontoEnv, id: string): Promise<{ s: Sitzung; v: Vorgang & { firma_id: string }; rolle: string } | null> {
   const s = await sitzung(request, env);
-  if (!s) return weiterleiten("/konto");
-  const r = await db<Vorgang[]>(s, env, `vorgaenge?id=eq.${id}&select=id,titel,link,frist,status,punkte,erstellt,steckbrief`);
+  if (!s || !/^[0-9a-f-]{36}$/.test(id)) return null;
+  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,status,punkte,erstellt,steckbrief`);
   const v = r.ok ? r.daten[0] : undefined;
-  if (!v) return html(seite("Nicht gefunden", `<p>Diese Ausschreibung gibt es nicht oder du darfst sie nicht sehen.</p><p><a href="/konto">Zur Übersicht</a></p>`), 404, s.cookies);
-  const hochladen = `/?titel=${encodeURIComponent(v.titel.slice(0, 200))}`;
-  return html(seite(v.titel, `<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status}</p>
-<p>${v.link && /^https?:\/\//.test(v.link) ? `<a href="${escape(v.link)}" rel="noopener">Zur Ausschreibung</a> · ` : ""}<a href="${escape(hochladen)}">Unterlagen prüfen lassen</a> · <a href="/konto">Zur Übersicht</a></p>
-${v.steckbrief ? `<h2>Steckbrief</h2>${markdown(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief. Lade die Vergabeunterlagen hoch, dann schreibt Jarvis einen.</p>`}`), 200, s.cookies);
+  if (!v) return null;
+  const m = await db<{ rolle: string }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle`);
+  return { s, v, rolle: m.ok && m.daten[0] ? m.daten[0].rolle : "leser" };
+}
+
+async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promise<Response> {
+  const z = await vorgangZugriff(request, env, id);
+  if (!z) {
+    if (!(await sitzung(request, env))) return weiterleiten("/konto");
+    return html(seite("Nicht gefunden", `<p>Diese Ausschreibung gibt es nicht oder du darfst sie nicht sehen.</p><p><a href="/konto">Zur Übersicht</a></p>`), 404);
+  }
+  const { s, v, rolle } = z;
+  const fehler = new URL(request.url).searchParams.get("fehler") ?? "";
+  const portal = v.link && /^https?:\/\//.test(v.link) ? v.link : "";
+  const aus = await unterlagenSteckbrief(env, id);
+  const kopf = `<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status} · <a href="/konto">Zur Übersicht</a></p>
+${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
+  const hochladen = rolle === "leser" ? "" : `<h2 id="unterlagen">📥 Vergabeunterlagen</h2>
+<p>Für Eignungskriterien, Nachweise, Referenzen und das Preisblatt braucht Jarvis die Unterlagen. So geht's:</p>
+<ol>
+  <li>${portal ? `<a href="${escape(portal)}" rel="noopener" target="_blank"><strong>Unterlagen beim Vergabeportal öffnen</strong></a>` : "Die Ausschreibung beim Vergabeportal öffnen"} und dort „Alle herunterladen“ bzw. „Vergabeunterlagen“ wählen (meist eine ZIP-Datei; manche Portale wollen eine kostenlose Anmeldung).</li>
+  <li>Die Datei hier auswählen und auf „Hochladen und prüfen“ tippen. Am Handy findest du sie unter „Downloads“.</li>
+</ol>
+<form method="post" action="/konto/vorgang/${v.id}/unterlagen" enctype="multipart/form-data">
+  <label>Unterlagen (PDF, Word, Excel oder ZIP)<input name="dateien" type="file" multiple required accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label>
+  <button>Hochladen und prüfen</button>
+</form>
+<p class="klein">Jarvis schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p>`;
+  let teil: string;
+  if (aus?.text) {
+    teil = `<h2>Steckbrief aus den Vergabeunterlagen</h2>${markdown(aus.text)}
+<p><a href="/auftrag/${aus.auftrag}#kalkulation"><strong>💶 Zur Kalkulation</strong></a></p>${hochladen.replace("📥 Vergabeunterlagen", "📥 Neue Unterlagen hochladen")}
+${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summary>${markdown(v.steckbrief)}</details>` : ""}`;
+  } else if (aus) {
+    return html(seite(v.titel, `${kopf}<p><strong>Jarvis liest gerade die Unterlagen.</strong> Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu; du kannst sie auch schließen.</p>
+${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${markdown(v.steckbrief)}` : ""}`, 20), 200, s.cookies);
+  } else {
+    teil = `${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${markdown(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief.</p>`}${hochladen}`;
+  }
+  return html(seite(v.titel, kopf + teil), 200, s.cookies);
+}
+
+/** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */
+async function unterlagenSteckbrief(env: KontoEnv, id: string): Promise<{ auftrag: string; text: string } | null> {
+  if (!env.DATEN) return null;
+  const zeiger = await env.DATEN.get(`auftraege/vorgaenge/${id}.json`);
+  if (!zeiger) return null;
+  const { auftrag, erstellt } = (await zeiger.json()) as { auftrag: string; erstellt: string };
+  const ergebnis = await env.DATEN.get(`auftraege/${auftrag}/ergebnis.md`);
+  if (ergebnis) return { auftrag, text: await ergebnis.text() };
+  // Still no result after 30 minutes: the run failed, offer the upload again.
+  return Date.now() - Date.parse(erstellt) > 30 * 60_000 ? null : { auftrag, text: "" };
 }
 
 // ---------- Helpers ----------

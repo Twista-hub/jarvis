@@ -8,6 +8,8 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 - Tägliche Treffer mit KI-Punkten, Frist, Stand, Filter nach Region, Umschalter zwischen Firmen
 - Steckbrief aus Unterlagen, Kalkulation (auf der Upload-Seite)
 - Vorschau „PerLease (Vorschau)“ mit 16 Standorten
+- Am Treffer: Direktlink zu den Unterlagen beim Portal und „Hochladen und prüfen“ (ohne Zugangscode); der Steckbrief aus den Unterlagen erscheint direkt am Treffer
+- Kurz-Steckbrief aus der vollständigen Bekanntmachung (eForms) mit Fristen und Eignungskriterien, soweit veröffentlicht
 
 ## Vorschlag, was noch fehlt (Reihenfolge = Vorschlag)
 
@@ -23,7 +25,7 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 7. **Tägliche Mail** mit den neuen Treffern, pro Person ein- oder ausschaltbar.
 
 ### C. Arbeiten mit Ausschreibungen
-8. **Unterlagen am Treffer hochladen** (statt Zugangscode auf der Extra-Seite) → Steckbrief und Kalkulation hängen direkt am Vorgang.
+8. ~~Unterlagen am Treffer hochladen~~ (erledigt 30.10.). Später: Portal-Mails an Jarvis weiterleiten (braucht Mail-Empfang).
 9. **Zuständige Person** zuweisen, **Fristen-Erinnerung** per Mail (z. B. 7 und 2 Tage vorher).
 10. **Kalkulationsvorlagen** pro Standort (Löhne je Stadt).
 11. **Mitarbeiterliste** mit Namen und E-Mail, Rechte ändern, sperren.

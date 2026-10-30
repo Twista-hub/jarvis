@@ -14,7 +14,7 @@ import zipfile
 from collections import Counter
 from datetime import date, timedelta
 
-UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)"}
+UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"}
 
 PROFILES = {
     "perlease": {
