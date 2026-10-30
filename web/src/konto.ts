@@ -12,6 +12,7 @@ import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
 import { einsaetzeLaden, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, tarifvertraegeBlock, tarifvertraegeLaden, type Kraft } from "./personal.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
+import { kurzberichte } from "./kurzberichte.ts";
 
 export interface KontoEnv {
   SUPABASE_URL: string;
@@ -467,6 +468,11 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
     return html(seite("Nicht gefunden", `<p>Diese Ausschreibung gibt es nicht oder du darfst sie nicht sehen.</p><p><a href="/konto">Zur Übersicht</a></p>`), 404);
   }
   const { s, v, rolle, finanzen } = z;
+  // Recover summaries of historical hits saved before every hit received a short brief.
+  if (!v.steckbrief?.trim() && v.link) {
+    const archiv = (kurzberichte as Record<string, string>)[`${v.firma_id}|${v.link}`];
+    if (archiv) v.steckbrief = `## Kurzüberblick aus dem Morgenbericht\n\n${archiv}\n\n_Dies ist die archivierte Zusammenfassung zur Bekanntmachung. Für eine ausführliche Prüfung bitte die Vergabeunterlagen hochladen._`;
+  }
   const fehler = new URL(request.url).searchParams.get("fehler") ?? "";
   const portal = v.link && /^https?:\/\//.test(v.link) ? v.link : "";
   const aus = await unterlagenSteckbrief(env, id);
@@ -478,7 +484,7 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
     finanzen ? `<a class="zweit" href="${kalkulation}">💶 Kalkulation</a>` : "",
   ].filter(Boolean).join("");
   const leiste = knoepfe ? `<h2>Was möchtest du tun?</h2><nav class="aktionsleiste" aria-label="Aktionen">${knoepfe}</nav>` : "";
-  const kopf = `<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status}</p>${hilfe("Treffer verstehen", "Die Bewertung zeigt, wie gut der Auftrag zum Suchprofil deiner Firma passt. Prüfe die Originalunterlagen und die Frist beim Vergabeportal, bevor ihr ein Angebot vorbereitet.")}
+  const kopf = `<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status}</p>
 ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
   // Required proofs the firm has not uploaded yet get a ⚠️ with an upload link (only for people with finance access).
   const unterlagen = finanzen ? await db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`) : null;

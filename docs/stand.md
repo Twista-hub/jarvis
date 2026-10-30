@@ -19,6 +19,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Qualifikationen als Mehrfachauswahl mit Häkchen. Personal wird einem Tarifvertrag mit Geltungsbereich, Quelle und Laufzeit zugeordnet; die Entgeltgruppenliste zeigt nur Gruppen dieses Vertrags. GVP/DGB ist aus den Originalverträgen vorbefüllt, weitere Verträge kann die Administration mit den Gruppen aus dem Originalvertrag hinterlegen.
   - Kalkulation pro Los mit Tarifentgeltgruppen, Laufzeit, Schicht- und Einsatzkosten, Gemeinkosten sowie Gewinn.
   - Firmenunterlagen und Word-/Textvorlagen; Angebotsmappe mit bearbeitbarem Entwurf, Chef-Freigabe vor Download, Ablaufprüfung, Ablauf-Erinnerungen und protokolliertem Eingangsbeleg nach manueller Portalabgabe.
+  - Kompakte Info-Symbole statt sichtbarer Hilfsüberschriften; Kurzüberblicke auch für Treffer ohne ausführlichen KI-Steckbrief.
   - Mobile Formulare, größere Touchflächen und kurze einklappbare Erklärungen für Treffer, Rollen, Unterlagen, Suchprofil, Kalkulation und Personal.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
@@ -38,6 +39,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (fehlende Steckbriefe und kompakte Hilfen)
+- Ursache des fehlenden Texts für „Beschaffung und Haushalt“: der Alarm erstellt höchstens zwei neue ausführliche KI-Steckbriefe pro Lauf. Weitere Treffer hatten bisher keinen Text. Jeder neue Treffer erhält jetzt mindestens einen Kurzüberblick aus den Bekanntmachungsdaten, ohne zusätzliche KI-Kosten. Vorhandene ausführliche Texte werden nicht durch Kurztexte überschrieben. Bereits vorhandene Steckbriefdateien verbrauchen das Limit für neue KI-Steckbriefe nicht mehr.
+- Historische Morgenbericht-Zusammenfassungen für 13 Treffer als Ersatzanzeige eingebunden, exakt an Firma und Portallink gebunden. Damit ist auch der betroffene ITZBund-Treffer abgedeckt. Archivierte Zusammenfassung ist als solche gekennzeichnet; sie ersetzt keine Prüfung der Vergabeunterlagen. Upload und vorhandene ausführliche Steckbriefe behalten Vorrang.
+- „Treffer verstehen“ entfernt. Alle zentralen Kontexthilfen zeigen geschlossen nur noch ein kleines Info-Symbol mit 44-px-Tippfläche und barrierefreier Beschriftung. Text erscheint erst beim Öffnen. Dauerhafte Gestaltungsregel in AGENTS.md ergänzt.
+- Typprüfung und alle 17 Web-Testdateien grün; zwei Python-Regressionstests für Kurzüberblicke sowie Python-Syntaxprüfung grün. Tests decken den konkreten Archivtreffer, Vorrang vorhandener Texte und Trennung zwischen Firmen ab.
+- Code wird auf main bereitgestellt; Live-Ausrollung muss separat bestätigt werden. Die vorherige Tarifmigration und deren Probelauf bleiben bis zu einem erfolgreichen Workflow-Ergebnis offen. Benjamin muss für diese Änderungen nichts einrichten.
 
 ### 30.10.2026 – ChatGPT (lesende Automationsprüfung, 18:26 Berlin)
 - Auf Benjamins Wunsch aktuellen Automationsstand geprüft. AGENTS.md, gemeinsames Gedächtnis und App-Fahrplan gelesen; keine Code-, Datenbank-, Secret- oder Zeitplanänderung.

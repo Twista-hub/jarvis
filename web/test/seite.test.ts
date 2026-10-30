@@ -4,7 +4,7 @@ import { hilfe, seite } from "../src/seite.ts";
 
 test("Kontexthilfe bleibt geschlossen, ist barrierearm und escaped Inhalte", () => {
   const block = hilfe('<img src=x>', "Preis & Daten < geheim");
-  assert.match(block, /^<details class="hilfe"><summary>ℹ️ &#60;img src=x&#62;<\/summary>/);
+  assert.match(block, /^<details class="hilfe"><summary aria-label="&#60;img src=x&#62;" title="&#60;img src=x&#62;"><span aria-hidden="true">ℹ️<\/span><\/summary>/);
   assert.match(block, /Preis &#38; Daten &#60; geheim/);
   assert.doesNotMatch(block, /<img/);
 });

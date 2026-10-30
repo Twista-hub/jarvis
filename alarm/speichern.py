@@ -28,11 +28,12 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
                on conflict (firma_id, quelle_id) do update set
                  punkte = coalesce(excluded.punkte, vorgaenge.punkte),
                  frist = coalesce(excluded.frist, vorgaenge.frist),
-                 steckbrief = coalesce(excluded.steckbrief, vorgaenge.steckbrief),
+                 steckbrief = case when %s and nullif(trim(vorgaenge.steckbrief),'') is not null
+                   then vorgaenge.steckbrief else coalesce(excluded.steckbrief, vorgaenge.steckbrief) end,
                  link = excluded.link,
                  bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id)
                returning (xmax = 0)""",
-            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), t.get("steckbrief"), bereich(regionen, t.get("plz", ""))),
+            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), t.get("steckbrief"), bereich(regionen, t.get("plz", "")), t.get("steckbrief_kurz", False)),
         ).fetchone()
         neu += bool(row and row[0])
     return neu

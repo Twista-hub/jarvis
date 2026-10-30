@@ -149,11 +149,29 @@ def eforms_text(rel: dict) -> str:
     return "\n".join(z for z in zeilen if "UBLExtension" not in z)[:50000]
 
 
-def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str) -> Path | None:
-    """Let Claude write the Steckbrief: from the documents on allowed portals, otherwise from the notice itself."""
+def kurzbrief(rel: dict, day: str) -> str:
+    """Always retain the notice facts, even when the AI budget is exhausted."""
+    t = rel.get("tender") or {}
+    beschreibung = re.sub(r"\s+", " ", t.get("description") or "").strip()
+    return (f"## Kurzüberblick\n\n{t.get('title', '').strip()}\n\n"
+            f"**Auftraggeber:** {(rel.get('buyer') or {}).get('name') or 'nicht angegeben'}\n\n"
+            f"**Ort:** {place(rel) or 'nicht angegeben'}\n\n"
+            f"**Veröffentlicht:** {day}\n\n"
+            f"**Angebotsfrist:** {frist(t) or 'nicht angegeben'}\n\n"
+            f"{beschreibung or 'Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.'}\n\n"
+            "_Dieser Kurzüberblick enthält Angaben aus der öffentlichen Bekanntmachung. "
+            "Die Vergabeunterlagen wurden nicht geprüft. Für die ausführliche Analyse bitte die Unterlagen hochladen._")
+
+
+def steckbrief_datei(name: str, day: str, rel: dict) -> Path:
     t = rel.get("tender") or {}
     slug = re.sub(r"[^a-z0-9]+", "-", t.get("title", "").lower())[:50].strip("-")
-    out = ROOT / "steckbriefe" / f"{day}-{name}-{slug}.md"
+    return ROOT / "steckbriefe" / f"{day}-{name}-{slug}.md"
+
+
+def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str) -> Path | None:
+    """Let Claude write the Steckbrief: from the documents on allowed portals, otherwise from the notice itself."""
+    out = steckbrief_datei(name, day, rel)
     if out.exists():
         return out
     kopf = json.dumps(item(0, rel) | {"link": url, "veroeffentlicht": day}, ensure_ascii=False)
@@ -236,16 +254,18 @@ def run(days: list[str]) -> str:
             lines += [head, f"{(rel.get('buyer') or {}).get('name', '')} · {place(rel)} · veröffentlicht {day} · {reason}",
                       "", desc, ""]
             links = f"[Zur Ausschreibung]({url}) · [⬆️ Unterlagen prüfen lassen]({UPLOAD}?titel={urllib.parse.quote(t.get('title', '').strip()[:200])})"
-            pfad = None
-            if b.get("punkte", 0) >= STECKBRIEF_AB and briefe < MAX_STECKBRIEFE:
+            cache = steckbrief_datei(name, day, rel)
+            pfad = cache if cache.exists() else None
+            if not pfad and b.get("punkte", 0) >= STECKBRIEF_AB and briefe < MAX_STECKBRIEFE:
                 pfad = steckbrief_fuer(ki, name, profile, day, rel, url)
                 if pfad:
                     briefe += 1
-                    links += f" · [📄 Steckbrief](../steckbriefe/{pfad.name})"
+            if pfad:
+                links += f" · [📄 Steckbrief](../steckbriefe/{pfad.name})"
             lines += [links, ""]
             treffer.append({"profil": name, "quelle_id": rel.get("ocid") or rel.get("id") or url, "titel": t.get("title", "").strip(),
                             "link": url, "frist": frist(t),
-                            "punkte": b.get("punkte") or None, "plz": plz(rel), "steckbrief": pfad.read_text(encoding="utf-8") if pfad else None})
+                            "punkte": b.get("punkte") or None, "plz": plz(rel), "steckbrief": pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day), "steckbrief_kurz": not bool(pfad)})
         if weg:
             lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
         if not rows:
