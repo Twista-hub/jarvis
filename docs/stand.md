@@ -23,6 +23,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - (niemand)
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
+0. Tarife festlegen (kostenlos/basis/pro/erfolg): was der kostenlose Tarif darf. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
 2. Zuständige Person pro Ausschreibung zuweisen (Fahrplan Punkt 9).
 3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
@@ -31,6 +32,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 (spät, Teil 4) – Claude
+- Auf Wunsch von Benjamin: keine manuelle Freischaltung mehr. Wer sich registriert und die E-Mail bestätigt, bekommt sofort seine Firma im Tarif `kostenlos` (Migration `20261031010000_selbst_freischalten.sql`; Freischalten-Seite, Betreiber-Mail und Tabellen `registrierungen`/`betreiber` entfernt; `firma_anlegen` ohne Freigabe). Was der kostenlose Tarif darf, legt Benjamin später fest (offener Punkt).
 
 ### 30.10.2026 (spät, Teil 3) – Claude
 - Login-Fehler „Link abgelaufen“ bei neuer Adresse: Ursache PKCE (Link ging nur im selben Browser, Mail-Apps öffnen oft einen anderen). Diagnose über `datenbank.yml` Aktion `anmeldungen` (flow_state: Code ausgestellt, nie eingelöst).

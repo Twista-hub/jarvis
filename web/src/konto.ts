@@ -128,24 +128,17 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const kopf = hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : "";
   const abmelden = `<form method="post" action="/abmelden"><button>Abmelden</button></form>`;
   if (meine.ok && !meine.daten.length) {
-    // Registered with firm data: create the firm now (if unlocked) and go straight to the setup assistant.
+    // Registered with firm data: create the firm now (free plan) and go straight to the setup assistant.
     const neu = await db<string | null>(s, env, "rpc/registrierung_abschliessen", { method: "POST", body: "{}" });
     if (neu.ok && typeof neu.daten === "string") return weiterleiten(`/konto/einrichtung?firma=${neu.daten}`, [...s.cookies, `jv_firma=${neu.daten}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`]);
-    const wartet = await db<{ firma: string }[]>(s, env, `registrierungen?user_id=eq.${s.userId}&freigeschaltet=is.null&select=firma`);
-    if (wartet.ok && wartet.daten.length) {
-      return html(seite("Fast geschafft", `${kopf}
-<p>Danke für deine Registrierung für <strong>${escape(wartet.daten[0].firma)}</strong>. WP Digital Ranger schaltet deinen Zugang frei, meist innerhalb eines Werktags. Du bekommst dann eine Mail und kannst direkt loslegen.</p>
-<p class="klein">Fragen? Schreib an <a href="mailto:kontakt@wpdigitalranger.com">kontakt@wpdigitalranger.com</a>.</p>
-<h2>Konto</h2>${abmelden}`), 200, s.cookies);
-    }
   }
   if (!meine.ok || !meine.daten.length) {
     return html(seite("Deine Firma", `${kopf}
-<p>Du gehörst noch zu keiner Firma. Öffne den Einladungs-Link, den du bekommen hast, oder lege deine Firma an, wenn WP Digital Ranger dein Konto freigeschaltet hat.</p>
+<p>Du gehörst noch zu keiner Firma. Öffne den Einladungs-Link, den du bekommen hast, oder lege hier deine Firma an.</p>
 <form method="post" action="/konto/firma">
   <label>Name der Firma <input name="name" required minlength="2" maxlength="200" placeholder="z. B. Muster GmbH"></label>
   <button>Firma anlegen</button>
-  <p class="klein">Du wirst Inhaber und kannst danach Standorte anlegen und Mitarbeiter einladen.</p>
+  <p class="klein">Du wirst Inhaber und startest im kostenlosen Tarif. Danach kannst du Standorte anlegen und Mitarbeiter einladen.</p>
 </form>
 <h2>Konto</h2>${abmelden}`), 200, s.cookies);
   }
@@ -291,9 +284,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
 async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
   const name = String(form.get("name") ?? "").trim();
   const r = await db<string>(s, env, "rpc/firma_anlegen", { method: "POST", body: JSON.stringify({ name }) });
-  const fehler = !r.ok && r.fehler.includes("nicht freigeschaltet")
-    ? "Firmen-Konten schaltet WP Digital Ranger frei. Schreib uns an kontakt@wpdigitalranger.com, oder öffne den Einladungs-Link deiner Firma."
-    : "Die Firma konnte nicht angelegt werden.";
+  const fehler = "Die Firma konnte nicht angelegt werden.";
   if (r.ok && typeof r.daten === "string") return weiterleiten(`/konto/einrichtung?firma=${r.daten}`, [`jv_firma=${r.daten}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`]);
   return weiterleiten(`/konto?hinweis=${encodeURIComponent(r.ok ? "Firma angelegt." : fehler)}`);
 }
