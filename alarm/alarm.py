@@ -22,7 +22,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 UPLOAD = "https://jarvis-alarm.benschiffer79.workers.dev/"
-UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; contact@restockhero.eu)"}
+UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"}
 # Portals whose terms and robots.txt allow downloading the documents for our service (checked by hand).
 # Not DTVP: its AGB (29.10.2026) forbid systematic downloads of notices and documents for commercial offers.
 PORTALE: set[str] = set()
@@ -110,20 +110,26 @@ def item(nr: int, rel: dict) -> dict:
             "ort": place(rel), "beschreibung": re.sub(r"\s+", " ", t.get("description", ""))[:1500], "cpv": cpv_codes(t)}
 
 
-def eforms_text(notice_id: str) -> str:
+def eforms_text(rel: dict) -> str:
     """The full notice (eForms XML, same CC0 source) as 'field: value' lines: selection criteria,
     award criteria, deadlines and lots that the OCDS export leaves out. '' if not available."""
-    if not re.fullmatch(r"\d+", str(notice_id)):
-        return ""
-    for version in ("", "&noticeVersion=1"):
-        try:
+    # The notice id is the UUID inside the OCID (ocds-<prefix>-<uuid>); the release id may carry a version suffix.
+    kandidaten = [m.group(0) for f in (rel.get("ocid", ""), rel.get("id", ""))
+                  if (m := re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", str(f)))]
+    root, fehler = None, ""
+    for notice_id in dict.fromkeys(kandidaten):
+        for version in ("", "&noticeVersion=1"):
             url = f"https://oeffentlichevergabe.de/api/notices/{notice_id}?format=eforms{version}"
-            with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
-                root = ET.fromstring(r.read())
+            try:
+                with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
+                    root = ET.fromstring(r.read())
+                break
+            except Exception as e:  # noqa: BLE001
+                fehler = f"{url}: {e}"
+        if root is not None:
             break
-        except Exception:  # noqa: BLE001
-            continue
-    else:
+    if root is None:
+        print(f"eForms nicht geladen ({fehler or 'keine Bekanntmachungs-ID'})", file=sys.stderr)
         return ""
     zeilen, pfad = [], []
 
@@ -138,6 +144,7 @@ def eforms_text(notice_id: str) -> str:
         pfad.pop()
 
     lauf(root)
+    print(f"eForms geladen: {len(zeilen)} Felder", file=sys.stderr)
     return "\n".join(z for z in zeilen if "UBLExtension" not in z)[:50000]
 
 
@@ -157,7 +164,7 @@ def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str)
             dokumente, skipped = bundle(files)
         quelle = f"aus {len(files)} Vergabeunterlagen" + (f" (nicht gelesen: {', '.join(skipped)})" if skipped else "")
     else:
-        voll = eforms_text(rel.get("id", ""))
+        voll = eforms_text(rel)
         dokumente = ("Nur die öffentliche Bekanntmachung, keine Vergabeunterlagen.\n"
                      + (f"Vollständige Bekanntmachung (eForms, Feldname: Wert):\n{voll}\n\n" if voll else "")
                      + "Kurzfassung (OCDS):\n" + json.dumps(rel, ensure_ascii=False)[:40000])

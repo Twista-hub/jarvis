@@ -87,7 +87,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
 
     const ki = await step.do("Steckbrief schreiben", { retries: { limit: 2, delay: "30 seconds" }, timeout: "15 minutes" }, async () => {
       const dokumente = await (await this.env.DATEN.get(`${dir}/text.md`))!.text();
-      const kunde = (profile as Record<string, { beschreibung: string }>)[job.profil];
+      const kunde = (profile as Record<string, { beschreibung: string }>)[job.profil] ?? { beschreibung: job.kunde || "Keine Firmenbeschreibung hinterlegt." };
       const message = await this.client().beta.messages
         .stream({
           model: MODEL,

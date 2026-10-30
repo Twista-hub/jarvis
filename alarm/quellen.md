@@ -21,7 +21,7 @@ Regel: vor jedem automatischen Abruf Nutzungsbedingungen und robots.txt prüfen 
 | vergabemarktplatz.brandenburg.de | 4,5 % | robots.txt: `Disallow: /`; Nutzungsbedingungen: Rechte nur für die eigene Teilnahme an Vergabeverfahren | **nein** |
 | evergabe.de | 7,5 % | robots.txt erlaubt; Seite schützt sich mit reCAPTCHA gegen Bots; AGB als PDF (20260416_agb.pdf) noch nicht gelesen | offen, eher nein |
 | meinauftrag.rib.de | 6,1 % | robots.txt erlaubt; Nutzungsbedingungen (PDF) noch nicht gelesen | offen |
-| evergabe-online.de (Bund) | 7,0 % | Abruf mit Skript abgelehnt (HTTP 400) | offen |
+| evergabe-online.de (Bund) | 7,0 % | Abruf mit Skript abgelehnt (HTTP 400, auch robots.txt; erneut geprüft 30.10.2026). Wir umgehen das nicht | **nein**, Kunde lädt selbst herunter und lädt am Treffer hoch |
 
 **Folge:** Die vollen Unterlagen liest Jarvis nicht selbst. Der ausführliche Steckbrief kommt über den Kunden: Er lädt die Unterlagen herunter und gibt sie Jarvis (Pro-Paket). Vorher muss ein Anwalt klären, ob das gegen die Klauseln „keine Weitergabe an Dritte“ verstößt (Jarvis als beauftragter Dienstleister des Bieters).
 

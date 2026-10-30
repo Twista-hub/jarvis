@@ -1,7 +1,8 @@
 // Jarvis upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import kunden from "../kunden.json";
 import { euro, FELDER, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los } from "./kalkulation";
-import { konto, type KontoEnv } from "./konto";
+import profile from "../../alarm/profile.json";
+import { konto, vorgangZugriff, type KontoEnv } from "./konto";
 import { escape, markdown, seite } from "./seite";
 
 export { Steckbrief } from "./workflow";
@@ -15,7 +16,7 @@ export interface Env extends KontoEnv {
   TAGES_LIMIT: string;
 }
 
-export type Job = { id: string; profil: string; kunde: string; titel: string; erstellt: string };
+export type Job = { id: string; profil: string; kunde: string; titel: string; erstellt: string; vorgang?: string };
 
 const MAX_BYTES = 60 * 1024 * 1024;
 const MAX_FILES = 40;
@@ -24,6 +25,8 @@ const ID = /^[0-9a-f-]{36}$/;
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    const u = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/unterlagen$/);
+    if (u && request.method === "POST") return unterlagenAmVorgang(u[1], request, env);
     const k = await konto(request, env);
     if (k) return k;
     if (url.pathname === "/" && request.method === "GET") return html(formular("", url.searchParams.get("titel") ?? ""));
@@ -39,20 +42,53 @@ async function hochladen(request: Request, env: Env): Promise<Response> {
   const form = await request.formData();
   const kunde = await kundeZuCode(String(form.get("code") ?? ""), env);
   if (!kunde) return html(formular("Der Zugangscode stimmt nicht."), 403);
-  const dateien = form.getAll("dateien").filter((f): f is File => typeof f !== "string" && f.size > 0);
-  if (!dateien.length) return html(formular("Bitte mindestens eine Datei auswählen."), 400);
-  if (dateien.length > MAX_FILES || dateien.reduce((s, f) => s + f.size, 0) > MAX_BYTES) {
-    return html(formular(`Zu viel auf einmal: höchstens ${MAX_FILES} Dateien und 60 MB.`), 413);
-  }
-  if (!(await zaehlen(env))) return html(formular("Heute sind keine Prüfungen mehr frei. Bitte morgen noch einmal versuchen."), 429);
+  const dateien = auswahl(form);
+  const fehler = await pruefenUndZaehlen(dateien, env);
+  if (fehler) return html(formular(fehler[0]), fehler[1]);
+  const job = await starten(env, dateien, { profil: kunde.profil, kunde: kunde.name, titel: String(form.get("titel") ?? "") });
+  return Response.redirect(new URL(`/auftrag/${job.id}`, request.url).toString(), 303);
+}
 
-  const job: Job = {
-    id: crypto.randomUUID(),
-    profil: kunde.profil,
-    kunde: kunde.name,
-    titel: String(form.get("titel") ?? "").slice(0, 300),
-    erstellt: new Date().toISOString(),
+/** Upload at a hit in the account: the logged-in user's firm decides the profile, no access code. */
+async function unterlagenAmVorgang(id: string, request: Request, env: Env): Promise<Response> {
+  const z = await vorgangZugriff(request, env, id);
+  if (!z) return Response.redirect(new URL("/konto", request.url).toString(), 303);
+  const zurueck = (fehler = "") => {
+    const h = new Headers({ location: `/konto/vorgang/${id}${fehler ? `?fehler=${encodeURIComponent(fehler)}#unterlagen` : ""}` });
+    for (const c of z.s.cookies) h.append("set-cookie", c);
+    return new Response(null, { status: 303, headers: h });
   };
+  if (z.rolle === "leser") return zurueck("Als Leser kannst du keine Unterlagen hochladen. Frag einen Admin deiner Firma.");
+  const dateien = auswahl(await request.formData());
+  const fehler = await pruefenUndZaehlen(dateien, env);
+  if (fehler) return zurueck(fehler[0]);
+  const eintrag = Object.entries(profile as Record<string, { firma_id?: string; name: string }>).find(([, p]) => p.firma_id === z.v.firma_id);
+  const job = await starten(env, dateien, {
+    profil: eintrag?.[0] ?? `firma-${z.v.firma_id}`,
+    kunde: eintrag?.[1].name ?? "",
+    titel: [z.v.titel, z.v.link].filter(Boolean).join(" – "),
+    vorgang: id,
+  });
+  await env.DATEN.put(`auftraege/vorgaenge/${id}.json`, JSON.stringify({ auftrag: job.id, erstellt: job.erstellt }));
+  return zurueck();
+}
+
+function auswahl(form: FormData): File[] {
+  return form.getAll("dateien").filter((f): f is File => typeof f !== "string" && f.size > 0);
+}
+
+async function pruefenUndZaehlen(dateien: File[], env: Env): Promise<[string, number] | null> {
+  if (!dateien.length) return ["Bitte mindestens eine Datei auswählen.", 400];
+  if (dateien.length > MAX_FILES || dateien.reduce((s, f) => s + f.size, 0) > MAX_BYTES) {
+    return [`Zu viel auf einmal: höchstens ${MAX_FILES} Dateien und 60 MB.`, 413];
+  }
+  if (!(await zaehlen(env))) return ["Heute sind keine Prüfungen mehr frei. Bitte morgen noch einmal versuchen.", 429];
+  return null;
+}
+
+/** Stores the files in R2 and starts the Steckbrief workflow. */
+async function starten(env: Env, dateien: File[], daten: Omit<Job, "id" | "erstellt">): Promise<Job> {
+  const job: Job = { ...daten, titel: daten.titel.slice(0, 300), id: crypto.randomUUID(), erstellt: new Date().toISOString() };
   const dir = `auftraege/${job.id}`;
   for (const f of dateien) {
     const name = f.name.replace(/[^\p{L}\p{N}._ -]+/gu, "_").slice(-120) || "datei";
@@ -60,7 +96,7 @@ async function hochladen(request: Request, env: Env): Promise<Response> {
   }
   await env.DATEN.put(`${dir}/auftrag.json`, JSON.stringify(job));
   await env.STECKBRIEF.create({ id: job.id, params: job });
-  return Response.redirect(new URL(`/auftrag/${job.id}`, request.url).toString(), 303);
+  return job;
 }
 
 async function auftrag(id: string, env: Env): Promise<Response> {
