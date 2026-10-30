@@ -22,6 +22,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031040000_standortleitung_qualifikationen.sql
 \ir ../migrations/20261031050000_personal_tarifvertraege.sql
 \ir ../migrations/20261030181644_vergabekatalog.sql
+\ir ../migrations/20261031060000_einsatzplaene.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -101,6 +102,8 @@ exception when insufficient_privilege then raise notice 'ok: kein Personal in fr
 insert into public.einsaetze (firma_id, vorgang_id, personal_id)
   select :'firma', (select id from public.vorgaenge where titel = 'Messe-Catering ITB'), (select id from public.personal where vorname = 'Eva');
 select pruefe((select count(*) = 1 from public.einsaetze), 'Bearbeiter plant Eva für Messe-Catering ein');
+insert into public.einsatzplaene (vorgang_id, firma_id, ort) select id, :'firma', 'Messe Berlin, Halle 3' from public.vorgaenge where titel = 'Messe-Catering ITB';
+select pruefe((select ort = 'Messe Berlin, Halle 3' from public.einsatzplaene), 'Bearbeiter legt Einsatzplan an');
 do $$ begin
   insert into public.einsaetze (firma_id, vorgang_id, personal_id)
     select current_setting('test.firma')::uuid, (select id from public.vorgaenge where titel = 'Hotel Hamburg'), (select id from public.personal where vorname = 'Eva');
@@ -112,6 +115,7 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) from public.vorgaenge) = 0 and (select count(*) from public.firmen) = 0, 'Fremde sehen nichts');
 select pruefe((select count(*) = 0 from public.personal), 'Fremde sehen kein Personal');
 select pruefe((select count(*) = 0 from public.einsaetze), 'Fremde sehen keine Einsätze');
+select pruefe((select count(*) = 0 from public.einsatzplaene), 'Fremde sehen keine Einsatzpläne');
 do $$ begin
   perform public.einladung_annehmen('geheim');
   raise exception 'FEHLER: Einladung zweimal nutzbar';
