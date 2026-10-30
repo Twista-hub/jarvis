@@ -5,7 +5,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Aktueller Stand (30.10.2026)
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
-- **Logo-/Designentwurf zur Ansicht:** `docs/design/vorschau.png` und `docs/design/vorschau.html`, mit skalierbarer Kompass-/Wortmarke für WP Digital Ranger und heller/dunkler Jarvis-Handyansicht. Noch nicht in der App eingesetzt; Benjamin sieht den Entwurf zuerst.
+- **Überarbeiteter Logo-/Designentwurf zur Ansicht:** `docs/design/vorschau.png` und `docs/design/vorschau.html`, mit skalierbarer Kompass-/Wortmarke für WP Digital Ranger und heller/dunkler Jarvis-Handyansicht. Noch nicht in der App eingesetzt; Benjamin sieht den Entwurf zuerst.
   - Startseite mit Erklärung und Beispiel-Steckbrief; Impressum, Datenschutz, Nutzungsbedingungen, AVV (Entwürfe, Benjamin prüft noch).
   - Registrierung mit Passwort, Passwort-Anmeldung/-Wiederherstellung und Mail-Link; bestätigte neue Firmen werden zunächst kostenlos angelegt. Firmen, Bereiche/Standorte, Rollen und Einladungen.
   - Ausschreibungen als Handy-Karten mit Punkten, Frist, Stand und Bereichsfilter; Treffer-Seite mit Steckbrief, Knopf „Hier runterladen“
@@ -242,3 +242,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Einrichtungs-Assistent, Sofort-Lauf (Secret ACTIONS_TOKEN von Benjamin gesetzt), tägliche Mail mit Uhrzeitwahl, Handy-Nachrichten.
 - User-Agent nennt jetzt kontakt@wpdigitalranger.com (vorher versehentlich RestockHero-Adresse).
 - Offen für Benjamin: Handy-Test, Rechtstexte lesen, Anthropic-Limit.
+
+### 30.10.2026 – ChatGPT (Logo-Kontrast nachgeschärft)
+- Auf Benjamins Rückmeldung das Logo überarbeitet: nun klar erkennbare Kompassrose mit Ring, oranger Nordspitze und blauer Südspitze auf dunklem Petrol. Die Farbchips und hell/dunklen Handyansichten zeigen stärkere Orange-/Blau-Akzente.
+- SVG-Logo und Wortmarke sowie HTML-/PNG-Vorschau aktualisiert. Noch kein Einbau in die App.

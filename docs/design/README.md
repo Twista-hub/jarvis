@@ -1,6 +1,6 @@
-# Logo und Design – Vorschlag 01
+# Logo und Design – Vorschlag 02
 
-30.10.2026 – ChatGPT. Entwurf zur Ansicht durch Benjamin, noch nicht in der App eingesetzt.
+30.10.2026 – ChatGPT. überarbeiteter Entwurf nach Rückmeldung zur Ansicht durch Benjamin, noch nicht in der App eingesetzt.
 
 ## Dateien
 
@@ -12,8 +12,8 @@
 ## Gestaltungsentscheidungen
 
 - WP Digital Ranger ist die Unternehmensmarke, Jarvis der Produktname. Kein Umbenennen der App.
-- Kompass steht für Orientierung; türkisfarbene Nordostspitze als wiedererkennbares Detail. Kein Wappen, keine fremden Logos oder Bildmaterialien.
-- Petrol als Hauptfarbe, ruhiger heller Hintergrund; grüner Akzent für ausgewählte Elemente. Dunkle Ansicht mit eigenständigen Kontrastfarben.
+- Kompass steht für Orientierung; orangefarbene Nordspitze und blaue Südspitze als wiedererkennbares Detail. Kein Wappen, keine fremden Logos oder Bildmaterialien.
+- Tiefpetrol als Grundfarbe, Signalorange und deutliches Blau als sichtbare Akzente, heller neutraler Hintergrund. Dunkle Ansicht mit klar abgesetzten Akzenten.
 - Einheitliche SVG-Linien-Symbole statt unterschiedlicher Emoji-Darstellungen, Profil oben rechts, feste Handyleiste, Kacheln mit kurzen Texten.
 - Alle Zahlen und die Firmenbezeichnung in der Vorschau sind fiktiv. Die Vorschau hat keine Anmeldung, Datenbankzugriffe oder bedienbare App-Funktionen.
 
