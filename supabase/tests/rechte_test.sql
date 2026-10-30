@@ -14,6 +14,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261030210000_benachrichtigungen.sql
 \ir ../migrations/20261030220000_push.sql
 \ir ../migrations/20261030141331_mitarbeiter_freigaben_angebote.sql
+\ir ../migrations/20261030230000_angebotsfreigabe_abgabe.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -165,4 +166,21 @@ select test_als('00000000-0000-0000-0000-00000000000a');
 delete from public.vorgang_freigaben;
 select test_als('00000000-0000-0000-0000-00000000000b');
 select pruefe(not exists(select 1 from public.vorgang_freigaben),'Widerruf wirkt sofort');
+
+-- Every offer version waits for a manager; employees cannot approve it themselves.
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.angebotsmappen(firma_id,vorgang_id,text) values (:'firma',:'vorgang','Angebot 100 Euro') returning id as mappe \gset
+select set_config('test.mappe', :'mappe', false);
+select pruefe((select freigabe_status='wartet' from public.angebotsmappen where id=:'mappe'),'Angebot wartet auf Chef-Freigabe');
+select test_als('00000000-0000-0000-0000-00000000000b');
+do $$ begin
+  update public.angebotsmappen set freigabe_status='genehmigt',freigabe_von=auth.uid(),freigabe_am=now() where id=current_setting('test.mappe')::uuid;
+  raise exception 'FEHLER: Bearbeiter genehmigte eigenes Angebot';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; raise notice 'ok: nur Firmenleitung genehmigt'; end $$;
+select test_als('00000000-0000-0000-0000-00000000000a');
+update public.angebotsmappen set freigabe_status='genehmigt',freigabe_von=auth.uid(),freigabe_am=now() where id=:'mappe';
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.angebotsabgaben(firma_id,mappe_id,portal,dateiname,mime,groesse)
+values (:'firma',:'mappe','Testportal','eingang.pdf','application/pdf',10);
+select pruefe((select count(*)=1 from public.angebotsabgaben),'Freigegebenes Angebot samt Eingangsbeleg protokolliert');
 \echo ALLE TESTS OK

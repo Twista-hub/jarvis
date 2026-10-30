@@ -87,11 +87,25 @@ def inhalt(con, firma_id: str, user_id: str, seit: datetime) -> tuple[list, list
     return neu, fristen
 
 
+def ablaufende_nachweise(con, firma_id: str, user_id: str) -> list[tuple]:
+    """One reminder on 30/14/7/2 days, only for people with enabled firm email and finance access."""
+    heute = datetime.now(BERLIN).date()
+    faellig = [heute + timedelta(days=d) for d in (30, 14, 7, 2)]
+    return con.execute("""select d.id::text, d.name, d.gueltig_bis, (d.gueltig_bis-current_date)::int
+        from public.firmenunterlagen d
+        join public.mitglieder m on m.firma_id=d.firma_id and m.user_id=%s and m.aktiv
+        join public.benachrichtigungen b on b.firma_id=m.firma_id and b.user_id=m.user_id and b.stunde is not null and b.kanal in ('mail','beides')
+        where d.firma_id=%s and d.art='nachweis' and d.gueltig_bis=any(%s)
+          and (m.rolle in ('inhaber','admin') or (m.rolle in ('bearbeiter','leser') and m.finanzen))
+          and not exists(select 1 from public.nachweis_erinnerungen e where e.dokument_id=d.id and e.user_id=m.user_id and e.tage=(d.gueltig_bis-%s)::int)
+        order by d.gueltig_bis,d.name""", (user_id, firma_id, faellig, heute)).fetchall()
+
+
 def datum(t) -> str:
     return t.astimezone(BERLIN).strftime("%d.%m.%Y, %H:%M Uhr") if t else "unbekannt"
 
 
-def nachricht(an: str, firma: str, neu: list, fristen: list) -> EmailMessage:
+def nachricht(an: str, firma: str, neu: list, fristen: list, nachweise: list = ()) -> EmailMessage:
     zeilen, html_teile = [], []
     if fristen:
         zeilen.append("⏰ Fristen bald:")
@@ -108,11 +122,19 @@ def nachricht(an: str, firma: str, neu: list, fristen: list) -> EmailMessage:
             zeilen.append(f"- {p}{titel} (Frist {datum(frist)})\n  {APP}/konto/vorgang/{vid}")
             html_teile.append(f'<li>{p}<a href="{APP}/konto/vorgang/{vid}">{html.escape(titel)}</a> <small>(Frist {datum(frist)})</small></li>')
         html_teile.append("</ul>")
+    if nachweise:
+        zeilen.append("\n📄 Firmen-Nachweise laufen bald ab:")
+        html_teile.append("<h2>📄 Firmen-Nachweise laufen bald ab</h2><ul>")
+        for _id, name, gueltig_bis, tage in nachweise:
+            zeilen.append(f"- {name} – gültig bis {gueltig_bis:%d.%m.%Y} (in {tage} Tagen)\n  {APP}/konto/firmenunterlagen")
+            html_teile.append(f'<li><a href="{APP}/konto/firmenunterlagen">{html.escape(name)}</a> – gültig bis <strong>{gueltig_bis:%d.%m.%Y}</strong> (in {tage} Tagen)</li>')
+        html_teile.append("</ul>")
     fuss = f"Uhrzeit ändern oder Mails abschalten: {APP}/konto#mail"
     m = EmailMessage()
     m["From"] = formataddr(ABSENDER)
     m["To"] = an
-    m["Subject"] = (f"{len(neu)} neue Ausschreibungen" if neu else "Fristen-Erinnerung") + f" für {firma}"[:150]
+    betreff = f"{len(neu)} neue Ausschreibungen" if neu else "Fristen-Erinnerung" if fristen else "Nachweise laufen bald ab"
+    m["Subject"] = betreff + f" für {firma}"[:150]
     m["Message-ID"] = make_msgid(domain="wpdigitalranger.com")
     # Lets mail programs show an "unsubscribe" button; both lead to switching the mail off.
     m["List-Unsubscribe"] = f"<mailto:{ABSENDER[1]}?subject=Jarvis-Mail%20abbestellen>, <{APP}/konto#mail>"
@@ -136,15 +158,18 @@ def main() -> None:
         for firma_id, user_id, email, firma, letzte, kanal in faellig(con, stunde, test, sofort):
             seit = datetime.now(BERLIN) - timedelta(days=8) if sofort else letzte or datetime.now(BERLIN) - timedelta(days=1)
             neu, fristen = inhalt(con, firma_id, user_id, seit)
-            if not (neu or fristen):
+            nachweise = [] if test or sofort or kanal not in ("mail", "beides") else ablaufende_nachweise(con, firma_id, user_id)
+            if not (neu or fristen or nachweise):
                 continue
             if kanal in ("mail", "beides"):
-                smtp.send_message(nachricht(email, firma, neu, fristen))
+                smtp.send_message(nachricht(email, firma, neu, fristen, nachweise))
                 mails += 1
             if kanal in ("push", "beides"):
                 pushs += handy(con, schl, user_id, firma_id, firma, neu, fristen)
             if not test:
                 con.execute("update public.benachrichtigungen set letzte_mail = now() where firma_id = %s and user_id = %s", (firma_id, user_id))
+                for dokument_id, _name, _gueltig_bis, tage in nachweise:
+                    con.execute("insert into public.nachweis_erinnerungen (firma_id,dokument_id,user_id,tage) values (%s,%s,%s,%s) on conflict do nothing", (firma_id, dokument_id, user_id, tage))
     print(f"{stunde} Uhr: {mails} Mails, {pushs} Handy-Benachrichtigungen")
 
 

@@ -9,7 +9,7 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 - Steckbrief aus Unterlagen, Kalkulation (auf der Upload-Seite)
 - Vorschau „PerLease (Vorschau)“ mit 16 Standorten; Filter zeigt auch untergeordnete Standorte
 - Mitarbeiter-Funktionen, Bereichsrechte, Finanzfreigaben und gezielte Textweitergabe mit Vorschau/Widerruf
-- Firmenunterlagen und Angebotsvorlagen; bearbeitbare Angebotsmappen mit Nachweisen als Download
+- Firmenunterlagen und Angebotsvorlagen; Angebotsmappen mit Chef-Freigabe, Ablauf-Erinnerungen und Abgabenachweis
 - Am Treffer: Direktlink zu den Unterlagen beim Portal und „Hochladen und prüfen“ (ohne Zugangscode); der Steckbrief aus den Unterlagen erscheint direkt am Treffer
 - Kurz-Steckbrief aus der vollständigen Bekanntmachung (eForms) mit Fristen und Eignungskriterien, soweit veröffentlicht
 
@@ -34,5 +34,5 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 
 ### D. Später
 12. Abrechnung (Stripe, pro Nutzer), Paketwahl.
-13. **Angebotsmappe umgesetzt**: Ausgangsentwurf mit Angebotspreis, eigene Word-/Textvorlagen, ausgewählte Nachweise und ZIP-Export. Später: weitere Automatisierung und erlaubte Portal-Schnittstellen.
+13. **Angebotsmappe umgesetzt**: Ausgangsentwurf mit Angebotspreis, eigene Word-/Textvorlagen, ausgewählte Nachweise, Chef-Freigabe und ZIP-Export. Ablauf-Erinnerungen und Eingangsbeleg nach manueller Portalabgabe ergänzt. Später: weitere Automatisierung und erlaubte Portal-Schnittstellen.
 14. Mehr Quellen (weitere Vergabeportale nach Freigabe).
