@@ -4,6 +4,8 @@
 import { ICON_192, ICON_512 } from "./icons.ts";
 
 export const APP_JS = `"use strict";
+// Own scope, so names like "status" do not collide with window properties.
+(function () {
 document.querySelectorAll("input[data-sofort]").forEach(function (i) {
   i.addEventListener("change", function () {
     if (i.files.length) { i.form.querySelector("button").textContent = "Wird hochgeladen …"; i.form.requestSubmit(); }
@@ -12,10 +14,10 @@ document.querySelectorAll("input[data-sofort]").forEach(function (i) {
 
 var knopf = document.getElementById("push-an");
 var test = document.getElementById("push-test");
-var status = document.getElementById("push-status");
+var meldung = document.getElementById("push-status");
 var ios = /iphone|ipad/i.test(navigator.userAgent);
 var installiert = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
-function zeige(t) { if (status) status.textContent = t; }
+function zeige(t) { if (meldung) meldung.textContent = t; }
 function bytes(b64) {
   var s = atob((b64 + "===".slice((b64.length + 3) % 4)).replace(/-/g, "+").replace(/_/g, "/"));
   return Uint8Array.from(s, function (c) { return c.charCodeAt(0); });
@@ -55,6 +57,7 @@ if ("serviceWorker" in navigator) {
     });
   });
 }
+})();
 `;
 
 export const SW_JS = `"use strict";
