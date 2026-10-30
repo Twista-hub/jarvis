@@ -2,11 +2,13 @@
 
 Runs every hour (.github/workflows/mail.yml). Each person only gets what they may see in the app: the
 queries run as that person (role authenticated with their user id), so the row level security applies.
-Usage: SUPABASE_DB_PASSWORD=... SMTP_PASSWORD=... python3 alarm/mail.py [--test <email>]
+Also phone notifications (alarm/push.py) for people who chose "Handy".
+Usage: SUPABASE_DB_PASSWORD=... SMTP_PASSWORD=... python3 alarm/mail.py [--test <email> | --sofort <firma_id>]
 """
 import html
 import json
 import os
+import re
 import smtplib
 import sys
 from datetime import datetime, timedelta
@@ -14,6 +16,7 @@ from email.message import EmailMessage
 from email.utils import formataddr, make_msgid
 from zoneinfo import ZoneInfo
 
+import push
 from profile_db import verbinden
 
 APP = "https://jarvis-alarm.benschiffer79.workers.dev"
@@ -22,17 +25,46 @@ BERLIN = ZoneInfo("Europe/Berlin")
 ERINNERN = (7, 2)  # days before the deadline
 
 
-def faellig(con, stunde: int, test: str | None) -> list[tuple]:
-    if test:  # test mail: all firms of this person, hits of the last 24 hours, whatever the setting
-        return con.execute("""select m.firma_id::text, m.user_id::text, u.email, f.name, null::timestamptz
+def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tuple]:
+    """(firma_id, user_id, email, firm name, last sent, channel) for everyone due now."""
+    if test:  # test: all firms of this person, hits of the last 24 hours, mail and phone
+        return con.execute("""select m.firma_id::text, m.user_id::text, u.email, f.name, null::timestamptz, 'beides'
             from public.mitglieder m join public.firmen f on f.id = m.firma_id join auth.users u on u.id = m.user_id
             where m.aktiv and u.email = %s""", (test,)).fetchall()
-    return con.execute("""select b.firma_id::text, b.user_id::text, u.email, f.name, b.letzte_mail
+    basis = """select b.firma_id::text, b.user_id::text, u.email, f.name, b.letzte_mail, b.kanal
         from public.benachrichtigungen b
         join public.mitglieder m on m.firma_id = b.firma_id and m.user_id = b.user_id and m.aktiv
         join public.firmen f on f.id = b.firma_id
         join auth.users u on u.id = b.user_id
-        where b.stunde = %s and (b.letzte_mail is null or b.letzte_mail < now() - interval '20 hours')""", (stunde,)).fetchall()
+        where b.stunde is not null and """
+    if sofort:  # first hit list right after the setup assistant: everyone of this firm who wants news
+        return con.execute(basis + "b.firma_id = %s", (sofort,)).fetchall()
+    return con.execute(basis + "b.stunde = %s and (b.letzte_mail is null or b.letzte_mail < now() - interval '20 hours')", (stunde,)).fetchall()
+
+
+def handy(con, schl, user_id: str, firma_id: str, firma: str, neu: list, fristen: list) -> int:
+    """Phone notification: one tap opens the hit (one new) or the list (several)."""
+    if fristen and not neu:
+        vid, titel, frist = fristen[0]
+        kopf, text, url = f"⏰ Frist {datum(frist)}", titel, f"/konto/vorgang/{vid}"
+    elif len(neu) == 1:
+        vid, titel, punkte, _ = neu[0]
+        kopf, text, url = f"Neue Ausschreibung{f' · {punkte}/10' if punkte else ''}", titel, f"/konto/vorgang/{vid}"
+    else:
+        kopf = f"{len(neu)} neue Ausschreibungen für {firma}"
+        text = neu[0][1] + (f" · und {len(fristen)} Fristen bald" if fristen else "")
+        url = f"/konto?firma={firma_id}"
+    geraete = con.execute("select id, endpoint from public.push_abos where user_id = %s", (user_id,)).fetchall()
+    if not geraete:
+        return 0
+    con.execute("insert into public.push_nachrichten (user_id, titel, text, url) values (%s, %s, %s, %s)", (user_id, kopf[:200], text[:300], url))
+    ok = 0
+    for abo_id, endpoint in geraete:
+        status = push.senden(*schl, endpoint)
+        if status in (404, 410):  # device unsubscribed or app removed
+            con.execute("delete from public.push_abos where id = %s", (abo_id,))
+        ok += 200 <= status < 300
+    return ok
 
 
 def als_person(con, user_id: str, sql: str, args: tuple) -> list[tuple]:
@@ -92,21 +124,28 @@ def nachricht(an: str, firma: str, neu: list, fristen: list) -> EmailMessage:
 
 
 def main() -> None:
-    test = sys.argv[2] if len(sys.argv) > 2 and sys.argv[1] == "--test" else None
+    args = sys.argv[1:]
+    test = args[1] if args[:1] == ["--test"] and len(args) > 1 else None
+    sofort = args[1] if args[:1] == ["--sofort"] and len(args) > 1 and re.fullmatch(r"[0-9a-f-]{36}", args[1]) else None
     stunde = datetime.now(BERLIN).hour
-    gesendet = 0
+    mails = pushs = 0
     with verbinden() as con, smtplib.SMTP_SSL("mail.privateemail.com", 465, timeout=30) as smtp:
         con.autocommit = True  # each als_person() runs in its own transaction, SET LOCAL ends with it
         smtp.login(ABSENDER[1], os.environ["SMTP_PASSWORD"].strip())
-        for firma_id, user_id, email, firma, letzte in faellig(con, stunde, test):
-            seit = letzte or datetime.now(BERLIN) - timedelta(days=1)
+        schl = push.schluessel(con)
+        for firma_id, user_id, email, firma, letzte, kanal in faellig(con, stunde, test, sofort):
+            seit = datetime.now(BERLIN) - timedelta(days=8) if sofort else letzte or datetime.now(BERLIN) - timedelta(days=1)
             neu, fristen = inhalt(con, firma_id, user_id, seit)
-            if neu or fristen:
+            if not (neu or fristen):
+                continue
+            if kanal in ("mail", "beides"):
                 smtp.send_message(nachricht(email, firma, neu, fristen))
-                gesendet += 1
+                mails += 1
+            if kanal in ("push", "beides"):
+                pushs += handy(con, schl, user_id, firma_id, firma, neu, fristen)
             if not test:
                 con.execute("update public.benachrichtigungen set letzte_mail = now() where firma_id = %s and user_id = %s", (firma_id, user_id))
-    print(f"{stunde} Uhr: {gesendet} Mails verschickt")
+    print(f"{stunde} Uhr: {mails} Mails, {pushs} Handy-Benachrichtigungen")
 
 
 if __name__ == "__main__":

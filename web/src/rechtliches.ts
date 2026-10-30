@@ -57,7 +57,7 @@ export function datenschutz(): string {
 <li><strong>Konto:</strong> E-Mail-Adresse, Zeitpunkt der Anmeldung, Zugehörigkeit zu Firmen, Rolle und Bereiche. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertrag).</li>
 <li><strong>Firmendaten:</strong> Firmenname, Standorte, Suchprofil, Ausschreibungen mit Stand und Notizen, Kalkulationswerte.</li>
 <li><strong>Hochgeladene Unterlagen:</strong> Vergabeunterlagen einer Ausschreibung. Sie können Namen und Kontaktdaten von Ansprechpartnern des Auftraggebers enthalten. Sie werden nur für den Steckbrief gelesen und <strong>nach 30 Tagen gelöscht</strong>. Bitte keine Unterlagen mit Daten eurer Mitarbeiter hochladen (z. B. Lebensläufe).</li>
-<li><strong>Tägliche Mail:</strong> Nur wenn du selbst eine Uhrzeit wählst, schicken wir dir einmal am Tag neue Treffer und Fristen-Erinnerungen. Abschalten jederzeit in der Übersicht unter „Tägliche Mail“. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</li>
+<li><strong>Tägliche Nachricht:</strong> Nur wenn du selbst eine Uhrzeit wählst, schicken wir dir einmal am Tag neue Treffer und Fristen-Erinnerungen per Mail oder aufs Handy. Für Handy-Nachrichten speichern wir die Push-Adresse, die dein Browser dafür vergibt; die Nachricht läuft über den Push-Dienst deines Browsers (z. B. Google oder Apple), enthält dabei aber keinen Text: den holt dein Handy danach direkt bei uns. Abschalten jederzeit in der Übersicht unter „Tägliche Nachricht“. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO.</li>
 <li><strong>Einladungen:</strong> E-Mail-Adresse der eingeladenen Person, damit wir den Einladungs-Link schicken können.</li>
 </ul>
 <h2>4. Cookies</h2>

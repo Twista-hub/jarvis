@@ -1,6 +1,6 @@
 import { marked } from "marked";
 
-// Page frame: plain HTML, no scripts, readable on a phone, light and dark.
+// Page frame: plain HTML (the only script is /app.js, see app.ts), readable on a phone, light and dark.
 
 export function seite(titel: string, inhalt: string, neuLadenSekunden = 0): string {
   return `<!doctype html>
@@ -10,6 +10,11 @@ export function seite(titel: string, inhalt: string, neuLadenSekunden = 0): stri
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">` : ""}
 <title>${escape(titel)} · Jarvis</title>
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icon-192.png">
+<link rel="apple-touch-icon" href="/icon-192.png">
+<meta name="theme-color" content="#1f5f8b">
+<script src="/app.js" defer></script>
 <style>
   :root { --bg: #f7f7f5; --text: #1d1d1b; --muted: #66665f; --card: #fff; --line: #ddddd6; --accent: #1f5f8b; --error: #a8321f; }
   @media (prefers-color-scheme: dark) {
