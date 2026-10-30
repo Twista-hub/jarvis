@@ -99,6 +99,11 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .knopf.whatsapp { background: #1f8f4e; color: #fff; padding: 12px 18px; }
   .bearbeiten summary, .neu-person summary { cursor: pointer; font-weight: 600; color: var(--accent); }
   .neu-person { margin: 16px 0; }
+  .qualifikationen-verwalten { margin: 20px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .qualifikationen-verwalten > summary { min-height: 44px; display: flex; align-items: center; cursor: pointer; color: var(--accent); font-weight: 650; }
+  .qualifikationen-verwalten ul { padding-left: 20px; }
+  .inline-form { display: inline-flex; margin-left: 8px; padding: 0; border: 0; background: transparent; vertical-align: middle; }
+  .standort-leitung { padding: 10px 14px; border-left: 4px solid var(--accent); border-radius: 8px; background: var(--card); }
   .zwei { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; }
   .filter-leiste { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; padding: 12px; }
   .chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }

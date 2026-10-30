@@ -12,8 +12,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Tägliche Nachricht pro Person: Uhrzeit 7–20 Uhr, per Mail, Handy oder beides; Fristen-Erinnerung 7 und 2 Tage vorher.
   - Handy-Nachrichten (Web-Push) und als App installierbar.
   - Profil-Icon oben rechts (/konto/profil), Firmenwechsel im Profil; Suchprofil als eigener Bereich (/konto/suchprofil). Keine E-Mail-Zeile oder Einrichtung auf der Übersicht.
-  - Mitarbeiter: Name und Funktion (z. B. Serviceleitung/Facharbeiter) unabhängig von Rollen, Bereichszuordnung und Finanzfreigabe; gezielte Textweitergabe mit Vorschau/Widerruf und eigener Mitarbeiteransicht.
-  - Personalbestand pro Standort mit Berufen, Qualifikationen, Verfügbarkeit und Kontakt; Personen können Ausschreibungen mit Einsatzstatus zugeordnet werden. Nachrichten öffnen WhatsApp/SMS/Mail auf dem eigenen Gerät.
+  - Mitarbeiter: Name und Funktion (z. B. Abteilungsleitung, Sachbearbeitung, Serviceleitung/Facharbeiter) getrennt von Rollen, Bereichszuordnung und Finanzfreigabe; gezielte Textweitergabe mit Vorschau/Widerruf und eigener Mitarbeiteransicht.
+  - Organisationsbaum Firma → Region → Standort, getrennte App-Zugänge und Einsatzpersonal, sichtbare Standortleitung mit auf einen einzelnen Standort beschränkten Rechten. Standortleitungen verwalten Personal und Einsätze, aber weder Firmenfinanzen noch globale Team-/Bereichsverwaltung.
+  - Personalbestand mit branchenübergreifenden Berufsgruppen, Verfügbarkeit, Kontakt und Qualifikationen; eigene Qualifikationen pro Firma/Standort, Filter nach Beruf, Qualifikation und Status. Personen können Ausschreibungen mit Einsatzstatus zugeordnet werden.
   - Kalkulation pro Los mit Tarifentgeltgruppen, Laufzeit, Schicht- und Einsatzkosten, Gemeinkosten sowie Gewinn.
   - Firmenunterlagen und Word-/Textvorlagen; Angebotsmappe mit bearbeitbarem Entwurf, Chef-Freigabe vor Download, Ablaufprüfung, Ablauf-Erinnerungen und protokolliertem Eingangsbeleg nach manueller Portalabgabe.
   - Mobile Formulare, größere Touchflächen und kurze einklappbare Erklärungen für Treffer, Rollen, Unterlagen, Suchprofil, Kalkulation und Personal.
@@ -28,13 +29,22 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Offene Punkte (Reihenfolge = Vorschlag)
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
-2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen.
+2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen. Die zentrale, mit Ausschreibungs-Berufen verknüpfte Berufs-/Tarifdatenbank ist als nächster größerer Personal-Schritt geplant (docs/personalkatalog.md).
 3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
 4. Aussehen/Design mit Logo WP Digital Ranger; mobile Touchflächen und Kern-Erklärungen sind verbessert.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (Organisationsbaum und branchenübergreifendes Personal)
+- Firma & Team klar getrennt: Organisationsbaum für Firma/Region/Standort; App-Zugänge separat vom Einsatzpersonal. Zuordnung und Name der Standortleitung sind direkt an Standortkacheln und Standortseiten sichtbar.
+- Neue Rolle Standortleitung mit genau einem zugeordneten Standort (keine Region/firmenweiten Einträge), Personal- und Einsatzpflege im eigenen Bereich. SQL-Zeilenrechte sperren fremde und firmenweite Daten; Kalkulation/Finanzen bleiben auch bei angeforderter Freigabe gesperrt. Keine Rechte zur App-Team- oder Standortverwaltung.
+- Berufsgruppen über Zeitarbeit hinaus für Büro, Bau/Ausbau, Technik/Metall, Lager/Logistik, Gastronomie, Reinigung, Pflege, Verkauf, Sicherheit/Veranstaltung und Garten/Agrar erweitert. Funktionen für App-Nutzer um Disposition, Objekt-/Projektleitung, Schichtleitung, Personal, Lohn, Qualität und Fachberufe ergänzt.
+- Grundqualifikationen erweitert; Firmen können zusätzliche Qualifikationen anlegen und am Standort auswählen. Filter nach Beruf, Qualifikation und Verfügbarkeit/Status ergänzt.
+- Konzept für einen zukünftigen kanonischen Berufekatalog und bestätigte Zuordnung von Ausschreibungsanforderungen dokumentiert. BERUFENET als branchenübergreifende Berufsfeldreferenz geprüft. Tarifdaten bleiben vertrags-, branchen- und zeitgebunden; die vorhandenen DGB/GVP-Tarifwerte werden nicht pauschal auf andere Gewerke übertragen.
+- Typprüfung, sämtliche Web-Tests (16 Testdateien) und PostgreSQL-Rechte-Test („ALLE TESTS OK“) inklusive Standortleitungs-RLS grün.
+- Offen: zentrale Berufs-/Synonymdatenbank mit Ausschreibungszuordnungen; Qualifikationsnachweise mit Ablaufdatum/Erinnerungen; branchenspezifische Tarifregeln nur aus den jeweiligen Originalverträgen. Benjamin muss nichts einrichten.
 
 ### 30.10.2026 – ChatGPT (Handy-Bedienung und Hilfen)
 - Touchflächen für Formulare, Berufsauswahl-Chips und Personalaktionen auf mindestens 44 px gebracht; sehr schmale Ansichten mit angepassten Seitenrändern, Fokusrahmen für Tastatur und bestehender fixer Handy-Leiste.

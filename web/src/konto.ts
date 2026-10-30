@@ -10,7 +10,7 @@ import { FELDER, STANDARD, felderHtml, fmt, zahl, type Eingaben } from "./kalkul
 import { escape, hilfe, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
-import { einsaetzeLaden, einsatzTeil, personalTeil, standortKacheln, type Kraft } from "./personal.ts";
+import { einsaetzeLaden, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, type Kraft } from "./personal.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 
 export interface KontoEnv {
@@ -39,6 +39,7 @@ const ROLLEN: Record<string, string> = {
   inhaber: "Inhaber",
   admin: "Admin",
   bearbeiter: "Bearbeiter",
+  standortleitung: "Standortleitung",
   leser: "Leser (kostenlos)",
   mitarbeiter: "Mitarbeiter (nur Freigaben)",
 };
@@ -236,15 +237,23 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${hilfe("So entsteht der Preis", "Die Kalkulation schätzt eure Selbstkosten je Stunde aus Bruttolohn, Nebenkosten, Ausfallzeit und Einsatzkosten. Gemeinkosten sowie Wagnis und Gewinn ergeben daraus den Angebotspreis. Prüfe die Werte pro Los, bevor du ein Angebot erstellst.")}${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte der Firma</h2><p>Diese Standardwerte gelten für die Firma. Du kannst sie bei jeder Ausschreibung anpassen.</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>Standardwerte speichern</button>` : ""}</form>`}`);
   } else if (unterseite === "team") {
     let team: string;
+    const zuordnungen = await db<{user_id:string;bereich_id:string}[]>(s, env, `mitglied_bereiche?firma_id=eq.${m.firma_id}&select=user_id,bereich_id`);
+    const leitungKacheln = mitglieder.ok ? mitglieder.daten.filter((x) => x.rolle === "standortleitung").flatMap((x) => (zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id) : []).map((z) => ({ user_id: x.user_id, name: x.anzeigename || x.funktion || "Standortleitung", bereich_id: z.bereich_id }))) : [];
     if (b.length <= 1) {
       // Only one location: the personnel is shown right here, no extra page.
       const ort = b[0]?.id ?? null;
-      const pool = await db<Kraft[]>(s, env, `personal?firma_id=eq.${m.firma_id}&bereich_id=${ort ? `eq.${ort}` : "is.null"}&select=*&order=status,vorname`);
-      team = `<h2>Personal${b[0] ? ` · ${escape(b[0].name)}` : ""}</h2>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, await einsaetzeLaden(s, env, m.firma_id))}`;
+      const [pool, qualifikationen, einsaetze] = await Promise.all([
+        db<Kraft[]>(s, env, `personal?firma_id=eq.${m.firma_id}&bereich_id=${ort ? `eq.${ort}` : "is.null"}&select=*&order=status,vorname`),
+        db<{ id: string; name: string; bereich_id: string | null }[]>(s, env, `firmen_qualifikationen?firma_id=eq.${m.firma_id}&select=id,name,bereich_id&order=name`),
+        einsaetzeLaden(s, env, m.firma_id),
+      ]);
+      const qs = qualifikationen.ok ? qualifikationen.daten.filter((q) => q.bereich_id === null || q.bereich_id === ort) : [];
+      const standortleitung = ort ? leitungKacheln.find((x) => x.bereich_id === ort) : undefined;
+      team = `<h2>Organisationsbaum · ${b[0] ? escape(b[0].name) : escape(m.firmen.name)}</h2>${b[0] ? `<p class="klein">📍 Standortleitung: ${standortleitung ? escape(standortleitung.name) : "noch nicht zugeordnet"}</p>` : ""}<h3>Einsatzpersonal</h3>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, einsaetze, qs.map((q) => q.name))}${qualifikationenBlock(ort, qs, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle))}`;
     } else {
       const pool = await db<{ bereich_id: string | null; status: string }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=bereich_id,status`);
-      team = `<h2>Standorte & Personal</h2><p class="klein">Tippe einen Standort an, um dort Personal mit Berufen und Telefonnummern einzutragen und anzuschreiben.</p>`;
-      team += standortKacheln(b, pool.ok ? pool.daten : []);
+      team = `<h2>Organisationsbaum</h2><p class="klein">Firma → Region → Standort. Die Standortleitung erhält ihre Rechte über genau einen zugeordneten Standort. Einsatzpersonal und App-Zugänge werden getrennt verwaltet.</p>`;
+      team += standortKacheln(b, pool.ok ? pool.daten : [], leitungKacheln);
     }
     if (admin) {
     team += `<details><summary>➕ Standort oder Bereich anlegen</summary><form method="post" action="/konto/bereich">
@@ -255,11 +264,10 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   <button>Bereich anlegen</button>
 </form></details>`;
     }
-    team += `<h2>Team in der App</h2><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}. Hier stehen die Personen, die sich bei Jarvis anmelden.</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma, zum Beispiel Serviceleitung oder Fachkraft. Der Zugriff legt fest, welche Daten die Person in Jarvis sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen.")}`;
+      team += `<h2>App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Nutzer: ${anzahl.ok ? anzahl.daten : "?"}. Standortleitung darf Personal und Einsätze nur am zugeordneten Standort verwalten; Kalkulation und Firmenunterlagen bleiben gesperrt.</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen.")}`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
-    const zuordnungen = admin ? await db<{user_id:string;bereich_id:string}[]>(s, env, `mitglied_bereiche?firma_id=eq.${m.firma_id}&select=user_id,bereich_id`) : null;
     team += funktionsListe;
-    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"><h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3><p>${escape(x.funktion || "Mitarbeiter/in")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}</p>${admin ? personFormular(x, m.firma_id, b, zuordnungen?.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
+    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"><h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3><p>${escape(x.funktion || "Mitarbeiter/in")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}</p>${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
     if (admin) {
     const offen = einladungen.ok ? einladungen.daten : [];
     if (offen.length) {
@@ -270,9 +278,9 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   <label>Name<input name="name" maxlength="200"></label>
   <label>E-Mail-Adresse <input type="email" name="email" required></label>
   <label>Funktion im Betrieb<input name="funktion" list="funktionen" value="Mitarbeiter/in" required maxlength="100"></label>
-  <label>Zugriff<select name="rolle">${Object.entries(ZUGRIFFE).filter(([r]) => r !== "inhaber").sort(([a],[b]) => Number(b === "mitarbeiter") - Number(a === "mitarbeiter")).map(([r,t]) => `<option value="${r}">${escape(t)}</option>`).join("")}</select></label>
+      <label>Zugriff<select name="rolle">${Object.entries(ZUGRIFFE).filter(([r]) => r !== "inhaber").sort(([a],[b]) => Number(b === "mitarbeiter") - Number(a === "mitarbeiter")).map(([r,t]) => `<option value="${r}">${escape(t)}</option>`).join("")}</select></label>
   <label class="zeile"><input type="checkbox" name="finanzen">Finanzdaten zusätzlich freigeben (nur bei vollständigen Steckbriefen)</label><p class="klein">Funktion und Zugriffsrechte sind getrennt. „Nur persönlich freigegebene Informationen“ öffnet keine Originalunterlagen und keine Kalkulation. Inhaber und Administration sehen alle Daten.</p>
-  ${b.length ? `<label>Bereich <select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label>` : ""}
+  ${b.length ? `<label>Bereich <select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label><p class="klein">Für Standortleitung einen einzelnen Standort wählen, keine Region. Die Einladung gilt dort und in untergeordneten Teams.</p>` : ""}
   <button>Einladung erstellen</button>
   <p class="klein">Du bekommst einen Link, den du der Person schickst. Er gilt 14 Tage und nur für diese Adresse.</p>
 </form>`;
@@ -355,13 +363,22 @@ async function einladen(s: Sitzung, form: FormData, request: Request, env: Konto
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const rolle = String(form.get("rolle") ?? "mitarbeiter");
   const bereich = String(form.get("bereich") ?? "");
+  if (rolle === "standortleitung") {
+    if (!/^[0-9a-f-]{36}$/i.test(bereich)) return weiterleiten(`/konto/team?hinweis=${encodeURIComponent("Für eine Standortleitung bitte genau einen Standort auswählen.")}`);
+    const firmaId = String(form.get("firma") ?? "");
+    const [standort, kinder] = await Promise.all([
+      db<{ id: string }[]>(s, env, `bereiche?id=eq.${bereich}&firma_id=eq.${firmaId}&select=id`),
+      db<{ id: string }[]>(s, env, `bereiche?parent_id=eq.${bereich}&firma_id=eq.${firmaId}&art=eq.standort&select=id&limit=1`),
+    ]);
+    if (!standort.ok || !standort.daten.length || !kinder.ok || kinder.daten.length) return weiterleiten(`/konto/team?hinweis=${encodeURIComponent("Bitte einen einzelnen Standort statt einer Region auswählen.")}`);
+  }
   const token = zufall(32);
   const r = await db(s, env, "einladungen", {
     method: "POST",
     body: JSON.stringify({
       firma_id: String(form.get("firma") ?? ""),
       email,
-      rolle: ["admin", "bearbeiter", "leser", "mitarbeiter"].includes(rolle) ? rolle : "mitarbeiter",
+      rolle: ["admin", "bearbeiter", "standortleitung", "leser", "mitarbeiter"].includes(rolle) ? rolle : "mitarbeiter",
       anzeigename: String(form.get("name") ?? "").trim().slice(0,200),
       funktion: String(form.get("funktion") ?? "Mitarbeiter/in").trim().slice(0,100) || "Mitarbeiter/in",
       finanzen: ["bearbeiter", "leser"].includes(rolle) && form.has("finanzen"),

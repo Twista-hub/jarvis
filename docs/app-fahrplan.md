@@ -10,6 +10,8 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 - Vorschau „PerLease (Vorschau)“ mit 16 Standorten; Filter zeigt auch untergeordnete Standorte
 - Mitarbeiter-Funktionen, Bereichsrechte, Finanzfreigaben und gezielte Textweitergabe mit Vorschau/Widerruf
 - Personalbestand pro Standort und Einplanung von Kräften je Ausschreibung mit Status
+- Standortleitung mit standortbegrenzten Rechten; Betriebspersonal getrennt von App-Zugängen
+- Branchengruppen für häufige Berufe und firmeneigene Qualifikationen, filterbar in der Personalplanung
 - Zeitarbeit-Kalkulation je Los mit Entgeltgruppe und Zuschlägen
 - Firmenunterlagen und Angebotsvorlagen; Angebotsmappen mit Chef-Freigabe, Ablauf-Erinnerungen und Abgabenachweis
 - Am Treffer: Direktlink zu den Unterlagen beim Portal und „Hochladen und prüfen“ (ohne Zugangscode); der Steckbrief aus den Unterlagen erscheint direkt am Treffer
@@ -33,8 +35,9 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 9. ~~Personal je Ausschreibung einplanen~~ (erledigt 30.10.: Status geplant/angefragt/zugesagt und passende Personen zuerst). Separater kaufmännischer Verantwortlicher für den Vorgang bleibt offen. ~~Fristen-Erinnerung~~ 7 und 2 Tage vorher steht in der täglichen Mail.
 10. **Kalkulationsvorlagen** pro Standort (Löhne je Stadt).
 11. **Mitarbeiterliste**: Namen, Funktion, Rechte und Bereiche ändern umgesetzt; Sperren/Austritt als eigener Ablauf noch offen.
+12. **Berufs- und Tarifdatenbank (nächster größerer Schritt)**: kanonische Berufe/Synonyme aus einem breiten Berufskatalog, Vorschläge aus Ausschreibungstexten mit Fundstelle und Bestätigung; Personal, Anforderungen und Einsätze verknüpfen. Tarifregeln separat nach Vertrag, Branche/Region und Gültigkeitszeitraum führen. Konzept: `docs/personalkatalog.md`.
 
 ### D. Später
-12. Abrechnung (Stripe, pro Nutzer), Paketwahl.
-13. **Angebotsmappe umgesetzt**: Ausgangsentwurf mit Angebotspreis, eigene Word-/Textvorlagen, ausgewählte Nachweise, Chef-Freigabe und ZIP-Export. Ablauf-Erinnerungen und Eingangsbeleg nach manueller Portalabgabe ergänzt. Später: weitere Automatisierung und erlaubte Portal-Schnittstellen.
-14. Mehr Quellen (weitere Vergabeportale nach Freigabe).
+13. Abrechnung (Stripe, pro Nutzer), Paketwahl.
+14. **Angebotsmappe umgesetzt**: Ausgangsentwurf mit Angebotspreis, eigene Word-/Textvorlagen, ausgewählte Nachweise, Chef-Freigabe und ZIP-Export. Ablauf-Erinnerungen und Eingangsbeleg nach manueller Portalabgabe ergänzt. Später: weitere Automatisierung und erlaubte Portal-Schnittstellen.
+15. Mehr Quellen (weitere Vergabeportale nach Freigabe).
