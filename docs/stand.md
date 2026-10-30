@@ -23,7 +23,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Handy-Layout und kurze Hilfetexte
+- (niemand)
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
@@ -39,8 +39,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 30.10.2026 – ChatGPT (Handy-Bedienung und Hilfen)
 - Touchflächen für Formulare, Berufsauswahl-Chips und Personalaktionen auf mindestens 44 px gebracht; sehr schmale Ansichten mit angepassten Seitenrändern, Fokusrahmen für Tastatur und bestehender fixer Handy-Leiste.
 - Einklappbare Kurz-Erklärungen zu Trefferstatus, Upload und Dateiaufbewahrung, Firmenrollen, Suchprofil, Kalkulation, Personaldaten und Einsatzstatus ergänzt.
-- Typprüfung und alle 70 Web-Tests grün. Chromium ohne horizontales Scrollen bei 320, 360, 390, 768 und 1280 px geprüft.
-- Offen: Logo/Markenbild, Hilfen auf übrigen Seiten und separates Feld für die kaufmännisch verantwortliche Person. Noch nicht ausgerollt.
+- Typprüfung und alle 70 Web-Tests grün. Chromium ohne horizontalen Überlauf bei 320, 360, 390, 768 und 1280 px; Live-Seiten erreichbar.
+- Auf `main` und online ausgerollt; Web-, Alarm- und Datenbanktests grün: https://github.com/Twista-hub/jarvis/actions/runs/41093529414. Rollout und Seitenerreichbarkeit grün: https://github.com/Twista-hub/jarvis/actions/runs/41093529364.
+- Offen: Logo/Markenbild, Hilfen auf übrigen Seiten und separates Feld für die kaufmännisch verantwortliche Person. Benjamin muss nichts einrichten.
 
 ### 30.10.2026 (abends, Teil 8) – Claude
 - Nur ein Standort: Personal steht direkt unter „Firma & Team“ (keine zweite Seite).
