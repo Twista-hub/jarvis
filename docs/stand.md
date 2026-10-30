@@ -29,6 +29,15 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## In Arbeit
 
+## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
+1. **Logo und Design:** Es gibt noch kein Logo von WP Digital Ranger im Repo (App zeigt ein blaues „J“). Benjamin lädt ein Logo hoch oder wir entwerfen eine einfache Wort-Bildmarke und zeigen sie ihm vorher.
+2. **Kalkulationsvorlagen pro Standort:** Tabelle `kalkulationsvorlagen` hat schon `bereich_id` (unique firma_id+bereich_id). Fehlt: Auswahl „Werte für Standort …“ auf `/konto/kalkulation` (`vorlageSpeichern` in `web/src/konto.ts` speichert bisher nur `bereich_id: null`), und beim Rechnen die Vorlage des Standorts der Ausschreibung bzw. seiner Region nehmen, sonst die Firmenwerte (`web/src/index.ts` kalkulationsTeil, `web/src/angebote.ts`). Noch nicht angefangen.
+3. Mitarbeiter sperren/austreten lassen.
+4. Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen.
+5. Berufs- und Tarifdatenbank (`docs/personalkatalog.md`).
+6. Danach Quellen (Lücke Bayern/BW, SAM.gov-API-Bedingungen), dann Pläne/Stripe, Telegram-Jarvis.
+- Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
+
 ## Offene Punkte (Reihenfolge = Vorschlag)
 - **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). Offen: API-Bedingungen auf open.gsa.gov vollständig lesen, bevor USA beworben wird; Schlüssel läuft nach ca. 90 Tagen ab (Ende Januar 2027 erneuern). Mehr als 1.000 pro Tag würden abgeschnitten (bisher nicht nötig).
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
@@ -38,7 +47,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
 4. Aussehen/Design mit Logo WP Digital Ranger; mobile Touchflächen und Kern-Erklärungen sind verbessert.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
-6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
+6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
 
