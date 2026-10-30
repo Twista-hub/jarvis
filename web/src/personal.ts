@@ -4,7 +4,7 @@
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
 import { bereichPfad } from "./bereiche.ts";
-import { escape, seite } from "./seite.ts";
+import { escape, hilfe, seite } from "./seite.ts";
 import { GVP, lohnAm } from "./tarife.ts";
 import { euro } from "./kalkulation.ts";
 
@@ -128,6 +128,7 @@ export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, akti
   const filter = alle.length > 3 ? `<form method="get" class="filter-leiste"><label>Beruf<select name="beruf" data-sofort-wahl><option value="">Alle Berufe</option>${berufeHier.map((x) => `<option${x === beruf ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></label><label>Status<select name="status" data-sofort-wahl><option value="">Alle</option>${Object.entries(STATUS).map(([v, [i, t]]) => `<option value="${v}"${v === st ? " selected" : ""}>${i} ${t}</option>`).join("")}</select></label><noscript><button>Filtern</button></noscript></form>` : "";
   return `<p class="klein">${alle.filter((k) => k.status === "verfuegbar").length} verfügbar · ${alle.filter((k) => k.status === "einsatz").length} im Einsatz · ${alle.length} gesamt</p>
 ${darfAendern && alle.length ? `<p><a class="knopf" href="#neu" data-oeffne="neu">➕ Person hinzufügen</a></p>` : ""}
+${hilfe("Welche Person soll ich eintragen?", "Erfasse nur Personen, die ihr für Einsätze einplant. Berufe helfen Jarvis, passende Kräfte für Ausschreibungen vorzuschlagen. Die Kontaktangaben nutzt dein Team direkt vom eigenen Gerät.")}
 ${filter}
 <div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"))).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
 ${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>➕ Person hinzufügen</summary>${kraftFormular({}, aktion, "Person speichern")}</details>` : ""}
@@ -160,7 +161,7 @@ export async function einsatzTeil(s: Parameters<typeof db>[0], env: KontoEnv, v:
   const zugesagt = liste.filter((e) => e.status === "zugesagt").length;
   const wahl = darfAendern && frei.length ? `<form method="post" action="/konto/vorgang/${v.id}/einsatz" class="einplanen"><label>Person einplanen<select name="personal" required><option value="">Bitte auswählen …</option>${frei.map(({ k }) => `<option value="${k.id}">${passt(v.titel, k.berufe) ? "⭐ " : ""}${escape(`${k.vorname} ${k.nachname}`.trim())}${k.berufe[0] ? ` · ${escape(k.berufe[0])}` : ""}${k.status !== "verfuegbar" ? ` (${STATUS[k.status]?.[1] ?? k.status})` : ""}</option>`).join("")}</select></label><button>📌 Einplanen</button></form>` : "";
   const leer = pool.ok && !pool.daten.length ? `<p class="klein">Noch kein Personal eingetragen. <a href="/konto/team">Personal unter „Firma & Team“ anlegen →</a></p>` : "";
-  return `<h2 id="personal">👷 Personal für diesen Auftrag</h2>
+  return `<h2 id="personal">👷 Personal für diesen Auftrag</h2>${hilfe("Einplanung verstehen", "„Eingeplant“ ist erst eine Vormerkung. Ändere den Stand auf „Angefragt“, wenn du die Person kontaktiert hast, und auf „Zugesagt“, sobald sie den Einsatz bestätigt. ⭐ markiert passende Berufe.")}
 ${liste.length ? `<p class="klein">${liste.length} eingeplant · ${zugesagt} zugesagt</p><ul class="einsatz-liste">${zeilen}</ul>` : `<p class="klein">Noch niemand eingeplant.</p>`}
 ${wahl}${leer}${frei.some(({ rang }) => rang === 0) ? `<p class="klein">⭐ Beruf passt zur Ausschreibung.</p>` : ""}`;
 }
@@ -274,6 +275,7 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
 </form>
 ${url.searchParams.get("hinweis") ? `<p role="status"><strong>${escape(url.searchParams.get("hinweis")!)}</strong></p>` : ""}
 <div class="person-aktionen gross">${knoepfe || `<p>Für ${escape(kraft.vorname)} ist keine Telefonnummer oder E-Mail eingetragen.</p>`}</div>
+${hilfe("Was passiert beim Senden?", "WhatsApp, SMS oder E-Mail öffnet die jeweilige App mit einem vorbereiteten Text. Du kannst ihn vor dem Senden ändern. Jarvis verschickt die Nachricht nicht selbst.")}
 ${gewaehlt && darfAendern ? `<form method="post" action="/konto/vorgang/${gewaehlt.id}/einsatz"><input type="hidden" name="personal" value="${pid}"><input type="hidden" name="status" value="angefragt"><input type="hidden" name="zurueck" value="/konto/personal/${pid}/nachricht?vorgang=${gewaehlt.id}"><button>📨 Bei der Ausschreibung als „angefragt“ eintragen</button></form>` : ""}
 <p class="klein">Die Nachricht geht von deinem Handy aus, mit deiner Nummer bzw. deinem Mailprogramm. Jarvis verschickt selbst nichts.</p>`);
 }
