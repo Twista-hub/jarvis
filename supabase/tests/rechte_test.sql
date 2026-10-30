@@ -305,4 +305,19 @@ do $$ begin
  perform jarvis_katalog.ki_reservieren(0.1,'heimlich');
  raise exception 'FEHLER: Nutzer durfte Budget direkt verändern';
 exception when insufficient_privilege then raise notice 'ok: Budgetledger ist intern'; end $$;
+select test_als('00000000-0000-0000-0000-00000000000a');
+update public.mitglieder set aktiv=false where firma_id=:'firma' and user_id='00000000-0000-0000-0000-00000000000b';
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe(public.meine_rolle(:'firma') is null,'Gesperrter Mitarbeiter verliert nur den Firmenzugang');
+select pruefe(not exists(select 1 from public.vorgaenge where firma_id=:'firma'),'Gesperrter Mitarbeiter verliert RLS-Zugriff');
+select test_als('00000000-0000-0000-0000-00000000000a');
+update public.mitglieder set aktiv=true where firma_id=:'firma' and user_id='00000000-0000-0000-0000-00000000000b';
+select set_config('test.firma', :'firma', false);
+do $$ begin
+ update public.mitglieder set aktiv=false where firma_id=current_setting('test.firma')::uuid and user_id=auth.uid();
+ raise exception 'FEHLER: Letzter Inhaber wurde gesperrt';
+exception when raise_exception then
+ if sqlerrm = 'FEHLER: Letzter Inhaber wurde gesperrt' then raise; end if;
+ raise notice 'ok: Letzter aktiver Inhaber bleibt geschützt';
+end $$;
 \echo ALLE TESTS OK

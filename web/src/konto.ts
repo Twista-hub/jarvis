@@ -23,7 +23,7 @@ export interface KontoEnv {
 }
 
 export type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
-type Mitglied = { firma_id: string; rolle: string; erstellt: string; user_id: string; anzeigename?: string; funktion?: string; finanzen?: boolean; alle_bereiche?: boolean };
+type Mitglied = { firma_id: string; rolle: string; aktiv?: boolean; erstellt: string; user_id: string; anzeigename?: string; funktion?: string; finanzen?: boolean; alle_bereiche?: boolean };
 export type Bereich = { id: string; name: string; art: string; parent_id: string | null };
 type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };
 const STATUS: Record<string, string> = {
@@ -177,7 +177,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const bereichFilter = filter ? `&bereich_id=in.(${unter(filter.id).join(",")})` : "";
   const [vorgaenge, mitglieder, einladungen, anzahl] = await Promise.all([
     db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${bereichFilter}${statusFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id&order=${unterseite === "fristen" ? "frist.asc" : "punkte.desc.nullslast,erstellt.desc"}&limit=100`),
-    db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id,anzeigename,funktion,finanzen,alle_bereiche&order=erstellt`),
+    db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&select=firma_id,rolle,aktiv,erstellt,user_id,anzeigename,funktion,finanzen,alle_bereiche&order=erstellt`),
     admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date().toISOString()}&select=id,email,rolle,gueltig_bis,angenommen&order=erstellt.desc`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
@@ -280,7 +280,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       team += `<h2 id="app-zugaenge">App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Nutzer: ${anzahl.ok ? anzahl.daten : "?"}. Standortleitung darf Personal und Einsätze nur am zugeordneten Standort verwalten; Kalkulation und Firmenunterlagen bleiben gesperrt.</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen.")}${tarifvertraegeBlock(tarife, admin)}`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
     team += funktionsListe;
-    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"><h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3><p>${escape(x.funktion || "Mitarbeiter/in")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}</p>${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
+    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"${x.aktiv === false ? ' style="opacity:.75"' : ""}><h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3><p>${escape(x.funktion || "Mitarbeiter/in")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}${x.aktiv === false ? " · Zugang gesperrt" : ""}</p>${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
     if (admin) {
     const offen = einladungen.ok ? einladungen.daten : [];
     if (offen.length) {

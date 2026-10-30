@@ -66,6 +66,17 @@ test("Standortleitung erhält beim Rollenwechsel einen einzelnen, gültigen Stan
   assert.doesNotMatch(html.match(/data-bereich-einzel[^]*?<\/fieldset>/)?.[0] ?? "", new RegExp(`value="${region.id}"`));
 });
 
+test("Mitarbeiterzugang kann firmenbezogen gesperrt und wieder aktiviert werden; Inhaber bleiben geschützt", () => {
+  const person = { user_id: "user", rolle: "bearbeiter", aktiv: true, funktion: "Sachbearbeitung" };
+  const aktiv = personFormular(person, firma, [], [], true);
+  assert.match(aktiv, /Zugang sperren/);
+  assert.match(aktiv, /sperrt den Zugang zu dieser Firma/i);
+  const gesperrt = personFormular({ ...person, aktiv: false }, firma, [], [], true);
+  assert.match(gesperrt, /Zugang wieder aktivieren/);
+  assert.doesNotMatch(personFormular({ user_id: "chef", rolle: "inhaber", aktiv: true }, firma, [], [], true), /Zugang sperren/);
+  assert.doesNotMatch(personFormular({ user_id: "chef", rolle: "inhaber", aktiv: true }, firma, [], [], false), /Zugang sperren/);
+});
+
 test("Eigene Qualifikationen erscheinen beim Eintragen, in der Filterung und Verwaltung", () => {
   const q = "Fachkunde für Hubarbeitsbühnen";
   assert.match(kraftFormular({}, "/save", "Speichern", [q]), new RegExp(q));
