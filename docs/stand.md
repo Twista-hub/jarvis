@@ -5,7 +5,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Aktueller Stand (30.10.2026)
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
-- **Überarbeiteter Logo-/Designentwurf zur Ansicht:** `docs/design/vorschau.png` und `docs/design/vorschau.html`, mit skalierbarer Kompass-/Wortmarke für WP Digital Ranger und heller/dunkler Jarvis-Handyansicht. Noch nicht in der App eingesetzt; Benjamin sieht den Entwurf zuerst.
+- **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
   - Startseite mit Erklärung und Beispiel-Steckbrief; Impressum, Datenschutz, Nutzungsbedingungen, AVV (Entwürfe, Benjamin prüft noch).
   - Registrierung mit Passwort, Passwort-Anmeldung/-Wiederherstellung und Mail-Link; bestätigte neue Firmen werden zunächst kostenlos angelegt. Firmen, Bereiche/Standorte, Rollen und Einladungen.
   - Ausschreibungen als Handy-Karten mit Punkten, Frist, Stand und Bereichsfilter; Treffer-Seite mit Steckbrief, Knopf „Hier runterladen“
@@ -46,7 +46,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 1. Rechtstexte von Benjamin prüfen lassen.
 2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen. Die bundesweite zentrale Tarifdatenbank bleibt offen: Recherchequellen decken nur ausgewählte Branchen/Berufe ab; Nutzungsrechte und Aktualisierung für eine automatische Übernahme müssen geklärt werden (docs/personalkatalog.md, alarm/quellen.md).
 3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
-4. Aussehen/Design mit Logo WP Digital Ranger; mobile Touchflächen und Kern-Erklärungen sind verbessert.
+4. ~~Logo und Grundgestaltung in der Konto-Kopfzeile~~ (umgesetzt); übrige Seitensymbole/Farben können später vereinheitlicht werden.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
@@ -251,3 +251,6 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 30.10.2026 – ChatGPT (Rückmeldung zum Design umgesetzt)
 - Farbnamen und Farbmuster aus der Designvorschau entfernt. Kompassfarben im Logo bleiben. Untertitel in der Wortmarke lautet jetzt „Digitale Lösungen“.
 - Das Kompasssymbol erscheint im Kopf der Konto-Unterseiten neben Jarvis und WP Digital Ranger.
+
+### 30.10.2026 – ChatGPT (Fahrplan nach Logo-Überarbeitung)
+- Gemeinsamem Stand entnommen: Logo ist in der Konto-Kopfzeile; Vorschau bereinigt. Als nächster Entwicklungsschritt folgt die standortbezogene Kalkulationsvorlage.
