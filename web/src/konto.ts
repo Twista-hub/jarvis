@@ -253,7 +253,7 @@ ${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle, name, bereichWahl)}
   <button>Speichern</button>
   <p class="klein">Nur wenn es etwas Neues gibt. Mail an ${escape(s.email)}. Ein Tipp auf die Handy-Nachricht öffnet direkt die Ausschreibung. Jeder im Team stellt das für sich selbst ein.</p>
 </form>
-<p><button type="button" id="push-an" hidden>📱 Nachrichten auf diesem Handy einschalten</button></p>
+<p><button type="button" id="push-an" hidden>📱 Nachrichten auf diesem Handy einschalten</button> <button type="button" id="push-test" hidden>🔔 Test auf diesem Handy</button></p>
 <p class="klein" id="push-status"></p>
 <h2>Konto</h2>${abmelden}`;
   return html(seite(m.firmen.name, inhalt, sucht ? 30 : 0), 200, s.cookies);
