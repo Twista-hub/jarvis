@@ -35,6 +35,22 @@ document.querySelectorAll("select[data-auswahl]").forEach(function (w) {
   zeigen();
 });
 
+// Firm documents: the picked kind fills the name; only "other" needs one typed in.
+document.querySelectorAll("select[data-vorschlag]").forEach(function (w) {
+  var feld = w.form.querySelector("[data-bezeichnung]");
+  var name = feld && feld.querySelector("input");
+  function zeigen(geaendert) {
+    if (!feld) return;
+    var sonst = w.value === "__sonst";
+    feld.hidden = !sonst;
+    name.required = sonst;
+    if (geaendert) { name.value = ""; if (sonst) name.focus(); }
+  }
+  w.required = true;
+  w.addEventListener("change", function () { zeigen(true); });
+  zeigen(false);
+});
+
 var knopf = document.getElementById("push-an");
 var test = document.getElementById("push-test");
 var meldung = document.getElementById("push-status");

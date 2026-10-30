@@ -33,6 +33,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 (abends, Teil 3) – Claude
+- Firmenunterlagen: Dropdown „Was lädst du hoch?“ mit den üblichen Nachweisen (✅ = schon vorhanden und gültig), „Eigene Angebotsvorlage (Word)“ und „Sonstige Unterlage“ (nur dann erscheint das Feld Bezeichnung). Kategorie ergibt sich aus der Auswahl. CSS: `[hidden]` gilt jetzt auch für Labels (vorher blieb ausgeblendetes sichtbar).
+
 ### 30.10.2026 (abends, Teil 2) – Claude
 - Unterlagen-Seite: Schnellauswahl „Ausschreibung“ (Dropdown mit den vorhandenen Ausschreibungen, neueste zuerst, ohne verworfene/verlorene). Gewählte Ausschreibung → Dateien werden dort ergänzt (wie „Nachreichen“); „➕ Neue Ausschreibung“ zeigt das Titelfeld (`/app.js` blendet es ein und aus).
 
