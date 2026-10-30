@@ -24,7 +24,11 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   a { color: var(--accent); }
   form { display: grid; gap: 14px; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
   label { display: grid; gap: 6px; font-weight: 600; }
-  input, select { font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }
+  textarea { min-height: 7em; }
+  fieldset { border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 10px; }
+  .zeile { display: flex; gap: 8px; align-items: center; font-weight: 600; }
+  .zeile input { width: auto; }
+  input, select, textarea { font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }
   button { font: inherit; font-weight: 600; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); cursor: pointer; }
   .knopf { display: block; text-align: center; font-weight: 700; font-size: 1.1rem; padding: 14px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; }
   .fehler { color: var(--error); font-weight: 600; }

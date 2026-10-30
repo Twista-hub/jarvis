@@ -19,8 +19,8 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 3. **Aussehen**: einheitliches Design mit Logo WP Digital Ranger, gut am Handy.
 
 ### B. Einfacher für Neue
-4. **Einrichtungs-Assistent** nach „Firma anlegen“: Firma in 2–3 Sätzen beschreiben → die KI schlägt das Suchprofil (Leistungen, Stichworte, Ausschlüsse) und die Standorte vor, der Kunde bestätigt nur.
-5. **Suchprofile in der App** ändern (bisher nur Claude in einer Datei): Leistungen an/aus, Regionen, Mindestpunkte.
+4. ~~Einrichtungs-Assistent~~ (erledigt 30.10.: /konto/einrichtung; Profil in suchprofile.einstellungen, der Alarm liest es über alarm/profile_db.py; ein gespeichertes Profil ersetzt das aus profile.json).
+5. ~~Suchprofile in der App ändern~~ (über „Suchprofil anpassen“; offen: Mindestpunkte, Profile pro Standort).
 6. **Hilfetexte** an jeder Stelle („Was heißt Bearbeiter?“, „Was ist ein Steckbrief?“).
 7. **Tägliche Mail** mit den neuen Treffern, pro Person ein- oder ausschaltbar.
 

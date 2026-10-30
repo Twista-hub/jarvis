@@ -2,6 +2,7 @@
 import kunden from "../kunden.json";
 import { euro, FELDER, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los } from "./kalkulation";
 import profile from "../../alarm/profile.json";
+import { einrichtung } from "./einrichtung";
 import { konto, vorgangZugriff, type KontoEnv } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
@@ -36,6 +37,8 @@ export default {
     const url = new URL(request.url);
     const u = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/unterlagen$/);
     if (u && request.method === "POST") return unterlagenAmVorgang(u[1], request, env);
+    const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");
+    if (e) return e;
     const k = await konto(request, env);
     if (k) return k;
     if (request.method === "GET") {
