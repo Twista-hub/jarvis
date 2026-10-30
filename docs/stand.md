@@ -30,7 +30,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## In Arbeit
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
-- **USA:** Benjamin legt den SAM.gov-Schlüssel an (`docs/anleitung-sam-gov.md`, Secret `SAM_API_KEY`); danach Testlauf `ted.yml` und Nutzungsbedingungen SAM.gov prüfen.
+- **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). Offen: API-Bedingungen auf open.gsa.gov vollständig lesen, bevor USA beworben wird; Schlüssel läuft nach ca. 90 Tagen ab (Ende Januar 2027 erneuern). Mehr als 1.000 pro Tag würden abgeschnitten (bisher nicht nötig).
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
