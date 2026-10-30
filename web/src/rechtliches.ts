@@ -156,7 +156,7 @@ export function startseite(beispiel: string): string {
 </ol>
 <p><a class="knopf" href="/registrieren">Jetzt registrieren</a></p>
 <p>Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
-<p class="klein">Nach der Registrierung schaltet WP Digital Ranger deine Firma frei, meist innerhalb eines Werktags. Fragen an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>.</p>
+<p class="klein">Die Registrierung ist kostenlos. Nach der Bestätigung deiner E-Mail-Adresse geht es sofort los. Fragen an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>.</p>
 <h2>Beispiel-Steckbrief</h2>
 <details><summary>Leihpersonal für die Gastronomie der Deutschen Bundesbank (aufklappen)</summary>${beispiel}</details>`;
 }

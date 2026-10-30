@@ -1,16 +1,14 @@
 // Sign-up and login: registration with name, firm, address and password; login with password or with an
 // e-mail link. Links use Supabase's implicit flow (tokens in the URL fragment, picked up by /app.js and handed
 // to /anmelden/sitzung), so a link works in any browser and on any device, not only where it was requested.
-import { ABSENDER, senden, type Mail } from "./mail.ts";
-import { COOKIE, db, html, sicherWeiter, sitzung, tokenCookies, weiterleiten, type KontoEnv } from "./konto.ts";
+// After the e-mail is confirmed, /konto creates the firm in the free plan (registrierung_abschliessen).
+import { COOKIE, html, sicherWeiter, sitzung, tokenCookies, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 
-const BETREIBER_MAIL = "benschiffer79@gmail.com";
 const EMAIL = /^[^\s@<>,;"]+@[^\s@<>,;"]+\.[a-z]{2,}$/i;
-const ID = /^[0-9a-f-]{36}$/;
 const MIN_PASSWORT = 8;
 
-/** Handles /anmelden…, /registrieren, /passwort-vergessen, /konto/passwort and /konto/freischalten; null otherwise. */
+/** Handles /anmelden…, /registrieren, /passwort-vergessen and /konto/passwort; null otherwise. */
 export async function anmeldung(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const p = url.pathname;
@@ -23,7 +21,6 @@ export async function anmeldung(request: Request, env: KontoEnv): Promise<Respon
   if (p === "/registrieren") return post ? registrieren(request, env) : html(seite("Registrieren", registrierFormular({}, "", sicherWeiter(url.searchParams.get("weiter") ?? ""))));
   if (p === "/passwort-vergessen") return post ? passwortVergessen(request, env) : html(seite("Passwort vergessen", vergessenFormular()));
   if (p === "/konto/passwort") return passwortSetzen(request, env, post);
-  if (p === "/konto/freischalten") return freischalten(request, env, post);
   return null;
 }
 
@@ -205,46 +202,9 @@ async function registrieren(request: Request, env: KontoEnv): Promise<Response> 
       : "Die Registrierung hat nicht geklappt. Bitte später noch einmal versuchen.";
     return html(seite("Registrieren", registrierFormular(w, grund, weiter)), r.status === 429 ? 429 : 400);
   }
-  if (!eingeladen) {
-    await senden(env, betreiberMail(w, new URL("/konto/freischalten", request.url).toString())).catch(() => {});
-  }
   if (typeof r.daten.access_token === "string") return weiterleiten(weiter, tokenCookies(r.daten as unknown as Tokens));
-  return html(seite("Fast geschafft", `<p>Wir haben dir eine Mail an <strong>${escape(email!)}</strong> geschickt. Tippe auf den Link darin, um deine E-Mail-Adresse zu bestätigen. Danach bist du direkt angemeldet.</p>
+  return html(seite("Fast geschafft", `<p>Wir haben dir eine Mail an <strong>${escape(email!)}</strong> geschickt. Tippe auf den Link darin, um deine E-Mail-Adresse zu bestätigen. Danach bist du direkt angemeldet und kannst kostenlos loslegen.</p>
 <p class="klein">Keine Mail da? Schau im Spam-Ordner nach. Hast du schon ein Konto, <a href="/anmelden">melde dich an</a>.</p>`));
-}
-
-export function betreiberMail(w: Registrierung, link: string): Mail {
-  const z = (s = "") => s.replace(/[\r\n]+/g, " ");
-  return {
-    from: ABSENDER, to: BETREIBER_MAIL, reply: ABSENDER,
-    subject: `Jarvis: neue Registrierung ${z(w.firma).slice(0, 80)}`,
-    text: `Neue Registrierung bei Jarvis:
-
-${z(w.vorname)} ${z(w.nachname)}
-${z(w.firma)}
-${z(w.strasse)}, ${z(w.plz)} ${z(w.ort)}
-${z(w.email)}${w.telefon ? `, ${z(w.telefon)}` : ""}
-
-Sobald die E-Mail-Adresse bestätigt ist, kannst du den Zugang hier freischalten:
-${link}
-`,
-  };
-}
-
-function freigeschaltetMail(an: string, link: string): Mail {
-  return {
-    from: ABSENDER, to: an, reply: ABSENDER,
-    subject: "Dein Zugang zu Jarvis ist freigeschaltet",
-    text: `Hallo,
-
-dein Zugang zu Jarvis ist freigeschaltet. Melde dich an, dann richtet Jarvis mit dir in wenigen Minuten die Suche nach passenden Ausschreibungen ein:
-${link}
-
-Viele Grüße
-Jarvis · WP Digital Ranger
-https://wpdigitalranger.com
-`,
-  };
 }
 
 // ---------- Password ----------
@@ -275,32 +235,4 @@ async function passwortSetzen(request: Request, env: KontoEnv, post: boolean): P
   const r = await auth(env, "user", { password: passwort }, s.token, "PUT");
   if (!r.ok) return html(formular(r.code === "same_password" ? "Das ist schon dein Passwort." : r.code === "weak_password" ? "Das Passwort ist zu einfach." : "Das Passwort konnte nicht gespeichert werden."), 400, s.cookies);
   return weiterleiten(`/konto?hinweis=${encodeURIComponent("Neues Passwort gespeichert.")}`, s.cookies);
-}
-
-// ---------- Operator: unlock registrations ----------
-
-type Offen = { user_id: string; email: string; vorname: string; nachname: string; firma: string; strasse: string; plz: string; ort: string; telefon: string; erstellt: string };
-
-async function freischalten(request: Request, env: KontoEnv, post: boolean): Promise<Response> {
-  const s = await sitzung(request, env);
-  if (!s) return weiterleiten("/anmelden?weiter=/konto/freischalten");
-  if (post) {
-    const person = String((await request.formData()).get("person") ?? "");
-    const r = ID.test(person) ? await db<string>(s, env, "rpc/registrierung_freischalten", { method: "POST", body: JSON.stringify({ person }) }) : null;
-    let hinweis = "Freischalten hat nicht geklappt.";
-    if (r?.ok && typeof r.daten === "string") {
-      hinweis = `${r.daten} ist freigeschaltet.`;
-      await senden(env, freigeschaltetMail(r.daten, new URL("/konto", request.url).toString())).then(() => { hinweis += " Eine Mail ist unterwegs."; }, () => { hinweis += " Die Mail ging nicht raus, bitte selbst Bescheid geben."; });
-    }
-    return weiterleiten(`/konto/freischalten?hinweis=${encodeURIComponent(hinweis)}`, s.cookies);
-  }
-  const r = await db<Offen[]>(s, env, "rpc/registrierungen_offen", { method: "POST", body: "{}" });
-  if (!r.ok) return html(seite("Nicht erlaubt", `<p>Diese Seite ist nur für WP Digital Ranger.</p><p><a href="/konto">Zum Konto</a></p>`), 403, s.cookies);
-  const hinweis = new URL(request.url).searchParams.get("hinweis");
-  const liste = r.daten.map((o) => `<form method="post" action="/konto/freischalten">
-  <p><strong>${escape(o.firma)}</strong><br>${escape(`${o.vorname} ${o.nachname}`)}<br>${escape(`${o.strasse}, ${o.plz} ${o.ort}`)}<br>${escape(o.email)}${o.telefon ? ` · ${escape(o.telefon)}` : ""}<br><span class="klein">seit ${new Date(o.erstellt).toLocaleString("de-DE", { timeZone: "Europe/Berlin" })}</span></p>
-  <input type="hidden" name="person" value="${o.user_id}">
-  <button>Freischalten</button>
-</form>`).join("");
-  return html(seite("Registrierungen", `${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${liste || "<p>Keine offenen Registrierungen.</p>"}<p><a href="/konto">Zum Konto</a></p>`), 200, s.cookies);
 }

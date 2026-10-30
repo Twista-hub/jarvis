@@ -16,6 +16,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261030141331_mitarbeiter_freigaben_angebote.sql
 \ir ../migrations/20261030230000_angebotsfreigabe_abgabe.sql
 \ir ../migrations/20261031000000_registrierung.sql
+\ir ../migrations/20261031010000_selbst_freischalten.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -42,10 +43,14 @@ insert into public.einladungen (firma_id, email, rolle, bereich_ids, token_hash)
   values (:'firma', 'berlin@perlease.test', 'bearbeiter', array[:'berlin']::uuid[], encode(sha256(convert_to('geheim', 'UTF8')), 'hex'));
 select pruefe(public.nutzer_zaehlen(:'firma') = 1, 'Inhaber zählt als 1 Nutzer');
 
--- Someone who signed up on their own cannot create a firm.
-select test_als('00000000-0000-0000-0000-00000000000c');
-do $$ begin perform public.firma_anlegen('Fremde GmbH'); raise exception 'FEHLER: Firma ohne Freigabe angelegt';
-exception when others then if sqlerrm <> 'nicht freigeschaltet' then raise; end if; raise notice 'ok: ohne Freigabe keine Firma'; end $$;
+-- Someone who signed up on their own gets their own firm in the free plan, without seeing others.
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000e', 'selbst@neu.test');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000e');
+select public.firma_anlegen('Selbst GmbH') as selbst \gset
+select pruefe((select paket = 'kostenlos' from public.firmen where id = :'selbst'), 'Eigene Firma im kostenlosen Tarif');
+select pruefe((select count(*) = 1 from public.firmen), 'Neue Firma sieht nur sich selbst');
 select pruefe(not exists (select 1 from public.freigaben), 'Freigaben sind nicht lesbar');
 
 
@@ -185,25 +190,16 @@ insert into public.angebotsabgaben(firma_id,mappe_id,portal,dateiname,mime,groes
 values (:'firma',:'mappe','Testportal','eingang.pdf','application/pdf',10);
 select pruefe((select count(*)=1 from public.angebotsabgaben),'Freigegebenes Angebot samt Eingangsbeleg protokolliert');
 
--- Registration: waits until unlocked, then the firm is created with the address; only operators unlock.
+-- Registration: with a confirmed e-mail the firm is created at once, free plan, with the address.
 reset role;
 insert into auth.users values
-  ('00000000-0000-0000-0000-0000000000d1', 'neu@firma.test', '{"vorname":"Eva","nachname":"Neu","firma":"Neu GmbH","strasse":"Weg 1","plz":"52531","ort":"Übach"}'),
-  ('00000000-0000-0000-0000-0000000000d2', 'benschiffer79@gmail.com', '{}');
+  ('00000000-0000-0000-0000-0000000000d1', 'neu@firma.test', '{"vorname":"Eva","nachname":"Neu","firma":"Neu GmbH","strasse":"Weg 1","plz":"52531","ort":"Übach"}');
 set role authenticated;
 select test_als('00000000-0000-0000-0000-0000000000d1');
-select pruefe(public.registrierung_abschliessen() is null, 'Registrierung wartet ohne Freischaltung');
-select pruefe((select count(*)=1 from public.registrierungen), 'Registrierung für die Person selbst sichtbar');
-do $$ begin perform public.registrierung_freischalten('00000000-0000-0000-0000-0000000000d1'); raise exception 'FEHLER: Kunde schaltet sich selbst frei';
-exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; raise notice 'ok: nur Betreiber schalten frei'; end $$;
-select test_als('00000000-0000-0000-0000-00000000000c');
-select pruefe((select count(*)=0 from public.registrierungen), 'Fremde sehen keine Registrierungen');
-select test_als('00000000-0000-0000-0000-0000000000d2');
-select pruefe((select count(*)=1 from public.registrierungen_offen()), 'Betreiber sieht offene Registrierung');
-select pruefe(public.registrierung_freischalten('00000000-0000-0000-0000-0000000000d1') = 'neu@firma.test', 'Betreiber schaltet frei');
-select test_als('00000000-0000-0000-0000-0000000000d1');
 select public.registrierung_abschliessen() as neufirma \gset
-select pruefe((select plz='52531' and name='Neu GmbH' from public.firmen where id=:'neufirma'), 'Firma mit Anschrift angelegt');
+select pruefe((select plz='52531' and name='Neu GmbH' and paket='kostenlos' from public.firmen where id=:'neufirma'), 'Firma kostenlos mit Anschrift angelegt');
 select pruefe((select rolle='inhaber' and anzeigename='Eva Neu' from public.mitglieder where firma_id=:'neufirma'), 'Registrierte Person ist Inhaber');
 select pruefe(public.registrierung_abschliessen() is null, 'Kein zweites Anlegen');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe(public.registrierung_abschliessen() is null, 'Ohne Registrierungsdaten keine Firma');
 \echo ALLE TESTS OK
