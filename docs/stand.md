@@ -15,8 +15,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (Claude) Handy-Nachrichten: Server meldet „gesendet“, auf Benjamins Android kam noch nichts an. Test-Knopf
-  „🔔 Test auf diesem Handy“ eingebaut; Benjamin testet. Danach Server-Nachricht erneut senden (`mail.yml`, test = benschiffer79@gmail.com).
+- (Claude) Handy-Nachrichten: Server meldet „gesendet“, auf Benjamins Android kam noch nichts an. Ursache für fehlende
+  Knöpfe gefunden (Skript-Variable `status` = window.status, behoben 30.10. 13:13). Benjamin testet mit „🔔 Test auf diesem
+  Handy“; danach Server-Nachricht erneut senden (`mail.yml`, test = benschiffer79@gmail.com).
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 1. Handy-Nachrichten auf Benjamins Handy zum Laufen bringen (siehe oben).
