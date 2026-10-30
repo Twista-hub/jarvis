@@ -27,7 +27,7 @@ LAENDER = {
     "HUN": "Ungarn", "IRL": "Irland", "ITA": "Italien", "LVA": "Lettland", "LTU": "Litauen", "LUX": "Luxemburg",
     "MLT": "Malta", "NLD": "Niederlande", "POL": "Polen", "PRT": "Portugal", "ROU": "Rumänien", "SVK": "Slowakei",
     "SVN": "Slowenien", "ESP": "Spanien", "SWE": "Schweden", "NOR": "Norwegen", "ISL": "Island", "LIE": "Liechtenstein",
-    "CHE": "Schweiz",
+    "CHE": "Schweiz", "GBR": "Großbritannien", "USA": "USA",
 }
 
 
@@ -50,7 +50,7 @@ def _liste(wert) -> list[str]:
 
 
 def suchen(tag: str, laender: list[str]) -> list[dict]:
-    laender = sorted({l for l in laender if l in LAENDER and l != "DEU"})
+    laender = sorted({l for l in laender if l in LAENDER and l not in ("DEU", "GBR", "USA")})
     if not laender:
         return []
     query = f"publication-date={tag.replace('-', '')} AND buyer-country IN ({' '.join(laender)}) AND notice-type IN {ARTEN}"

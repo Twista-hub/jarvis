@@ -40,6 +40,8 @@ jobs:
         env:
           FIRMA: ${{ inputs.firma }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # US federal tenders (alarm/usa.py); empty = USA skipped.
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
           # Reads the search profiles firms saved in the app (alarm/profile_db.py).
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       - name: Treffer in die App

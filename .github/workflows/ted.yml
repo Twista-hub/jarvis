@@ -1,5 +1,5 @@
 # Test the TED Search API (other European countries): prints the number of contract notices and samples.
-name: TED testen
+name: Auslandsquellen testen (TED, Großbritannien, USA)
 on:
   workflow_dispatch:
     inputs:
@@ -15,3 +15,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 alarm/ted.py "${{ inputs.tag }}" "${{ inputs.laender }}"
+      - name: Großbritannien (Find a Tender)
+        run: python3 alarm/uk.py "${{ inputs.tag }}"
+      - name: USA (SAM.gov, nur mit Schlüssel)
+        env:
+          SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
+        run: if [ -n "$SAM_API_KEY" ]; then python3 alarm/usa.py "${{ inputs.tag }}"; else echo "SAM_API_KEY fehlt noch."; fi
