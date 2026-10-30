@@ -25,7 +25,7 @@
     },
     "words": "servicepersonal|messepersonal|hostess|garderobenpersonal|garderobendienst|einlassdienst|eventpersonal|veranstaltungsservice|veranstaltungspersonal|personalgestellung|leihpersonal|servicekr(ä|ae)fte|thekenpersonal|bankettpersonal|bankettservice|messecatering|eventcatering|veranstaltungscatering|empfangsdienst|eventmanagement|teilnehmermanagement|zeitarbeit|arbeitnehmer(ü|ue)berlassung|personal(ü|ue)berlassung|(ü|ue)berlassung von (personal|arbeitskr)|leiharbeit|zeitarbeitskr(ä|ae)fte|pflegepersonal|pflegekr(ä|ae)fte|pflegefachkr|sicherheitspersonal|sicherheitsdienst|ordnungsdienst|wachdienst|bewachung|veranstaltungsschutz",
     "strong": "servicepersonal|messepersonal|hostess|leihpersonal|eventpersonal|personalgestellung|messestand|messecatering|empfang|bankettpersonal|veranstaltungspersonal|arbeitnehmer(ü|ue)berlassung|zeitarbeitskr(ä|ae)fte",
-    "exclude": "kita|kindertages|kindergarten|schulverpflegung|mittagsverpflegung|mensa|asylbewerber|krankenhausverpflegung|pflegekr(ä|ae)fte|it-|software|ingenieur|elektro|nuklear|stellenausschreibung|executive search|headhunt|personalberatung|personalgewinnung",
+    "exclude": "kita|kindertages|kindergarten|schulverpflegung|mittagsverpflegung|mensa|asylbewerber|krankenhausverpflegung|it-|software|ingenieur|elektro|nuklear|stellenausschreibung|executive search|headhunt|personalberatung|personalgewinnung",
     "exclude_cpv": [
       "45",
       "71",
