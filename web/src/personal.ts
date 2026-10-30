@@ -8,7 +8,8 @@ import { escape, hilfe, seite } from "./seite.ts";
 import { GVP, lohnAm } from "./tarife.ts";
 import { euro } from "./kalkulation.ts";
 
-export type Kraft = { id: string; firma_id: string; bereich_id: string | null; vorname: string; nachname: string; berufe: string[]; qualifikationen: string[]; eg: string; telefon: string; email: string; status: string; notiz: string };
+export type Kraft = { id: string; firma_id: string; bereich_id: string | null; vorname: string; nachname: string; berufe: string[]; qualifikationen: string[]; tarifvertrag_id: string | null; eg: string; telefon: string; email: string; status: string; notiz: string };
+export type Tarifvertrag = { id: string; name: string; geltungsbereich?: string; gruppen: string[]; quelle?: string; gueltig_ab?: string | null; gueltig_bis?: string | null; vorgegeben?: boolean };
 
 export const BERUFE: Record<string, string[]> = {
   "Büro & Verwaltung": ["Bürokraft", "Sachbearbeiter/in", "Kaufmännische Fachkraft", "Bürokaufmann/-frau", "Empfangskraft", "Datenerfasser/in", "Buchhalter/in", "Lohnbuchhalter/in", "Personalreferent/in", "Kundenservice"],
@@ -57,58 +58,62 @@ export function nachrichtText(k: Pick<Kraft, "vorname">, firma: string, vorgang?
   return `Hallo ${k.vorname},\n\n${einsatz}\n\nViele Grüße\n${firma}`;
 }
 
-function egOptionen(gewaehlt: string): string {
+function egOptionen(tarife: Tarifvertrag[], tarifvertragId: string, gewaehlt: string): string {
   const heute = new Date().toISOString().slice(0, 10);
-  return `<option value="">keine Angabe</option>${GVP.gruppen.map((g) => `<option value="${g}"${g === gewaehlt ? " selected" : ""}>EG ${g} · ${euro(lohnAm(g, heute, 0))}/Std.</option>`).join("")}`;
+  return `<option value="">Entgeltgruppe wählen …</option>${tarife.flatMap((t) => t.gruppen.map((g) => `<option value="${escape(g)}" data-tarifvertrag="${escape(t.id)}"${t.id !== tarifvertragId ? " disabled" : ""}${t.id === tarifvertragId && g === gewaehlt ? " selected" : ""}>${t.name === GVP.name && GVP.gruppen.includes(g) ? `EG ${escape(g)} · ${euro(lohnAm(g, heute, 0))}/Std.` : escape(g)}</option>`)).join("")}`;
 }
 
 function chips(name: string, liste: string[], gewaehlt: string[]): string {
   return `<div class="chips">${liste.map((x) => `<label><input type="checkbox" name="${name}" value="${escape(x)}"${gewaehlt.includes(x) ? " checked" : ""}><span>${escape(x)}</span></label>`).join("")}</div>`;
 }
 
-export function kraftFormular(k: Partial<Kraft>, aktion: string, knopf: string, qualifikationen: string[] = QUALIFIKATIONEN): string {
+export function kraftFormular(k: Partial<Kraft>, aktion: string, knopf: string, qualifikationen: string[] = QUALIFIKATIONEN, tarife: Tarifvertrag[] = []): string {
   const eigene = (k.berufe ?? []).filter((b) => !Object.values(BERUFE).flat().includes(b));
+  const tarifvertragId = k.tarifvertrag_id ?? "";
   return `<form method="post" action="${aktion}" class="personal-form">
   <div class="zwei"><label>Vorname<input name="vorname" required maxlength="100" autocomplete="off" value="${escape(k.vorname ?? "")}"></label>
   <label>Nachname<input name="nachname" maxlength="100" autocomplete="off" value="${escape(k.nachname ?? "")}"></label></div>
   <div class="zwei"><label>Telefon<input name="telefon" type="tel" maxlength="40" placeholder="0170 1234567" value="${escape(k.telefon ?? "")}"></label>
   <label>E-Mail (freiwillig)<input name="email" type="email" maxlength="200" value="${escape(k.email ?? "")}"></label></div>
   <div class="zwei"><label>Status<select name="status">${Object.entries(STATUS).map(([v, [i, t]]) => `<option value="${v}"${(k.status ?? "verfuegbar") === v ? " selected" : ""}>${i} ${t}</option>`).join("")}</select></label>
-  <label>Entgeltgruppe (Tarif ${escape(GVP.name)})<select name="eg">${egOptionen(k.eg ?? "")}</select></label></div>
+  <label>Tarifvertrag<select name="tarifvertrag" required data-tarifvertrag><option value="">Tarifvertrag wählen …</option>${tarife.map((t) => `<option value="${t.id}"${t.id === tarifvertragId ? " selected" : ""}>${escape(t.name)}</option>`).join("")}</select></label>
+  <label>Entgeltgruppe<select name="eg" data-tarifgruppen><option value="">${tarifvertragId ? "Entgeltgruppe wählen …" : "Erst Tarifvertrag wählen …"}</option>${egOptionen(tarife, tarifvertragId, k.eg ?? "")}</select></label></div>
   <fieldset><legend>Berufe</legend>${Object.entries(BERUFE).map(([gruppe, liste]) => `<details${liste.some((b) => k.berufe?.includes(b)) ? " open" : ""}><summary>${escape(gruppe)}</summary>${chips("berufe", liste, k.berufe ?? [])}</details>`).join("")}
   <label>Weitere Berufe (mit Komma trennen)<input name="weitere" maxlength="200" value="${escape(eigene.join(", "))}"></label></fieldset>
-  <fieldset><legend>Qualifikationen</legend>${chips("qualifikationen", qualifikationen, k.qualifikationen ?? [])}</fieldset>
+  <details class="qualifikationen-dropdown"><summary>Qualifikationen auswählen · Mehrfachauswahl mit Häkchen</summary>${chips("qualifikationen", qualifikationen, k.qualifikationen ?? [])}</details>
   <label>Notiz (freiwillig)<textarea name="notiz" maxlength="500" rows="2" placeholder="z. B. nur Frühschicht, Einsatzradius 30 km">${escape(k.notiz ?? "")}</textarea></label>
   <button>${knopf}</button>
 </form>`;
 }
 
-function ausFormular(f: FormData, qualifikationen: string[] = QUALIFIKATIONEN): Omit<Kraft, "id" | "firma_id" | "bereich_id"> {
+export function ausFormular(f: FormData, qualifikationen: string[] = QUALIFIKATIONEN, tarife: Tarifvertrag[] = []): Omit<Kraft, "id" | "firma_id" | "bereich_id"> {
   const t = (k: string, max: number) => String(f.get(k) ?? "").replace(/\s+/g, " ").trim().slice(0, max);
   const alle = Object.values(BERUFE).flat();
   const berufe = [...f.getAll("berufe").map(String).filter((b) => alle.includes(b)), ...t("weitere", 200).split(",").map((x) => x.trim()).filter(Boolean)].slice(0, 20);
   const status = t("status", 20);
-  const eg = t("eg", 3);
+  const tarifvertragId = t("tarifvertrag", 36);
+  const tarifvertrag = tarife.find((x) => x.id === tarifvertragId);
+  const eg = t("eg", 80);
   return {
     vorname: t("vorname", 100), nachname: t("nachname", 100), berufe: [...new Set(berufe)],
     qualifikationen: f.getAll("qualifikationen").map(String).filter((q) => qualifikationen.includes(q)),
-    eg: GVP.gruppen.includes(eg) ? eg : "", telefon: t("telefon", 40), email: t("email", 200),
+    tarifvertrag_id: tarifvertrag?.id ?? null, eg: tarifvertrag?.gruppen.includes(eg) ? eg : "", telefon: t("telefon", 40), email: t("email", 200),
     status: STATUS[status] ? status : "verfuegbar", notiz: String(f.get("notiz") ?? "").trim().slice(0, 500),
   };
 }
 
-export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] = [], qualifikationen: string[] = QUALIFIKATIONEN): string {
+export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] = [], qualifikationen: string[] = QUALIFIKATIONEN, tarife: Tarifvertrag[] = []): string {
   const [icon, text] = STATUS[k.status] ?? STATUS.verfuegbar;
   const name = `${k.vorname} ${k.nachname}`.trim();
   const initialen = (k.vorname[0] ?? "") + (k.nachname[0] ?? "");
   return `<article class="person-karte">
   <div class="person-kopf"><span class="person-avatar" aria-hidden="true">${escape(initialen.toUpperCase())}</span><div><h3>${escape(name)}</h3><span class="status status-${k.status}">${icon} ${text}</span></div>${darfAendern ? `<a class="stift" href="#bearbeiten-${k.id}" data-oeffne="bearbeiten-${k.id}" aria-label="${escape(name)} bearbeiten" title="Bearbeiten">✏️</a>` : ""}</div>
   ${k.berufe.length ? `<p class="person-berufe">${k.berufe.map((b) => `<span class="marke">${escape(b)}</span>`).join("")}</p>` : ""}
-  ${k.qualifikationen.length || k.eg ? `<p class="klein">${[k.eg ? `EG ${escape(k.eg)}` : "", ...k.qualifikationen.map(escape)].filter(Boolean).join(" · ")}</p>` : ""}
+  ${k.qualifikationen.length || k.eg ? `<p class="klein">${[k.eg ? `${escape(tarife.find((t) => t.id === k.tarifvertrag_id)?.name ?? "Tarif")} · ${escape(k.eg)}` : "", ...k.qualifikationen.map(escape)].filter(Boolean).join(" · ")}</p>` : ""}
   ${k.notiz ? `<p class="klein">📝 ${escape(k.notiz)}</p>` : ""}
   ${einsaetze.length ? `<ul class="einsatz-kurz">${einsaetze.map((e) => `<li><a href="/konto/vorgang/${e.vorgang_id}#personal">${(EINSATZ[e.status] ?? EINSATZ.geplant)[0]} ${escape(e.vorgaenge?.titel ?? "Ausschreibung")}</a></li>`).join("")}</ul>` : ""}
   <div class="person-aktionen">${k.telefon ? `<a class="knopf-klein" href="tel:${escape(k.telefon.replace(/[^\d+]/g, ""))}">📞 Anrufen</a>` : ""}<a class="knopf-klein" href="/konto/personal/${k.id}/nachricht">💬 Nachricht</a></div>
-  ${darfAendern ? `<details id="bearbeiten-${k.id}" class="bearbeiten"><summary>✏️ Bearbeiten</summary>${kraftFormular(k, `/konto/personal/${k.id}`, "Änderungen speichern", qualifikationen)}<form method="post" action="/konto/personal/${k.id}"><input type="hidden" name="aktion" value="loeschen"><button class="knopf-leise">🗑️ Aus der Liste löschen</button></form></details>` : ""}
+  ${darfAendern ? `<details id="bearbeiten-${k.id}" class="bearbeiten"><summary>✏️ Bearbeiten</summary>${kraftFormular(k, `/konto/personal/${k.id}`, "Änderungen speichern", qualifikationen, tarife)}<form method="post" action="/konto/personal/${k.id}"><input type="hidden" name="aktion" value="loeschen"><button class="knopf-leise">🗑️ Aus der Liste löschen</button></form></details>` : ""}
 </article>`;
 }
 
@@ -133,13 +138,23 @@ export function qualifikationenBlock(bereich: string | null, liste: { id: string
   return `<details class="qualifikationen-verwalten"><summary>🧰 Qualifikationen verwalten</summary><p class="klein">Eigene Qualifikationen erscheinen nur hier${bereich ? " am Standort" : " in der Firma"} und können bei Einsatzkräften ausgewählt werden.</p>${darfAendern ? `<form method="post" action="/konto/qualifikation"><input type="hidden" name="bereich" value="${bereich ?? ""}"><label>Neue Qualifikation<input name="name" required minlength="2" maxlength="80" placeholder="z. B. Ersthelfer-Ausbildung"></label><button>Qualifikation hinzufügen</button></form>` : ""}${passend.length ? `<ul>${passend.map((q) => `<li>${escape(q.name)}${darfAendern ? ` <form method="post" action="/konto/qualifikation" class="inline-form"><input type="hidden" name="aktion" value="loeschen"><input type="hidden" name="id" value="${q.id}"><input type="hidden" name="bereich" value="${bereich ?? ""}"><button class="knopf-leise" aria-label="${escape(q.name)} entfernen">Entfernen</button></form>` : ""}</li>`).join("")}</ul>` : `<p class="klein">Noch keine eigenen Qualifikationen angelegt.</p>`}</details>`;
 }
 
+export function tarifvertraegeBlock(tarife: Tarifvertrag[], darfAendern: boolean): string {
+  const datum = (d?: string | null) => d ? new Date(`${d.slice(0, 10)}T00:00:00Z`).toLocaleDateString("de-DE", { timeZone: "UTC" }) : "offen";
+  return `<details class="tarifvertraege-verwalten"><summary>⚖️ Tarifverträge & Entgeltgruppen verwalten</summary><p class="klein">GVP/DGB ist mit den hinterlegten EG 1–9 vorhanden. Weitere Verträge legst du anhand des konkreten Originalvertrags an. Tarifbereich und Laufzeit helfen, die passende Fassung zu erkennen. Jarvis erfindet keine Tarifgruppen oder Löhne.</p>${tarife.length ? `<ul>${tarife.map((t) => `<li><strong>${escape(t.name)}</strong>${t.geltungsbereich ? ` · ${escape(t.geltungsbereich)}` : ""} · Gruppen: ${t.gruppen.map(escape).join(", ")} · gültig ${datum(t.gueltig_ab)} bis ${datum(t.gueltig_bis)}${t.quelle ? `<br><span class="klein">Quelle: ${escape(t.quelle)}</span>` : ""}${t.vorgegeben ? " · Standardvertrag" : darfAendern ? ` <form method="post" action="/konto/tarifvertrag" class="inline-form"><input type="hidden" name="aktion" value="loeschen"><input type="hidden" name="id" value="${escape(t.id)}"><button class="knopf-leise" aria-label="${escape(t.name)} entfernen">Entfernen</button></form>` : ""}</li>`).join("")}</ul>` : "<p class=\"klein\">Keine Tarifverträge geladen.</p>"}${darfAendern ? `<form method="post" action="/konto/tarifvertrag"><label>Tarifvertrag<input name="name" required minlength="2" maxlength="160" placeholder="z. B. Tarifvertrag Elektrohandwerk NRW"></label><label>Geltungsbereich (Branche/Region)<input name="geltungsbereich" maxlength="240" placeholder="z. B. Elektrohandwerk · NRW"></label><label>Entgeltgruppen des Vertrags (durch Komma trennen)<input name="gruppen" required maxlength="1200" placeholder="z. B. EG 1, EG 2, EG 3"></label><div class="zwei"><label>Gültig ab<input name="gueltig_ab" type="date"></label><label>Gültig bis<input name="gueltig_bis" type="date"></label></div><label>Originalquelle/Vertragsfassung<input name="quelle" required maxlength="500" placeholder="z. B. Entgelttarifvertrag vom …, Link oder Dokument"></label><button>Tarifvertrag hinzufügen</button></form>` : ""}</details>`;
+}
+
 async function qualifikationenLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string, bereich: string | null): Promise<{ id: string; name: string; bereich_id: string | null }[]> {
   const r = await db<{ id: string; name: string; bereich_id: string | null }[]>(s, env, `firmen_qualifikationen?firma_id=eq.${firma}&select=id,name,bereich_id&order=name`);
   return r.ok ? r.daten.filter((q) => q.bereich_id === null || q.bereich_id === bereich) : [];
 }
 
+export async function tarifvertraegeLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string): Promise<Tarifvertrag[]> {
+  const r = await db<Tarifvertrag[]>(s, env, `firmen_tarifvertraege?firma_id=eq.${firma}&select=id,name,geltungsbereich,gruppen,quelle,gueltig_ab,gueltig_bis,vorgegeben&order=vorgegeben.desc,name`);
+  return r.ok ? r.daten : [];
+}
+
 /** The personnel of one location: numbers, filter, cards and the add form (also shown directly on "Firma & Team"). */
-export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, aktion: string, einsaetze: Einsatz[] = [], eigeneQualifikationen: string[] = []): string {
+export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, aktion: string, einsaetze: Einsatz[] = [], eigeneQualifikationen: string[] = [], tarife: Tarifvertrag[] = []): string {
   // Filter by occupation and status (GET form, works without scripts).
   const beruf = url.searchParams.get("beruf") ?? "";
   const st = url.searchParams.get("status") ?? "";
@@ -152,8 +167,8 @@ export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, akti
 ${darfAendern && alle.length ? `<p><a class="knopf" href="#neu" data-oeffne="neu">➕ Person hinzufügen</a></p>` : ""}
 ${hilfe("Welche Person soll ich eintragen?", "Erfasse nur Personen, die ihr für Einsätze einplant. Berufe helfen Jarvis, passende Kräfte für Ausschreibungen vorzuschlagen. Die Kontaktangaben nutzt dein Team direkt vom eigenen Gerät.")}
 ${filter}
-<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"), qualifikationen)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
-${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>➕ Person hinzufügen</summary>${kraftFormular({}, aktion, "Person speichern", qualifikationen)}</details>` : ""}
+<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"), qualifikationen, tarife)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
+${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>➕ Person hinzufügen</summary>${kraftFormular({}, aktion, "Person speichern", qualifikationen, tarife)}</details>` : ""}
 <p class="klein">Die Daten sieht nur, wer Zugriff auf diesen Standort hat. Trag nur ein, was für die Einsatzplanung nötig ist, und lösche Personen, die nicht mehr für euch arbeiten.</p>`;
 }
 
@@ -196,6 +211,35 @@ async function heimat(f: { s: Parameters<typeof db>[0]; m: { firma_id: string } 
 
 export async function personal(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
+  if (url.pathname === "/konto/tarifvertrag" && request.method === "POST") {
+    const f = await aktiveFirma(request, env);
+    if (!f) return weiterleiten("/konto");
+    if (!["inhaber", "admin"].includes(f.m.rolle)) return weiterleiten("/konto/team?hinweis=Nur%20die%20Administration%20kann%20Tarifverträge%20verwalten.", f.s.cookies);
+    const form = await request.formData();
+    let ok = false;
+    if (form.get("aktion") === "loeschen") {
+      const id = String(form.get("id") ?? "");
+      if (ID.test(id)) { const r = await db(f.s, env, `firmen_tarifvertraege?id=eq.${id}&firma_id=eq.${f.m.firma_id}&vorgegeben=eq.false`, { method: "DELETE" }); ok = r.ok; }
+    } else {
+      const name = String(form.get("name") ?? "").replace(/\s+/g, " ").trim().slice(0, 160);
+      const geltungsbereich = String(form.get("geltungsbereich") ?? "").replace(/\s+/g, " ").trim().slice(0, 240);
+      const gruppen = [...new Set(String(form.get("gruppen") ?? "").split(/[;,\n]/).map((x) => x.trim().replace(/\s+/g, " ")).filter((x) => x.length > 0 && x.length <= 80))].slice(0, 30);
+      const quelle = String(form.get("quelle") ?? "").trim().slice(0, 500);
+      const ab = String(form.get("gueltig_ab") ?? "");
+      const bis = String(form.get("gueltig_bis") ?? "");
+      const datumGilt = (x: string) => {
+        if (!x) return true;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(x)) return false;
+        const d = new Date(`${x}T00:00:00.000Z`);
+        return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === x;
+      };
+      if (name.length >= 2 && quelle.length >= 3 && gruppen.length && form.get("gruppen") && datumGilt(ab) && datumGilt(bis) && (!ab || !bis || ab <= bis) && gruppen.length === String(form.get("gruppen") ?? "").split(/[;,\n]/).map((x) => x.trim().replace(/\s+/g, " ")).filter(Boolean).length) {
+        const r = await db(f.s, env, "firmen_tarifvertraege", { method: "POST", body: JSON.stringify({ firma_id: f.m.firma_id, name, geltungsbereich, gruppen, quelle, gueltig_ab: ab || null, gueltig_bis: bis || null }) });
+        ok = r.ok;
+      }
+    }
+    return weiterleiten(`/konto/team?hinweis=${encodeURIComponent(ok ? "Tarifvertrag gespeichert." : "Tarifvertrag konnte nicht gespeichert oder entfernt werden. Prüfe doppelte Namen, Gruppen und ob Personen ihn noch verwenden.")}`, f.s.cookies);
+  }
   if (url.pathname === "/konto/qualifikation" && request.method === "POST") {
     const f = await aktiveFirma(request, env);
     if (!f) return weiterleiten("/konto");
@@ -251,19 +295,23 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     const bid = standort[1] === "firma" ? null : standort[1];
     if (request.method === "POST") {
       if (!darfAendern) return antwort("Nicht erlaubt", "<p>Nur Bearbeiter und Admins können Personal eintragen.</p>", 403);
-      const qualifikationen = await qualifikationenLaden(f.s, env, f.m.firma_id, bid);
-      const daten = ausFormular(await request.formData(), [...QUALIFIKATIONEN, ...qualifikationen.map((q) => q.name)]);
+      const [qualifikationen, tarife] = await Promise.all([
+        qualifikationenLaden(f.s, env, f.m.firma_id, bid),
+        tarifvertraegeLaden(f.s, env, f.m.firma_id),
+      ]);
+      const daten = ausFormular(await request.formData(), [...QUALIFIKATIONEN, ...qualifikationen.map((q) => q.name)], tarife);
       const ziel = await heimat(f, env, bid);
       if (!daten.vorname) return weiterleiten(`${ziel}?hinweis=${encodeURIComponent("Bitte mindestens den Vornamen eintragen.")}`, f.s.cookies);
       const r = await db(f.s, env, "personal", { method: "POST", body: JSON.stringify({ ...daten, firma_id: f.m.firma_id, bereich_id: bid }) });
       return weiterleiten(`${ziel}?hinweis=${encodeURIComponent(r.ok ? `${daten.vorname} ist eingetragen.` : "Das hat nicht geklappt. Hast du Rechte für diesen Standort?")}`, f.s.cookies);
     }
-    const [bereiche, liste, qualifikationen, mitglieder, zuordnungen] = await Promise.all([
+    const [bereiche, liste, qualifikationen, mitglieder, zuordnungen, tarife] = await Promise.all([
       db<Bereich[]>(f.s, env, `bereiche?firma_id=eq.${f.m.firma_id}&select=id,name,art,parent_id`),
       db<Kraft[]>(f.s, env, `personal?firma_id=eq.${f.m.firma_id}&bereich_id=${bid ? `eq.${bid}` : "is.null"}&select=*&order=status,vorname`),
       qualifikationenLaden(f.s, env, f.m.firma_id, bid),
       db<{ user_id: string; rolle: string; anzeigename: string; funktion: string }[]>(f.s, env, `mitglieder?firma_id=eq.${f.m.firma_id}&aktiv=eq.true&rolle=eq.standortleitung&select=user_id,rolle,anzeigename,funktion`),
       db<{ user_id: string; bereich_id: string }[]>(f.s, env, `mitglied_bereiche?firma_id=eq.${f.m.firma_id}&select=user_id,bereich_id`),
+      tarifvertraegeLaden(f.s, env, f.m.firma_id),
     ]);
     const einsaetze = await einsaetzeLaden(f.s, env, f.m.firma_id);
     const b = bereiche.ok ? bereiche.daten.find((x) => x.id === bid) : undefined;
@@ -274,7 +322,7 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     const custom = qualifikationen.map((q) => q.name);
     const leitungIds = zuordnungen.ok ? zuordnungen.daten.filter((z) => z.bereich_id === bid).map((z) => z.user_id) : [];
     const leitung = mitglieder.ok ? mitglieder.daten.filter((x) => leitungIds.includes(x.user_id)).map((x) => x.anzeigename || x.funktion || "Standortleitung").join(", ") : "";
-    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${bid ? `<p class="standort-leitung">👤 <strong>Standortleitung:</strong> ${escape(leitung || "noch nicht zugeordnet")}</p>` : ""}${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`, einsaetze, custom)}${qualifikationenBlock(bid, qualifikationen, darfAendern)}`);
+    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${bid ? `<p class="standort-leitung">👤 <strong>Standortleitung:</strong> ${escape(leitung || "noch nicht zugeordnet")}</p>` : ""}${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`, einsaetze, custom, tarife)}${qualifikationenBlock(bid, qualifikationen, darfAendern)}`);
   }
 
   const pid = einzeln![1];
@@ -289,8 +337,11 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
       const r = await db(f.s, env, `personal?id=eq.${pid}`, { method: "DELETE" });
       return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent(r.ok ? `${kraft.vorname} ist gelöscht.` : "Löschen hat nicht geklappt.")}`, f.s.cookies);
     }
-    const qualifikationen = await qualifikationenLaden(f.s, env, f.m.firma_id, kraft.bereich_id);
-    const daten = ausFormular(form, [...QUALIFIKATIONEN, ...qualifikationen.map((q) => q.name)]);
+    const [qualifikationen, tarife] = await Promise.all([
+      qualifikationenLaden(f.s, env, f.m.firma_id, kraft.bereich_id),
+      tarifvertraegeLaden(f.s, env, f.m.firma_id),
+    ]);
+    const daten = ausFormular(form, [...QUALIFIKATIONEN, ...qualifikationen.map((q) => q.name)], tarife);
     if (!daten.vorname) return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent("Der Vorname darf nicht leer sein.")}`, f.s.cookies);
     const r = await db(f.s, env, `personal?id=eq.${pid}`, { method: "PATCH", body: JSON.stringify(daten) });
     return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent(r.ok ? "Gespeichert." : "Speichern hat nicht geklappt.")}`, f.s.cookies);

@@ -16,6 +16,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Mitarbeiter: Name und Funktion (z. B. Abteilungsleitung, Sachbearbeitung, Serviceleitung/Facharbeiter) getrennt von Rollen, Bereichszuordnung und Finanzfreigabe; gezielte Textweitergabe mit Vorschau/Widerruf und eigener Mitarbeiteransicht.
   - Organisationsbaum Firma → Region → Standort, getrennte App-Zugänge und Einsatzpersonal, sichtbare Standortleitung mit auf einen einzelnen Standort beschränkten Rechten. Standortleitungen verwalten Personal und Einsätze, aber weder Firmenfinanzen noch globale Team-/Bereichsverwaltung.
   - Personalbestand mit branchenübergreifenden Berufsgruppen, Verfügbarkeit, Kontakt und Qualifikationen; eigene Qualifikationen pro Firma/Standort, Filter nach Beruf, Qualifikation und Status. Personen können Ausschreibungen mit Einsatzstatus zugeordnet werden.
+  - Qualifikationen als Mehrfachauswahl mit Häkchen. Personal wird einem Tarifvertrag mit Geltungsbereich, Quelle und Laufzeit zugeordnet; die Entgeltgruppenliste zeigt nur Gruppen dieses Vertrags. GVP/DGB ist aus den Originalverträgen vorbefüllt, weitere Verträge kann die Administration mit den Gruppen aus dem Originalvertrag hinterlegen.
   - Kalkulation pro Los mit Tarifentgeltgruppen, Laufzeit, Schicht- und Einsatzkosten, Gemeinkosten sowie Gewinn.
   - Firmenunterlagen und Word-/Textvorlagen; Angebotsmappe mit bearbeitbarem Entwurf, Chef-Freigabe vor Download, Ablaufprüfung, Ablauf-Erinnerungen und protokolliertem Eingangsbeleg nach manueller Portalabgabe.
   - Mobile Formulare, größere Touchflächen und kurze einklappbare Erklärungen für Treffer, Rollen, Unterlagen, Suchprofil, Kalkulation und Personal.
@@ -25,13 +26,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (niemand)
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 - **Automatische tägliche Mail:** In den 100 abgefragten jüngsten Actions-Läufen sind fünf erfolgreiche manuelle Mailläufe, aber kein geplanter Maillauf belegt. Konfigurierter Stundencron allein bestätigt keinen Versand. Automatische Ausführung und tatsächliche Zustellung gesondert nachweisen; kein zusätzlicher Testversand durch diese Prüfung.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
-2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen. Die zentrale, mit Ausschreibungs-Berufen verknüpfte Berufs-/Tarifdatenbank ist als nächster größerer Personal-Schritt geplant (docs/personalkatalog.md).
+2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen. Die bundesweite zentrale Tarifdatenbank bleibt offen: Recherchequellen decken nur ausgewählte Branchen/Berufe ab; Nutzungsrechte und Aktualisierung für eine automatische Übernahme müssen geklärt werden (docs/personalkatalog.md, alarm/quellen.md).
 3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
 4. Aussehen/Design mit Logo WP Digital Ranger; mobile Touchflächen und Kern-Erklärungen sind verbessert.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
@@ -45,6 +45,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Fünf erfolgreiche manuelle „Tägliche Mail“-Läufe in den jüngsten 100 Actions-Läufen, zuletzt [41061677087](https://github.com/Twista-hub/jarvis/actions/runs/41061677087). Kein geplanter Maillauf in dieser Auswahl und der ergänzenden Schedule-Abfrage: automatische Ausführung/Zustellung bleibt zu bestätigen, kein Ausfall allein aus dieser Auswahl bewiesen.
 - `mail.yml` enthält Stundencron `3 4-19 * * *` plus lokale Zeitprüfung im Code. `alarm.yml` hat 05:17 UTC und 07:41 UTC als Sicherung. Teilweise `continue-on-error`: gesamter grüner Lauf allein beweist nicht jeden Versand-/Datenschritt.
 - Kein Workflow oder Testversand ausgelöst, keine Kunden kontaktiert, keine externen Veröffentlichungen und keine Ausgaben. Projektzugänge und Daten getrennt gehalten. Benjamin muss für diese Dokumentation nichts tun; Claude sollte den nächsten automatischen Maillauf samt Versandnachweis prüfen.
+
+### 30.10.2026 – ChatGPT (Tarifrecherche und Personal-Auswahl)
+- Tarifquellen zuerst geprüft: BMAS-Tarifregister (sehr großer Bestand, keine offene Gesamtdatenbank), WSI-Tarifarchiv (über 200 Berufe/rund 50 Branchen, regionale Tabellen ausgewählter Branchen) und Tarifregister NRW (über 100 ausgewählte Branchen). robots.txt beachtet; keine gesperrten Such- oder Query-Pfade automatisiert abgerufen. Nutzungs- und Aktualitätsgrenzen dokumentiert in `alarm/quellen.md` und `docs/personalkatalog.md`.
+- Recherche zeigt: kein vollständiger, frei nutzbarer und verlässlich aktueller Bundesdatensatz mit sämtlichen Verträgen/Entgeltgruppen. Jarvis behauptet daher keine Vollständigkeit. Das vorhandene GVP/DGB-Tarifwerk bleibt der einzige vorbefüllte Vertrag; Admins können weitere Originalverträge mit Geltungsbereich, Gruppen, Laufzeit und Quellenangabe hinterlegen.
+- Personalerfassung: Tarifvertrag zuerst auswählen, Entgeltgruppen sind abhängig davon auswählbar und werden serverseitig sowie in der Datenbank gegen den Vertrag geprüft. Qualifikationen können über eine Mehrfachauswahl mit Checkboxen gesetzt werden.
+- Standortleitungs-Zuweisung verbessert: Beim Wählen der Rolle erscheint direkt die Auswahl genau eines zulässigen Standorts; Regionen werden nicht als Leitungssitz angeboten.
+- Web-Typprüfung und sämtliche Web-Tests grün; PostgreSQL-Rechte-Test konnte lokal nicht ausgeführt werden, da `psql` in der Umgebung fehlt. Migration muss vor dem Ausrollen per Datenbank-Workflow geprüft und eingespielt werden.
+- Offen: geprüfte Tarifdatenbank um weitere Verträge erweitern, sobald Nutzungsrechte und ein aktueller verlässlicher Datenweg feststehen. Separater Verantwortlicher für kaufmännische Bearbeitung bleibt ebenfalls offen. Benjamin muss nichts ausführen.
 
 ### 30.10.2026 – ChatGPT (Organisationsbaum und branchenübergreifendes Personal)
 - Firma & Team klar getrennt: Organisationsbaum für Firma/Region/Standort; App-Zugänge separat vom Einsatzpersonal. Zuordnung und Name der Standortleitung sind direkt an Standortkacheln und Standortseiten sichtbar.

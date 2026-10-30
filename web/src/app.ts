@@ -62,6 +62,36 @@ document.querySelectorAll("select[data-los-wahl]").forEach(function (w) {
 document.querySelectorAll("select[data-sofort-wahl]").forEach(function (w) {
   w.addEventListener("change", function () { w.form.submit(); });
 });
+// An employee's wage group is specific to the selected tariff agreement.
+document.querySelectorAll("select[data-tarifvertrag]").forEach(function (tarif) {
+  var gruppe = tarif.form.querySelector("select[data-tarifgruppen]");
+  if (!gruppe) return;
+  function filtern() {
+    Array.prototype.forEach.call(gruppe.options, function (option) {
+      option.disabled = !!option.value && option.getAttribute("data-tarifvertrag") !== tarif.value;
+    });
+    if (gruppe.selectedOptions.length && gruppe.selectedOptions[0].disabled) gruppe.value = "";
+    gruppe.disabled = !tarif.value;
+  }
+  tarif.addEventListener("change", filtern);
+  filtern();
+});
+// Choosing the Standortleitung role immediately exposes its one-site assignment picker.
+document.querySelectorAll("select[data-rolle]").forEach(function (rolle) {
+  var form = rolle.form;
+  var mehrfach = form.querySelector("[data-bereiche-mehrfach]");
+  var einzel = form.querySelector("[data-bereich-einzel]");
+  if (!mehrfach || !einzel) return;
+  function wechseln() {
+    var istLeitung = rolle.value === "standortleitung";
+    mehrfach.hidden = istLeitung;
+    einzel.hidden = !istLeitung;
+    Array.prototype.forEach.call(mehrfach.querySelectorAll("input"), function (i) { i.disabled = istLeitung; });
+    Array.prototype.forEach.call(einzel.querySelectorAll("input"), function (i) { i.disabled = !istLeitung; i.required = istLeitung && i.type === "radio"; });
+  }
+  rolle.addEventListener("change", wechseln);
+  wechseln();
+});
 // Pencil / add buttons open their form and scroll to it.
 document.querySelectorAll("a[data-oeffne]").forEach(function (a) {
   a.addEventListener("click", function (e) {
