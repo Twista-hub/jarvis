@@ -1,0 +1,31 @@
+# Daily mail with new hits and deadline reminders, at the hour each person chose in the app.
+# Runs every hour from 7 to 20 o'clock Berlin time (both summer and winter time are covered).
+name: Tägliche Mail
+
+on:
+  schedule:
+    - cron: "3 4-19 * * *"
+  workflow_dispatch:
+    inputs:
+      test:
+        description: "Nur eine Testmail an diese Adresse (eigene Treffer der letzten 24 Stunden)"
+        default: ""
+
+concurrency:
+  group: mail
+  cancel-in-progress: false
+
+jobs:
+  mail:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q "psycopg[binary]"
+      - run: python alarm/mail.py ${TEST:+--test "$TEST"}
+        env:
+          TEST: ${{ inputs.test }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}

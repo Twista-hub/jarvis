@@ -15,6 +15,7 @@ export interface Env extends KontoEnv {
   AI: Ai;
   STECKBRIEF: Workflow<Job>;
   ANTHROPIC_API_KEY: string;
+  ACTIONS_TOKEN?: string;
   TEST_CODE_HASH?: string;
   TAGES_LIMIT: string;
 }

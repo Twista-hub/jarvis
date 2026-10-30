@@ -22,11 +22,11 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 4. ~~Einrichtungs-Assistent~~ (erledigt 30.10.: /konto/einrichtung; Profil in suchprofile.einstellungen, der Alarm liest es über alarm/profile_db.py; ein gespeichertes Profil ersetzt das aus profile.json).
 5. ~~Suchprofile in der App ändern~~ (über „Suchprofil anpassen“; offen: Mindestpunkte, Profile pro Standort).
 6. **Hilfetexte** an jeder Stelle („Was heißt Bearbeiter?“, „Was ist ein Steckbrief?“).
-7. **Tägliche Mail** mit den neuen Treffern, pro Person ein- oder ausschaltbar.
+7. ~~Tägliche Mail~~ (erledigt 30.10.: Uhrzeit 7–20 Uhr pro Person, alarm/mail.py stündlich über .github/workflows/mail.yml). Erste Trefferliste sofort nach der Einrichtung (letzte 7 Tage), braucht Secret ACTIONS_TOKEN.
 
 ### C. Arbeiten mit Ausschreibungen
 8. ~~Unterlagen am Treffer hochladen~~ (erledigt 30.10.). Später: Portal-Mails an Jarvis weiterleiten (braucht Mail-Empfang).
-9. **Zuständige Person** zuweisen, **Fristen-Erinnerung** per Mail (z. B. 7 und 2 Tage vorher).
+9. **Zuständige Person** zuweisen (offen). ~~Fristen-Erinnerung~~ 7 und 2 Tage vorher steht in der täglichen Mail.
 10. **Kalkulationsvorlagen** pro Standort (Löhne je Stadt).
 11. **Mitarbeiterliste** mit Namen und E-Mail, Rechte ändern, sperren.
 

@@ -11,6 +11,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261029120000_firmen_und_rechte.sql
 \ir ../migrations/20261030010000_firmen_freigabe.sql
 \ir ../migrations/20261030200000_einrichtung.sql
+\ir ../migrations/20261030210000_benachrichtigungen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -28,6 +29,7 @@ begin if not coalesce(ok, false) then raise exception 'FEHLER: %', was; end if; 
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000a');
 select public.firma_anlegen('Perlease GmbH') as firma \gset
+select set_config('test.firma', :'firma', false);
 insert into public.bereiche (firma_id, name) values (:'firma', 'Berlin') returning id as berlin \gset
 insert into public.bereiche (firma_id, parent_id, name, art) values (:'firma', :'berlin', 'Berlin Messe', 'team') returning id as messe \gset
 insert into public.bereiche (firma_id, name) values (:'firma', 'Hamburg') returning id as hamburg \gset
@@ -99,4 +101,18 @@ select test_als('00000000-0000-0000-0000-00000000000b');
 select pruefe((select count(*) from public.suchprofile) = 1, 'Mitarbeiter sieht das Suchprofil');
 update public.suchprofile set beschreibung = 'gehackt';
 select pruefe((select beschreibung from public.suchprofile) = 'Zeitarbeit', 'Leser ändert das Suchprofil nicht');
+
+-- Daily mail: everyone sets only their own hour.
+insert into public.benachrichtigungen (firma_id, user_id, stunde) values (:'firma', '00000000-0000-0000-0000-00000000000b', 7);
+do $$ begin
+  insert into public.benachrichtigungen (firma_id, user_id, stunde) select firma_id, '00000000-0000-0000-0000-00000000000a', 9 from public.mitglieder limit 1;
+  raise exception 'FEHLER: Mail-Zeit für jemand anderen gesetzt';
+exception when insufficient_privilege then raise notice 'ok: nur die eigene Mail-Zeit'; end $$;
+select test_als('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  insert into public.benachrichtigungen (firma_id, user_id, stunde) values (current_setting('test.firma')::uuid, auth.uid(), 7);
+  raise exception 'FEHLER: Fremder bekommt Mails einer Firma';
+exception when insufficient_privilege or foreign_key_violation then raise notice 'ok: Fremde bekommen keine Mails'; end $$;
+select test_als('00000000-0000-0000-0000-00000000000a');
+select pruefe((select count(*) from public.benachrichtigungen) = 0, 'Inhaber sieht fremde Mail-Zeiten nicht');
 \echo ALLE TESTS OK

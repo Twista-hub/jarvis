@@ -11,6 +11,9 @@ on:
       tage:
         description: "Tage (YYYY-MM-DD, mit Leerzeichen); leer = gestern"
         default: ""
+      firma:
+        description: "Nur diese Firma (ID), z. B. direkt nach der Einrichtung; leer = alle. Ohne Tage: die letzten 7"
+        default: ""
 
 permissions:
   contents: write
@@ -35,6 +38,7 @@ jobs:
       - if: env.SCHON != '1'
         run: python alarm/alarm.py ${{ inputs.tage }}
         env:
+          FIRMA: ${{ inputs.firma }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # Reads the search profiles firms saved in the app (alarm/profile_db.py).
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
