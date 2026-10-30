@@ -45,6 +45,8 @@ export async function konto(request: Request, env: KontoEnv): Promise<Response |
   if (p === "/anmelden/fertig") return angemeldet(url, request, env);
   if (p === "/abmelden" && post) return abmelden(request, env);
   if (p === "/konto" && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "");
+  const kontoSeite = p.match(/^\/konto\/(ausschreibungen|fristen|unterlagen|kalkulation|firma-team|einstellungen)$/);
+  if (kontoSeite && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "", kontoSeite[1]);
   if (p === "/konto/firma" && post) return mitSitzung(request, env, firmaAnlegen);
   if (p === "/konto/bereich" && post) return mitSitzung(request, env, bereichAnlegen);
   if (p === "/konto/einladen" && post) return mitSitzung(request, env, einladen);
@@ -154,7 +156,7 @@ async function mitSitzung(request: Request, env: KontoEnv, f: (s: Sitzung, form:
 
 // ---------- Firm pages ----------
 
-async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Promise<Response> {
+async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unterseite = ""): Promise<Response> {
   const s = await sitzung(request, env);
   if (!s) return html(seite("Anmelden", anmeldeFormular("", "/konto", "Melde dich an, um Ausschreibungen, Bereiche und Mitarbeiter deiner Firma zu verwalten.")));
   const meine = await db<(Mitglied & { firmen: { name: string; paket: string } })[]>(s, env, `mitglieder?user_id=eq.${s.userId}&aktiv=eq.true&select=firma_id,rolle,erstellt,user_id,firmen(name,paket)&order=erstellt`);
@@ -210,33 +212,57 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string): Pro
   const bereichWahl = regionen.length
     ? `<p class="klein">Bereich: ${[`<a href="/konto${alle ? "?alle=1" : ""}">${filter ? "alle" : "<strong>alle</strong>"}</a>`, ...regionen.map((x) => `<a href="/konto?bereich=${x.id}${alle ? "&alle=1" : ""}">${x.id === filter?.id ? `<strong>${escape(x.name)}</strong>` : escape(x.name)}</a>`)].join(" · ")}</p>`
     : "";
-  let inhalt = `${kopf}${wechsel}
-<p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p>
-${sucht ? `<p><strong>⏳ Jarvis durchsucht gerade die Ausschreibungen der letzten 7 Tage.</strong> Die Treffer erscheinen in etwa 5 Minuten hier, die Seite lädt sich von selbst neu.</p>` : ""}
-${ohneProfil ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suche einrichten (2 Minuten)</a></p><p class="klein">Beschreib kurz deine Firma, Jarvis schlägt Suchbegriffe und Standorte vor. Danach kommen jeden Morgen passende Ausschreibungen.</p>` : admin ? `<p class="klein"><a href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suchprofil anpassen</a></p>` : ""}
-${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle, name, bereichWahl)}
-<h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
-  inhalt += b.length
+  const liste = vorgaenge.ok ? vorgaenge.daten : [];
+  const labels: Record<string, string> = { ausschreibungen: "Ausschreibungen", fristen: "Fristen", unterlagen: "Unterlagen", kalkulation: "Kalkulation", "firma-team": "Firma & Team", einstellungen: "Einstellungen" };
+  const nav = `<nav class="konto-nav" aria-label="Konto-Navigation"><a href="/konto">⌂<span>Übersicht</span></a><a href="/konto/ausschreibungen">▤<span>Ausschreibungen</span></a><a href="/konto/fristen">◷<span>Fristen</span></a><a href="/konto/einstellungen">⚙<span>Einstellungen</span></a></nav>`;
+  const zurueck = unterseite ? `<p class="konto-zurueck"><a href="/konto">← Zurück</a></p><h1>${labels[unterseite]}</h1>` : "";
+  const rahmen = (body: string) => `${zurueck}${kopf}${wechsel}${body}${nav}`;
+  const meldungen = `${sucht ? `<p><strong>⏳ Jarvis durchsucht gerade die Ausschreibungen der letzten 7 Tage.</strong> Die Treffer erscheinen in etwa 5 Minuten hier, die Seite lädt sich von selbst neu.</p>` : ""}${ohneProfil ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suche einrichten (2 Minuten)</a></p><p class="klein">Beschreib kurz deine Firma, Jarvis schlägt Suchbegriffe und Standorte vor. Danach kommen jeden Morgen passende Ausschreibungen.</p>` : ""}`;
+  const cards = [
+    ["ausschreibungen", "📋", "Ausschreibungen", `${liste.length} Treffer ansehen`],
+    ["fristen", "⏰", "Fristen", `${liste.filter((v) => v.frist && v.frist >= new Date().toISOString().slice(0, 10) && !["verloren", "verworfen"].includes(v.status)).length} offen`],
+    ["unterlagen", "📥", "Unterlagen", "Dateien hochladen und prüfen lassen"],
+    ["kalkulation", "💶", "Kalkulation", "Ergebnisse aus Unterlagen ansehen"],
+    ["firma-team", "👥", "Firma & Team", "Standorte und Einladungen verwalten"],
+    ["einstellungen", "⚙️", "Einstellungen", "Suchprofil und Nachrichten"],
+  ];
+  const kacheln = `<div class="konto-kacheln">${cards.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${title}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
+  let inhalt: string;
+  if (!unterseite) {
+    inhalt = rahmen(`<p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p>${meldungen}<h2>Was möchtest du tun?</h2>${kacheln}`);
+  } else if (unterseite === "ausschreibungen") {
+    inhalt = rahmen(`${meldungen}${trefferListe(liste, alle, name, bereichWahl)}`);
+  } else if (unterseite === "fristen") {
+    const fristen = liste.filter((v) => v.frist && v.frist >= new Date().toISOString().slice(0, 10) && !["verloren", "verworfen"].includes(v.status)).sort((a, b) => (a.frist ?? "").localeCompare(b.frist ?? ""));
+    inhalt = rahmen(`<h2>Nächste Fristen</h2>${fristen.length ? `<ul class="fristen-liste">${fristen.map((v) => `<li><time datetime="${escape(v.frist!)}">${datum(v.frist!)}</time><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a></li>`).join("")}</ul>` : `<p>Aktuell stehen keine offenen Fristen an.</p>`}<p class="klein">Jarvis erinnert dich zusätzlich 7 und 2 Tage vorher per täglicher Nachricht.</p>`);
+  } else if (unterseite === "unterlagen") {
+    inhalt = rahmen(`<h2>Vergabeunterlagen</h2><p>Öffne eine Ausschreibung, um die Unterlagen vom Portal herunterzuladen und hier hochzuladen. Jarvis erstellt daraus einen ausführlichen Steckbrief.</p>${liste.length ? `<ul class="konto-linkliste">${liste.map((v) => `<li><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a><span class="klein">Unterlagen öffnen oder nachreichen</span></li>`).join("")}</ul>` : `<p>Noch keine Ausschreibungen vorhanden.</p>`}`);
+  } else if (unterseite === "kalkulation") {
+    const mitUnterlagen = (await Promise.all(liste.map(async (v) => ({ v, aus: await unterlagenSteckbrief(env, v.id) })))).filter((x) => x.aus?.text);
+    inhalt = rahmen(`<h2>Kalkulationen</h2><p>Nach dem Prüfen hochgeladener Vergabeunterlagen findest du die Kalkulation auf der jeweiligen Ausschreibung.</p>${mitUnterlagen.length ? `<ul class="konto-linkliste">${mitUnterlagen.map(({ v, aus }) => `<li><a href="/auftrag/${aus!.auftrag}#kalkulation">${escape(v.titel)} – Kalkulation ansehen</a></li>`).join("")}</ul>` : `<p>Noch keine Kalkulation vorhanden. Lade Unterlagen bei einer Ausschreibung hoch, damit Jarvis den Preis berechnen kann.</p><p><a href="/konto/ausschreibungen">Zu den Ausschreibungen →</a></p>`}`);
+  } else if (unterseite === "firma-team") {
+    let team = `<h2>Firma & Team</h2><p>Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Paket: ${escape(m.firmen.paket)} · abgerechnete Nutzer: ${anzahl.ok ? anzahl.daten : "?"}</p><h2>Bereiche (Standorte, Abteilungen, Teams)</h2>`;
+    team += b.length
     ? `<div class="tabelle"><table><tr><th>Name</th><th>Art</th><th>gehört zu</th></tr>${b.map((x) => `<tr><td>${escape(x.name)}</td><td>${ARTEN[x.art] ?? x.art}</td><td>${escape(name(x.parent_id))}</td></tr>`).join("")}</table></div>`
-    : `<p class="klein">Noch keine Bereiche. Ohne Bereiche sieht jeder in der Firma alles.</p>`;
-  if (admin) {
-    inhalt += `<form method="post" action="/konto/bereich">
+      : `<p class="klein">Noch keine Bereiche. Ohne Bereiche sieht jeder in der Firma alles.</p>`;
+    if (admin) {
+    team += `<form method="post" action="/konto/bereich">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neuer Bereich <input name="name" required maxlength="200" placeholder="z. B. Berlin"></label>
   <label>Art <select name="art"><option value="standort">Standort</option><option value="abteilung">Abteilung</option><option value="team">Team</option></select></label>
   ${b.length ? `<label>Gehört zu <select name="parent"><option value="">(oberste Ebene)</option>${bereichOptionen}</select></label>` : ""}
   <button>Bereich anlegen</button>
 </form>`;
-  }
-  inhalt += `<h2>Mitarbeiter</h2>`;
-  const ml = mitglieder.ok ? mitglieder.daten : [];
-  inhalt += `<div class="tabelle"><table><tr><th>Wer</th><th>Rolle</th><th>seit</th></tr>${ml.map((x) => `<tr><td>${x.user_id === s.userId ? `du (${escape(s.email)})` : "Mitarbeiter"}</td><td>${ROLLEN[x.rolle] ?? x.rolle}</td><td>${datum(x.erstellt)}</td></tr>`).join("")}</table></div>`;
-  if (admin) {
+    }
+    team += `<h2>Mitarbeiter</h2>`;
+    const ml = mitglieder.ok ? mitglieder.daten : [];
+    team += `<div class="tabelle"><table><tr><th>Wer</th><th>Rolle</th><th>seit</th></tr>${ml.map((x) => `<tr><td>${x.user_id === s.userId ? `du (${escape(s.email)})` : "Mitarbeiter"}</td><td>${ROLLEN[x.rolle] ?? x.rolle}</td><td>${datum(x.erstellt)}</td></tr>`).join("")}</table></div>`;
+    if (admin) {
     const offen = einladungen.ok ? einladungen.daten : [];
     if (offen.length) {
-      inhalt += `<p class="klein">Offene Einladungen: ${offen.map((e) => `${escape(e.email)} (${ROLLEN[e.rolle] ?? e.rolle}, bis ${datum(e.gueltig_bis)})`).join(", ")}</p>`;
+      team += `<p class="klein">Offene Einladungen: ${offen.map((e) => `${escape(e.email)} (${ROLLEN[e.rolle] ?? e.rolle}, bis ${datum(e.gueltig_bis)})`).join(", ")}</p>`;
     }
-    inhalt += `<form method="post" action="/konto/einladen">
+    team += `<form method="post" action="/konto/einladen">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>E-Mail-Adresse <input type="email" name="email" required></label>
   <label>Rolle <select name="rolle"><option value="bearbeiter">Bearbeiter</option><option value="leser">Leser (kostenlos)</option><option value="admin">Admin</option></select></label>
@@ -244,8 +270,10 @@ ${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle, name, bereichWahl)}
   <button>Einladung erstellen</button>
   <p class="klein">Du bekommst einen Link, den du der Person schickst. Er gilt 14 Tage und nur für diese Adresse.</p>
 </form>`;
-  }
-  inhalt += `<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    }
+    inhalt = rahmen(team);
+  } else {
+    inhalt = rahmen(`<h2>Einstellungen</h2>${meldungen}${admin ? `<p><a href="/konto/einrichtung?firma=${m.firma_id}">🔎 Suchprofil anpassen</a></p>` : ""}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
@@ -255,8 +283,9 @@ ${trefferListe(vorgaenge.ok ? vorgaenge.daten : [], alle, name, bereichWahl)}
 </form>
 <p><button type="button" id="push-an" hidden>📱 Nachrichten auf diesem Handy einschalten</button> <button type="button" id="push-test" hidden>🔔 Test auf diesem Handy</button></p>
 <p class="klein" id="push-status"></p>
-<h2>Konto</h2>${abmelden}`;
-  return html(seite(m.firmen.name, inhalt, sucht ? 30 : 0), 200, s.cookies);
+<h2>Konto</h2>${abmelden}`);
+  }
+  return html(seite(unterseite ? labels[unterseite] : m.firmen.name, inhalt, sucht ? 30 : 0), 200, s.cookies);
 }
 
 async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {

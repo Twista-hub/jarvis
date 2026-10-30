@@ -15,7 +15,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (frei) Seiten-Umbau, Auftrag siehe docs/auftrag-seiten.md – soll Codex übernehmen.
+- (ChatGPT) Seiten-Umbau
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 1. Seiten-Umbau: aufgeräumte Übersicht mit Kacheln und Unterseiten (docs/auftrag-seiten.md).
@@ -27,6 +27,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 7. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT
+- Erste Konto-Unterseiten mit Kacheln, Zurück-Link und Handy-Leiste erstellt; Tests grün.
+- GitHub-Verbindung über die Netzwerkfreigabe der Ausführungsumgebung wiederhergestellt. Claudes Push-Korrektur und die jetzt vorhandene Auftragsdatei werden berücksichtigt.
+- In Arbeit: fehlende Punkte aus dem vollständigen Auftrag ergänzen, prüfen und auf main pushen.
 
 ### 30.10.2026 (Nachmittag) – Claude
 - Handy-Nachrichten funktionieren auf Benjamins Android (Test-Knopf und Server-Push kommen an, Tipp öffnet die Trefferliste). Fehler war die Skript-Variable `status` (= window.status).
