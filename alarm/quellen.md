@@ -11,6 +11,21 @@ Regel: vor jedem automatischen Abruf Nutzungsbedingungen und robots.txt prüfen 
 | service.bund.de | 29.10.2026 | robots.txt sperrt `/Content/DE/Ausschreibungen/Suche/` (auch das RSS der Suche) | **nein**; Bundesvergaben stehen ohnehin im Bekanntmachungsservice |
 | Vergabeplattform Berlin (berlin.de/vergabeplattform, RIB) | 29.10.2026 | robots.txt: Bots erlaubt, wenn sie sich ausweisen und robots.txt einhalten; RSS auf der Startseite erlaubt | erlaubt (RSS), bringt aber kaum mehr als der Bekanntmachungsservice |
 
+### Neue Kandidaten (Claude, 30.10.2026, erkunden.yml Lauf 41127835342)
+
+Abdeckung des Bekanntmachungsservice gemessen (14 Tage, 7.038 Ausschreibungen, Herkunft per Link der Unterlagen): Er enthält bereits Bekanntmachungen fast aller Landes- und Kommunalplattformen, u. a. HAD Hessen (108), Niedersachsen (225), evergabe.nrw (178), Vergabe Westfalen (174), Metropole Ruhr (155), VMP Rheinland (123), Brandenburg (319), Sachsen (59 + 43), Hamburg (66), Berlin (66), Bremen (48), MV (51), RLP (43), Bayern (41), Staatsanzeiger BW (76), Autobahn (139), Deutsche Bahn (136), GIZ (62), Fraunhofer (48). Auffällig wenig: Bayern und Baden-Württemberg im Verhältnis zur Größe.
+
+| Quelle | Geprüft | Ergebnis | Nutzung |
+|---|---|---|---|
+| TED Such-API v3 | 30.10.2026 | Legal Notice: Bekanntmachungen „zu kommerziellen oder nichtkommerziellen Zwecken frei weiterverwendbar“; Metadaten CC0; API ohne Schlüssel; robots.txt sperrt nur Webseiten-Suchergebnisse, nicht die API | **erlaubt**; Mehrwert: Nachbarländer (AT, NL, BE, LU, CH-nah, PL, CZ, FR) für grenznahe Firmen und EU-Institutionen. Deutsche Oberschwellenvergaben stehen schon im Bekanntmachungsservice |
+| Open Data Bonn „Ausschreibungen/Vergabeverfahren“ (JSON) | 30.10.2026 | Lizenz CC0; robots.txt erlaubt, Crawl-delay 10; Quelle ist die TIS-Schnittstelle des Vergabemarktplatz NRW (geplante + vergebene städtische Aufträge) | erlaubt; geringer Mehrwert (Bonn steht über evergabe.nrw schon im Bekanntmachungsservice), höchstens geplante Vergaben als Frühwarnung |
+| Vergabemarktplatz NRW Open-Data-Schnittstelle (ZIP, eForms-DE, täglich 23 Uhr) | 30.10.2026 | Abruf nur mit Kennung, die die Verfahrensbetreuung vergibt; Lizenz der Daten nicht angegeben; robots.txt der Infoseite unauffällig | **offen**: nur nach schriftlicher Freigabe und Kennung (Anfrage per Mail nur mit Benjamins OK). Vermutlich weitgehend doppelt zum Bekanntmachungsservice |
+| HAD Hessen (had.de) | 30.10.2026 | robots.txt sperrt alle Such- und Archivseiten; XML-Schnittstelle nur für eVergabeplattformen; AGB Bieter noch nicht gelesen | **nein** (Suche gesperrt); Hessen kommt ohnehin über den Bekanntmachungsservice |
+| auftraege.bayern.de | 30.10.2026 | robots.txt 404; Seite „Legalinfo“ noch nicht gelesen | offen; prüfen, weil Bayern im Bekanntmachungsservice unterrepräsentiert wirkt |
+| vergabe.niedersachsen.de | 30.10.2026 | robots.txt `Allow: /` | erlaubt, aber schon im Bekanntmachungsservice (225 in 14 Tagen) |
+| e-vergabe-sh.de, vergabe.rlp.de, sachsen-vergabe.de | 30.10.2026 | robots.txt 404 bzw. ohne Sperren; AGB-Seiten gefunden, noch nicht gelesen | offen, geringer Mehrwert (im Bekanntmachungsservice) |
+| vergabe.metropoleruhr.de | 30.10.2026 | Verbindung abgelehnt (Skriptabruf) | **nein**, wir umgehen das nicht; kommt über den Bekanntmachungsservice |
+
 ## Vergabeunterlagen (PDFs)
 
 | Portal | Anteil an unseren Treffern (7 Tage) | Ergebnis | Nutzung |
