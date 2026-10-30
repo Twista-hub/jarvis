@@ -5,6 +5,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Aktueller Stand (30.10.2026)
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
+- **Logo-/Designentwurf zur Ansicht:** `docs/design/vorschau.png` und `docs/design/vorschau.html`, mit skalierbarer Kompass-/Wortmarke für WP Digital Ranger und heller/dunkler Jarvis-Handyansicht. Noch nicht in der App eingesetzt; Benjamin sieht den Entwurf zuerst.
   - Startseite mit Erklärung und Beispiel-Steckbrief; Impressum, Datenschutz, Nutzungsbedingungen, AVV (Entwürfe, Benjamin prüft noch).
   - Registrierung mit Passwort, Passwort-Anmeldung/-Wiederherstellung und Mail-Link; bestätigte neue Firmen werden zunächst kostenlos angelegt. Firmen, Bereiche/Standorte, Rollen und Einladungen.
   - Ausschreibungen als Handy-Karten mit Punkten, Frist, Stand und Bereichsfilter; Treffer-Seite mit Steckbrief, Knopf „Hier runterladen“
@@ -30,7 +31,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## In Arbeit
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
-1. **Logo und Design:** Es gibt noch kein Logo von WP Digital Ranger im Repo (App zeigt ein blaues „J“). Benjamin lädt ein Logo hoch oder wir entwerfen eine einfache Wort-Bildmarke und zeigen sie ihm vorher.
+1. **Logo und Design:** Vorschlag mit Kompassmarke, Wortmarke und heller/dunkler Handyansicht liegt unter `docs/design/` vor. Benjamin sieht zuerst die Vorschau; danach die gewählte Gestaltung in die tatsächliche App und deren Symbole übernehmen (aktuell weiterhin blaues „J“).
 2. **Kalkulationsvorlagen pro Standort:** Tabelle `kalkulationsvorlagen` hat schon `bereich_id` (unique firma_id+bereich_id). Fehlt: Auswahl „Werte für Standort …“ auf `/konto/kalkulation` (`vorlageSpeichern` in `web/src/konto.ts` speichert bisher nur `bereich_id: null`), und beim Rechnen die Vorlage des Standorts der Ausschreibung bzw. seiner Region nehmen, sonst die Firmenwerte (`web/src/index.ts` kalkulationsTeil, `web/src/angebote.ts`). Noch nicht angefangen.
 3. Mitarbeiter sperren/austreten lassen.
 4. Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen.
@@ -50,6 +51,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (Logo- und Designvorschlag)
+- Main aktualisiert und Claudes neue Domain, Auslandsquellen und Einsatzplanung gelesen. Jüngste Web-/Prüfläufe sowie Datenbank- und Katalog-Ausrollläufe auf GitHub erfolgreich; kein erneuter Rollout ausgelöst.
+- Eigenständiger Entwurf unter `docs/design/`: Kompasssymbol und Wort-Bildmarke als bearbeitbare SVG-Dateien, HTML-Vorschau und PNG-Gesamtansicht. Petrol/Türkis, einheitliche SVG-Linien-Symbole, Profil oben rechts und heller/dunkler Handyentwurf. WP Digital Ranger bleibt Unternehmensmarke, Jarvis Produktname.
+- Vorschau verwendet nur fiktive Beispiele, Systemschrift und lokale Dateien; keine Kunden- oder Zugangsdaten. Chromium-Prüfung bei 320/390/768/1160 px ohne horizontalen Überlauf, alle Bilder geladen. Keine App-Funktionen oder Datenbankänderung; deshalb keine erneute Web-/SQL-Testausführung.
+- Offen: Benjamin sieht den Entwurf gemäß vereinbartem nächsten Schritt vor der Integration. Nach Rückmeldung tatsächlichen Seitenrahmen/Kacheln/App-Symbole umsetzen und prüfen; Kalkulationsvorlagen je Standort bleiben danach der nächste Funktionsschritt. Benjamin muss nichts installieren oder hochladen.
 
 ### 30.10.2026 (Nacht, Teil 4) – Claude (eigene Adresse)
 - App unter https://app.wpdigitalranger.com (Cloudflare Custom Domain in `web/wrangler.toml`). Alte Adresse `jarvis-alarm.benschiffer79.workers.dev` leitet mit 301/308 weiter (`ADRESSE` in `web/src/index.ts`). Links in Mails (`alarm/mail.py`), Berichten (`alarm/alarm.py`) und Seitentest (`web.yml`) umgestellt. Supabase „Site URL“ und „Redirect URLs“ hat Benjamin eingetragen. Handy-Benachrichtigungen müssen auf der neuen Adresse neu eingeschaltet werden.
