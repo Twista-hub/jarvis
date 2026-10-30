@@ -40,6 +40,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 – ChatGPT (Platzierung der Info-Symbole)
+- Alle zentral erzeugten Kontexthilfen werden jetzt im Seitenrahmen gesammelt: maximal ein Info-Symbol neben der Seitenüberschrift statt separater Zeilen für Personal, Team, Ausschreibungen, Kalkulation, Suchprofil, Einrichtung und Nachrichten. Nur Hinweise, die im berechtigten Seiteninhalt enthalten sind, werden übernommen.
+- Erklärung öffnet sich als Feld unterhalb der Überschrift über dem Inhalt; weder geschlossener Knopf noch geöffnetes Feld schieben die übrige Seite nach unten. 44-px-Tippfläche, Tastaturbedienung und barrierefreie Beschriftung bleiben erhalten.
+- Typprüfung und alle 17 Web-Testdateien grün. Lokale Chromium-Layoutprüfung bei 320/390/768/1280 px: kein horizontaler Überlauf, keine Verschiebung beim Öffnen, Info-Feld innerhalb der Bildschirmbreite. Dauerhafte Gestaltungsregel in AGENTS.md ergänzt.
+- Bereitstellung per main-Push; GitHub Actions war zuletzt wegen bestätigter Dienststörung verzögert. Live-Ausrollung gesondert prüfen; vorherige Tarifmigration weiterhin offen, solange kein erfolgreicher Lauf bestätigt ist. Benjamin muss für diese Änderung nichts tun.
+
 ### 30.10.2026 – ChatGPT (fehlende Steckbriefe und kompakte Hilfen)
 - Ursache des fehlenden Texts für „Beschaffung und Haushalt“: der Alarm erstellt höchstens zwei neue ausführliche KI-Steckbriefe pro Lauf. Weitere Treffer hatten bisher keinen Text. Jeder neue Treffer erhält jetzt mindestens einen Kurzüberblick aus den Bekanntmachungsdaten, ohne zusätzliche KI-Kosten. Vorhandene ausführliche Texte werden nicht durch Kurztexte überschrieben. Bereits vorhandene Steckbriefdateien verbrauchen das Limit für neue KI-Steckbriefe nicht mehr.
 - Historische Morgenbericht-Zusammenfassungen für 13 Treffer als Ersatzanzeige eingebunden, exakt an Firma und Portallink gebunden. Damit ist auch der betroffene ITZBund-Treffer abgedeckt. Archivierte Zusammenfassung ist als solche gekennzeichnet; sie ersetzt keine Prüfung der Vergabeunterlagen. Upload und vorhandene ausführliche Steckbriefe behalten Vorrang.

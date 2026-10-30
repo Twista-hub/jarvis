@@ -17,7 +17,7 @@ Pflichten. Wer an Jarvis arbeitet, liest zuerst diese Datei und dann `docs/stand
   Steuernummer beantragt). Rochusstraße 19, 52531 Übach-Palenberg (NRW). Telefon nicht veröffentlichen.
 - Schreibt Deutsch, schnell, oft vom Handy, mit Diktierfehlern. Antworten: Deutsch, kurz, Wichtigstes zuerst.
 - Konto-Übersicht: Profil-Icon oben rechts, keine „Angemeldet als“-Zeile; Firmenwechsel im Profil, Suche einrichten im Bereich „Suchprofil“. Zurück-Navigation als Pfeil ohne sichtbares „Zurück“. Ausschreibungen als Karten ohne seitliches Scrollen am Handy.
-- Hilfen auf ein Minimum reduzieren: nur kleines Info-Symbol, Erklärung erst beim Öffnen. Keine ständig sichtbaren Hilfsüberschriften wie „Ausschreibungen sortieren“; „Treffer verstehen“ auf der Detailseite entfällt.
+- Hilfen auf ein Minimum reduzieren: höchstens ein kleines Info-Symbol direkt neben der Seitenüberschrift, ohne eigene Zeile; Erklärungen gesammelt erst beim Öffnen als überlagerndes Feld. Keine ständig sichtbaren Hilfsüberschriften wie „Ausschreibungen sortieren“; „Treffer verstehen“ auf der Detailseite entfällt.
 - Kein Konsolen-Fan. Für Schritte im Browser immer den **direkten Link** und den **genauen Buttontext**, Schritt für Schritt.
 - Will, dass möglichst alles automatisch und ohne ihn läuft. Pull, Konflikte lösen, Tests, Push und die Ausroll-Prüfung übernimmt die KI selbst. Bei Netzwerkfehlern die vorgesehene Netzwerkfreigabe der Ausführungsumgebung prüfen; Benjamin soll keine Konsolenarbeit übernehmen.
 
