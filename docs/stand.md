@@ -35,7 +35,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Angebotsversionen warten auf die Freigabe von Inhaber oder Administration; Ablehnung kann eine Notiz enthalten. Download und Einreichungsprotokoll sind bis zur Freigabe gesperrt.
 - Nach manueller Abgabe im Vergabeportal kann der Nutzer Portalname und Eingangsbeleg speichern. Zeitpunkt/Person werden festgehalten; Belegdatei bleibt nur mit Finanzfreigabe abrufbar.
 - Befristete Nachweise werden in der Unterlagen-Seite bis 30 Tage vor Ablauf hervorgehoben. Die tägliche Mail erinnert aktive finanzberechtigte Mitglieder, die Firmenmail gewählt haben, 30/14/7/2 Tage vorher, jeweils einmal.
-- Typprüfung und 35 Web-Tests, eine Python-Mailformatprüfung, Python-Syntax und lokaler PostgreSQL-Test („ALLE TESTS OK“) grün; GitHub-Web- und Datenbanktests ebenfalls grün: https://github.com/Twista-hub/jarvis/actions/runs/41076066108.
+- Typprüfung und 35 Web-Tests, eine Python-Mailformatprüfung, Python-Syntax und PostgreSQL-Test („ALLE TESTS OK“) grün; GitHub-Web-, Alarm- und Datenbanktests ebenfalls grün: https://github.com/Twista-hub/jarvis/actions/runs/41076480119.
 - Migration dry-run/eingespielt: https://github.com/Twista-hub/jarvis/actions/runs/41075917631. Worker ausgerollt und Seitentest erfolgreich: https://github.com/Twista-hub/jarvis/actions/runs/41076066171. Live-Routen verlangen Anmeldung.
 - Offen: automatische Benachrichtigung der Firmenleitung über wartende Angebote und erlaubte Portal-Schnittstellen. Benjamin muss nichts für Einrichtung tun.
 
