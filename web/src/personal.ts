@@ -21,18 +21,9 @@ export function standortleitungBlock(bereich: string, mitglieder: AppMitglied[],
   return `<details class="leitung-zuordnen"><summary>${text} · ${leitung ? "Ergänzen" : "Zuordnen"}</summary>${wahl.length ? `<form method="post" action="/konto/standort/${bereich}/leitung"><label>Person auswählen<select name="person" required><option value="">Bitte auswählen …</option>${wahl.map((m) => `<option value="${escape(m.user_id)}"${ids.includes(m.user_id) && m.rolle === "standortleitung" ? " selected" : ""}>${escape(m.anzeigename || m.funktion || "Teammitglied")}</option>`).join("")}</select></label><p class="klein">Die Person erhält Personal- und Einsatzrechte für diesen Standort. Ihre bisherige Bereichszuordnung wird ersetzt; Finanzzugriff entfällt.</p><button>Als Standortleitung zuordnen</button></form>` : `<p>Noch kein passender App-Zugang vorhanden.</p>`}<p class="klein"><a href="/konto/team#app-zugaenge">Neue Person einladen oder App-Zugänge verwalten</a></p></details>`;
 }
 
-export const BERUFE: Record<string, string[]> = {
-  "Büro & Verwaltung": ["Bürokraft", "Sachbearbeiter/in", "Kaufmännische Fachkraft", "Bürokaufmann/-frau", "Empfangskraft", "Datenerfasser/in", "Buchhalter/in", "Lohnbuchhalter/in", "Personalreferent/in", "Kundenservice"],
-  "Bau & Ausbau": ["Maurer/in", "Maler/in", "Lackierer/in", "Trockenbauer/in", "Fliesenleger/in", "Dachdecker/in", "Zimmerer/Zimmerin", "Tischler/in", "Bauhelfer/in", "Baugeräteführer/in"],
-  "Elektro, Metall & Technik": ["Elektriker/in", "Elektroniker/in", "Mechatroniker/in", "Schweißer/in", "Schlosser/in", "Industriemechaniker/in", "Anlagenmechaniker/in SHK", "Kfz-Mechatroniker/in", "Maschinenbediener/in", "Produktionshelfer/in"],
-  "Lager & Logistik": ["Lagerhelfer/in", "Kommissionierer/in", "Staplerfahrer/in", "Fachkraft Lagerlogistik", "Berufskraftfahrer/in", "Kurierfahrer/in", "Fahrer/in"],
-  "Gastronomie & Hotel": ["Servicekraft", "Bankettkraft", "Koch/Köchin", "Küchenhilfe", "Spülkraft", "Barkeeper/in", "Rezeptionist/in", "Housekeeping"],
-  "Reinigung & Hauswirtschaft": ["Reinigungskraft", "Gebäudereiniger/in", "Hauswirtschaftskraft", "Hausmeister/in"],
-  "Pflege, Medizin & Soziales": ["Pflegehelfer/in", "Pflegefachkraft", "Medizinische/r Fachangestellte/r", "Betreuungskraft", "Erzieher/in", "Sozialassistent/in"],
-  "Einzelhandel & Verkauf": ["Verkäufer/in", "Kassierer/in", "Warenverräumer/in", "Einzelhandelskaufmann/-frau", "Promoter/in"],
-  "Sicherheit & Veranstaltung": ["Sicherheitskraft", "Messehelfer/in", "Veranstaltungstechniker/in", "Garderobenkraft", "Ordner/in"],
-  "Garten & Agrar": ["Garten- und Landschaftsbauer/in", "Gärtner/in", "Landwirtschaftliche/r Helfer/in"],
-};
+import { BERUFE } from "./berufe.ts";
+export { BERUFE } from "./berufe.ts";
+
 export const QUALIFIKATIONEN = [
   "Führerschein B", "Führerschein BE", "Führerschein C/CE", "Führerschein D/DE", "Staplerschein", "Kranschein", "Hubarbeitsbühne",
   "Gesundheitszeugnis (§ 43 IfSG)", "Hygienebelehrung", "Erste Hilfe", "Brandschutzhelfer/in", "Arbeitsschutzunterweisung", "PSA gegen Absturz",

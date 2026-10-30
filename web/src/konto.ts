@@ -12,6 +12,7 @@ import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
 import { einsaetzeLaden, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, standortleitungBlock, tarifvertraegeBlock, tarifvertraegeLaden, type Kraft } from "./personal.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
+import { teilnahmeTeil } from "./markt.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 
 export interface KontoEnv {
@@ -24,7 +25,7 @@ export interface KontoEnv {
 export type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
 type Mitglied = { firma_id: string; rolle: string; erstellt: string; user_id: string; anzeigename?: string; funktion?: string; finanzen?: boolean; alle_bereiche?: boolean };
 export type Bereich = { id: string; name: string; art: string; parent_id: string | null };
-type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; steckbrief?: string | null };
+type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };
 const STATUS: Record<string, string> = {
   neu: "neu",
   pruefen: "prüfen",
@@ -214,6 +215,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     ["unterlagen", "📥", "Unterlagen", "Dateien hochladen und prüfen lassen"],
     ["kalkulation", "💶", "Kalkulation", "Ergebnisse aus Unterlagen ansehen"],
     ["team", "👥", "Firma & Team", "Standorte und Einladungen verwalten"],
+    ["markt", "🌐", "Markt & Chancen", "Offene Aufträge, Bedarf und Partner"],
     ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? "Suche ansehen und anpassen" : "Passende Ausschreibungen finden"],
   ];
   cards.push(["freigaben", "📨", "Für mich freigegeben", "Ausgewählte Informationen vom Team"]);
@@ -452,7 +454,7 @@ async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoE
 export async function vorgangZugriff(request: Request, env: KontoEnv, id: string): Promise<{ s: Sitzung; v: Vorgang & { firma_id: string }; rolle: string; finanzen: boolean } | null> {
   const s = await sitzung(request, env);
   if (!s || !/^[0-9a-f-]{36}$/.test(id)) return null;
-  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,status,punkte,erstellt,bereich_id,steckbrief`);
+  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,status,punkte,erstellt,bereich_id,steckbrief,katalog_id,katalog_version`);
   const v = r.ok ? r.daten[0] : undefined;
   if (!v) return null;
   const m = await db<{ rolle: string; finanzen?: boolean }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle,finanzen`);
@@ -511,8 +513,9 @@ ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief
   } else {
     teil = `${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
   }
+  const teilnahme = await teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? "");
   const personalBlock = rolle === "leser" || rolle === "mitarbeiter" ? "" : await einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle));
-  return html(seite(v.titel, kopf + teil + personalBlock, 0, "treffer"), 200, s.cookies);
+  return html(seite(v.titel, kopf + teil + teilnahme + personalBlock, 0, "treffer"), 200, s.cookies);
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */

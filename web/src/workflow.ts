@@ -1,5 +1,5 @@
 // Turns one upload into a Steckbrief: files -> text (Workers AI) -> Claude -> ergebnis.md in R2.
-import Anthropic from "@anthropic-ai/sdk";
+import { apiClient } from "./api-budget.ts";
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
 import ANLEITUNG from "../../alarm/steckbrief-anleitung.txt";
@@ -115,7 +115,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
   }
 
   private client() {
-    return new Anthropic({ apiKey: this.env.ANTHROPIC_API_KEY });
+    return apiClient(this.env);
   }
 
   private async speichern(dir: string, markdown: string) {

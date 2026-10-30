@@ -24,6 +24,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
+- **Zentraler Katalog (Code bereitgestellt):** eigener stündlicher Worker, gemeinsame offene Bekanntmachungen und neue Markt-/Teilnahmefunktionen. Aktivierung und Live-Datenstand über die Ausrollläufe prüfen; der Erstbestand wird schrittweise aufgebaut.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
@@ -39,6 +40,16 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (zentraler Vergabekatalog und Markt-Funktionen)
+- Eigenständiger Cloudflare-Worker `jarvis-katalog` mit stündlichem Cron und langlebigem Workflow: CC0-Bekanntmachungsservice, ETag/Inhaltshash, persistente Export-/Wiederholungswarteschlange, geordnete Aktualisierungen, Änderungen, Aufhebungen, Zuschläge und Lose. Startbestand schrittweise 60 Tage rückwirkend; höchstens zwei zusätzliche historische Tage je Lauf. Kein Abruf gesperrter Portale. Datenstand, Fehler und verbleibende Aufbautage sind sichtbar.
+- Neue Markt-Seite `/konto/markt`: offene Bestandssuche (Fristen unbekannt gekennzeichnet), Auftraggeber beobachten, veröffentlichte Zuschläge/Gewinner/Gesamtwerte, Berufs-/Regionalbedarf, gekennzeichnete Prognosen aus Vertragsenden und Wiederholungsmuster bei ausreichender Historie. Auftraggeber-Beobachtungen fließen in den täglichen Alarm ein. Übernahme in eigene Ausschreibungen idempotent.
+- Teilnahmeprüfung am Treffer je Los: Berufs-/Qualifikations-/Nachweisvorschläge mit Originalfundstelle, Bestätigung an die Quellversion gebunden, sichtbarer Personalbestand und gültige Nachweise unter bestehenden Finanzrechten. Partner-Suche bei Kapazitätslücken. Keine automatische Zusage oder Angebotseinreichung.
+- Firmen können ausdrücklich ein Partnerprofil freigeben oder zurückziehen; keine automatische Veröffentlichung ihrer Stammdaten/Kontakte. Rückmeldegründe liefern Vorschläge zur Profilverbesserung. Eigene Ergebnisse nach Status/Ort und freiwillige wirtschaftliche Ist-Angaben bleiben firmengeschützt und finanzberechtigt.
+- Tagesalarm liest den gemeinsamen offenen Bestand; Bewertungen sind nach Firma, Inhaltsversion, Suchprofilversion und Methode gecacht. Neue/neugeänderte Profile werden innerhalb der Limits neu bewertet. Nichtmitglieder/Mitarbeiter erhalten keine Katalogrechte. Firmenfeedback, Personal, Unterlagen und Ergebnisse werden nicht als gemeinsame Daten verwendet.
+- Gemeinsames atomisches KI-Budgetledger: maximal 3 USD/UTC-Tag und 20 USD/Monat für neu erfasste offizielle API-Anfragen aus Alarm und Web. Vorabrereservierung vor jedem API-Aufruf; bei fehlender Budgetprüfung keine API-Anfrage. Streaming wird konservativ mit dem Höchstbetrag belegt. Sammler selbst verwendet keine KI. Grenzen für Datenmenge und Speicher; kein neuer kostenpflichtiger Plan gebucht. Anbieterrechnungen und bereits vor Ledger-Aktivierung angefallene Kosten sind davon nicht vollständig erfasst.
+- Datenbankworkflow führt auf main-Push zuerst lokale Rechteprüfung, dann Probelauf und Migration aus; neue Worker-Ausrollung folgt nach bereitstehendem Schema. Bestehendes Jarvis-GitHub-Secret wird serverseitig verwendet, keine neuen Zugangsdaten nötig. Keine Konten/Schlüssel/Daten von RestockHero oder DemoPin verwendet. Die verfügbare Supabase-Verbindung listet Jarvis nicht; deshalb kein Zugriff auf fremde Projekte, Ausrollung über die vorhandenen Jarvis-Workflows.
+- Prüfung: Typprüfung/Web-Suite, Python-Kurzbrief-/Katalogtests und Syntax; lokale PostgreSQL-16-Gesamtprüfung inklusive Quelländerungen, veralteter Exporte, Firmentrennung, Partner-Opt-in und Budgetledger mit „ALLE TESTS OK“. Beide Cloudflare-Worker erfolgreich trocken gebaut. Live-Bestandsaufbau erst nach erfolgreicher Migration/Worker-Ausrollung; noch keinen vollständigen offenen Gesamtmarkt behaupten. Konzept/Betrieb: docs/vergabekatalog.md.
 
 ### 30.10.2026 – ChatGPT (Standortleitung direkt zuordnen)
 - Ursache der weiterhin nicht bedienbaren Standortleitung: Die vorherige Änderung erweiterte das Rechteformular unter App-Zugänge; die Zeile am Standort blieb statischer Text. Standortseiten und Ein-Standort-Ansicht unter Firma & Team haben jetzt direkt ein aufklappbares „Zuordnen“ mit Personenauswahl, Speichern und Link zur Einladung neuer App-Nutzer.

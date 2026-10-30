@@ -6,7 +6,7 @@ Regel: vor jedem automatischen Abruf Nutzungsbedingungen und robots.txt prüfen 
 
 | Quelle | Geprüft | Ergebnis | Nutzung |
 |---|---|---|---|
-| **Bekanntmachungsservice** (oeffentlichevergabe.de), Tagesexport | 28.10.2026 | Lizenz CC0 in jeder Datei; robots.txt 404. Rund 500 neue Ausschreibungen pro Tag aus über 40 Portalen | **Hauptquelle, täglich** |
+| **Bekanntmachungsservice** (oeffentlichevergabe.de), Tagesexport | 28.10.2026 | Lizenz CC0 in jeder Datei; robots.txt 404. Rund 500 neue Ausschreibungen pro Tag aus über 40 Portalen | **Hauptquelle, täglich und zentraler stündlicher Katalog** |
 | **TED** (EU), API v3 | 28./29.10.2026 | Legal Notice: Bekanntmachungen frei wiederverwendbar, auch kommerziell. API ohne Schlüssel | erlaubt; nur nötig für Kunden mit Standorten außerhalb Deutschlands |
 | service.bund.de | 29.10.2026 | robots.txt sperrt `/Content/DE/Ausschreibungen/Suche/` (auch das RSS der Suche) | **nein**; Bundesvergaben stehen ohnehin im Bekanntmachungsservice |
 | Vergabeplattform Berlin (berlin.de/vergabeplattform, RIB) | 29.10.2026 | robots.txt: Bots erlaubt, wenn sie sich ausweisen und robots.txt einhalten; RSS auf der Startseite erlaubt | erlaubt (RSS), bringt aber kaum mehr als der Bekanntmachungsservice |
@@ -50,3 +50,7 @@ Regel: vor jedem automatischen Abruf Nutzungsbedingungen und robots.txt prüfen 
 ### Konsequenz für den Tarifkatalog
 
 Es gibt keine geprüfte, frei abrufbare Komplettdatenbank mit allen deutschen Verträgen, Gruppen, Regionen und Laufzeiten. Das BMAS-Register ist nicht als Massendatensatz verfügbar. Das WSI ist die breiteste geprüfte Recherchequelle für Deutschland, enthält aber ausgewählte Branchen/Berufe und keine vollständige Sammlung; das NRW-Register ergänzt über 100 ausgewählte Branchen nur für NRW. Jarvis zeigt deshalb nur Verträge und Gruppen, deren Quelle und Gültigkeit hinterlegt sind. Weitere Verträge können firmenbezogen aus dem konkreten Originalvertrag erfasst werden. Werte werden nicht aus dem Beruf abgeleitet oder zwischen Branchen kopiert. Eine automatisierte breite Übernahme bleibt offen, bis Nutzungsrechte, Aktualisierung und zulässige Abrufwege geklärt sind.
+
+## Zentraler Vergabekatalog (30.10.2026)
+
+Bekanntmachungsservice erneut geprüft: robots.txt liefert 404. Der erlaubte Tagesexport wurde exemplarisch abgerufen (29.10.2026: 1.018 JSON-Dateien); die Pakete enthalten die Lizenz https://opendefinition.org/licenses/cc-zero/. Der Worker prüft robots.txt und die CC0-Paketlizenz auch zur Laufzeit, nutzt bedingte HTTP-Abfragen und begrenzte historische Abrufe. Gesperrte Portale werden weiter nur verlinkt; dortige Unterlagen werden nicht heruntergeladen. Weitere Quellen werden ohne Adapterprüfung und Freigabe nicht automatisch aktiviert.

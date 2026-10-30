@@ -70,5 +70,12 @@ def laden() -> dict:
             continue
         key = next((k for k, p in profile.items() if p.get("firma_id") == firma_id), f"firma-{firma_id}")
         profile[key] = aus_db(firma_id, name, beschreibung, e)
+    try:
+        with verbinden() as con:
+            abos = con.execute("select firma_id::text,auftraggeber_id from public.auftraggeber_abos").fetchall() if con.execute("select to_regclass('public.auftraggeber_abos')").fetchone()[0] else []
+        for p in profile.values():
+            p["beobachtete_auftraggeber"] = [buyer for f, buyer in abos if f == p.get("firma_id")]
+    except Exception:
+        print("Auftraggeber-Beobachtungen vorübergehend nicht geladen", file=sys.stderr)
     print(f"Suchprofile: {len(profile)} ({len(rows)} aus der App)", file=sys.stderr)
     return profile

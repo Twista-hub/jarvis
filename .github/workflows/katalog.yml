@@ -1,0 +1,57 @@
+name: Zentralen Vergabekatalog ausrollen
+on:
+  push:
+    branches: [main]
+    paths: ["web/src/katalog-*.ts", "web/wrangler-katalog.toml", ".github/workflows/katalog.yml"]
+  workflow_run:
+    workflows: [Datenbank]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: katalog-deploy
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.event_name != 'workflow_run' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.head_repository.full_name == github.repository)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+        shell: bash -eo pipefail {0}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - run: npm run check && npm test
+      - name: Schema bereits eingerichtet?
+        id: schema
+        run: |
+          test -n "$SUPABASE_DB_PASSWORD"
+          pw=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"],safe=""))')
+          for host in aws-1-eu-central-1 aws-0-eu-central-1; do
+            if [ "$(psql "postgresql://postgres.juuuifrcxmitkqudqngq:$pw@$host.pooler.supabase.com:5432/postgres" -tAc "select to_regclass('jarvis_katalog.exporte') is not null" 2>/dev/null)" = t ]; then
+              echo "bereit=1" >> "$GITHUB_OUTPUT"; exit 0
+            fi
+          done
+          echo "Schema noch nicht bereit; erfolgreicher Datenbank-Workflow startet diesen Rollout erneut."
+      - name: Worker zunächst pausiert bereitstellen
+        if: steps.schema.outputs.bereit == '1'
+        run: npx wrangler deploy --config wrangler-katalog.toml
+      - name: Bestehenden Jarvis-Datenbankzugang hinterlegen
+        if: steps.schema.outputs.bereit == '1'
+        run: printf '%s' "$SUPABASE_DB_PASSWORD" | npx wrangler secret put SUPABASE_DB_PASSWORD --config wrangler-katalog.toml
+      - name: Stündliche Sammlung aktivieren
+        if: steps.schema.outputs.bereit == '1'
+        run: npx wrangler deploy --config wrangler-katalog.toml --var AKTIV:1
+      - name: Ersten Sammellauf starten
+        if: steps.schema.outputs.bereit == '1'
+        run: npx wrangler workflows trigger jarvis-katalog-sammeln '{}' --config wrangler-katalog.toml

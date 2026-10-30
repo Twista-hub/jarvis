@@ -4,6 +4,9 @@
 name: Datenbank
 
 on:
+  push:
+    branches: [main]
+    paths: ["supabase/migrations/**", "supabase/tests/**", ".github/workflows/datenbank.yml"]
   workflow_dispatch:
     inputs:
       aktion:
@@ -19,11 +22,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  rechte:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: test
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: psql -h localhost -U postgres -v ON_ERROR_STOP=1 -q -f supabase/tests/rechte_test.sql
+        env:
+          PGPASSWORD: test
   datenbank:
+    needs: rechte
     runs-on: ubuntu-latest
     env:
       REF: juuuifrcxmitkqudqngq
       PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      AKTION: ${{ inputs.aktion }}
+      BESTAETIGUNG: ${{ inputs.bestaetigung }}
+      EREIGNIS: ${{ github.event_name }}
     steps:
       - uses: actions/checkout@v4
       - name: Verbindung finden
@@ -46,10 +67,9 @@ jobs:
       - name: Migrationen
         if: inputs.aktion != 'anmeldungen'
         run: |
-          if [ "${{ inputs.aktion }}" = einspielen ] && [ "${{ inputs.bestaetigung }}" = EINSPIELEN ]; then
-            npx -y supabase@2.48.3 db push --db-url "$DB_URL" --include-all --yes
-          else
-            npx -y supabase@2.48.3 db push --db-url "$DB_URL" --include-all --dry-run
+          npx -y supabase@2.81.3 db push --db-url "$DB_URL" --include-all --dry-run
+          if [ "$EREIGNIS" = push ] || { [ "$AKTION" = einspielen ] && [ "$BESTAETIGUNG" = EINSPIELEN ]; }; then
+            npx -y supabase@2.81.3 db push --db-url "$DB_URL" --include-all --yes
           fi
       - name: Tabellen und Firmen
         run: |

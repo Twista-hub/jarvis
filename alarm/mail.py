@@ -78,11 +78,14 @@ def als_person(con, user_id: str, sql: str, args: tuple) -> list[tuple]:
 def inhalt(con, firma_id: str, user_id: str, seit: datetime) -> tuple[list, list]:
     neu = als_person(con, user_id, """select id::text, titel, punkte, frist from public.vorgaenge
         where firma_id = %s and erstellt > %s and status not in ('verworfen', 'verloren')
+          and (frist is null or frist>now())
+          and not exists(select 1 from public.vergabekatalog k where k.id=vorgaenge.katalog_id and k.status in ('aufgehoben','vergeben','abgeschlossen'))
         order by punkte desc nulls last, erstellt desc limit 30""", (firma_id, seit))
     heute = datetime.now(BERLIN).date()
     tage = [heute + timedelta(days=d) for d in ERINNERN]
     fristen = als_person(con, user_id, """select id::text, titel, frist from public.vorgaenge
         where firma_id = %s and status in ('neu', 'pruefen', 'angebot')
+          and not exists(select 1 from public.vergabekatalog k where k.id=vorgaenge.katalog_id and k.status in ('aufgehoben','vergeben','abgeschlossen'))
           and (frist at time zone 'Europe/Berlin')::date = any(%s) order by frist""", (firma_id, tage))
     return neu, fristen
 
