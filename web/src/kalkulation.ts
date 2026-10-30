@@ -32,6 +32,20 @@ export type Los = { nr: string; name: string; menge: number; einheit: string; ze
 /** Per lot: own hourly wage (e.g. cook vs. kitchen help) and whether workers stay overnight away from home. */
 export type LosWerte = Record<string, { lohn?: number; auswaerts?: boolean; eg?: string }>;
 
+/** Select nearest area template first, then walk up the area tree to company defaults. */
+export function vorlageFuerBereich<T>(bereichId: string | null | undefined, bereiche: { id: string; parent_id: string | null }[], vorlagen: { bereich_id: string | null; eingaben: T }[]): T | undefined {
+  const index = new Map(vorlagen.map((v) => [v.bereich_id, v.eingaben]));
+  const gesehen = new Set<string>();
+  let id = bereichId ?? null;
+  while (id && !gesehen.has(id)) {
+    gesehen.add(id);
+    const werte = index.get(id);
+    if (werte) return werte;
+    id = bereiche.find((b) => b.id === id)?.parent_id ?? null;
+  }
+  return index.get(null);
+}
+
 export const STANDARD: Eingaben = {
   lohn: 15, nebenkosten: 23, ausfall: 20,
   anteilNacht: 0, zuschlagNacht: 25, anteilSonntag: 0, zuschlagSonntag: 50, anteilFeiertag: 0, zuschlagFeiertag: 100, anteilUeber: 0, zuschlagUeber: 25, zuschlaege: 0,

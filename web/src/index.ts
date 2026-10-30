@@ -1,6 +1,6 @@
 // Jarvis upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import kunden from "../kunden.json";
-import { euro, FELDER, felderHtml, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los, type LosWerte } from "./kalkulation";
+import { euro, FELDER, felderHtml, fmt, rechnen, STANDARD, zahl, vorlageFuerBereich, type Eingaben, type Los, type LosWerte } from "./kalkulation";
 import profile from "../../alarm/profile.json";
 import { CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
@@ -224,9 +224,12 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   const lose = (await jsonAus<Los[]>(env, `auftraege/${job.id}/lose.json`)) ?? [];
   const eigene = await jsonAus<Gespeichert>(env, `auftraege/${job.id}/kalkulation.json`);
   const zugriff = job.vorgang ? await vorgangZugriff(request, env, job.vorgang) : null;
-  const firmendaten = zugriff ? await db<{ eingaben: Eingaben }[]>(zugriff.s, env, `kalkulationsvorlagen?firma_id=eq.${zugriff.v.firma_id}&bereich_id=is.null&select=eingaben`) : null;
-  const firmenwerte = firmendaten?.ok ? firmendaten.daten[0]?.eingaben : undefined;
-  const vorlage = { ...STANDARD, ...(eigene?.eingaben ?? firmenwerte ?? (await jsonAus<Eingaben>(env, `kunden/${job.profil}/kalkulation.json`))) };
+  const [firmendaten, bereichsdaten] = zugriff ? await Promise.all([
+    db<{ bereich_id: string | null; eingaben: Eingaben }[]>(zugriff.s, env, `kalkulationsvorlagen?firma_id=eq.${zugriff.v.firma_id}&select=bereich_id,eingaben`),
+    db<{ id: string; parent_id: string | null }[]>(zugriff.s, env, `bereiche?firma_id=eq.${zugriff.v.firma_id}&select=id,parent_id`),
+  ]) : [null, null];
+  const vorlagenWerte = firmendaten?.ok ? vorlageFuerBereich(zugriff?.v.bereich_id, bereichsdaten?.ok ? bereichsdaten.daten : [], firmendaten.daten) : undefined;
+  const vorlage = { ...STANDARD, ...(vorlagenWerte ?? (await jsonAus<Eingaben>(env, `kunden/${job.profil}/kalkulation.json`)) ?? {}), ...(eigene?.eingaben ?? {}) };
   const mengen = eigene?.mengen ?? {};
   const proLos = eigene?.proLos ?? {};
   const tarif = eigene?.tarif ?? standardTarif();

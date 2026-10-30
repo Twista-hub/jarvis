@@ -35,6 +35,10 @@ const STATUS: Record<string, string> = {
   verloren: "verloren",
   verworfen: "verworfen",
 };
+function bereichPfad(bereich: Bereich, alle: Bereich[]): string {
+  const eltern = bereich.parent_id ? alle.find((x) => x.id === bereich.parent_id) : undefined;
+  return eltern ? `${bereichPfad(eltern, alle)} · ${bereich.name}` : bereich.name;
+}
 type Einladung = { id: string; email: string; rolle: string; gueltig_bis: string; angenommen: string | null };
 
 const ROLLEN: Record<string, string> = {
@@ -235,9 +239,15 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   } else if (unterseite === "kalkulation" && !finanzrecht) {
     inhalt = rahmen(`<p>Für Kalkulationen brauchst du eine Finanzfreigabe. Frage einen Inhaber oder Administrator.</p>`);
   } else if (unterseite === "kalkulation") {
-    const vorlagen = await db<{ eingaben: Eingaben }[]>(s, env, `kalkulationsvorlagen?firma_id=eq.${m.firma_id}&bereich_id=is.null&select=eingaben`);
-    const werte = { ...STANDARD, ...(vorlagen.ok ? vorlagen.daten[0]?.eingaben : {}) };
-    inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${hilfe("So entsteht der Preis", "Die Kalkulation schätzt eure Selbstkosten je Stunde aus Bruttolohn, Nebenkosten, Ausfallzeit und Einsatzkosten. Gemeinkosten sowie Wagnis und Gewinn ergeben daraus den Angebotspreis. Prüfe die Werte pro Los, bevor du ein Angebot erstellst.")}${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte der Firma</h2><p>Diese Standardwerte gelten für die Firma. Du kannst sie bei jeder Ausschreibung anpassen.</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>Standardwerte speichern</button>` : ""}</form>`}`);
+    const vorlagen = await db<{ bereich_id: string | null; eingaben: Eingaben }[]>(s, env, `kalkulationsvorlagen?firma_id=eq.${m.firma_id}&select=bereich_id,eingaben`);
+    const gewaehlt = url.searchParams.get("bereich") ?? "";
+    const standorte = b.filter((x) => x.art === "standort");
+    const bereich = standorte.find((x) => x.id === gewaehlt);
+    const firmendaten = vorlagen.ok ? vorlagen.daten.find((x) => x.bereich_id === null)?.eingaben : undefined;
+    const lokaldaten = bereich && vorlagen.ok ? vorlagen.daten.find((x) => x.bereich_id === bereich.id)?.eingaben : undefined;
+    const werte = { ...STANDARD, ...(lokaldaten ?? firmendaten ?? {}) };
+    const ortWahl = `<form method="get" action="/konto/kalkulation"><label>Werte bearbeiten für<select name="bereich"><option value="">Ganze Firma</option>${standorte.map((x) => `<option value="${escape(x.id)}"${x.id === gewaehlt ? " selected" : ""}>${escape(bereichPfad(x, b))}</option>`).join("")}</select></label><button>Werte laden</button></form>`;
+    inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${hilfe("So entsteht der Preis", "Die Kalkulation schätzt eure Selbstkosten je Stunde aus Bruttolohn, Nebenkosten, Ausfallzeit und Einsatzkosten. Gemeinkosten sowie Wagnis und Gewinn ergeben daraus den Angebotspreis. Prüfe die Werte pro Los, bevor du ein Angebot erstellst.")}${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte</h2>${ortWahl}<p>${bereich ? `Diese Werte gelten für ${escape(bereichPfad(bereich, b))}. Fehlen eigene Standortwerte, dienen die Firmenwerte als Ausgangspunkt.` : "Diese Werte gelten für die ganze Firma. Standorte können eigene Werte haben."}</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="bereich" value="${bereich ? escape(bereich.id) : ""}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>${bereich ? "Standortwerte" : "Firmenwerte"} speichern</button>` : ""}</form>`}`);
   } else if (unterseite === "team") {
     let team: string;
     const tarife = await tarifvertraegeLaden(s, env, m.firma_id);
@@ -320,17 +330,22 @@ async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoE
 
 async function vorlageSpeichern(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
   const firma = String(form.get("firma") ?? "");
+  const bereichId = String(form.get("bereich") ?? "") || null;
   // Missing fields (e.g. an older form) take the standard value; a field filled with nonsense is rejected.
   const eingaben = Object.fromEntries(FELDER.map((f) => {
     const roh = form.get(f.key);
     return [f.key, roh === null || String(roh).trim() === "" ? STANDARD[f.key] : zahl(roh, NaN)];
   })) as Eingaben;
-  if (!/^[0-9a-f-]{36}$/.test(firma) || Object.values(eingaben).some((v) => !Number.isFinite(v) || v > 10000)) return weiterleiten("/konto/kalkulation?hinweis=Bitte%20gültige%20Werte%20zwischen%200%20und%2010000%20eingeben.");
+  if (!/^[0-9a-f-]{36}$/.test(firma) || (bereichId !== null && !/^[0-9a-f-]{36}$/.test(bereichId)) || Object.values(eingaben).some((v) => !Number.isFinite(v) || v > 10000)) return weiterleiten("/konto/kalkulation?hinweis=Bitte%20gültige%20Werte%20zwischen%200%20und%2010000%20eingeben.");
+  if (bereichId) {
+    const ort = await db<{ id: string; art: string }[]>(s, env, `bereiche?id=eq.${bereichId}&firma_id=eq.${firma}&select=id,art`);
+    if (!ort.ok || ort.daten[0]?.art !== "standort") return weiterleiten("/konto/kalkulation?hinweis=Der%20Standort%20ist%20ungültig.");
+  }
   const r = await db(s, env, "kalkulationsvorlagen?on_conflict=firma_id,bereich_id", {
     method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify({ firma_id: firma, bereich_id: null, eingaben }),
+    body: JSON.stringify({ firma_id: firma, bereich_id: bereichId, eingaben }),
   });
-  return weiterleiten(`/konto/kalkulation?firma=${firma}&hinweis=${encodeURIComponent(r.ok ? "Standardwerte gespeichert." : "Die Werte konnten nicht gespeichert werden. Bitte prüfe deine Berechtigung.")}`);
+  return weiterleiten(`/konto/kalkulation?firma=${firma}${bereichId ? `&bereich=${bereichId}` : ""}&hinweis=${encodeURIComponent(r.ok ? (bereichId ? "Standortwerte gespeichert." : "Firmenwerte gespeichert.") : "Die Werte konnten nicht gespeichert werden. Bitte prüfe deine Berechtigung.")}`);
 }
 
 /** Calculation page: all open tenders as tappable cards; with checked documents the calculation opens, otherwise the upload. */

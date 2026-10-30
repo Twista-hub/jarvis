@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { rechnen, STANDARD, zahl } from "../src/kalkulation.ts";
+import { rechnen, STANDARD, vorlageFuerBereich, zahl } from "../src/kalkulation.ts";
+
+test("Standortvorlage schlägt Regions- und Firmenwerte; ohne Standortvorlage gilt die nächste vorhandene Ebene", () => {
+  const bereiche = [{ id: "region", parent_id: null }, { id: "ort", parent_id: "region" }];
+  const vorlagen = [
+    { bereich_id: null, eingaben: { lohn: 10 } },
+    { bereich_id: "region", eingaben: { lohn: 20 } },
+    { bereich_id: "ort", eingaben: { lohn: 30 } },
+  ];
+  assert.equal(vorlageFuerBereich("ort", bereiche, vorlagen)?.lohn, 30);
+  assert.equal(vorlageFuerBereich("anderer-ort", bereiche, vorlagen)?.lohn, 10);
+  assert.equal(vorlageFuerBereich(null, bereiche, vorlagen)?.lohn, 10);
+});
 
 const lose = [
   { nr: "1", name: "Kantine", menge: 1000, einheit: "Stunden", zeitraum: "2027", hinweis: "" },

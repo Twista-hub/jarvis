@@ -32,7 +32,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
-2. **Kalkulationsvorlagen pro Standort:** Tabelle `kalkulationsvorlagen` hat schon `bereich_id` (unique firma_id+bereich_id). Fehlt: Auswahl „Werte für Standort …“ auf `/konto/kalkulation` (`vorlageSpeichern` in `web/src/konto.ts` speichert bisher nur `bereich_id: null`), und beim Rechnen die Vorlage des Standorts der Ausschreibung bzw. seiner Region nehmen, sonst die Firmenwerte (`web/src/index.ts` kalkulationsTeil, `web/src/angebote.ts`). Noch nicht angefangen.
+2. ~~**Kalkulationsvorlagen pro Standort**~~: Auf `/konto/kalkulation` nach Firma oder Standort auswählen und Vorlagen speichern. Beim Rechnen gelten in Reihenfolge Standort → Region → Firma; eigene Angebotswerte behalten Vorrang. Keine Migration nötig, vorhandene Bereichs-/Finanzrechte bleiben maßgeblich.
 3. Mitarbeiter sperren/austreten lassen.
 4. Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen.
 5. Berufs- und Tarifdatenbank (`docs/personalkatalog.md`).
@@ -45,7 +45,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
 2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt einteilen ist umgesetzt. Separater Verantwortlicher für die kaufmännische Bearbeitung ist noch nicht zugewiesen. Die bundesweite zentrale Tarifdatenbank bleibt offen: Recherchequellen decken nur ausgewählte Branchen/Berufe ab; Nutzungsrechte und Aktualisierung für eine automatische Übernahme müssen geklärt werden (docs/personalkatalog.md, alarm/quellen.md).
-3. Kalkulationsvorlagen pro Standort; eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
+3. Eigener Ablauf zum Sperren/Austritt von Mitarbeitern (Namen, Funktionen und Rechte sind bearbeitbar).
 4. ~~Logo und Grundgestaltung in der Konto-Kopfzeile~~ (umgesetzt); übrige Seitensymbole/Farben können später vereinheitlicht werden.
 5. Später: Stripe-Abrechnung; Benachrichtigung der Firmenleitung bei wartenden Angeboten und Portal-Schnittstellen erst nach Prüfung/Freigabe.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
@@ -254,3 +254,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ### 30.10.2026 – ChatGPT (Fahrplan nach Logo-Überarbeitung)
 - Gemeinsamem Stand entnommen: Logo ist in der Konto-Kopfzeile; Vorschau bereinigt. Als nächster Entwicklungsschritt folgt die standortbezogene Kalkulationsvorlage.
+
+### 30.10.2026 – ChatGPT (Kalkulationsvorlagen je Standort)
+- Auf `/konto/kalkulation` kann man Firmen- oder Standortwerte auswählen, bearbeiten und speichern. Ein Standort ohne eigene Vorlage übernimmt zuerst die Region und danach die Firmenwerte. Die Liste zeigt den vollständigen Bereichspfad.
+- Bei einer Ausschreibung nehmen Berechnung und Angebotsmappe die nächste passende Vorlage im Bereichsbaum. Gespeicherte Vorgangswerte bleiben vorrangig. Das bestehende Bereichs-/Finanz-RLS wird genutzt; für die vorhandene eindeutige `(firma_id, bereich_id)`-Vorlage war keine DB-Migration nötig.
+- Typprüfung und alle 19 Web-Testdateien grün; Regressionstest für Standort-/Regions-/Firmenpriorität. PostgreSQL-Rechte unverändert; kein Dockerzugriff in dieser Umgebung. Web-Rollout nach Push automatisch. Offen: Mitarbeiter sperren/austreten lassen. Benjamin muss nichts einrichten.
