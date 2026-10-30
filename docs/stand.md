@@ -265,3 +265,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Inhaber können sich nicht über diesen Knopf selbst sperren; die Datenbank verhindert weiterhin das Sperren des letzten aktiven Inhabers. Ein alter Sitzungstoken gewährt wegen der aktiven Mitgliedschaftsprüfung keinen Zugriff auf die gesperrte Firma; Zugänge zu anderen Firmen und das Supabase-Konto bleiben bestehen.
 - Typprüfung und alle 19 Web-Testdateien grün. Isolierter PostgreSQL-Rechtestest einschließlich Sperre, RLS-Zugriffsverlust, Reaktivierung und letztem Inhaber: „ALLE TESTS OK“. Keine Schemaänderung nötig.
 - Als nächstes laut Fahrplan: kaufmännisch Verantwortliche Person je Ausschreibung. Benjamin muss nichts einrichten.
+
+### 30.10.2026 – ChatGPT (Kaufmännische Zuständigkeit je Ausschreibung)
+- Auf `/konto/vorgang/<id>` ergänzt: Inhaber, Administration oder Bearbeiter können eine kaufmännisch verantwortliche Person auswählen oder die Zuordnung entfernen. Auswahl zeigt aktive Inhaber/Admins sowie Bearbeiter mit Zugriff auf den Ausschreibungsbereich. Gesperrte bisherige Zuständigkeit bleibt lesbar und ist markiert.
+- Migration `20261030224121_kaufverantwortung.sql`: optionale Vorgangsspalte mit firmengebundener Fremdschlüsselbeziehung. Trigger verlangt ein aktives Mitglied mit Rolle Inhaber/Admin/Bearbeiter; Bearbeiter müssen Bereichsrecht haben. Die Zuweisung vergibt selbst keine Rechte. Löschen des Mitglieds setzt nur die Zuständigkeit zurück. RLS der Vorgänge regelt, wer aktualisieren darf.
+- Typprüfung und 19 Web-Testdateien grün. Vollständiger PostgreSQL-16-Rechtetest inklusive passendem/fremdem Bereich und gesperrtem Zielmitglied mit „ALLE TESTS OK“.
+- Migration und Web-Änderung gepusht; automatische Datenbankprüfung/-migration und App-Rollout nach GitHub Actions prüfen. Keine manuelle Einrichtung für Benjamin. Nächster Fahrplanpunkt: Berufs- und Tarifdatenbank.

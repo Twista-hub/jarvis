@@ -25,7 +25,7 @@ export interface KontoEnv {
 export type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
 type Mitglied = { firma_id: string; rolle: string; aktiv?: boolean; erstellt: string; user_id: string; anzeigename?: string; funktion?: string; finanzen?: boolean; alle_bereiche?: boolean };
 export type Bereich = { id: string; name: string; art: string; parent_id: string | null };
-type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };
+type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; kaufverantwortlich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };
 const STATUS: Record<string, string> = {
   neu: "neu",
   pruefen: "prüfen",
@@ -62,6 +62,7 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (p === "/abmelden" && post) return abmelden(request, env);
   if (!post && ["/konto/ausschreibungen", "/konto/firma-team"].includes(p)) return weiterleiten(p === "/konto/ausschreibungen" ? "/konto/treffer" : "/konto/team");
   if (p === "/konto/kalkulation" && post) return mitSitzung(request, env, vorlageSpeichern);
+  if (p === "/konto/verantwortlich" && post) return mitSitzung(request, env, kaufverantwortlichSpeichern);
   if (p === "/konto" && !post && (url.searchParams.has("bereich") || url.searchParams.has("alle"))) return weiterleiten(`/konto/treffer${url.search}`);
   if (p === "/konto" && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "", "", dateiProfil);
   const kontoSeite = p.match(/^\/konto\/(treffer|fristen|unterlagen|kalkulation|team|einstellungen|profil|suchprofil)$/);
@@ -465,11 +466,23 @@ async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoE
   return weiterleiten(`${weiter}${weiter.includes("?") ? "&" : "?"}hinweis=${encodeURIComponent(r.ok ? `Stand: ${STATUS[status]}` : "Das darfst du für diese Ausschreibung nicht ändern.")}`);
 }
 
+async function kaufverantwortlichSpeichern(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
+  const vorgang = String(form.get("vorgang") ?? "");
+  const person = String(form.get("person") ?? "");
+  if (!/^[0-9a-f-]{36}$/.test(vorgang) || (person && !/^[0-9a-f-]{36}$/.test(person))) return weiterleiten("/konto/treffer?hinweis=Ungültige%20Auswahl.", s.cookies);
+  const r = await db<{ id: string }[]>(s, env, `vorgaenge?id=eq.${vorgang}&select=id`, {
+    method: "PATCH", headers: { prefer: "return=representation" },
+    body: JSON.stringify({ kaufverantwortlich_id: person || null }),
+  });
+  const ok = r.ok && r.daten.length === 1;
+  return weiterleiten(`/konto/vorgang/${vorgang}?hinweis=${encodeURIComponent(ok ? (person ? "Kaufmännisch verantwortliche Person gespeichert." : "Zuständigkeit aufgehoben.") : "Die Zuständigkeit konnte nicht geändert werden. Prüfe den Bereichszugriff.")}`, s.cookies);
+}
+
 /** The Vorgang with its firm and the user's role there, or null if the user may not see it. */
 export async function vorgangZugriff(request: Request, env: KontoEnv, id: string): Promise<{ s: Sitzung; v: Vorgang & { firma_id: string }; rolle: string; finanzen: boolean } | null> {
   const s = await sitzung(request, env);
   if (!s || !/^[0-9a-f-]{36}$/.test(id)) return null;
-  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,status,punkte,erstellt,bereich_id,steckbrief,katalog_id,katalog_version`);
+  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief,katalog_id,katalog_version`);
   const v = r.ok ? r.daten[0] : undefined;
   if (!v) return null;
   const m = await db<{ rolle: string; finanzen?: boolean }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle,finanzen`);
@@ -489,11 +502,29 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
     const archiv = (kurzberichte as Record<string, string>)[`${v.firma_id}|${v.link}`];
     if (archiv) v.steckbrief = `## Kurzüberblick aus dem Morgenbericht\n\n${archiv}\n\n_Dies ist die archivierte Zusammenfassung zur Bekanntmachung. Für eine ausführliche Prüfung bitte die Vergabeunterlagen hochladen._`;
   }
-  const fehler = new URL(request.url).searchParams.get("fehler") ?? "";
+  const fehler = new URL(request.url).searchParams.get("fehler") ?? new URL(request.url).searchParams.get("hinweis") ?? "";
   const portal = v.link && /^https?:\/\//.test(v.link) ? v.link : "";
   const aus = await unterlagenSteckbrief(env, id);
   // Actions below the Steckbrief: first read, then act (two per row on the phone). Download and check sit in the upload section.
   const kalkulation = aus?.text ? `/auftrag/${aus.auftrag}#kalkulation` : "/konto/kalkulation";
+  let kaufverantwortlich = "";
+  if (["inhaber", "admin", "bearbeiter"].includes(rolle)) {
+    const [mitglieder, zuordnungen, bereiche] = await Promise.all([
+      db<{ user_id: string; rolle: string; anzeigename: string | null; funktion: string | null; alle_bereiche: boolean; aktiv: boolean }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&aktiv=eq.true&rolle=in.(inhaber,admin,bearbeiter)&select=user_id,rolle,anzeigename,funktion,alle_bereiche,aktiv&order=rolle,anzeigename`),
+      db<{ user_id: string; bereich_id: string }[]>(s, env, `mitglied_bereiche?firma_id=eq.${v.firma_id}&select=user_id,bereich_id`),
+      db<{ id: string; parent_id: string | null }[]>(s, env, `bereiche?firma_id=eq.${v.firma_id}&select=id,parent_id`),
+    ]);
+    if (mitglieder.ok && zuordnungen.ok && bereiche.ok) {
+      const eltern: string[] = [];
+      let b = v.bereich_id ?? null;
+      while (b && !eltern.includes(b)) { eltern.push(b); b = bereiche.daten.find((x) => x.id === b)?.parent_id ?? null; }
+      const kandidaten = mitglieder.daten.filter((x) => ["inhaber", "admin"].includes(x.rolle) || !v.bereich_id || x.alle_bereiche || zuordnungen.daten.some((z) => z.user_id === x.user_id && eltern.includes(z.bereich_id)));
+      const aktueller = v.kaufverantwortlich_id ? await db<{ user_id: string; rolle: string; anzeigename: string | null; funktion: string | null; aktiv: boolean }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${v.kaufverantwortlich_id}&select=user_id,rolle,anzeigename,funktion,aktiv`) : null;
+      const eingetragen = aktueller?.ok ? aktueller.daten[0] : undefined;
+      const alle = eingetragen && !kandidaten.some((x) => x.user_id === eingetragen.user_id) ? [...kandidaten, eingetragen] : kandidaten;
+      kaufverantwortlich = `<h2>Kaufmännische Zuständigkeit</h2>${eingetragen && !eingetragen.aktiv ? `<p class="klein">Bisher: ${escape(eingetragen.anzeigename || eingetragen.funktion || "Mitglied")} (Zugang gesperrt)</p>` : ""}<form method="post" action="/konto/verantwortlich"><input type="hidden" name="vorgang" value="${v.id}"><label>Verantwortliche Person<select name="person"><option value="">Nicht zugewiesen</option>${alle.map((x) => `<option value="${x.user_id}"${x.user_id === v.kaufverantwortlich_id ? " selected" : ""}${!x.aktiv ? " disabled" : ""}>${escape(x.anzeigename || x.funktion || "Mitglied")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}${!x.aktiv ? " (gesperrt)" : ""}</option>`).join("")}</select></label><button>Zuständigkeit speichern</button></form>`;
+    }
+  }
   const knoepfe = [
     ["inhaber", "admin"].includes(rolle) ? `<a href="/konto/vorgang/${v.id}/freigeben">👥 An Mitarbeiter weitergeben</a>` : "",
     finanzen ? `<a href="/konto/vorgang/${v.id}/angebot">📝 Angebot vorbereiten</a>` : "",
@@ -523,14 +554,14 @@ ${portal ? `<nav class="aktionsleiste"><a class="zweit" href="${escape(portal)}"
 ${leiste}${hochladen.replace("📥 Vergabeunterlagen", "📥 Dateien nachreichen")}
 ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summary>${brief(v.steckbrief)}</details>` : ""}`;
   } else if (aus) {
-    return html(seite(v.titel, `${kopf}<p><strong>Jarvis liest gerade die Unterlagen.</strong> Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu; du kannst sie auch schließen.</p>
+    return html(seite(v.titel, `${kopf}${kaufverantwortlich}<p><strong>Jarvis liest gerade die Unterlagen.</strong> Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu; du kannst sie auch schließen.</p>
 ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}`, 20, "treffer"), 200, s.cookies);
   } else {
     teil = `${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
   }
   const teilnahme = await teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? "");
   const personalBlock = rolle === "leser" || rolle === "mitarbeiter" ? "" : await einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle));
-  return html(seite(v.titel, kopf + teil + teilnahme + personalBlock, 0, "treffer"), 200, s.cookies);
+  return html(seite(v.titel, kopf + kaufverantwortlich + teil + teilnahme + personalBlock, 0, "treffer"), 200, s.cookies);
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */
