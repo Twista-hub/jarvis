@@ -17,7 +17,7 @@ jobs:
           python-version: "3.12"
       - run: pip install -q cryptography
       - run: python -m py_compile alarm/*.py
-      - run: python -m unittest alarm.test_mail
+      - run: python -m unittest alarm.test_mail alarm.test_kurzbrief
 
   web:
     runs-on: ubuntu-latest

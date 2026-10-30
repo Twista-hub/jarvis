@@ -47,8 +47,10 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   button, input, select { min-height: 44px; }
   input[type="checkbox"], input[type="radio"] { width: 22px; height: 22px; min-height: 22px; flex: 0 0 22px; accent-color: var(--accent); }
   .knopf { display: block; text-align: center; font-weight: 700; font-size: 1.1rem; padding: 14px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; }
-  .hilfe { margin: 12px 0 18px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; background: var(--card); }
-  .hilfe summary { display: flex; align-items: center; min-height: 44px; padding: 8px 12px; cursor: pointer; color: var(--accent); font-weight: 650; }
+  .hilfe { margin: 4px 0; max-width: 100%; }
+  .hilfe[open] { border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .hilfe summary { display: flex; align-items: center; justify-content: center; width: 44px; min-height: 44px; cursor: pointer; color: var(--accent); list-style: none; }
+  .hilfe summary::-webkit-details-marker { display: none; }
   .hilfe p { margin: 0; padding: 0 12px 12px; color: var(--muted); font-size: 14px; }
   .fehler { color: var(--error); font-weight: 600; }
   .laedt { display: flex; gap: 12px; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 14px; }
@@ -209,7 +211,7 @@ export function escape(s: string): string {
 
 /** Small, collapsed plain-language explanation for a screen or action. */
 export function hilfe(titel: string, text: string): string {
-  return `<details class="hilfe"><summary>ℹ️ ${escape(titel)}</summary><p>${escape(text)}</p></details>`;
+  return `<details class="hilfe"><summary aria-label="${escape(titel)}" title="${escape(titel)}"><span aria-hidden="true">ℹ️</span></summary><p>${escape(text)}</p></details>`;
 }
 
 /** Model output may contain text from the documents: escape all HTML, allow only http(s) links. */
