@@ -55,6 +55,10 @@ alter table public.firmen_tarifvertraege
   add column datenstand date,
   add column datenstatus text not null default 'Firmenangabe',
   add column hinweis text not null default '';
+-- Some agreements have separate wage and salary ladders (GaLaBau: 21 LG + 17 GG).
+alter table public.firmen_tarifvertraege drop constraint firmen_tarifvertraege_gruppen_check;
+alter table public.firmen_tarifvertraege add constraint firmen_tarifvertraege_gruppen_check
+  check (cardinality(gruppen) between 1 and 60);
 create unique index firmen_tarifvertraege_katalog on public.firmen_tarifvertraege(firma_id,katalog_id) where katalog_id is not null;
 
 insert into public.tarifkatalog
