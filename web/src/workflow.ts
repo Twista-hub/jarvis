@@ -101,9 +101,9 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
     // Saved before the Steckbrief, because the result page appears as soon as ergebnis.md exists.
     const lose = ki.text
       ? await step.do("Lose erfassen", { retries: { limit: 2, delay: "10 seconds" } }, async () => {
-          const { lose, usage } = await loseLesen(this.client(), ki.text);
+          const { lose, kosten } = await loseLesen(this.client(), ki.text);
           await this.env.DATEN.put(`${dir}/lose.json`, JSON.stringify(lose));
-          return { anzahl: lose.length, kosten: kostenVon(usage) };
+          return { anzahl: lose.length, kosten };
         })
       : { anzahl: 0, kosten: 0 };
     await step.do("Ergebnis speichern", async () => {

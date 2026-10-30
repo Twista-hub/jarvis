@@ -8,8 +8,11 @@ from pathlib import Path
 
 import anthropic
 
+# Cost per task (30.10.2026, Benjamin): the daily scoring of hundreds of short tender texts runs on Sonnet 5.5
+# (half the price of Opus); the Steckbrief reads long tender documents and stays on Opus 5.5.
 MODEL = "claude-opus-5-5"
-PREIS = (4.0, 20.0)  # $ per million input / output tokens
+MODEL_BEWERTEN = "claude-sonnet-5-5"
+PREISE = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0)}  # $ per million input / output tokens
 LIMIT = float(os.environ.get("KI_LIMIT_DOLLAR", "3"))  # hard stop per run
 client = anthropic.Anthropic()
 _kosten = [0.0]
@@ -19,9 +22,10 @@ def kosten() -> float:
     return _kosten[0]
 
 
-def _zaehlen(usage) -> None:
+def _zaehlen(usage, model: str = MODEL) -> None:
+    preis = PREISE[model]
     eingabe = usage.input_tokens + (usage.cache_creation_input_tokens or 0) + (usage.cache_read_input_tokens or 0)
-    _kosten[0] += (eingabe * PREIS[0] + usage.output_tokens * PREIS[1]) / 1e6
+    _kosten[0] += (eingabe * preis[0] + usage.output_tokens * preis[1]) / 1e6
 
 
 def _bremse() -> bool:
@@ -55,8 +59,8 @@ SCORE_SCHEMA = {
 
 def _create(**kwargs):
     # fallbacks="default": a safety decline is retried server-side on Anthropic's recommended model.
-    response = client.beta.messages.create(model=MODEL, betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
-    _zaehlen(response.usage)
+    response = client.beta.messages.create(model=MODEL_BEWERTEN, betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
+    _zaehlen(response.usage, MODEL_BEWERTEN)
     return response
 
 

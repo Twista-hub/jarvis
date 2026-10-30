@@ -15,7 +15,8 @@ export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
 export type Vorschlag = { beschreibung: string; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[] };
 
-const MODEL = "claude-opus-5-5";
+// Once per firm, short text: Sonnet 5.5 is enough (half the price of Opus).
+const MODEL = "claude-sonnet-5-5";
 const ID = /^[0-9a-f-]{36}$/;
 
 const SCHEMA = {
