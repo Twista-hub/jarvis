@@ -36,10 +36,10 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 </style>
 </head>
 <body><main>
-<header>Jarvis · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>
+<header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>
 ${inhalt.trimStart().startsWith("<h1") ? "" : `<h1>${escape(titel)}</h1>`}
 ${inhalt.replace(/<table>/g, '<div class="tabelle"><table>').replace(/<\/table>/g, "</table></div>")}
-<p class="klein">WP Digital Ranger</p>
+<p class="klein">WP Digital Ranger · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> · <a href="/avv">Auftragsverarbeitung</a></p>
 </main></body>
 </html>`;
 }

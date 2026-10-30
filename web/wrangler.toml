@@ -26,7 +26,7 @@ SUPABASE_KEY = "sb_publishable_Lp4GwnMS4RK5XcXPwgq28Q_Z5jj-Xcp"
 
 [[rules]]
 type = "Text"
-globs = ["**/*.txt"]
+globs = ["**/*.txt", "**/*.md"]
 fallthrough = true
 
 # Secrets (set by .github/workflows/web.yml): ANTHROPIC_API_KEY, TEST_CODE_HASH.

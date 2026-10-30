@@ -3,6 +3,8 @@ import kunden from "../kunden.json";
 import { euro, FELDER, fmt, rechnen, STANDARD, zahl, type Eingaben, type Los } from "./kalkulation";
 import profile from "../../alarm/profile.json";
 import { konto, vorgangZugriff, type KontoEnv } from "./konto";
+import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
+import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { escape, markdown, seite } from "./seite";
 
 export { Steckbrief } from "./workflow";
@@ -18,6 +20,13 @@ export interface Env extends KontoEnv {
 
 export type Job = { id: string; profil: string; kunde: string; titel: string; erstellt: string; vorgang?: string };
 
+const RECHT: Record<string, [string, () => string]> = {
+  "/impressum": ["Impressum", impressum],
+  "/datenschutz": ["Datenschutzerklärung", datenschutz],
+  "/nutzungsbedingungen": ["Nutzungsbedingungen", nutzungsbedingungen],
+  "/avv": ["Vertrag zur Auftragsverarbeitung", avv],
+};
+
 const MAX_BYTES = 60 * 1024 * 1024;
 const MAX_FILES = 40;
 const ID = /^[0-9a-f-]{36}$/;
@@ -29,7 +38,13 @@ export default {
     if (u && request.method === "POST") return unterlagenAmVorgang(u[1], request, env);
     const k = await konto(request, env);
     if (k) return k;
-    if (url.pathname === "/" && request.method === "GET") return html(formular("", url.searchParams.get("titel") ?? ""));
+    if (request.method === "GET") {
+      const titel = url.searchParams.get("titel");
+      if (url.pathname === "/" && titel === null) return html(seite("Jarvis", startseite(markdown(MUSTER.replace(/^>.*\n/m, "")))));
+      if (url.pathname === "/" || url.pathname === "/hochladen") return html(formular("", titel ?? ""));
+      const recht = RECHT[url.pathname];
+      if (recht) return html(seite(recht[0], recht[1]()));
+    }
     if (url.pathname === "/hochladen" && request.method === "POST") return hochladen(request, env);
     const m = url.pathname.match(/^\/auftrag\/([^/]+)(\/kalkulation)?$/);
     if (m && ID.test(m[1]) && m[2] && request.method === "POST") return kalkulieren(m[1], request, env);
