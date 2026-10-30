@@ -184,7 +184,8 @@ test("Kalkulation: alle offenen Ausschreibungen als Karten, ohne Unterlagen geht
 test("Firma & Team mit nur einem Standort zeigt das Personal direkt", async (t) => {
   mockKontoApi(t);
   const html = await seite("/konto/team");
-  assert.match(html, /<h2>Personal<\/h2>/);
+  assert.match(html, /Organisationsbaum/);
+  assert.match(html, /Einsatzpersonal/);
   assert.match(html, /➕ Person hinzufügen/);
   assert.doesNotMatch(html, /class="konto-kacheln standort-kacheln"/);
 });

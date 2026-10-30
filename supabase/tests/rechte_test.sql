@@ -19,6 +19,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031010000_selbst_freischalten.sql
 \ir ../migrations/20261031020000_personal.sql
 \ir ../migrations/20261031030000_einsaetze.sql
+\ir ../migrations/20261031040000_standortleitung_qualifikationen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -188,6 +189,26 @@ select test_als('00000000-0000-0000-0000-00000000000a');
 select public.mitglied_aktualisieren(:'firma','00000000-0000-0000-0000-00000000000b','Berlin Service','Serviceleiter/in','bearbeiter',true,false,array[:'berlin']::uuid[]);
 select test_als('00000000-0000-0000-0000-00000000000b');
 select pruefe(exists(select 1 from public.kalkulationsvorlagen),'Ausdrückliche Finanzfreigabe greift');
+-- Standortleitung ist auf exakt einen zugewiesenen Bereich beschränkt und erhält keine Finanzrechte.
+select test_als('00000000-0000-0000-0000-00000000000a');
+select public.mitglied_aktualisieren(:'firma','00000000-0000-0000-0000-00000000000b','Berlin Leitung','Standortleitung','standortleitung',true,false,array[:'berlin']::uuid[]);
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe(public.darf_bearbeiten(:'firma',:'berlin') and not public.darf_bearbeiten(:'firma',:'hamburg'),'Standortleitung bearbeitet nur zugeordneten Bereich');
+select pruefe(not public.darf_bereich(:'firma',null) and not public.darf_bearbeiten(:'firma',null),'Standortleitung sieht und ändert keine firmenweiten Vorgänge');
+select pruefe(not jarvis_intern.darf_finanzen(:'firma',:'berlin'),'Standortleitung erhält trotz Anfrage keine Finanzrechte');
+insert into public.personal(firma_id,bereich_id,vorname) values (:'firma',:'berlin','Leitungskraft');
+insert into public.firmen_qualifikationen(firma_id,bereich_id,name,erstellt_von) values (:'firma',:'berlin','Brandschutzhelfer',auth.uid());
+select pruefe((select count(*)=1 from public.firmen_qualifikationen where name='Brandschutzhelfer'),'Standortleitung ergänzt Qualifikationen');
+do $$ begin
+  insert into public.personal(firma_id,bereich_id,vorname) values (current_setting('test.firma')::uuid,(select id from public.bereiche where name='Hamburg'),'Fremder Standort');
+  raise exception 'FEHLER: Standortleitung bearbeitete fremden Bereich';
+exception when insufficient_privilege then raise notice 'ok: Standortleitung bleibt standortbegrenzt'; end $$;
+do $$ begin
+  insert into public.firmen_qualifikationen(firma_id,name,erstellt_von) values (current_setting('test.firma')::uuid,'Globale Quali',auth.uid());
+  raise exception 'FEHLER: Standortleitung legte globale Qualifikation an';
+exception when insufficient_privilege then raise notice 'ok: globale Qualifikationen bleiben Administration'; end $$;
+select test_als('00000000-0000-0000-0000-00000000000a');
+select public.mitglied_aktualisieren(:'firma','00000000-0000-0000-0000-00000000000b','Berlin Service','Serviceleiter/in','bearbeiter',true,false,array[:'berlin']::uuid[]);
 select test_als('00000000-0000-0000-0000-00000000000a');
 delete from public.vorgang_freigaben;
 select test_als('00000000-0000-0000-0000-00000000000b');

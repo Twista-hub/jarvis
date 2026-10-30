@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test, type TestContext } from "node:test";
-import { kraftKarte, nachrichtText, passt, personal, standortKacheln, waNummer, type Kraft } from "../src/personal.ts";
+import { BERUFE, kraftFormular, kraftKarte, nachrichtText, passt, personal, personalTeil, qualifikationenBlock, standortKacheln, waNummer, type Kraft } from "../src/personal.ts";
 
 const firma = "11111111-1111-4111-8111-111111111111";
 const ort = "22222222-2222-4222-8222-222222222222";
@@ -42,6 +42,25 @@ test("Standort-Kacheln mit Zahlen pro Standort, Regionen als Überschrift", () =
   ], [{ bereich_id: ort, status: "verfuegbar" }, { bereich_id: ort, status: "einsatz" }]);
   assert.match(html, /<h3>Nord<\/h3>/);
   assert.match(html, new RegExp(`href="/konto/standort/${ort}".*Hamburg.*1 verfügbar · 2 gesamt`));
+});
+
+test("Organisationsbaum zeigt Standortleitung und deckt mehrere Branchen ab", () => {
+  const html = standortKacheln([{ id: ort, name: "Berlin", art: "standort", parent_id: null }], [], [{ user_id: "chef", name: "Samira Leitung", bereich_id: ort }]);
+  assert.match(html, /Leitung: Samira Leitung/);
+  assert.ok(Object.keys(BERUFE).some((x) => x.includes("Büro")));
+  assert.ok(Object.values(BERUFE).flat().includes("Schweißer/in"));
+  assert.ok(Object.values(BERUFE).flat().includes("Maler/in"));
+});
+
+test("Eigene Qualifikationen erscheinen beim Eintragen, in der Filterung und Verwaltung", () => {
+  const q = "Fachkunde für Hubarbeitsbühnen";
+  assert.match(kraftFormular({}, "/save", "Speichern", [q]), new RegExp(q));
+  const html = personalTeil([eva], new URL("https://jarvis.test/konto/standort/" + ort + `?qualifikation=${encodeURIComponent(eva.qualifikationen[0])}`), true, "/save", [], [q]);
+  assert.match(html, /Qualifikation/);
+  assert.match(html, /Gesundheitszeugnis/);
+  const verwaltung = qualifikationenBlock(ort, [{ id: pid, name: q, bereich_id: ort }], true);
+  assert.match(verwaltung, /Qualifikation hinzufügen/);
+  assert.match(verwaltung, /Fachkunde für Hubarbeitsbühnen/);
 });
 
 function mock(t: TestContext) {
@@ -104,6 +123,6 @@ test("Ausschreibung: eingeplantes Personal mit Status und Auswahl, passende zuer
   const html = await einsatzTeil({ token: "t", userId: "u", email: "", cookies: [] }, env, { id: "v1", firma_id: firma, titel: "Servicekräfte Bankett" }, true);
   assert.match(html, /1 eingeplant · 1 zugesagt/);
   assert.match(html, /<option value="zugesagt" selected>✅ Zugesagt/);
-  assert.match(html, /<option value="">Bitte auswählen …<\/option><option value="77777777[^"]*">⭐ Ina/);
+  assert.match(html, /<option value="">Bitte auswählen …<\/option><option value="77777777[^"]*">🟢 ⭐ Ina/);
   assert.doesNotMatch(html, new RegExp(`<option value="${pid}">`), "schon Eingeplante nicht noch einmal anbieten");
 });
