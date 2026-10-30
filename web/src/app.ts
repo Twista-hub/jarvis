@@ -11,6 +11,7 @@ document.querySelectorAll("input[data-sofort]").forEach(function (i) {
 });
 
 var knopf = document.getElementById("push-an");
+var test = document.getElementById("push-test");
 var status = document.getElementById("push-status");
 var ios = /iphone|ipad/i.test(navigator.userAgent);
 var installiert = window.matchMedia("(display-mode: standalone)").matches || navigator.standalone;
@@ -27,8 +28,14 @@ if ("serviceWorker" in navigator) {
       return;
     }
     reg.pushManager.getSubscription().then(function (abo) {
-      if (abo && Notification.permission === "granted") { zeige("✓ Auf diesem Gerät eingeschaltet."); return; }
+      if (abo && Notification.permission === "granted") { zeige("✓ Auf diesem Gerät eingeschaltet."); if (test) test.hidden = false; return; }
       knopf.hidden = false;
+    });
+    // Shows a notification on this device without the server: tells whether the phone displays them at all.
+    if (test) test.addEventListener("click", function () {
+      reg.showNotification("Jarvis: Test", { body: "So sehen Jarvis-Nachrichten aus. Tippen öffnet die Trefferliste.", icon: "/icon-192.png", badge: "/icon-192.png", tag: "jarvis-test", data: { url: "/konto" } })
+        .then(function () { zeige("Test geschickt. Kommt nichts, sind Benachrichtigungen für Chrome im Handy abgeschaltet."); })
+        .catch(function (e) { zeige("Test ging nicht: " + (e.message || e)); });
     });
     knopf.addEventListener("click", function () {
       knopf.disabled = true;
@@ -42,6 +49,7 @@ if ("serviceWorker" in navigator) {
       }).then(function (r) {
         if (!r.ok) throw new Error("Speichern hat nicht geklappt, bitte noch einmal.");
         knopf.hidden = true;
+        if (test) test.hidden = false;
         zeige("✓ Eingeschaltet. Wähle oben „Handy“ oder „Mail und Handy“ und speichere.");
       }).catch(function (e) { knopf.disabled = false; zeige(e.message || "Das hat nicht geklappt."); });
     });

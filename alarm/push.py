@@ -48,7 +48,7 @@ def senden(privat: ec.EllipticCurvePrivateKey, oeffentlich: str, endpoint: str) 
     req = urllib.request.Request(endpoint, data=b"", method="POST", headers={
         "Authorization": f"vapid t={jwt(privat, endpoint)}, k={oeffentlich}",
         "TTL": str(24 * 3600),
-        "Urgency": "normal",
+        "Urgency": "high",  # "normal" may be held back for hours while the phone saves power
     })
     try:
         with urllib.request.urlopen(req, timeout=20) as r:
