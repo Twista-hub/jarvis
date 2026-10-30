@@ -16,16 +16,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Seiten-Umbau
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
-1. Seiten-Umbau implementiert; Ausrollen und Seitentest werden von ChatGPT geprüft.
-2. Rechtstexte von Benjamin prüfen lassen.
-3. Zuständige Person pro Ausschreibung zuweisen (Fahrplan Punkt 9).
-4. Kalkulationsvorlagen pro Standort, Mitarbeiterliste mit Namen (Fahrplan 10, 11).
-5. Aussehen/Design mit Logo WP Digital Ranger.
-6. Später: Stripe-Abrechnung, Angebotsentwurf, weitere Portale nach Freigabe.
-7. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
+1. Rechtstexte von Benjamin prüfen lassen.
+2. Zuständige Person pro Ausschreibung zuweisen (Fahrplan Punkt 9).
+3. Kalkulationsvorlagen pro Standort, Mitarbeiterliste mit Namen (Fahrplan 10, 11).
+4. Aussehen/Design mit Logo WP Digital Ranger.
+5. Später: Stripe-Abrechnung, Angebotsentwurf, weitere Portale nach Freigabe.
+6. Benjamin: Anthropic-Ausgabenlimit 20 $ setzen (https://console.anthropic.com/settings/limits).
 
 ## Protokoll
 
@@ -34,7 +32,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - GitHub-Verbindung über die Netzwerkfreigabe der Ausführungsumgebung wiederhergestellt. Claudes Push-Korrektur und die jetzt vorhandene Auftragsdatei werden berücksichtigt.
 - Vollständigen Auftrag umgesetzt: /konto/treffer mit Status-Reitern, /konto/team, Fristen sortiert und markiert, Upload ohne Treffer, bisherige Steckbriefe und Firmenwerte der Kalkulation. Push-Ziele und Weiterleitungen angepasst. Claudes Push-Reparatur bleibt erhalten.
 - Netzwerkfreigabe und GitHub-Schreibrechte funktionieren; Benjamin braucht dafür nichts einzurichten. Routineablauf in AGENTS.md festgehalten.
-- Typprüfung und alle 22 Tests grün; Ausrollen und Seitentest werden anschließend geprüft.
+- Typprüfung und alle 22 Tests grün (inkl. neuer Seiten, Rollen, Upload ohne Treffer, Tageslimit und Firmen-Kalkulationswerte); Python-Syntaxprüfung grün.
+- Auf main gepusht, automatisch ausgerollt und Seitentest grün: https://github.com/Twista-hub/jarvis/actions/runs/41065293829. Alle neuen Kontopfade sind online und durch Login geschützt; Push-Skript erreichbar.
+- Offen bleiben die übrigen Fahrplanpunkte (siehe oben). Benjamin muss für GitHub und das Ausrollen nichts tun; App ansehen ist freiwillig.
 
 ### 30.10.2026 (Nachmittag) – Claude
 - Handy-Nachrichten funktionieren auf Benjamins Android (Test-Knopf und Server-Push kommen an, Tipp öffnet die Trefferliste). Fehler war die Skript-Variable `status` (= window.status).
