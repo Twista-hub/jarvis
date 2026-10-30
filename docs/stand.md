@@ -44,6 +44,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Grundqualifikationen erweitert; Firmen können zusätzliche Qualifikationen anlegen und am Standort auswählen. Filter nach Beruf, Qualifikation und Verfügbarkeit/Status ergänzt.
 - Konzept für einen zukünftigen kanonischen Berufekatalog und bestätigte Zuordnung von Ausschreibungsanforderungen dokumentiert. BERUFENET als branchenübergreifende Berufsfeldreferenz geprüft. Tarifdaten bleiben vertrags-, branchen- und zeitgebunden; die vorhandenen DGB/GVP-Tarifwerte werden nicht pauschal auf andere Gewerke übertragen.
 - Typprüfung, sämtliche Web-Tests (16 Testdateien) und PostgreSQL-Rechte-Test („ALLE TESTS OK“) inklusive Standortleitungs-RLS grün.
+- Auf `main` gepusht. CI grün: https://github.com/Twista-hub/jarvis/actions/runs/41096223711. Web-Rollout grün: https://github.com/Twista-hub/jarvis/actions/runs/41096223672. Datenbank-Migration erst im Probelauf geprüft und dann eingespielt: https://github.com/Twista-hub/jarvis/actions/runs/41096289355 und https://github.com/Twista-hub/jarvis/actions/runs/41096398846.
 - Offen: zentrale Berufs-/Synonymdatenbank mit Ausschreibungszuordnungen; Qualifikationsnachweise mit Ablaufdatum/Erinnerungen; branchenspezifische Tarifregeln nur aus den jeweiligen Originalverträgen. Benjamin muss nichts einrichten.
 
 ### 30.10.2026 – ChatGPT (Handy-Bedienung und Hilfen)
