@@ -54,10 +54,6 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (p === "/abmelden" && post) return abmelden(request, env);
   if (!post && ["/konto/ausschreibungen", "/konto/firma-team"].includes(p)) return weiterleiten(p === "/konto/ausschreibungen" ? "/konto/treffer" : "/konto/team");
   if (p === "/konto/kalkulation" && post) return mitSitzung(request, env, vorlageSpeichern);
-  if (p === "/konto/kalkulation/oeffnen") {
-    const auftrag = url.searchParams.get("auftrag") ?? "";
-    return weiterleiten(/^[0-9a-f-]{36}$/.test(auftrag) ? `/auftrag/${auftrag}#kalkulation` : "/konto/kalkulation");
-  }
   if (p === "/konto" && !post && (url.searchParams.has("bereich") || url.searchParams.has("alle"))) return weiterleiten(`/konto/treffer${url.search}`);
   if (p === "/konto" && !post) return uebersicht(request, env, url.searchParams.get("hinweis") ?? "", "", dateiProfil);
   const kontoSeite = p.match(/^\/konto\/(treffer|fristen|unterlagen|kalkulation|team|einstellungen|profil|suchprofil)$/);
@@ -318,12 +314,18 @@ async function vorlageSpeichern(s: Sitzung, form: FormData, _r: Request, env: Ko
   return weiterleiten(`/konto/kalkulation?firma=${firma}&hinweis=${encodeURIComponent(r.ok ? "Standardwerte gespeichert." : "Die Werte konnten nicht gespeichert werden. Bitte prüfe deine Berechtigung.")}`);
 }
 
-/** Calculation page: pick a tender with checked documents, its calculation opens right away. */
+/** Calculation page: all open tenders as tappable cards; with checked documents the calculation opens, otherwise the upload. */
 async function kalkulationsAuswahl(liste: Vorgang[], env: KontoEnv): Promise<string> {
-  const mit = (await Promise.all(liste.map(async (v) => ({ v, aus: await unterlagenSteckbrief(env, v.id) })))).filter((x) => x.aus?.text);
-  if (!mit.length) return `<p>Noch keine Ausschreibung mit geprüften Unterlagen. <a href="/konto/unterlagen">Unterlagen hochladen →</a></p>`;
-  const kurz = (t: string) => (t.length > 70 ? `${t.slice(0, 67)}…` : t);
-  return `<form method="get" action="/konto/kalkulation/oeffnen"><label>Ausschreibung wählen<select name="auftrag" data-oeffnen required><option value="">Bitte auswählen …</option>${mit.sort((a, b) => b.v.erstellt.localeCompare(a.v.erstellt)).map(({ v, aus }) => `<option value="${escape(aus!.auftrag)}">${escape(kurz(v.titel))}</option>`).join("")}</select></label><button>Kalkulation öffnen</button><p class="klein">Danach wählst du das Los. Jarvis zeigt, welche Arbeitskraft gebraucht wird, und setzt den Lohn laut Tarifvertrag ein.</p></form>`;
+  const offen = liste.filter((v) => !["verworfen", "verloren"].includes(v.status));
+  if (!offen.length) return `<p>Noch keine Ausschreibungen. Sie erscheinen hier, sobald Jarvis Treffer gefunden hat.</p>`;
+  const mit = await Promise.all(offen.map(async (v) => ({ v, aus: await unterlagenSteckbrief(env, v.id) })));
+  mit.sort((a, b) => Number(!!b.aus?.text) - Number(!!a.aus?.text) || (a.v.frist ?? "9999").localeCompare(b.v.frist ?? "9999"));
+  return `<p>Tippe eine Ausschreibung an. Danach wählst du das Los, und Jarvis setzt Arbeitskraft und Tariflohn ein.</p><ul class="auswahl-liste">${mit.map(({ v, aus }) => {
+    const bereit = !!aus?.text;
+    const ziel = bereit ? `/auftrag/${aus!.auftrag}#kalkulation` : `/konto/vorgang/${v.id}#unterlagen`;
+    const stand = bereit ? "✅ Unterlagen geprüft · Kalkulation öffnen" : aus ? "⏳ Unterlagen werden geprüft" : "📥 Erst Unterlagen hochladen";
+    return `<li><a href="${ziel}"><strong>${escape(v.titel)}</strong><span class="klein">${v.frist ? `Frist ${datum(v.frist)} · ` : ""}${stand}</span><span class="konto-pfeil" aria-hidden="true">›</span></a></li>`;
+  }).join("")}</ul>`;
 }
 
 async function unterlagenListe(liste: Vorgang[], env: KontoEnv): Promise<string> {

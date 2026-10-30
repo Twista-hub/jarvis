@@ -62,6 +62,11 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .konto-pfeil { position: absolute; right: 16px; top: 18px; font-size: 1.5rem; color: var(--accent); }
   .konto-zurueck { margin: 0 0 10px; }
   .konto-zurueck a { display: inline-grid; place-items: center; width: 44px; height: 44px; border: 1px solid var(--line); border-radius: 50%; background: var(--card); text-decoration: none; font-size: 24px; }
+  .auswahl-liste { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
+  .auswahl-liste a { position: relative; display: grid; gap: 4px; padding: 12px 36px 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text); text-decoration: none; }
+  .auswahl-liste a:hover, .auswahl-liste a:focus-visible { border-color: var(--accent); }
+  .auswahl-liste strong { font-size: 0.95rem; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .auswahl-liste .konto-pfeil { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 1.4rem; }
   .konto-linkliste, .fristen-liste { list-style: none; margin: 12px 0; padding: 0; }
   .konto-linkliste li, .fristen-liste li { display: grid; gap: 3px; padding: 14px 4px; border-bottom: 1px solid var(--line); }
   .fristen-liste time { font-weight: 700; }
