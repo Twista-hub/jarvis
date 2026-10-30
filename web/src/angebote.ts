@@ -3,6 +3,7 @@ import { db, html, sitzung, unterlagenSteckbrief, vorgangZugriff, weiterleiten, 
 import { aktiveFirma, dateiKey, dateiname, UUID, type FirmenDatei } from "./firmenunterlagen.ts";
 import { escape, markdown, seite } from "./seite.ts";
 import { type Eingaben, type Los, type LosWerte } from "./kalkulation.ts";
+import type { TarifWahl } from "./tarife.ts";
 import { angebotsText, auswahlSeite, passendeNachweise, preise, type Preise } from "./angebotsauswahl.ts";
 
 type Mappe = { id:string;firma_id:string;vorgang_id:string;text:string;unterlagen_ids:string[];vorlage_id:string|null;erstellt:string;freigabe_status:string;freigabe_von:string|null;freigabe_am:string|null;freigabe_notiz:string };
@@ -122,7 +123,7 @@ export async function angebote(request:Request,env:KontoEnv):Promise<Response|nu
   const aus=await unterlagenSteckbrief(env,z.v.id);
   const lese=async<T>(key:string)=>{const o=await env.DATEN!.get(key);return o?(await o.json()) as T:null;};
   const lose=aus?await lese<Los[]>(`auftraege/${aus.auftrag}/lose.json`)??[]:[];
-  const kalk=aus?await lese<{eingaben:Eingaben;mengen:Record<string,number>;proLos?:LosWerte}>(`auftraege/${aus.auftrag}/kalkulation.json`):null;
+  const kalk=aus?await lese<{eingaben:Eingaben;mengen:Record<string,number>;proLos?:LosWerte;tarif?:TarifWahl}>(`auftraege/${aus.auftrag}/kalkulation.json`):null;
   const fv=await db<{eingaben:Eingaben}[]>(s,env,`kalkulationsvorlagen?firma_id=eq.${z.v.firma_id}&bereich_id=is.null&select=eingaben`);
   const p:Preise=preise(lose,kalk,fv.ok&&fv.daten[0]?fv.daten[0].eingaben:null);
   const kalkLink=aus?.text?`/auftrag/${aus.auftrag}#kalkulation`:"/konto/kalkulation";
