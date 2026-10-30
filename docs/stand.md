@@ -33,6 +33,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 30.10.2026 (abends, Teil 2) – Claude
+- Unterlagen-Seite: Schnellauswahl „Ausschreibung“ (Dropdown mit den vorhandenen Ausschreibungen, neueste zuerst, ohne verworfene/verlorene). Gewählte Ausschreibung → Dateien werden dort ergänzt (wie „Nachreichen“); „➕ Neue Ausschreibung“ zeigt das Titelfeld (`/app.js` blendet es ein und aus).
+
 ### 30.10.2026 (abends) – Claude
 - Erster Suchlauf: Ladekreisel statt Dauertext. `alarm.yml` markiert am Ende `einstellungen.erstlauf_fertig` (auch ohne Treffer), dann verschwindet der Hinweis; höchstens 20 Minuten. Der Text „Suchprofil gespeichert. Jarvis durchsucht …“ hängt nicht mehr in der Adresse.
 

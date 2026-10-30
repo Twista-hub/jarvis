@@ -26,6 +26,15 @@ if (anmeldung) {
   } else fehlgeschlagen();
 }
 
+// Upload form: a tender picked from the list needs no title.
+document.querySelectorAll("select[data-auswahl]").forEach(function (w) {
+  var neu = w.form.querySelector("[data-neu]");
+  var titel = neu && neu.querySelector("input[name=titel]");
+  function zeigen() { if (!neu) return; neu.hidden = !!w.value; if (titel) titel.required = !w.value; }
+  w.addEventListener("change", zeigen);
+  zeigen();
+});
+
 var knopf = document.getElementById("push-an");
 var test = document.getElementById("push-test");
 var meldung = document.getElementById("push-status");

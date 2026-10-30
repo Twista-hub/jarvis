@@ -5,10 +5,10 @@ type UploadDienste = {
   starten: (dateien: File[], kontext: { firma: string; vorgang: string; titel: string }) => Promise<{ id: string; erstellt: string }>;
 };
 
-export async function unterlagenOhneTreffer(request: Request, env: KontoEnv & { DATEN: R2Bucket }, dienste: UploadDienste): Promise<Response> {
+export async function unterlagenOhneTreffer(request: Request, env: KontoEnv & { DATEN: R2Bucket }, dienste: UploadDienste, form?: FormData): Promise<Response> {
   const s = await sitzung(request, env);
   if (!s) return Response.redirect(new URL("/konto", request.url).toString(), 303);
-  const form = await request.formData();
+  form ??= await request.formData();
   const firma = String(form.get("firma") ?? "");
   const bereich = String(form.get("bereich") ?? "");
   const zurueck = (text: string) => new Response(null, { status: 303, headers: [["location", `/konto/unterlagen?hinweis=${encodeURIComponent(text)}`], ...s.cookies.map((c): [string, string] => ["set-cookie", c])] });
@@ -18,7 +18,7 @@ export async function unterlagenOhneTreffer(request: Request, env: KontoEnv & { 
   const dateien = form.getAll("dateien").filter((f): f is File => typeof f !== "string" && f.size > 0);
   if (!dateien.length || dateien.length > 40 || dateien.reduce((sum, f) => sum + f.size, 0) > 60 * 1024 * 1024) return zurueck("Bitte 1 bis 40 Dateien mit insgesamt höchstens 60 MB auswählen.");
   const titel = String(form.get("titel") ?? "").trim().slice(0, 300);
-  if (!titel) return zurueck("Bitte gib einen Titel für die Unterlagen ein.");
+  if (!titel) return zurueck("Bitte wähle eine Ausschreibung aus der Liste oder gib den Titel einer neuen ein.");
   const fehler = await dienste.pruefen(dateien);
   if (fehler) return zurueck(fehler[0]);
   // The new tender is checked by the same row permissions as the normal tender list.

@@ -59,13 +59,19 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (datei) return datei;
     const u = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/unterlagen$/);
     if (u && request.method === "POST") return unterlagenAmVorgang(u[1], request, env);
-    if (url.pathname === "/konto/unterlagen" && request.method === "POST") return unterlagenOhneTreffer(request, env, {
+    if (url.pathname === "/konto/unterlagen" && request.method === "POST") {
+      const form = await request.formData();
+      // Picked from the quick list: same as uploading at that tender (files are added to earlier ones).
+      const vorgang = String(form.get("vorgang") ?? "");
+      if (ID.test(vorgang)) return unterlagenAmVorgang(vorgang, request, env, form);
+      return unterlagenOhneTreffer(request, env, {
       pruefen: (dateien) => pruefenUndZaehlen(dateien, env),
       starten: (dateien, kontext) => {
         const profil = Object.entries(profile as Record<string, { firma_id?: string; name: string }>).find(([, p]) => p.firma_id === kontext.firma);
         return starten(env, dateien, { profil: profil?.[0] ?? `firma-${kontext.firma}`, kunde: profil?.[1].name ?? "", titel: kontext.titel, vorgang: kontext.vorgang });
       },
-    });
+      }, form);
+    }
     const am = await angebote(request, env);
     if (am) return am;
     const fu = await firmenunterlagen(request, env);
@@ -104,7 +110,7 @@ async function hochladen(request: Request, env: Env): Promise<Response> {
 }
 
 /** Upload at a hit in the account: the logged-in user's firm decides the profile, no access code. */
-async function unterlagenAmVorgang(id: string, request: Request, env: Env): Promise<Response> {
+async function unterlagenAmVorgang(id: string, request: Request, env: Env, form?: FormData): Promise<Response> {
   const z = await vorgangZugriff(request, env, id);
   if (!z) return Response.redirect(new URL("/konto", request.url).toString(), 303);
   const zurueck = (fehler = "") => {
@@ -113,7 +119,7 @@ async function unterlagenAmVorgang(id: string, request: Request, env: Env): Prom
     return new Response(null, { status: 303, headers: h });
   };
   if (z.rolle === "leser") return zurueck("Als Leser kannst du keine Unterlagen hochladen. Frag einen Admin deiner Firma.");
-  const dateien = auswahl(await request.formData());
+  const dateien = auswahl(form ?? (await request.formData()));
   const fehler = await pruefenUndZaehlen(dateien, env);
   if (fehler) return zurueck(fehler[0]);
   const eintrag = Object.entries(profile as Record<string, { firma_id?: string; name: string }>).find(([, p]) => p.firma_id === z.v.firma_id);

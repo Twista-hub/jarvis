@@ -72,6 +72,14 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   return null;
 }
 
+/** Quick pick of the tenders the firm already has (newest first); "new" shows the title field instead. */
+export function auswahlFeld(liste: { id: string; titel: string; frist: string | null; status: string; erstellt: string }[]): string {
+  const offen = liste.filter((v) => !["verworfen", "verloren"].includes(v.status)).sort((a, b) => b.erstellt.localeCompare(a.erstellt)).slice(0, 60);
+  if (!offen.length) return "";
+  const kurz = (t: string) => (t.length > 70 ? `${t.slice(0, 67)}…` : t);
+  return `<label>Ausschreibung<select name="vorgang" data-auswahl><option value="">➕ Neue Ausschreibung</option>${offen.map((v) => `<option value="${v.id}">${escape(kurz(v.titel))}${v.frist ? ` (Frist ${datum(v.frist)})` : ""}</option>`).join("")}</select></label>`;
+}
+
 // ---------- Login (pages in anmeldung.ts) ----------
 
 async function abmelden(request: Request, env: KontoEnv): Promise<Response> {
@@ -218,7 +226,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     inhalt = rahmen(`<h2>Nächste Fristen</h2>${fristen.length ? `<ul class="fristen-liste">${fristen.map((v) => `<li${v.frist!.slice(0, 10) <= in7Tagen ? ' class="frist-bald"' : ""}><time datetime="${escape(v.frist!)}">${datum(v.frist!)}</time><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a></li>`).join("")}</ul>` : `<p>Aktuell stehen keine offenen Fristen an.</p>`}<p class="klein">Jarvis erinnert dich zusätzlich 7 und 2 Tage vorher per täglicher Nachricht.</p>`);
   } else if (unterseite === "unterlagen") {
     const unterlagen = await unterlagenListe(liste, env);
-    inhalt = rahmen(`${finanzrecht ? `<p><a class="knopf" href="/konto/firmenunterlagen?firma=${m.firma_id}">Firmenunterlagen & Angebotsvorlagen</a></p>` : ""}<p>Lade Vergabeunterlagen auch ohne vorhandenen Treffer hoch. Jarvis erstellt daraus einen Steckbrief und eine Kalkulation.</p>${["inhaber","admin","bearbeiter"].includes(m.rolle) ? `<form method="post" action="/konto/unterlagen" enctype="multipart/form-data"><input type="hidden" name="firma" value="${m.firma_id}"><label>Ausschreibung (Titel oder Link)<input name="titel" required maxlength="300"></label>${b.length ? `<label>Bereich<select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label>` : ""}<label>Unterlagen<input name="dateien" type="file" multiple required accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label><button>Hochladen und prüfen</button></form>` : `<p class="klein">Als Leser kannst du vorhandene Steckbriefe ansehen.</p>`}<h2>Bisherige Steckbriefe aus Unterlagen</h2>${unterlagen || `<p>Noch keine Unterlagen geprüft.</p>`}<p><a href="/konto/treffer">Unterlagen bei einem Treffer nachreichen →</a></p>`);
+    inhalt = rahmen(`${finanzrecht ? `<p><a class="knopf" href="/konto/firmenunterlagen?firma=${m.firma_id}">Firmenunterlagen & Angebotsvorlagen</a></p>` : ""}<p>Lade Vergabeunterlagen auch ohne vorhandenen Treffer hoch. Jarvis erstellt daraus einen Steckbrief und eine Kalkulation.</p>${["inhaber","admin","bearbeiter"].includes(m.rolle) ? `<form method="post" action="/konto/unterlagen" enctype="multipart/form-data"><input type="hidden" name="firma" value="${m.firma_id}">${auswahlFeld(liste)}<div data-neu><label>Titel oder Link der neuen Ausschreibung<input name="titel" maxlength="300"></label>${b.length ? `<label>Bereich<select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label>` : ""}</div><label>Unterlagen<input name="dateien" type="file" multiple required accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label><button>Hochladen und prüfen</button></form>` : `<p class="klein">Als Leser kannst du vorhandene Steckbriefe ansehen.</p>`}<h2>Bisherige Steckbriefe aus Unterlagen</h2>${unterlagen || `<p>Noch keine Unterlagen geprüft.</p>`}<p><a href="/konto/treffer">Unterlagen bei einem Treffer nachreichen →</a></p>`);
   } else if (unterseite === "kalkulation" && !finanzrecht) {
     inhalt = rahmen(`<p>Für Kalkulationen brauchst du eine Finanzfreigabe. Frage einen Inhaber oder Administrator.</p>`);
   } else if (unterseite === "kalkulation") {
