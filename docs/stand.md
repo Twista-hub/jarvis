@@ -20,7 +20,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (Claude) Treffer-Seite: Knopfleiste oben, kein seitliches Scrollen am Handy, Hinweise auf fehlende Nachweise, Kalkulation sichtbar, Angebot mit Vorauswahl der Lose.
+- (Claude) Registrierung mit Name, Firma, Adresse und Passwort; Anmeldung, die in jedem Browser klappt (Link-Fehler „abgelaufen“).
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 1. Rechtstexte von Benjamin prüfen lassen.
