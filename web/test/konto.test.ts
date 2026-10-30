@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { challenge, cookie, jwt, sicherWeiter } from "../src/konto.ts";
+import { challenge, cookie, jwt, sicherWeiter, sitzung } from "../src/konto.ts";
 
 test("PKCE challenge is base64url(sha256(verifier)) without padding", async () => {
   // Expected value from Python: base64.urlsafe_b64encode(hashlib.sha256(v).digest()).rstrip(b"=")
@@ -25,3 +25,14 @@ test("reads cookies and the token payload", () => {
   assert.equal(jwt("kaputt"), null);
 });
 
+
+
+test("mehrere Rechteprüfungen erneuern denselben Login nur einmal",async(t)=>{
+  const alt=`h.${btoa(JSON.stringify({sub:"user",exp:1}))}.s`;
+  const neu=`h.${btoa(JSON.stringify({sub:"user",email:"test@example.de",exp:4000000000}))}.s`;
+  const mock=t.mock.method(globalThis,"fetch",async()=>Response.json({access_token:neu,refresh_token:"test-refresh",expires_in:3600}));
+  const request=new Request("https://x/",{headers:{cookie:`jv_at=${alt}; jv_rt=test-refresh-alt`}});
+  const env={SUPABASE_URL:"https://db.test",SUPABASE_KEY:"public"};
+  const [a,b]=await Promise.all([sitzung(request,env),sitzung(request,env)]);
+  assert.equal(mock.mock.callCount(),1);assert.equal(a,b);assert.ok(a!.cookies.some((c)=>c.startsWith("jv_rt=test-refresh;")));
+});

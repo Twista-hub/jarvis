@@ -3,7 +3,7 @@
 // rules (row level security) decide what each person may see and change.
 import { bereichOptionen as optionenFuerBereiche } from "./bereiche.ts";
 import { funktionsListe, personFormular } from "./mitarbeiter.ts";
-import { darfFinanzen, FUNKTIONEN, ZUGRIFFE } from "./rechte.ts";
+import { darfFinanzen, ZUGRIFFE } from "./rechte.ts";
 import { einladungsMail, senden } from "./mail.ts";
 import { CSP } from "./app.ts";
 import { FELDER, STANDARD, fmt, zahl, type Eingaben } from "./kalkulation.ts";
@@ -131,8 +131,14 @@ async function abmelden(request: Request, env: KontoEnv): Promise<Response> {
   return weiterleiten("/konto", [`jv_at=; ${COOKIE}; Max-Age=0`, `jv_rt=; ${COOKIE}; Max-Age=0`]);
 }
 
-/** The logged-in user from the cookies; refreshes an expired access token. */
-export async function sitzung(request: Request, env: KontoEnv): Promise<Sitzung | null> {
+/** Refresh a session at most once per request, even when several permission checks need it. */
+const sitzungen = new WeakMap<Request, Promise<Sitzung | null>>();
+export function sitzung(request: Request, env: KontoEnv): Promise<Sitzung | null> {
+  let s = sitzungen.get(request);
+  if (!s) { s = sitzungLaden(request,env); sitzungen.set(request,s); }
+  return s;
+}
+async function sitzungLaden(request: Request, env: KontoEnv): Promise<Sitzung | null> {
   let token = cookie(request, "jv_at");
   let cookies: string[] = [];
   let daten = token ? jwt(token) : null;
@@ -246,7 +252,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const kacheln = `<div class="konto-kacheln">${sichtbareKarten.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
   let inhalt: string;
   if (!unterseite) {
-    inhalt = rahmen(`${meldungen}<h2>Was möchtest du tun?</h2><p>${neu} neue Treffer · ${bald} Fristen diese Woche</p>${kacheln}`);
+    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat.</p>${kacheln}`) : rahmen(`${meldungen}<h2>Was möchtest du tun?</h2><p>${neu} neue Treffer · ${bald} Fristen diese Woche</p>${kacheln}`);
   } else if (unterseite === "treffer") {
     const tabs = `<nav class="reiter" aria-label="Stand der Ausschreibungen">${[["neu", "Neu"], ["arbeit", "In Arbeit"], ["abgegeben", "Abgegeben"], ["archiv", "Archiv"]].map(([key, label]) => `<a href="${link(key)}"${key === reiter ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
     inhalt = rahmen(`${meldungen}${tabs}${trefferListe(liste.filter((v) => gruppen[reiter].includes(v.status)), name, bereichWahl, link(reiter))}`);
