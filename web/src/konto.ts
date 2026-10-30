@@ -464,16 +464,15 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
   const fehler = new URL(request.url).searchParams.get("fehler") ?? "";
   const portal = v.link && /^https?:\/\//.test(v.link) ? v.link : "";
   const aus = await unterlagenSteckbrief(env, id);
-  // All actions in one row at the top (two per row on the phone).
+  // Actions below the Steckbrief: first read, then act (two per row on the phone). Download and check sit in the upload section.
   const kalkulation = aus?.text ? `/auftrag/${aus.auftrag}#kalkulation` : "/konto/kalkulation";
   const knoepfe = [
     ["inhaber", "admin"].includes(rolle) ? `<a href="/konto/vorgang/${v.id}/freigeben">👥 An Mitarbeiter weitergeben</a>` : "",
     finanzen ? `<a href="/konto/vorgang/${v.id}/angebot">📝 Angebot vorbereiten</a>` : "",
-    portal ? `<a class="zweit" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Hier runterladen</a>` : "",
-    rolle !== "leser" ? `<a class="zweit" href="#unterlagen">📥 Prüfen lassen</a>` : "",
     finanzen ? `<a class="zweit" href="${kalkulation}">💶 Kalkulation</a>` : "",
   ].filter(Boolean).join("");
-  const kopf = `${knoepfe ? `<nav class="aktionsleiste" aria-label="Aktionen">${knoepfe}</nav>` : ""}<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status}</p>
+  const leiste = knoepfe ? `<h2>Was möchtest du tun?</h2><nav class="aktionsleiste" aria-label="Aktionen">${knoepfe}</nav>` : "";
+  const kopf = `<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status}</p>
 ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
   // Required proofs the firm has not uploaded yet get a ⚠️ with an upload link (only for people with finance access).
   const unterlagen = finanzen ? await db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`) : null;
@@ -482,7 +481,8 @@ ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
   const brief = (md: string) => nachweiseMarkieren(markdown(md), unterlagen?.ok ? unterlagen.daten : null, stichtag, `/konto/firmenunterlagen?firma=${v.firma_id}`);
   const hochladen = rolle === "leser" ? "" : `<h2 id="unterlagen">📥 Vergabeunterlagen</h2>
 <p>Für Eignungskriterien, Nachweise, Referenzen und das Preisblatt braucht Jarvis die Unterlagen.</p>
-${portal ? `<p class="klein"><a href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Hier runterladen</a>: öffnet das Vergabeportal. Dort „Alle herunterladen“ bzw. „Vergabeunterlagen“ tippen (meist eine ZIP-Datei; manche Portale wollen eine kostenlose Anmeldung).</p>` : `<p class="klein">Die Ausschreibung beim Vergabeportal öffnen und die Unterlagen herunterladen.</p>`}
+${portal ? `<nav class="aktionsleiste"><a class="zweit" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Hier runterladen</a></nav>
+<p class="klein">Öffnet das Vergabeportal. Dort „Alle herunterladen“ bzw. „Vergabeunterlagen“ tippen (meist eine ZIP-Datei; manche Portale wollen eine kostenlose Anmeldung).</p>` : `<p class="klein">Die Ausschreibung beim Vergabeportal öffnen und die Unterlagen herunterladen.</p>`}
 <form method="post" action="/konto/vorgang/${v.id}/unterlagen" enctype="multipart/form-data">
   <label>Danach die heruntergeladenen Dateien hier auswählen (eine oder mehrere) – Jarvis legt sofort los<input name="dateien" type="file" multiple required data-sofort accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label>
   <button>Prüfen lassen</button>
@@ -492,13 +492,13 @@ ${portal ? `<p class="klein"><a href="${escape(portal)}" rel="noopener" target="
   let teil: string;
   if (aus?.text) {
     teil = `<h2>Steckbrief aus den Vergabeunterlagen</h2>${brief(aus.text)}
-${hochladen.replace("📥 Vergabeunterlagen", "📥 Dateien nachreichen")}
+${leiste}${hochladen.replace("📥 Vergabeunterlagen", "📥 Dateien nachreichen")}
 ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summary>${brief(v.steckbrief)}</details>` : ""}`;
   } else if (aus) {
     return html(seite(v.titel, `${kopf}<p><strong>Jarvis liest gerade die Unterlagen.</strong> Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu; du kannst sie auch schließen.</p>
-${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${markdown(v.steckbrief)}` : ""}`, 20, "treffer"), 200, s.cookies);
+${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}`, 20, "treffer"), 200, s.cookies);
   } else {
-    teil = `${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief.</p>`}${hochladen}`;
+    teil = `${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
   }
   return html(seite(v.titel, kopf + teil, 0, "treffer"), 200, s.cookies);
 }
