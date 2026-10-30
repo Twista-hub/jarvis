@@ -93,7 +93,7 @@ test("Tarifvertrag wählt nur eigene Entgeltgruppen; Qualifikationen sind mehrfa
   const html = kraftFormular({ tarifvertrag_id: tarifId, eg: "2a" }, "/save", "Speichern", ["Staplerschein", "Ersthelfer"], [tarif, andere]);
   assert.match(html, /name="tarifvertrag" required data-tarifvertrag/);
   assert.match(html, /data-tarifvertrag="88888888[^\"]*" selected>EG 2a/);
-  assert.match(html, /data-tarifvertrag="99999999[^\"]*" disabled>Geselle/);
+  assert.match(html, /data-tarifvertrag="99999999[^\"]*" disabled>Gruppe: Geselle/);
   assert.match(html, /Qualifikationen auswählen/);
   assert.match(html, /name="qualifikationen" value="Staplerschein"/);
   const form = new FormData();
@@ -105,14 +105,27 @@ test("Tarifvertrag wählt nur eigene Entgeltgruppen; Qualifikationen sind mehrfa
   assert.deepEqual(parsed.qualifikationen, ["Staplerschein", "Ersthelfer"]);
 });
 
-test("Mitarbeiterformular zeigt, wenn nur GVP hinterlegt ist, und führt direkt zur Tarifverwaltung", () => {
+test("Mitarbeiterformular zeigt die Anzahl hinterlegter Tarifwerke und führt zur Verwaltung", () => {
   const html = kraftFormular({}, "/save", "Speichern", [], [tarif]);
-  assert.match(html, /Aktuell ist nur der Zeitarbeitstarif GVP\/DGB hinterlegt/);
+  assert.match(html, /1 Tarifwerk oder Branchenmindestlohn/);
   assert.match(html, /href="\/konto\/team#tarifvertraege"/);
   const verwaltung = tarifvertraegeBlock([tarif], true);
   assert.match(verwaltung, /id="tarifvertraege"/);
   assert.match(verwaltung, /Tarifvertrag hinzufügen/);
   assert.match(verwaltung, /Entgelttarifvertrag.*2025|Originalvertrag/);
+});
+
+test("Tarifverwaltung nennt Gruppenart, Beruf, Datenstatus und verlinkte Quelle", () => {
+  const elektro: Tarifvertrag = {
+    id: "elektro", name: "Elektrohandwerk NRW", geltungsbereich: "Nordrhein-Westfalen", gruppen: ["EG 1", "EG 12"],
+    quelle: "Tarifregister NRW", quelle_url: "https://example.test/elektro.pdf", gruppenart: "Entgeltgruppe", berufe: ["Elektriker/in"],
+    tarifart: "Tarifvertrag", datenstand: "2026-10-30", datenstatus: "Gruppenanzahl geprüft", hinweis: "Merkmale im Originalvertrag prüfen.",
+  };
+  const html = tarifvertraegeBlock([elektro], false);
+  assert.match(html, /Nordrhein-Westfalen/);
+  assert.match(html, /Berufsbezug: Elektriker\/in/);
+  assert.match(html, /Merkmale im Originalvertrag prüfen/);
+  assert.match(html, /href="https:\/\/example\.test\/elektro\.pdf"/);
 });
 
 function mock(t: TestContext) {

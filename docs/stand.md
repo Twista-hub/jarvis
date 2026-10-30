@@ -18,7 +18,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Organisationsbaum Firma → Region → Standort, getrennte App-Zugänge und Einsatzpersonal, sichtbare Standortleitung mit auf einen einzelnen Standort beschränkten Rechten. Standortleitungen verwalten Personal und Einsätze, aber weder Firmenfinanzen noch globale Team-/Bereichsverwaltung.
   - Personalbestand mit branchenübergreifenden Berufsgruppen, Verfügbarkeit, Kontakt und Qualifikationen; eigene Qualifikationen pro Firma/Standort, Filter nach Beruf, Qualifikation und Status. Personen können Ausschreibungen mit Einsatzstatus zugeordnet werden.
   - Berufekatalog in `web/src/berufe.ts` um IT, Bildung/Betreuung, Fahrzeug/Verkehr sowie Gebäudetechnik/Energie erweitert. Ausschreibungsbegriffe werden über gepflegte Synonyme kanonischen Berufsbezeichnungen zugeordnet; der Originalwortlaut bleibt in der Fundstelle erhalten. Das ist ein kuratierter Startbestand, keine vollständige amtliche Berufedatenbank.
-  - Qualifikationen als Mehrfachauswahl mit Häkchen. Personal wird einem Tarifvertrag mit Geltungsbereich, Quelle und Laufzeit zugeordnet; die Entgeltgruppenliste zeigt nur Gruppen dieses Vertrags. GVP/DGB ist aus den Originalverträgen vorbefüllt, weitere Verträge kann die Administration mit den Gruppen aus dem Originalvertrag hinterlegen.
+  - Tarifauswahl im Personalformular mit 11 quellgebundenen Tarifwerken/Mindestlohn-Einträgen: Zeitarbeit GVP/DGB, Elektrohandwerk, Gebäudereinigung, Bau, Groß-/Außenhandel, GaLaBau (je NRW), TVöD-VKA Allgemein/SuE/Pflege, TV-L und Maler-Gesellenmindestlohn. Auswahl zeigt Branche/Region; Gruppen hängen am gewählten Vertrag. Vertragsquelle, Berufsbezug, Prüfstand und Datenhinweise sind unter Firma & Team einsehbar. Gastgewerbe NRW ist mangels veröffentlichter aktueller Gruppen nur als Metadatum hinterlegt und nicht auswählbar.
   - Kalkulation pro Los mit Tarifentgeltgruppen, Laufzeit, Schicht- und Einsatzkosten, Gemeinkosten sowie Gewinn.
   - Firmenunterlagen und Word-/Textvorlagen; Angebotsmappe mit bearbeitbarem Entwurf, Chef-Freigabe vor Download, Ablaufprüfung, Ablauf-Erinnerungen und protokolliertem Eingangsbeleg nach manueller Portalabgabe.
   - Kompakte Info-Symbole statt sichtbarer Hilfsüberschriften; Kurzüberblicke auch für Treffer ohne ausführlichen KI-Steckbrief.
@@ -26,7 +26,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
-- **Zentraler Katalog (Code bereitgestellt):** eigener stündlicher Worker, gemeinsame offene Bekanntmachungen und neue Markt-/Teilnahmefunktionen. Aktivierung und Live-Datenstand über die Ausrollläufe prüfen; der Erstbestand wird schrittweise aufgebaut.
+- **Tarifdatenbank (Code bereitgestellt):** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 11 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. 30 GVP-Entgeltwerte über drei Stichtage und ein Maler-Mindestlohnwert sind explizit quellengebunden gespeichert. Das ist ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmalen und Löhnen.
+- **Zentraler Vergabekatalog (Code bereitgestellt):** eigener stündlicher Worker, gemeinsame offene Bekanntmachungen und neue Markt-/Teilnahmefunktionen. Aktivierung und Live-Datenstand über die Ausrollläufe prüfen; der Erstbestand wird schrittweise aufgebaut.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
@@ -37,7 +38,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 2. ~~**Kalkulationsvorlagen pro Standort**~~: Auf `/konto/kalkulation` nach Firma oder Standort auswählen und Vorlagen speichern. Beim Rechnen gelten in Reihenfolge Standort → Region → Firma; eigene Angebotswerte behalten Vorrang. Keine Migration nötig, vorhandene Bereichs-/Finanzrechte bleiben maßgeblich.
 3. ~~Mitarbeiter sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen~~ (umgesetzt; Rechte und Finanzsicht bleiben rollenabhängig).
-5. Berufekatalog um weitere belegte Tätigkeiten/Synonyme ergänzen; Tarifdaten nur vertragsbezogen aus Originalen aufnehmen. Keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`).
+5. Tarifdatenbank ist mit einem quellengebundenen Startbestand ausgebaut. Weitere Tarifbereiche samt aktuellen Originalgruppen, Tätigkeitsmerkmalen und Entgelten schrittweise ergänzen; keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`, `alarm/quellen.md`).
 6. Danach Quellen (Lücke Bayern/BW, SAM.gov-API-Bedingungen), dann Pläne/Stripe, Telegram-Jarvis.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
@@ -53,6 +54,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 30.10.2026 – ChatGPT (quellengebundener Tarifkatalog)
+- Migration `20261031070000_tarifkatalog_branchen.sql`: gemeinsamer lesbarer Tarifkatalog mit Branche/Region, Gruppe, Berufsbezug, Quelle, Laufzeit, Prüfstand und Datenhinweis; Firmen erhalten RLS-geschützte Auswahlkopien, auch neu angelegte Firmen. In Mitarbeiterformular und Tarifverwaltung werden Verträge samt Branche, Gruppenart und Herkunft sichtbar.
+- 11 gruppierte Einträge für Zeitarbeit GVP/DGB, Elektro, Gebäudereinigung, Bau, Groß-/Außenhandel, GaLaBau (je NRW), TVöD-VKA Allgemein/SuE/Pflege, TV-L sowie Maler-Gesellenmindestlohn; 30 GVP-Entgelte über drei Stichtage und der veröffentlichte Maler-Mindestlohn als gesonderte Werte. Gastgewerbe NRW 2026 ist nur als Metadatum gespeichert, weil die neue Gruppentabelle öffentlich nicht belegt war.
+- Die NRW-Registerblätter nennen teils nur Gruppenanzahl; die Einträge weisen deshalb ausdrücklich darauf hin, dass Tätigkeitsmerkmale und genaue Entgelte im Original zu prüfen sind. Das BMAS führt über 90.000 gültige Verträge und bietet keinen offenen Komplettdatensatz. Keine Vollständigkeit behauptet.
+- Tests ergänzt für Firmenvorbelegung, Quellen-/Berufsbezug, Tarifwerte und Schreibschutz. `cd web && npm run check && npm test`: grün (19 Testdateien). Lokales SQL-Testen ist in dieser Umgebung mangels Zugriff auf den Docker-Dienst nicht möglich; der GitHub-Datenbankworkflow prüft die Migration nach dem Push gegen PostgreSQL 16 und spielt sie gemäß Projektregel nach erfolgreicher Rechteprüfung ein.
+- Offen: weitere Branchen/Regionen aus aktuellen Originalverträgen ergänzen, besonders Bayern/Baden-Württemberg und derzeit fehlende Tarifwerke; Nutzungsrechte und Aktualisierung je Quelle weiter prüfen. Eine vollständige bundesweite Tarifdatenbank ist mit den frei verfügbaren geprüften Quellen nicht erreichbar.
 
 ### 30.10.2026 – ChatGPT (Tarifauswahl im Mitarbeiterformular)
 - Ursache bestätigt: Die Auswahlliste lädt firmeneigene Datensätze korrekt; pro Firma wird als Standard nur „Zeitarbeit GVP/DGB“ angelegt. Meine vorherige Änderung erweiterte ausschließlich Berufe/Synonyme und importierte keine weiteren Tarifverträge.

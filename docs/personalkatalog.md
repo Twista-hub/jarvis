@@ -18,6 +18,14 @@
 - Filter nach Beruf, Qualifikation und Verfügbarkeit; Standortleitung mit Personal- und Einsatzrechten nur im zugeordneten Bereich.
 - Firmenweite Kalkulation, Angebotsunterlagen und Mitgliedsverwaltung bleiben der Administration bzw. explizit finanzberechtigten Rollen vorbehalten.
 
+### Tarifdatenbank (30.10.2026)
+
+Die Migration `supabase/migrations/20261031070000_tarifkatalog_branchen.sql` ergänzt einen globalen, für angemeldete Nutzer nur lesbaren Quellenkatalog und legt die auswählbaren Einträge je Firma als geschützte Kopie an. Neue Firmen bekommen denselben Stand. Im Mitarbeiterformular stehen nun 11 gruppierte Verträge/Mindestlohn-Einträge für Zeitarbeit, Elektro, Gebäudereinigung, Bau, Groß-/Außenhandel, GaLaBau, TVöD-VKA (Allgemein/SuE/Pflege), TV-L sowie den Maler-Gesellenmindestlohn bereit. DEHOGA NRW ist mit Laufzeit/Quelle als Metadatum ohne Gruppenauswahl erfasst, bis eine vollständige aktuelle Tabelle öffentlich belegt ist.
+
+Die Vertragsdatensätze führen Branche, Region, Gruppenart, Berufsbezug, URL, Gültigkeit, Prüfdatum und einen Datenhinweis. Die NRW-Arbeitshilfen belegen teilweise Gruppenanzahl und Laufzeit, aber nicht die Tätigkeitsmerkmale jeder Gruppe oder deren Entgelt; das steht beim Eintrag ausdrücklich dabei. Es gibt zudem 30 GVP/DGB-Entgeltwerte (EG 1–9, drei Gültigkeitsstichtage) und den separat gekennzeichneten Maler-Mindestlohn von 16,13 €/Std. ab 01.07.2026. Andere Tarifentgelte werden nicht geschätzt. Die bestehende automatische Lohnkalkulation bleibt auf GVP/DGB begrenzt.
+
+Das ist keine vollständige Liste aller deutschen Tarifverträge. Das BMAS nennt über 90.000 gültige Verträge, gibt aber keinen offenen vollständigen Datensatz aus. Weitere Einträge brauchen einen aktuellen Originalvertrag oder eine belastbare öffentliche Originalquelle sowie Prüfung von Tarifbindung, Region, Laufzeit und Nutzungsrecht. Fehlende Tätigkeitsmerkmale oder Werte bleiben als Lücke gekennzeichnet.
+
 ## Datenherkunft und nächste Schritte
 
 Der aktuelle Berufekatalog ist ein kuratierter Startbestand im Anwendungscode, keine vollständige oder direkt importierte amtliche Berufedatenbank. Die Synonymliste wächst schrittweise. Der Trefferbedarf wird mit Originaltext/Fundstelle erkannt; fachliche Eignung und Zuordnung müssen weiter durch Nutzer geprüft werden. Für eine größere Berufedatenbank sind pro Eintrag Herkunft, Aktualisierungsdatum und Nutzungsrecht zu dokumentieren, bevor sie importiert wird.
