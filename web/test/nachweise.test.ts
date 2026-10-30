@@ -40,3 +40,16 @@ test("offer text from chosen lots has prices and no placeholders", () => {
   assert.equal(n.ids.length, 1);
   assert.deepEqual(n.fehlen, ["Referenzen"]);
 });
+
+test("Schnellauswahl: jeder Vorschlag wird als vorhandener Nachweis erkannt und mit ✅ markiert", async () => {
+  const { NACHWEIS_TYPEN, vorhanden } = await import("../src/nachweise.ts");
+  const { schnellauswahl } = await import("../src/firmenunterlagen.ts");
+  for (const t of NACHWEIS_TYPEN) {
+    const d = { id: "1", firma_id: "f", name: t.name, art: "nachweis", dateiname: "x.pdf", mime: "application/pdf", groesse: 1, gueltig_bis: null };
+    assert.ok(vorhanden(t, [d], "2026-10-30"), `nicht erkannt: ${t.name}`);
+  }
+  const html = schnellauswahl([{ id: "1", firma_id: "f", name: "Handelsregisterauszug", art: "nachweis", dateiname: "hr.pdf", mime: "application/pdf", groesse: 1, gueltig_bis: null }], "2026-10-30", "Referenzen");
+  assert.match(html, />✅ Handelsregisterauszug</);
+  assert.match(html, /value="Referenzen" selected/);
+  assert.match(html, /value="__vorlage"/);
+});
