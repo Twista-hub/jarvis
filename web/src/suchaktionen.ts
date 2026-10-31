@@ -35,7 +35,7 @@ document.querySelectorAll("form[data-suchaktion]").forEach(function (form) {
     }
     status.className = "laedt";
     busyStatus = status;
-    status.textContent = recherche ? "Jarvis recherchiert deine Firma. Das kann bis zu zwei Minuten dauern. Danach erscheint das Ergebnis automatisch." : "Jarvis startet die Suche nach Ausschreibungen. Bitte warte kurz …";
+    status.textContent = recherche ? "Jarvis prüft eure Leistungen und Standorte. Das kann einige Minuten dauern. Danach geht es automatisch weiter." : "Jarvis startet die Suche nach Ausschreibungen. Bitte warte kurz …";
     var spinner = document.createElement("span");
     spinner.className = "kreisel";
     spinner.setAttribute("aria-hidden", "true");

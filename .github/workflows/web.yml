@@ -12,6 +12,10 @@ on:
         description: "Echte Firmenrecherche im App-Worker prüfen (öffentliche Testfirma, vorhandenes KI-Budget)"
         type: boolean
         default: false
+      standorte:
+        description: "Firmenrecherche mit PerLease und mehreren Niederlassungen prüfen"
+        type: boolean
+        default: false
       test:
         description: "Danach Bundesbank-Testunterlagen hochladen und Steckbrief zeigen (kostet ca. 0,50 $)"
         type: boolean
@@ -69,7 +73,7 @@ jobs:
           pw=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"],safe=""))')
           for versuch in $(seq 1 30); do
             for host in aws-1-eu-central-1 aws-0-eu-central-1; do
-              if [ "$(psql "postgresql://postgres.juuuifrcxmitkqudqngq:$pw@$host.pooler.supabase.com:6543/postgres" -tAc "select to_regclass('jarvis_katalog.ki_budget') is not null" 2>/dev/null)" = t ]; then exit 0; fi
+              if [ "$(psql "postgresql://postgres.juuuifrcxmitkqudqngq:$pw@$host.pooler.supabase.com:6543/postgres" -tAc "select to_regclass('jarvis_katalog.ki_budget') is not null and to_regprocedure('jarvis_katalog.ki_tageslimit(timestamp with time zone)') is not null" 2>/dev/null)" = t ]; then exit 0; fi
             done
             sleep 10
           done
@@ -122,9 +126,9 @@ jobs:
           echo "Hyperdrive, KI-Budget und ein Mini-KI-Aufruf im App-Worker erfolgreich." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Firmenrecherche im App-Worker prüfen
-        if: inputs.recherche && env.OHNE_SCHLUESSEL != '1'
+        if: (inputs.recherche || inputs.standorte) && env.OHNE_SCHLUESSEL != '1'
         run: |
-          status=$(curl -sS --max-time 200 -o recherche-check.json -w '%{http_code}' -d "code=$TEST_CODE" -d "recherche=1" "$URL/__intern/db-check")
+          status=$(curl -sS --max-time 350 -o recherche-check.json -w '%{http_code}' -d "code=$TEST_CODE" -d "recherche=1" -d "standorte=${{ inputs.standorte && '1' || '0' }}" "$URL/__intern/db-check")
           cat recherche-check.json
           test "$status" = 200
           python3 - <<'PY'
@@ -133,6 +137,9 @@ jobs:
           p = r['profil']
           assert r['ok'] and r['suchanfragen'] >= 1
           assert len(p['websuche_beschreibung']) >= 20 and p['websuche_quellen']
+          if r.get('mehrere_standorte'):
+            assert len(p.get('firmenstandorte', [])) >= 2, 'Mehrere belegte Niederlassungen fehlen'
+            assert all(o.get('quelle', '').startswith('https://') for o in p['firmenstandorte'])
           assert p['leistungen'] and any(l['woerter'] for l in p['leistungen'])
           print('Echte Firmenrecherche: Suchaufträge, Quellen und konkrete Leistungen vorhanden.')
           PY

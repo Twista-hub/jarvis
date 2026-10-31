@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { rechercheProfil } from "../src/firmenrecherche.ts";
+import Anthropic from "@anthropic-ai/sdk";
+import { kiFehlerart, kiFehlermeldung } from "../src/ki-fehler.ts";
 
 const angaben = { name: "Beispiel GmbH", website: "https://firma.example", beschreibung: "Unsere eigene Firmenbeschreibung.", orte: "Baesweiler", websiteText: "Fliesen und Mosaikarbeiten für Bad und Küche." };
 const suche = {
@@ -11,7 +13,7 @@ const suche = {
 };
 function fake(antworten: unknown[]) {
   const aufrufe: any[] = [];
-  const client = { beta: { messages: { create: async (parameter: unknown) => { aufrufe.push(parameter); return antworten.shift(); } } } } as any;
+  const client = { beta: { messages: { create: async (parameter: unknown) => { aufrufe.push(parameter); const a = antworten.shift(); if (a instanceof Error) throw a; return a; } } } } as any;
   return { client, aufrufe };
 }
 
@@ -32,6 +34,35 @@ test("Firmenrecherche trennt zitierte Websuche und JSON-Profil und übernimmt ec
   assert.equal(r.profil.beschreibung, angaben.beschreibung);
   assert.deepEqual(r.profil.websuche_quellen, [{ titel: "Firmenprofil", url: "https://branchen.example/firma" }]);
   assert.equal(r.suchanfragen, 1);
+});
+
+test("SDK-Verbindungsfehler verdecken die Budgetursache nicht und werden nicht wiederholt", async () => {
+  const fehler = new Anthropic.APIConnectionError({ cause: new Error("Das KI-Tages- oder Monatsbudget ist erreicht.") });
+  assert.equal(fehler.message, "Connection error.");
+  assert.equal(kiFehlerart(fehler), "budget");
+  assert.match(kiFehlermeldung(fehler), /KI-Tages- oder Monatsbudget/);
+  assert.doesNotMatch(kiFehlermeldung(fehler), /Connection error/);
+  const { client, aufrufe } = fake([fehler]);
+  await assert.rejects(() => rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, client));
+  assert.equal(aufrufe.length, 1);
+});
+
+test("ein vorübergehender Verbindungsfehler wird einmal automatisch wiederholt", async () => {
+  const antwort = { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ websuche_beschreibung: "Belegte Leistungen", leistungen: [{ name: "Fliesen", cpv: [], woerter: ["fliesen"] }] }) }] };
+  const { client, aufrufe } = fake([new Anthropic.APIConnectionError({}), suche, antwort]);
+  assert.ok((await rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, client)).profil.leistungen?.length);
+  assert.equal(aufrufe.length, 3);
+});
+
+test("alle belegten Firmenstandorte bleiben erhalten; erfundene Quellen werden entfernt", async () => {
+  const firmenstandorte = Array.from({ length: 16 }, (_, i) => ({ name: `Standort ${i + 1}`, plz: "", quelle: "https://firma.example/standorte" }));
+  firmenstandorte.push({ name: "Unbelegt", plz: "", quelle: "https://erfunden.example" });
+  const { client } = fake([suche, { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({
+    websuche_beschreibung: "Belegte eigene Niederlassungen.", leistungen: [{ name: "Fliesen", cpv: [], woerter: ["fliesen"] }], firmenstandorte,
+  }) }] }]);
+  const r = await rechercheProfil({ ANTHROPIC_API_KEY: "test" }, { ...angaben, websiteText: "/standorte: Unsere 16 Niederlassungen." }, client);
+  assert.equal(r.profil.firmenstandorte?.length, 16);
+  assert.ok(r.profil.firmenstandorte?.every((o) => o.quelle === "https://firma.example/standorte"));
 });
 
 test("Websuche ohne direkte Website-Inhalte erfindet keinen Website-Fund", async () => {

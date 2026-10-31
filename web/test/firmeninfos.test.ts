@@ -12,3 +12,11 @@ test("Firmenfunde sind direkt offen und lesbar; Bearbeitung und sichere Quellen 
   assert.equal(document.querySelectorAll("nav a").length, 1);
   assert.equal(document.querySelector(".fund-bearbeiten")!.hasAttribute("open"), false);
 });
+
+test("belegte Firmenstandorte sind direkt sichtbar mit Quellen und Team-Link", () => {
+  const { document } = parseHTML(firmenInfos({ firmenstandorte: [{ name: "Aachen", plz: "52062", quelle: "https://firma.example/standorte" }] }));
+  assert.match(document.querySelector(".firmen-standorte")!.textContent!, /1 Firmenstandort gefunden/);
+  assert.match(document.querySelector(".firmen-standorte")!.textContent!, /52062 Aachen/);
+  assert.equal(document.querySelector('.firmen-standorte a[href="/konto/team"]')!.textContent, "Firma & Team öffnen");
+  assert.match(document.querySelector(".firmen-standorte")!.textContent!, /Suchgebiet ändert sich dadurch nicht/);
+});

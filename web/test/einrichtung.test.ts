@@ -9,6 +9,12 @@ test("automatische Ergänzung bewahrt eigene Beschreibung, Suchgebiete, Länder 
   assert.deepEqual(ausFormular(form), v);
 });
 
+test("Firmenstandorte und bis zu vierzig Suchorte bleiben im Formular vollständig erhalten", () => {
+  const v = bereinigen({ beschreibung: "Unsere Leistungen und Niederlassungen", firmenstandorte: [{ name: "Köln", plz: "50667", quelle: "https://firma.example/standorte" }],
+    standorte: Array.from({ length: 40 }, (_, i) => ({ name: `Ort ${i}`, plz_praefixe: ["50"] })) });
+  assert.deepEqual(ausFormular(profilZuFormular(v, "https://firma.example")), v);
+});
+
 test("erlaubt eine neue Suche nach Abschluss des vorherigen Laufs", () => {
   const jetzt = Date.parse("2026-10-31T06:00:00Z");
   assert.equal(suchlaufLaeuft("2026-10-31T05:30:00Z", "2026-10-31T05:35:00Z", jetzt), false);

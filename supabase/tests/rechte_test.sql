@@ -32,6 +32,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031140000_weitere_branchenmindestentgelte.sql
 \ir ../migrations/20261030224121_kaufverantwortung.sql
 \ir ../migrations/20261031150000_kontoloeschung_inhaber.sql
+\ir ../migrations/20261031160636_firmenpruefung_testbudget.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -365,8 +366,12 @@ select jarvis_katalog.aufnehmen(jsonb_build_array(to_jsonb(k)||'{"version":"v0",
 select pruefe((select version='v2' from public.vergabekatalog where id='bks:test'),'Ältere Exporte überschreiben neue Fristen nicht');
 select jarvis_katalog.aufnehmen(jsonb_build_array(to_jsonb(k)||'{"quell_datum":"2026-11-01T10:00:00Z"}'::jsonb)) from public.vergabekatalog k where id='bks:test';
 select pruefe((select count(*)=1 from public.katalog_aenderungen where katalog_id='bks:test'),'Gleicher Inhalt erzeugt keine neue kostenpflichtige Version');
-select jarvis_katalog.ki_reservieren(1.5,'test') as reservierung \gset
-select pruefe(jarvis_katalog.ki_reservieren(1.6,'test') is null,'KI-Tageslimit wird vor Anfrage atomar geprüft');
+select pruefe(jarvis_katalog.ki_tageslimit('2026-10-31T23:59:59Z')=5,'Freigegebener Testtag hat 5 USD Tageslimit');
+select pruefe(jarvis_katalog.ki_tageslimit('2026-11-01T00:00:00Z')=3,'Testbudget endet automatisch um Mitternacht UTC');
+select pruefe(jarvis_katalog.ki_tageslimit('2026-10-30T12:00:00Z')=3,'Normales Tageslimit bleibt 3 USD');
+select pruefe(jarvis_katalog.ki_reservieren(3.1,'test') is null,'Einzelanfragen bleiben auf höchstens 3 USD begrenzt');
+select jarvis_katalog.ki_reservieren(jarvis_katalog.ki_tageslimit(now())/2,'test') as reservierung \gset
+select pruefe(jarvis_katalog.ki_reservieren(jarvis_katalog.ki_tageslimit(now())/2+0.1,'test') is null,'KI-Tageslimit wird vor Anfrage atomar geprüft');
 select jarvis_katalog.ki_abschliessen(:'reservierung',0.1);
 select jarvis_katalog.ki_abschliessen(:'reservierung',0.01);
 select pruefe((select reserviert=0.1 from jarvis_katalog.ki_kosten where id=:'reservierung'),'Abrechnung gibt Reservierung nur einmal frei');

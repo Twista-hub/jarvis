@@ -121,7 +121,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
 /** One-time deployment probe: the random upload-test code gates a non-writing Hyperdrive/API-budget check. */
 async function datenbankPruefen(request: Request, env: Env): Promise<Response> {
   const form = await request.formData().catch(() => null);
-  return hyperdrivePruefen(String(form?.get("code") ?? ""), env.TEST_CODE_HASH, env, form?.get("ki") === "1", form?.get("recherche") === "1");
+  return hyperdrivePruefen(String(form?.get("code") ?? ""), env.TEST_CODE_HASH, env, form?.get("ki") === "1", form?.get("recherche") === "1", form?.get("standorte") === "1");
 }
 
 async function hochladen(request: Request, env: Env): Promise<Response> {

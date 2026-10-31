@@ -40,8 +40,16 @@ test("invited people see no firm fields", () => {
 
 test("Anmeldung erklärt automatische Website-Auswertung nach E-Mail-Bestätigung", () => {
   const html = registrierFormular({}, "", "/konto");
-  assert.match(html, /Nach der E-Mail-Bestätigung liest Jarvis automatisch/);
-  assert.match(html, /startet die erste Suche/);
+  assert.match(html, /Nach der E-Mail-Bestätigung startet die Firmenprüfung automatisch/);
+  assert.match(html, /passendere Ausschreibungen/);
+});
+
+test("Firmenwebsite wird für bessere Ergebnisse empfohlen, bleibt aber optional", () => {
+  const html = registrierFormular({}, "", "/konto");
+  assert.match(html, /für bessere Ergebnisse empfohlen/);
+  assert.match(html, /Leistungen und Standorte genauer/);
+  assert.match(html, /Ohne Website ist die Registrierung auch möglich/);
+  assert.doesNotMatch(html, /name="website"[^>]*required/);
 });
 
 test("company website is normalized and restricted to HTTPS addresses", () => {
