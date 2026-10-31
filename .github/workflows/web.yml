@@ -70,10 +70,16 @@ jobs:
             sleep 10
           done
           echo "::error::Katalogmigration noch nicht bereit; bestehende App bleibt online."; exit 1
+      - name: Datenbankzugang über Hyperdrive
+        if: env.OHNE_SCHLUESSEL != '1'
+        run: |
+          id=$(python3 scripts/hyperdrive.py)
+          printf '\n[[hyperdrive]]\nbinding = "HYPERDRIVE"\nid = "%s"\n' "$id" >> wrangler.toml
       - if: env.OHNE_SCHLUESSEL != '1'
         run: |
-          printf '%s' "$SUPABASE_DB_PASSWORD" | npx wrangler secret put SUPABASE_DB_PASSWORD
           npx wrangler deploy
+          # The worker reaches the database only through Hyperdrive now; drop the old direct password.
+          npx wrangler secret delete SUPABASE_DB_PASSWORD --force 2>/dev/null || true
 
       - name: Schlüssel setzen
         if: env.OHNE_SCHLUESSEL != '1'
