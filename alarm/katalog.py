@@ -5,6 +5,8 @@ import os
 from datetime import datetime, timezone
 from profile_db import verbinden
 
+BEWERTUNG_METHODE = "score-v2"
+
 
 def offen(rel):
     tender = rel.get("tender") or {}
@@ -63,7 +65,7 @@ def bewertungen(profil):
         return {}
     try:
         with verbinden() as con:
-            rows = con.execute("select katalog_id,version,ergebnis from jarvis_katalog.bewertungen where firma_id=%s and profil_version=%s and methode='score-v1'", (profil["firma_id"], profil_version(profil))).fetchall()
+            rows = con.execute("select katalog_id,version,ergebnis from jarvis_katalog.bewertungen where firma_id=%s and profil_version=%s and methode=%s", (profil["firma_id"], profil_version(profil), BEWERTUNG_METHODE)).fetchall()
         return {(k, v): e for k, v, e in rows}
     except Exception:
         return {}
@@ -74,8 +76,8 @@ def bewertung_speichern(profil, rel, ergebnis):
         return
     with verbinden() as con:
         con.execute("""insert into jarvis_katalog.bewertungen(firma_id,katalog_id,version,profil_version,methode,ergebnis)
-          values(%s,%s,%s,%s,'score-v1',%s::jsonb) on conflict do nothing""",
-          (profil["firma_id"], rel["_katalog_id"], rel["_katalog_version"], profil_version(profil), json.dumps(ergebnis)))
+          values(%s,%s,%s,%s,%s,%s::jsonb) on conflict do nothing""",
+          (profil["firma_id"], rel["_katalog_id"], rel["_katalog_version"], profil_version(profil), BEWERTUNG_METHODE, json.dumps(ergebnis)))
 
 
 def reservieren(betrag, zweck):

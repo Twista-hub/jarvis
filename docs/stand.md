@@ -3,6 +3,7 @@
 Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (31.10.2026)
+- **Suchqualität und Suchstatus (31.10.):** Konkrete Leistungsbegriffe statt Teilwort-/Ortsnamen-Zufällen; KI-Treffer erst ab 6/10, bei Budgetausfall nur klare Wort-/Leistungsbezüge. Bekannte unpassende unbearbeitete Treffer werden auch bei begrenztem Katalog archiviert, ausschließlich für ausgewertete Firmen. Neue Suchbewertung ersetzt alte Begründungen, ausführliche Unterlagenanalysen bleiben erhalten. Abschlusszeitpunkt und echte Neuzugänge getrennt von offenen Treffern; Statusabfrage aktualisiert nach Abschluss/Rückkehr in die App. Arbeitsauswahl als durchsuchbare Liste mit einheitlicher Schrift und linker Ausrichtung. Live-Nachprüfung dieses Schritts läuft noch.
 - **Suchprofil einfacher (31.10.):** Firmenfunde sind standardmäßig geöffnet, als lesbare Karten für Website und öffentliche Quellen mit Quellenlinks. Texte bleiben über „Text bearbeiten“ änderbar. Gesuchte Arbeiten stehen kompakt als Kästchen mit Entfernen-Knopf; weitere per Dropdown oder eigener Eingabe, Suchdetails durch Antippen des Kästchens. Klare Aktionen für Ausschreibungen suchen, Profil bearbeiten und Firmeninfos neu recherchieren mit Fortschritt/Bestätigung. Automatischer Erstlauf nach Neuanmeldung bleibt erhalten.
 - **Mindestentgelt-Katalog (31.10.):** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen eingespielt. GitHub-Rechteprüfung, Migration und Gesamtprüfung erfolgreich; Web-Check und 20 Testdateien grün. Alle zehn Bereiche der BMAS-Übersicht zu bundesweiten Branchenmindestentgelten sind im Katalog vertreten. Destatis-Tarifdatenbank als neue manuelle Recherchequelle identifiziert; Nutzungsbedingungen des separaten PDF-Exports und Verfügbarkeit noch ungeklärt.
 - **Suchprofil (31.10.):** Eigene Firmenbeschreibung und Website-Auswertung werden getrennt gespeichert und angezeigt. Bei der Einrichtung prüft Jarvis jetzt Startseite, bis zu zehn relevante Unterseiten sowie deklarierte/Standard-Sitemaps derselben Website. Externe Domains und durch `robots.txt` gesperrte Pfade bleiben ausgeschlossen. Die Suche und Trefferbewertung erhalten beide Beschreibungen; die Originalbeschreibung bleibt erhalten.
@@ -41,7 +42,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (leer)
+- (ChatGPT) Suchlauf/Trefferqualität prüfen und Arbeitsdropdown aufräumen
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -72,6 +73,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Suchqualität, veralteter Ladehinweis und Arbeitsdropdown)
+- Letzten echten Alarm geprüft: Lauf 41212972392 dauerte etwa 47 Sekunden und war erfolgreich beendet; Team Effertz gmbh hatte 36 Treffer, davon 0 neu. Nach Aktualisieren verschwand der Ladehinweis auch laut Benjamin. Bericht enthielt Innenputz, Heizung, Entwässerung und Chemikalien allein wegen „bad“ in Text/Ortsnamen. Alte unpassende Treffer blieben beim auf 10.000 begrenzten Katalog erhalten. Die Kostenbremse lehnte die große Bewertungsreservierung still ab: global 2,8469 USD belegt, darunter offene Reservierungen; keine Budgeterhöhung.
+- Wortanfänge und vollständige kurze Wörter statt beliebiger Teilzeichen; allgemeine Begriffe und Suchorte begründen allein keinen eindeutigen Treffer. KI bewertet die ausgeschriebene Hauptleistung gegen die gewählten Arbeiten, Anzeige erst ab 6/10. Kleine Achterpakete mit passender Ausgabelänge statt pauschal 16.000 Tokens; Versionswechsel im Bewertungscache. Fehlende Bewertung bleibt kenntlich, keine erfundenen Punkte. Bestehende Tages-/Monatslimits gelten weiter.
+- Ergebnisdatei enthält ausgewertete Profile, deren Version und ausdrücklich abgelehnte Bekanntmachungen. Speicherung/Archivierung nur in diesen Firmen, nie durch ein leeres Ergebnis anderer Firmen; geänderte Profile werden vor Übernahme erkannt. Unpassende Treffer nur aus `status=neu` ins Archiv; begonnene Angebote, manuell archivierte Vorgänge und Unterlagen werden erhalten. Neue Bewertungsbegründung ersetzt die alte, hochgeladene ausführliche Analyse bleibt stehen. Ergebniszahlen und Abschlussmarker werden mit den Treffern gespeichert. Speicherfehler lassen den Workflow scheitern und erscheinen als Suchfehler.
+- Oberfläche trennt offene Treffer von echten Neuzugängen des letzten Laufs. Statusabfrage alle 15 Sekunden sowie beim Zurückkehren in die App; Meta-Neuladen als Ersatz bleibt. Statusroute mit Sitzung/RLS-Token und `no-store`, keine Admin-Schlüssel. Arbeitsdropdown ersetzt die unterschiedlich eingerückte native Gruppenauswahl durch durchsuchbare Textknöpfe, 16-Pixel-Schrift, gemeinsame linke Kante und begrenzte Listenhöhe. Eigene Arbeiten, Entfernen/Wiederherstellen, Suchwörter/CPV und Bedienung ohne JavaScript bleiben erhalten.
+- Tests und Ausroll-/Live-Ergebnis werden nach Abschluss ergänzt. Benjamin muss nichts an GitHub oder Supabase einstellen.
 
 ### 31.10.2026 – ChatGPT (Firmenfunde offen und gesuchte Arbeiten kompakt)
 - Benjamins Wunsch umgesetzt: „Was Jarvis über die Firma gefunden hat“ ist im Editor und auf der Suchprofil-Seite standardmäßig geöffnet. Website- und öffentliche Recherche stehen in lesbaren Karten mit Quellenlinks; die bisherigen Textfelder bleiben unter „Text bearbeiten“ im selben Formular erhalten. Keine Datenquellen oder Beschreibungen zusammengelegt.

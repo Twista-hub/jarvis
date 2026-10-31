@@ -8,6 +8,7 @@ import json
 from pathlib import Path
 
 import psycopg
+import katalog
 
 from profile_db import im_suchgebiet, laden, nicht_mehr_aktuelle_treffer, verbinden
 
@@ -37,7 +38,7 @@ def ausserhalb_gebiet_verwerfen(con: psycopg.Connection, firma_id: str, suchorte
         if not im_suchgebiet({"suchorte": suchorte}, {"tender": {"items": items}}):
             ausserhalb.append(vorgang_id)
     if ausserhalb:
-        con.execute("update public.vorgaenge set status='verworfen' where id = any(%s)", (ausserhalb,))
+        con.execute("update public.vorgaenge set status='verworfen' where firma_id=%s and status='neu' and id = any(%s)", (firma_id, ausserhalb))
     return len(ausserhalb)
 
 
@@ -52,29 +53,47 @@ def nicht_mehr_aktuell_verwerfen(con: psycopg.Connection, firma_id: str, aktuell
     ).fetchall()
     alte = nicht_mehr_aktuelle_treffer(rows, {str(t["quelle_id"]) for t in aktuelle_treffer})
     if alte:
-        con.execute("update public.vorgaenge set status='verworfen' where id::text = any(%s)", (alte,))
+        con.execute("update public.vorgaenge set status='verworfen' where firma_id=%s and status='neu' and id::text = any(%s)", (firma_id, alte))
     return len(alte)
+
+
+def unpassende_verwerfen(con, firma_id: str, abgelehnt: list[str]) -> int:
+    """Only archive explicitly evaluated rejections, even with a partial catalog."""
+    if not abgelehnt:
+        return 0
+    return con.execute("""update public.vorgaenge set status='verworfen'
+        where firma_id=%s and status='neu' and quelle_id = any(%s)""", (firma_id, abgelehnt)).rowcount
+
+
+def brief_aktualisieren(alt: str | None, t: dict) -> str | None:
+    def teilen(text):
+        teile = (text or "").split("\n\n", 3)
+        if len(teile) == 4 and teile[0] == "## Jarvis-Bewertung" and teile[1].startswith("**Gesucht:**") and teile[2].startswith("**Warum passend:**"):
+            return "\n\n".join(teile[:3]) + "\n\n", teile[3]
+        return "", text or ""
+    neu = t.get("steckbrief")
+    bewertung, inhalt = teilen(neu)
+    _, bisher = teilen(alt)
+    # Keep uploaded/detailed analyses; replace only the old relevance explanation.
+    return bewertung + (bisher if t.get("steckbrief_kurz") and bisher.strip() else inhalt) if neu else alt
 
 
 def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict) -> int:
     neu = 0
     for t in treffer:
+        bisher = con.execute("select steckbrief from public.vorgaenge where firma_id=%s and quelle_id=%s for update", (firma_id, t["quelle_id"])).fetchone()
+        brief = brief_aktualisieren(bisher[0] if bisher else None, t)
         row = con.execute(
             """insert into public.vorgaenge (firma_id, quelle_id, titel, link, frist, punkte, steckbrief, bereich_id,katalog_id,katalog_version)
                values (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s)
                on conflict (firma_id, quelle_id) do update set
-                 punkte = coalesce(excluded.punkte, vorgaenge.punkte),
+                 punkte = excluded.punkte,
                  frist = coalesce(excluded.frist, vorgaenge.frist),
-                 steckbrief = case
-                   when position('## Jarvis-Bewertung' in excluded.steckbrief)>0 and nullif(trim(vorgaenge.steckbrief),'') is not null
-                     then case when position('## Jarvis-Bewertung' in vorgaenge.steckbrief)>0 then vorgaenge.steckbrief
-                       else excluded.steckbrief||E'\\n\\n'||vorgaenge.steckbrief end
-                   when %s and nullif(trim(vorgaenge.steckbrief),'') is not null then vorgaenge.steckbrief
-                   else coalesce(excluded.steckbrief, vorgaenge.steckbrief) end,
+                 steckbrief = excluded.steckbrief,
                  link = excluded.link, katalog_id=coalesce(excluded.katalog_id,vorgaenge.katalog_id),katalog_version=coalesce(excluded.katalog_version,vorgaenge.katalog_version),
                  bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id)
                returning (xmax = 0)""",
-            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), t.get("steckbrief"), bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"), t.get("steckbrief_kurz", False)),
+            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version")),
         ).fetchone()
         neu += bool(row and row[0])
     return neu
@@ -91,15 +110,36 @@ def main() -> None:
     else:
         treffer, kompletter_katalog = geladen.get("treffer", []), bool(geladen.get("katalog_vollstaendig"))
     profile = laden()
+    ausgewertet = geladen.get("profile") if isinstance(geladen, dict) else None
+    if ausgewertet is not None:
+        profile = {name: p for name, p in profile.items() if name in ausgewertet}
+    else:
+        # Legacy output cannot prove that firms without hits were evaluated.
+        profile = {name: p for name, p in profile.items() if any(t["profil"] == name for t in treffer)}
+        kompletter_katalog = False
     with verbinden() as con:
         for name, profil in profile.items():
             firma_id = profil.get("firma_id")
             if not firma_id:
                 continue
+            bericht = (ausgewertet or {}).get(name, {})
+            if bericht and bericht.get("version") != katalog.profil_version(profil):
+                print(f"{profil['name']}: Profil wurde während des Laufs geändert; Ergebnis wird nicht übernommen.")
+                con.execute("""update public.suchprofile set einstellungen = einstellungen ||
+                    jsonb_build_object('erstlauf_fertig', now(), 'suchlauf_fehler', true)
+                    where firma_id=%s and bereich_id is null""", (firma_id,))
+                continue
             eigene = [t for t in treffer if t["profil"] == name]
+            unpassend = unpassende_verwerfen(con, firma_id, bericht.get("abgelehnt", []))
             verworfen = ausserhalb_gebiet_verwerfen(con, firma_id, profil.get("suchorte") or [])
             nicht_aktuell = nicht_mehr_aktuell_verwerfen(con, firma_id, eigene, kompletter_katalog)
-            print(f"{profil['name']}: {speichern(con, firma_id, eigene, profil.get('regionen', {}))} neue von {len(eigene)} Treffern")
+            neu = speichern(con, firma_id, eigene, profil.get("regionen", {}))
+            ergebnis = {"treffer": len(eigene), "neu": neu, "ungeprueft": sum(t.get("punkte") is None for t in eigene),
+                        "archiviert": unpassend + verworfen + nicht_aktuell}
+            con.execute("""update public.suchprofile set einstellungen = einstellungen ||
+                jsonb_build_object('erstlauf_fertig', now(), 'suchlauf_ergebnis', %s::jsonb, 'suchlauf_fehler', false)
+                where firma_id=%s and bereich_id is null""", (json.dumps(ergebnis), firma_id))
+            print(f"{profil['name']}: {neu} neue von {len(eigene)} Treffern; {ergebnis['ungeprueft']} ohne KI-Bewertung; {ergebnis['archiviert']} unpassende unbearbeitete Treffer archiviert")
             if verworfen:
                 print(f"{profil['name']}: {verworfen} alte, unbearbeitete Treffer außerhalb des Suchgebiets ins Archiv verschoben")
             if nicht_aktuell:
