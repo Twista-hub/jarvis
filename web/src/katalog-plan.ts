@@ -29,6 +29,11 @@ export function wiederholen(payload: unknown): boolean {
   return Boolean(payload && typeof payload === "object" && "wiederholen" in payload && payload.wiederholen === true);
 }
 
+export function exportTage(heute: string, rueckstand: string[]): string[] {
+  const gestern = new Date(Date.parse(`${heute}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
+  return [...new Set([gestern, ...rueckstand.filter((tag) => tag < heute)])];
+}
+
 export function importierbar(n: Bekanntmachung, vorhanden: boolean, jetzt = Date.now()): boolean {
   // Amendments of known notices must still close/correct existing customer hits.
   return vorhanden || (["offen", "unbekannt"].includes(n.status) && (!n.frist || Date.parse(n.frist) > jetzt));
