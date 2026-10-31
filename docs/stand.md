@@ -72,6 +72,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – Claude (Suchprofil-Einrichtung: KI kam aus der App nie durch)
+- Benjamin: Website-Feld leert sich, nichts wird gesucht oder eingetragen. Befund: `jarvis_katalog.ki_kosten` hatte bis 13:16 UTC keinen einzigen Eintrag `web`; jeder KI-Aufruf der App scheiterte vor der Budget-Reservierung, es kam immer nur der Ersatzvorschlag. Der Rollout-Test `/__intern/db-check` prüfte nur die Datenbank, nie den KI-Weg.
+- `db-check` kann jetzt mit `ki=1` einen winzigen echten Haiku-Aufruf über `apiClient` machen; `web.yml` verlangt `"ki":true` und wartet 20 s auf die neue Worker-Version.
+- Supabase-Session-Pool war voll: `EMAXCONNSESSION max clients reached in session mode - pool_size: 15`, ausgelöst durch Hyperdrive ohne Verbindungsgrenze; dann scheiterten auch GitHub-Jobs. Transaktionspool 6543 hängt hinter Hyperdrive (getestet), daher Session-Pool 5432 mit `origin_connection_limit: 5` in `web/scripts/hyperdrive.py`. Schema-Checks in `web.yml`/`katalog.yml` laufen über 6543 (psql, einfache Abfrage).
+- Danach: Rollout 93e40fb grün inkl. Mini-KI-Aufruf, GitHub verbindet wieder, drei `web`-Einträge in `ki_kosten`.
+- Website verschwand im Profilformular, wenn das Speichern mit Fehlermeldung zurückkam (`profilFormular` ohne Website-Argument). Behoben.
+- Offen: Benjamin testet die Einrichtung erneut; der echte Suchprofil-Aufruf (Sonnet + Websuche-Tool + JSON-Schema) ist live noch nicht bestätigt.
+
 ### 31.10.2026 – ChatGPT (Automatische Firmenrecherche beim Signup)
 - Nach bestätigter E-Mail leitet die Kontoerstellung neue Firmen automatisch in die Profileinrichtung. Die Seite sendet den Einrichtungsschritt automatisch ab; der Kunde muss keine Website-Texte kopieren. Auch ohne Website startet die öffentliche Suche mit Firmenname und Firmensitz.
 - Die Profilerstellung prüft die Website mit den bestehenden robots.txt-/Zeit-/Domain-Grenzen und führt zusätzlich über Anthropic Web Search bis zu drei unabhängige öffentliche Suchanfragen aus. Identität wird gegen Name, Website und Ort abgeglichen; nur belegte Leistungen kommen in die Suchwörter. Webfund und Websitefund mit bis zu fünf Quellenlinks bleiben getrennt im Suchprofil und werden bei der Trefferbewertung genutzt.
