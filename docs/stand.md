@@ -3,6 +3,7 @@
 Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (31.10.2026)
+- **Mindestentgelt-Katalog:** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen vorbereitet. Der erste GitHub-Rechte-Test lief bis zu einem mehrdeutigen Gruppenfilter; dieser Testfehler ist lokal korrigiert. Web-Check und 20 Testdateien sind grün. DB-Test, Migration und Rollout stehen noch aus, da der automatische Prüfmechanismus den Push nach `main` blockiert hat.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
 - **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
@@ -32,7 +33,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Weitere amtliche Branchenmindestentgelte und Flughafenberufe ergänzen; Rechte- und Migrationstests durchführen.
+- (ChatGPT) Korrektur eines mehrdeutigen SQL-Gruppenfilters vorbereitet. Noch nicht auf GitHub: Auto-Review blockiert Push nach `main`; PostgreSQL-Rechteprüfung, Migration und Rollout ausstehend.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -59,9 +60,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Protokoll
 
 ### 31.10.2026 – ChatGPT (Weitere aktuelle Branchenmindestentgelte)
+- Nach dem ersten GitHub-Lauf den PostgreSQL-Fehler eingegrenzt: `LIKE 'Mindestlohn I%'` traf sowohl Gruppe I als auch Gruppe II. DB-Test auf exakten Gruppenwert korrigiert. `cd web && npm run check && npm test` erneut erfolgreich (20 Testdateien, 0 Fehler); `git diff --check` erfolgreich.
+- Der direkte Push auf `main` wurde vom automatischen Prüfmechanismus mit der Begründung blockiert, dass eine konkrete Autorisierung für diesen Default-Branch nicht belegt sei. Gemäß Sperre keine Umgehung über anderen Branch oder indirekten Push. Korrektur und Dokumentation liegen nur lokal; DB-Test, Produktionsmigration und Rollout sind daher noch nicht erfolgt. Für deren Abschluss ist Freigabe zum Push auf `main` nötig.
 - Die offizielle BMAS-Übersicht auf fehlende Branchen geprüft, robots.txt und amtliche Primärquellen kontrolliert. Ergänzt werden sechs weitere Einträge: Aus-/Weiterbildung nach SGB II/III (20,24/20,86 €/Std. 2026), Luftsicherheit an Verkehrsflughäfen (EG II–IV, Stichtage Januar/April 2026), bundesweites Elektrohandwerk-Mindestentgelt (14,41–16,10 €/Std. 2025–2028), Bodenabfertigung an Flughäfen (10 tatsächlich AVE-erfasste Gruppen/Stufen für 2025/2026), allgemeiner Mindestlohn (13,90 €/Std. 2026, 14,60 €/Std. 2027) und AÜ-Lohnuntergrenze (14,96/15,33 €/Std. 2026, 15,87 €/Std. 2027).
 - Bei Bodenabfertigung wurden die Ausnahmen der AVE im Original-Bundesanzeiger geprüft: EG 1 und 8–10 sowie benannte weitere Stufen sind ausdrücklich ausgeschlossen und erscheinen nicht im Katalog. Quellennutzung, Grenzen und Enddaten in `alarm/quellen.md`/`docs/personalkatalog.md`; neue Berufe für Flugzeug-/Gepäckabfertigung, Rampenpersonal und Luftsicherheitskontrolle im Personal-Dropdown samt Synonymen ergänzt.
-- Migration `20261031140000_weitere_branchenmindestentgelte.sql` und DB-/Berufetests vorbereitet. Offen: PostgreSQL-/Webtests und automatische Migration nach Push; zusätzlich weitere vollständige Tarifverträge aus lizenzrechtlich zulässigen Quellen suchen. Benjamin muss nichts tun.
+- Migration `20261031140000_weitere_branchenmindestentgelte.sql` und DB-/Berufetests vorbereitet. Webtests bestanden. PostgreSQL-Rechteprüfung und automatische Migration nach Push noch offen; zusätzlich weitere vollständige Tarifverträge aus lizenzrechtlich zulässigen Quellen suchen.
 
 ### 31.10.2026 – ChatGPT (Gerüstbau-Mindestlohn)
 - Als weiteren tarifbezogenen Datensatz den gesetzlichen Gerüstbau-Mindestlohn aus `§ 2 TVMindestlohn Gerüstb 9` ergänzt: 14,35 €/Std. ab 01.01.2026 und 14,90 €/Std. ab 01.01.2027. `9. GerüstbauerArbbV` erstreckt die Rechtsnormen für den gesetzlichen betrieblichen/persönlichen Geltungsbereich vom 01.01.2026 bis 31.12.2027. Der Eintrag ist ausdrücklich eine sektorale Untergrenze, kein vollständiger Tarifvertrag und keine automatische Kalkulationsgrundlage.
