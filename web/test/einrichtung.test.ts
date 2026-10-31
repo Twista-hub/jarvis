@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ausFormular, bereinigen, beschreibungFallback, FIRMEN_WEB_SUCHTOOL, hatProfiltext, profilFormular, startFormular, suchlaufLaeuft, vorschlagOderFallback, websiteFallback } from "../src/einrichtung.ts";
+import { ausFormular, bereinigen, beschreibungFallback, FIRMEN_WEB_SUCHTOOL, hatProfiltext, profilFormular, profilZuFormular, startFormular, suchlaufLaeuft, vorschlagOderFallback, websiteFallback } from "../src/einrichtung.ts";
+
+test("automatische Ergänzung bewahrt eigene Beschreibung, Suchgebiete, Länder und Quellen beim Speichern", () => {
+  const v = bereinigen({ beschreibung: "Meine ursprüngliche Firmenbeschreibung.", recherche_version: 2, website_hinweis: "Website blockiert den direkten Abruf.", websuche_beschreibung: "Belegte Fliesenarbeiten aus öffentlicher Recherche.", websuche_quellen: [{ titel: "Quelle", url: "https://firma.example" }], leistungen: [{ name: "Fliesen", woerter: ["fliesen"], cpv: ["45431"] }], standorte: [{ name: "Aachen", plz_praefixe: ["52"], bereich_id: "11111111-1111-4111-8111-111111111111" }], laender: ["DEU", "NLD"] });
+  const form = profilZuFormular(v, "https://firma.example");
+  assert.equal(form.has("stunde"), false, "automatische Recherche ändert keine Benachrichtigungen");
+  assert.deepEqual(ausFormular(form), v);
+});
 
 test("erlaubt eine neue Suche nach Abschluss des vorherigen Laufs", () => {
   const jetzt = Date.parse("2026-10-31T06:00:00Z");
