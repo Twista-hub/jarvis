@@ -82,7 +82,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 01.11.2026 – Claude (Suchradius in km und Karte der Suchgebiete)
 - Radius: `alarm/geo_radius.py` (Entfernung über PLZ-Koordinaten), `profile_db.suchpunkte` (Koordinaten der Firmenstandorte bzw. des Firmensitzes), `im_suchgebiet` prüft bei gesetztem `radius_km` die Entfernung, sobald die Bekanntmachung eine bekannte PLZ nennt; ohne bekannte PLZ gilt die bisherige Logik. Radius und Suchpunkte zählen nicht zur Profilversion (keine Neubewertung). Auswahl 25/50/75/100/150 km im Suchprofil, Vorgabe 50 km beim Speichern.
 - Karte: `web/src/karte.ts` zeichnet Deutschland, Ländergrenzen, Standorte und Umkreis als SVG. Die Koordinaten schreibt der Suchlauf nach `einstellungen.suchpunkte` (die App lädt die PLZ-Tabelle nicht); die Karte erscheint also nach dem ersten Suchlauf mit dieser Version.
-- Quellen in `alarm/quellen.md`. **Offen: Benjamin muss entscheiden**, ob die GeoNames-Datei trotz `robots.txt: Disallow /` genutzt werden darf (einmaliger Download, lizenziert CC BY 4.0, ausdrücklich als Download angeboten). Alternative wäre eine andere Quelle.
+- Quellen in `alarm/quellen.md`. Entscheidung Benjamin (01.11.): Die GeoNames-Daten bleiben im Projekt (einmaliger Download, CC BY 4.0, Quellenangabe unter der Karte). Keine weiteren Abrufe.
 - Tests: Radius Berlin/Potsdam/Hamburg/Frankfurt (Oder) in `alarm/test_suchgebiet.py`; alle Python- und Web-Tests grün.
 
 ### 01.11.2026 – Claude (40 Verbesserungen: Paket 3 Team, Suchprofil, Übersicht, Einstellungen)
