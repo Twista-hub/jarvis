@@ -39,7 +39,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (Benjamin) Beim nächsten Profilabgleich prüfen, dass die eigene Beschreibung getrennt von „Auf der Website gefunden“ erscheint; danach einmal „Speichern und Suche starten“. Wenn nicht manuell gestartet, läuft die nächste tägliche Suche automatisch.
+- (leer)
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -68,7 +68,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 31.10.2026 – ChatGPT (Eigene Beschreibung und Website-Fund trennen)
 - Das Profilformular speichert jetzt die eigene Firmenbeschreibung und Jarvis’ Website-Auswertung in zwei getrennten Feldern. Die Übersichtsseite zeigt beide getrennt; beim erneuten Vorschlag bleibt die eigene Eingabe erhalten.
 - Die KI erstellt Leistungen aus beiden Quellen, die Trefferbewertung erhält beide Texte. Ohne KI-Antwort bleibt der Website-Auszug separat sichtbar und editierbar. Website-Fund ist optional und kann geändert oder gelöscht werden.
-- `cd web && npm run check && npm test` (20 Dateien), 25 Python-Tests und Syntaxprüfung grün. Änderungen lokal noch nicht gepusht; danach Rollout und einmaliges Profil-/Suchlauf-Verhalten prüfen.
+- `cd web && npm run check && npm test` (20 Dateien), 25 Python-Tests und Syntaxprüfung grün. Commit `fb725e5` auf `main`; CI 41200896426 und Web-Rollout 41200896385 erfolgreich, einschließlich Seiten- und Datenbank-Erreichbarkeit. Das Formular und die Suchprofil-Seite sind live.
 
 ### 31.10.2026 – ChatGPT (Treffergebiet und Website-Fallback nach Benjamins Test)
 - Screenshot geprüft: Der Suchbereich hatte keine PLZ-Bereiche, daher ließ der Alarm nur den genauen Ortsnamen durch. Ein einzelner Eintrag ohne KI-PLZ-Bereiche erhält künftig ersatzweise den zweistelligen PLZ-Bereich vom Firmensitz; das ist eine grobe Gebietsnäherung. Mehrere explizite Suchorte oder vorhandene PLZ-Bereiche bleiben unverändert.
