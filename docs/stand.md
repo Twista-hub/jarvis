@@ -37,7 +37,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Trefferbegründung ausrollen und verifizieren. Beim nächsten Alarm den Standortfilter und das Archivieren alter, unbearbeiteter Ferntreffer prüfen. Das Fallback-Suchprofil hat keine PLZ-Anfänge und begrenzt deshalb zunächst auf den genauen Ortsnamen statt auf 50 km. Danach echten Web-KI-Vorschlag verifizieren.
+- (ChatGPT) Beim nächsten Alarm den Standortfilter und das Archivieren alter, unbearbeiteter Ferntreffer prüfen. Das Fallback-Suchprofil hat keine PLZ-Anfänge und begrenzt deshalb zunächst auf den genauen Ortsnamen statt auf 50 km. Danach echten Web-KI-Vorschlag verifizieren.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -66,7 +66,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 31.10.2026 – ChatGPT (Erklärung der KI-Bewertung sichtbar machen)
 - Ursache: Die KI erzeugte `kurz` (was ausgeschrieben ist) und `grund` (warum es zur Firma passt), aber `alarm/speichern.py` übernahm nur die Punktzahl und den allgemeinen Bekanntmachungstext. Die Trefferkarte las weder diese Felder noch einen Kurztext.
 - Die Erklärung wird jetzt zusammen mit dem bestehenden Kurz-Steckbrief gespeichert und beim nächsten Alarm auch an bereits vorhandene Treffer ergänzt, ohne ausführliche Steckbriefe zu überschreiben. Die Trefferliste zeigt die Erklärung direkt unter dem Titel/Punktwert; sie lädt dafür das bereits verwendete Steckbrief-Feld.
-- Web-Typprüfung und alle 20 Web-Testdateien grün; Python-Suite (22 Tests) und Syntaxprüfung grün. Noch nicht auf `main`; nach Push CI und Web-Rollout prüfen. Der nächste Alarm erneuert die Begründung der bestehenden Treffer.
+- Web-Typprüfung und alle 20 Web-Testdateien grün; Python-Suite (22 Tests) und Syntaxprüfung grün. Commit `8ca590f` auf `main`; CI 41173343237 und Web-Rollout 41173343254 erfolgreich. Der nächste Alarm ergänzt die Begründung bei bestehenden Treffern. Die Karten zeigen nur kurze Begründungen; ausführliche Steckbriefe bleiben wie bisher separat und kostenbegrenzt.
 
 ### 31.10.2026 – ChatGPT (Ortsfilter für Ausschreibungen)
 - Ursache: Die Einsatzorte eines App-Suchprofils wurden nur zur späteren Bereichszuordnung benutzt; der Alarm filterte die Treffer nicht nach dem Ort der Leistung. Daher konnten die 96 Treffer aus ganz Deutschland stammen.
