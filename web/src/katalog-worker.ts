@@ -1,6 +1,6 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
-import { nachholLimit, releaseBloecke, normalisiereBlock, wiederholen } from "./katalog-plan.ts";
+import { nachholLimit, releaseBloecke, normalisiereBlock, wiederholen, bestehendeBekanntmachungen } from "./katalog-plan.ts";
 
 type Env = DbEnv & { AKTIV: string; SAMMLER: Workflow };
 const UA = "Jarvis-Katalog/1.0 (public procurement index)";
@@ -59,7 +59,7 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
               const zuGross: string[] = [];
               for (const teil of releaseBloecke(Object.values(files))) {
                   const ids = teil.map((rel: any) => `bks:${rel.ocid || rel.id}`);
-                  const bisher = await sql`select id,roh,quell_datum from public.vergabekatalog where id=any(${ids}::text[])`;
+                  const bisher = await bestehendeBekanntmachungen(sql, ids);
                   const bestehend = new Map(bisher.map((r) => [String(r.id), { roh: r.roh, quell_datum: r.quell_datum }]));
                   const batch = await normalisiereBlock(teil, bestehend, tag, zuGross);
                   if (batch.length) await sql`select jarvis_katalog.aufnehmen(${sql.json(batch)})`;
