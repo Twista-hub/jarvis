@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test, type TestContext } from "node:test";
 import { personFormular } from "../src/mitarbeiter.ts";
+import { BERUF_SYNONYME } from "../src/berufe.ts";
 import { BERUFE, ausFormular, kraftFormular, kraftKarte, nachrichtText, passt, personal, personalTeil, qualifikationenBlock, standortKacheln, tarifvertraegeBlock, waNummer, type Kraft, type Tarifvertrag } from "../src/personal.ts";
 
 const firma = "11111111-1111-4111-8111-111111111111";
@@ -20,6 +21,13 @@ test("WhatsApp-Nummer: deutsche Nummern bekommen die 49", () => {
 test("passende Ausschreibung erkennt den Beruf im Titel", () => {
   assert.ok(passt("Servicekräfte für das Betriebsrestaurant", ["Servicekraft"]));
   assert.ok(!passt("Reinigung von Büroflächen", ["Servicekraft"]));
+});
+
+test("Berufsauswahl enthält neue Flughafenberufe und passende Erkennungsbegriffe", () => {
+  assert.ok(BERUFE["Fahrzeug & Verkehr"].includes("Flugzeugabfertiger/in"));
+  assert.ok(BERUFE["Fahrzeug & Verkehr"].includes("Gepäckabfertiger/in"));
+  assert.ok(BERUFE["Sicherheit & Veranstaltung"].includes("Luftsicherheitskontrollkraft"));
+  assert.ok(BERUF_SYNONYME["Flugzeugabfertiger/in"].includes("Bodenabfertigung"));
 });
 
 test("Nachricht nennt Vorname, Ausschreibung und Firma", () => {
