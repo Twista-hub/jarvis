@@ -305,7 +305,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     if (offen.length) {
       team += `<p class="klein">Offene Einladungen: ${offen.map((e) => `${escape(e.email)} (${ROLLEN[e.rolle] ?? e.rolle}, bis ${datum(e.gueltig_bis)})`).join(", ")}</p>`;
     }
-    team += `<form method="post" action="/konto/einladen">
+    team += `<details class="einladen"><summary>➕ Person einladen</summary><form method="post" action="/konto/einladen">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Name<input name="name" maxlength="200"></label>
   <label>E-Mail-Adresse <input type="email" name="email" required></label>
@@ -315,7 +315,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   ${b.length ? `<label>Bereich <select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label><p class="klein">Für Standortleitung einen einzelnen Standort wählen, keine Region. Die Einladung gilt dort und in untergeordneten Teams.</p>` : ""}
   <button>Einladung erstellen</button>
   <p class="klein">Du bekommst einen Link, den du der Person schickst. Er gilt 14 Tage und nur für diese Adresse.</p>
-</form>`;
+</form></details>`;
     }
     inhalt = rahmen(team);
   } else if (unterseite === "profil") {
@@ -572,7 +572,8 @@ ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
   const unterlagen = finanzen ? await db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`) : null;
   const heute = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
   const stichtag = v.frist && v.frist.slice(0, 10) > heute ? v.frist.slice(0, 10) : heute;
-  const brief = (md: string) => nachweiseMarkieren(markdown(md), unterlagen?.ok ? unterlagen.daten : null, stichtag, `/konto/firmenunterlagen?firma=${v.firma_id}`);
+  const brief = (md: string) => `<div class="steckbrief-karte">${briefInhalt(md)}</div>`;
+  const briefInhalt = (md: string) => nachweiseMarkieren(markdown(md), unterlagen?.ok ? unterlagen.daten : null, stichtag, `/konto/firmenunterlagen?firma=${v.firma_id}`);
   const hochladen = rolle === "leser" ? "" : `<h2 id="unterlagen">📥 Vergabeunterlagen</h2>
 <p>Für Eignungskriterien, Nachweise, Referenzen und das Preisblatt braucht Jarvis die Unterlagen.</p>
 ${portal ? `<nav class="aktionsleiste"><a class="zweit" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Hier runterladen</a></nav>
@@ -581,8 +582,8 @@ ${portal ? `<nav class="aktionsleiste"><a class="zweit" href="${escape(portal)}"
   <label>Danach die heruntergeladenen Dateien hier auswählen (eine oder mehrere) – Jarvis legt sofort los<input name="dateien" type="file" multiple required data-sofort accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label>
   <button>Prüfen lassen</button>
 </form>
-<p class="klein"><strong>Mehrere Dateien:</strong> Im Auswahlfenster die erste Datei lange drücken, dann die anderen antippen und oben auf „Auswählen“ bzw. „Fertig“. Einfacher ist meist „Alle herunterladen“ beim Portal: Dann kommt eine ZIP-Datei mit allem, und die reicht. Vergessene Dateien kannst du später nachreichen, Jarvis liest dann alle zusammen.</p>
-<p class="klein">Am Handy liegt die Datei unter „Downloads“. Jarvis schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p>`;
+<details><summary>Tipps zum Hochladen</summary><p class="klein"><strong>Mehrere Dateien:</strong> Im Auswahlfenster die erste Datei lange drücken, dann die anderen antippen und oben auf „Auswählen“ bzw. „Fertig“. Einfacher ist meist „Alle herunterladen“ beim Portal: Dann kommt eine ZIP-Datei mit allem, und die reicht. Vergessene Dateien kannst du später nachreichen, Jarvis liest dann alle zusammen.</p>
+<p class="klein">Am Handy liegt die Datei unter „Downloads“. Jarvis schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p></details>`;
   let teil: string;
   if (aus?.text) {
     teil = `<h2>Steckbrief aus den Vergabeunterlagen</h2>${brief(aus.text)}
