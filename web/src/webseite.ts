@@ -100,6 +100,7 @@ function relevance(pfad: string): number {
   if (/leistung|angebot|gewerk|arbeitsbereich|spektrum|kompetenz|portfolio|produkt|service/i.test(pfad)) punkte += 4;
   if (/branche|referenz|projekt|handwerk|einsatzgebiet/i.test(pfad)) punkte += 3;
   if (/unternehmen|ueber-uns|über-uns|taetig|tätig|standort/i.test(pfad)) punkte += 2;
+  if (/\/(?:standorte|niederlassungen|locations|branches)\/?$/i.test(pfad)) punkte += 8;
   if (/karriere|jobs?/i.test(pfad)) punkte += 1;
   return punkte;
 }
@@ -206,7 +207,8 @@ export async function websiteKontext(raw: string, abrufen: typeof fetch = fetch)
       try {
         const antwort = await abrufen(ziel, optionen());
         if (!antwort.ok || !(antwort.headers.get("content-type") ?? "").toLowerCase().includes("text/html")) return "";
-        return `${ziel.pathname}: ${seitenText(await begrenztLesen(antwort, 80_000), 1200)}`;
+        const limit = /\/(?:standorte|niederlassungen|locations|branches)\/?$/i.test(ziel.pathname) ? 5000 : 1200;
+        return `${ziel.pathname}: ${seitenText(await begrenztLesen(antwort, 80_000), limit)}`;
       } catch { return ""; }
     }));
     // Put service pages first so a plain-text fallback sees their useful terms before home-page news.

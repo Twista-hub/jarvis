@@ -31,7 +31,7 @@ test("erneute Recherche zeigt sofort Wartezustand auch beim Zweitbutton im Speic
   const rechercheButton = { ...s.button, getAttribute: (key: string) => key === "formaction" ? "/konto/einrichtung/automatisch" : null };
   s.submit({ submitter: rechercheButton, preventDefault() {} });
   assert.match(rechercheButton.textContent, /Firma wird recherchiert/);
-  assert.match(s.status().textContent, /bis zu zwei Minuten/);
+  assert.match(s.status().textContent, /einige Minuten/);
   assert.equal(s.attribute["aria-busy"], "true");
   assert.equal(rechercheButton.disabled, false, "der Browser muss Aktion und Formularwerte noch einsammeln können");
   let verhindert = false;
@@ -52,7 +52,7 @@ test("automatische Ersteinrichtung startet ohne weiteren Klick und zeigt ebenfal
   const s = seite("/konto/einrichtung/automatisch", true);
   assert.equal(s.timers.length, 1);
   s.timers.shift()!();
-  assert.match(s.status().textContent, /recherchiert deine Firma/);
+  assert.match(s.status().textContent, /prüft eure Leistungen und Standorte/);
   assert.equal(s.form.dataset.beschaeftigt, "1");
 });
 
@@ -67,5 +67,5 @@ test("nach Browser-Zurück kann die Recherche erneut gestartet werden", () => {
   assert.equal(s.form.dataset.beschaeftigt, undefined);
   assert.equal(s.status(), null);
   s.submit({ submitter: s.button, preventDefault() {} });
-  assert.match(s.status().textContent, /recherchiert deine Firma/);
+  assert.match(s.status().textContent, /prüft eure Leistungen und Standorte/);
 });

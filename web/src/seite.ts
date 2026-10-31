@@ -68,6 +68,15 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .firmen-fund h3 { color: var(--accent); font-size: 1rem; margin: 0 0 8px; }
   .firmen-fund p { margin: 0 0 10px; }
   .firmen-fund-text { white-space: pre-line; line-height: 1.65; }
+  .einrichtungs-schritte { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; padding: 0; margin: 0 0 20px; color: var(--muted); font-size: .85rem; }
+  .einrichtungs-schritte [aria-current] { color: var(--accent); font-weight: 600; }
+  .firmenpruefung { border: 1px solid var(--line); border-radius: 14px; background: var(--card); padding: 18px; }
+  .firmenpruefung h2 { margin-top: 0; }
+  .firmenpruefung form { border: 0; padding: 0; }
+  .firmen-standorte { grid-column: 1 / -1; }
+  .firmen-standorte ul { list-style: none; padding: 0; margin: 0 0 12px; }
+  .firmen-standorte li { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); padding: 8px 0; font-size: .95rem; }
+  .firmen-standorte li a { flex-shrink: 0; font-size: .8rem; }
   .fund-bearbeiten { font-size: .9rem; }
   .fund-bearbeiten > summary { min-height: 44px; padding: 10px 0; color: var(--accent); cursor: pointer; }
   .firmen-quellen { margin-top: 14px; font-size: .88rem; }
