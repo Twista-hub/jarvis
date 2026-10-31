@@ -65,10 +65,14 @@ def nicht_mehr_aktuelle_treffer(vorgaenge: list[tuple[str, str]], aktuelle_ids: 
     return [vorgang_id for vorgang_id, quelle_id in vorgaenge if quelle_id not in aktuelle_ids]
 
 
-def aus_db(firma_id: str, name: str, beschreibung: str, e: dict) -> dict:
+def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str = "") -> dict:
     """Converts a saved profile into the format of profile.json."""
     leistungen = e.get("leistungen") or []
     woerter = muster([w for l in leistungen for w in l.get("woerter", [])])
+    standorte = e.get("standorte") or []
+    firmen_prefix = firmen_plz[:2] if re.fullmatch(r"\d{5}", str(firmen_plz or "")) else ""
+    def plz_bereiche(o: dict) -> list[str]:
+        return o.get("plz_praefixe") or ([firmen_prefix] if firmen_prefix and len(standorte) == 1 else [])
     return {
         "name": name,
         "cpv": sorted({c for l in leistungen for c in l.get("cpv", [])}),
@@ -79,9 +83,11 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict) -> dict:
         "beschreibung": beschreibung,
         "firma_id": firma_id,
         # These locations constrain which notices enter this firm's hit list.
-        "suchorte": [{"name": o.get("name", ""), "plz_praefixe": o.get("plz_praefixe", [])}
-                     for o in e.get("standorte") or [] if o.get("name")],
-        "regionen": {o["bereich_id"]: o.get("plz_praefixe", []) for o in e.get("standorte") or [] if o.get("bereich_id")},
+        # If the simple fallback could not derive a postal area, use the firm's postal area
+        # as a wider starting point for a single named search location instead of exact-city-only.
+        "suchorte": [{"name": o.get("name", ""), "plz_praefixe": plz_bereiche(o)}
+                     for o in standorte if o.get("name")],
+        "regionen": {o["bereich_id"]: plz_bereiche(o) for o in standorte if o.get("bereich_id")},
         # Countries to search (ISO3). Germany = Bekanntmachungsservice, others = TED. Default: Germany only.
         "laender": [l for l in e.get("laender") or ["DEU"] if isinstance(l, str) and len(l) == 3] or ["DEU"],
     }
@@ -94,16 +100,16 @@ def laden() -> dict:
     try:
         with verbinden() as con:
             rows = con.execute(
-                """select s.firma_id::text, f.name, s.beschreibung, s.einstellungen from public.suchprofile s
+                """select s.firma_id::text, f.name, s.beschreibung, s.einstellungen, f.plz from public.suchprofile s
                    join public.firmen f on f.id = s.firma_id where s.aktiv and s.bereich_id is null""").fetchall()
     except Exception as e:  # noqa: BLE001 - the alarm still runs with the hand-made profiles
         print(f"Suchprofile aus der App nicht geladen: {e}", file=sys.stderr)
         return profile
-    for firma_id, name, beschreibung, e in rows:
+    for firma_id, name, beschreibung, e, plz in rows:
         if not (e or {}).get("leistungen"):
             continue
         key = next((k for k, p in profile.items() if p.get("firma_id") == firma_id), f"firma-{firma_id}")
-        profile[key] = aus_db(firma_id, name, beschreibung, e)
+        profile[key] = aus_db(firma_id, name, beschreibung, e, plz)
     try:
         with verbinden() as con:
             abos = con.execute("select firma_id::text,auftraggeber_id from public.auftraggeber_abos").fetchall() if con.execute("select to_regclass('public.auftraggeber_abos')").fetchone()[0] else []

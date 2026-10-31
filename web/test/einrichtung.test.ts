@@ -34,11 +34,12 @@ test("KI-Fallback übernimmt selbst beschriebene Leistungen und Stadt, damit man
 });
 
 test("KI-Fallback behält konkrete Suchwörter aus der Firmenwebsite bei", () => {
-  const v = beschreibungFallback("Wir arbeiten regional für Unternehmen.", "Baesweiler", "Fliesen und Mosaik · Badezimmer sanieren · Naturstein verlegen");
+  const v = beschreibungFallback("Wir arbeiten regional für Unternehmen mit vielen verschiedenen Wünschen und Aufgaben rund um unsere zuverlässige Arbeit im gesamten Bereich.", "Baesweiler", "Fliesen Mosaik Badezimmer sanieren Naturstein verlegen Terrassenplatten");
   const woerter = v.leistungen.flatMap((l) => l.woerter);
   assert.ok(woerter.includes("fliesen"));
   assert.ok(woerter.includes("mosaik"));
   assert.ok(woerter.includes("naturstein"));
+  assert.equal(woerter[0], "fliesen");
 });
 
 test("leerer oder unbrauchbarer KI-Vorschlag wird durch ein speicherbares Profil ersetzt", () => {
