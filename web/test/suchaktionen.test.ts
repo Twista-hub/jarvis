@@ -8,21 +8,22 @@ function seite(action: string, auto = false) {
   const attribute: Record<string, string> = {};
   let status: any = null;
   let submit: (e: any) => void = () => {};
+  let pageShow: (e: any) => void = () => {};
   const button = { disabled: false, textContent: "Starten", getAttribute: () => null, insertAdjacentElement: (_: string, element: any) => { status = element; } };
   const form = {
     dataset: {} as Record<string, string>,
     addEventListener: (_: string, handler: (e: any) => void) => { submit = handler; },
-    getAttribute: () => action, setAttribute: (k: string, v: string) => { attribute[k] = v; },
+    getAttribute: () => action, setAttribute: (k: string, v: string) => { attribute[k] = v; }, removeAttribute: (k: string) => { delete attribute[k]; },
     querySelector: (selector: string) => selector === "[data-einrichtung-status]" ? status : button,
     querySelectorAll: () => [button],
     requestSubmit: () => submit({ submitter: null, preventDefault() {} }),
   };
   const document = {
     querySelectorAll: (selector: string) => selector === "form[data-suchaktion]" || auto ? [form] : [],
-    createElement: () => ({ textContent: "", setAttribute() {}, prepend() {}, scrollIntoView() {} }),
+    createElement: () => ({ textContent: "", setAttribute() {}, prepend() {}, scrollIntoView() {}, remove() { status = null; } }),
   };
-  runInNewContext(SUCH_AKTION_JS, { document, window: { setTimeout: (f: () => void) => timers.push(f) } });
-  return { button, form, attribute, timers, submit: (e: any) => submit(e), status: () => status };
+  runInNewContext(SUCH_AKTION_JS, { document, window: { setTimeout: (f: () => void) => timers.push(f), addEventListener: (_: string, f: (e: any) => void) => { pageShow = f; } } });
+  return { button, form, attribute, timers, submit: (e: any) => submit(e), status: () => status, zurueck: () => pageShow({ persisted: true }) };
 }
 
 test("erneute Recherche zeigt sofort Wartezustand auch beim Zweitbutton im Speicherformular", () => {
@@ -53,4 +54,18 @@ test("automatische Ersteinrichtung startet ohne weiteren Klick und zeigt ebenfal
   s.timers.shift()!();
   assert.match(s.status().textContent, /recherchiert deine Firma/);
   assert.equal(s.form.dataset.beschaeftigt, "1");
+});
+
+test("nach Browser-Zurück kann die Recherche erneut gestartet werden", () => {
+  const s = seite("/konto/einrichtung/automatisch");
+  s.submit({ submitter: s.button, preventDefault() {} });
+  s.timers.shift()!();
+  assert.equal(s.button.disabled, true);
+  s.zurueck();
+  assert.equal(s.button.disabled, false);
+  assert.equal(s.button.textContent, "Starten");
+  assert.equal(s.form.dataset.beschaeftigt, undefined);
+  assert.equal(s.status(), null);
+  s.submit({ submitter: s.button, preventDefault() {} });
+  assert.match(s.status().textContent, /recherchiert deine Firma/);
 });
