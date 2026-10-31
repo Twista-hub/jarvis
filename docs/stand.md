@@ -79,6 +79,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (40 Verbesserungen: Paket 2 Unterlagen und Kalkulation)
+- Unterlagen: Fortschritt beim Lesen („Schritt x von 3“, Dateizahl; `workflow.ts` schreibt `status.json`), Eignungs-Checkliste mit Zähler „x/y erfüllt“ am Aufklapper „Können wir den Auftrag übernehmen?“, Warnkasten für Nachweise, die in 30 Tagen ablaufen oder abgelaufen sind, Ablegefeld fürs Hochladen am PC (Rahmen, Hervorhebung beim Ziehen), Suchfeld über der Steckbriefliste (`data-listenfilter`). „Firmenunterlagen“ als Zweitknopf.
+- Kalkulation (`kalkulation.ts`, `index.ts`, `app.ts`): Abschnitte als Aufklapper mit Kurzübersicht, die beim Tippen mitläuft; Live-Verrechnungssatz oben (gleiche Formel wie `stundenpreis`, Test vergleicht); „Lohn aus Tarif übernehmen“ (GVP-Gruppen mit heutigem Lohn); Szenarien Knapp/Normal/Sicher (Gewinn −4/±0/+4 Punkte); Export als Excel-CSV (`/auftrag/<id>/kalkulation.csv`) und Drucken/PDF mit Druckansicht.
+- 172 Web-Tests grün.
+
 ### 01.11.2026 – Claude (40 Verbesserungen: Paket 1 Ausschreibungen und Fristen)
 - Benjamin hat 40 Vorschläge freigegeben (je 5 für Ausschreibungen, Fristen, Unterlagen, Kalkulation, Firma & Team, Suchprofil, Übersicht/Einstellungen), „sauber, aufgeräumt, einfach“. Umsetzung paketweise, jeweils mit Handy-Screenshots geprüft.
 - Ausschreibungen (`web/src/treffer.ts`): Eckdaten als Etiketten (Lose, Wert, Laufzeit, Ort aus dem Kurzüberblick), „Gesucht“ und „Warum“ getrennt, Daumen hoch/runter auf der Karte (schreibt `treffer_feedback`, zurück zur Liste), Sortierung (Punkte, Frist, Auftragswert, Neueste), Titelsuche und Bereich ohne „Anzeigen“-Knopf. Entfernung zum Standort ist mangels Koordinaten noch nicht sortierbar.

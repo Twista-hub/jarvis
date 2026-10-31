@@ -272,6 +272,32 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .frist-info { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted); }
   .frist-info .fehlt { padding: 2px 8px; border-radius: 7px; background: var(--bg); color: var(--error); font-weight: 600; }
   .frist-ics { margin-left: auto; font-weight: 600; text-decoration: none; }
+  .ablauf-warnung { margin: 0 0 16px; padding: 12px 14px; border: 1px solid #d68910; border-radius: 12px; background: var(--card); }
+  .ablauf-warnung ul { list-style: none; margin: 8px 0; padding: 0; }
+  .ablauf-warnung li { display: flex; justify-content: space-between; gap: 10px; padding: 5px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+  .ablauf-warnung .bald { color: #b9770e; font-weight: 600; } .ablauf-warnung .abgelaufen { color: var(--error); font-weight: 700; }
+  .ablauf-warnung a { font-size: 14px; font-weight: 600; }
+  .listen-filter { margin: 4px 0 8px; background-color: var(--card); }
+  input[type=file] { padding: 18px 12px; border: 2px dashed var(--line); border-radius: 12px; background: var(--bg); cursor: pointer; font-size: .9rem; }
+  input[type=file].ziehen, input[type=file]:hover { border-color: var(--accent); background: var(--card); }
+  input[type=file]::file-selector-button { margin-right: 10px; padding: 8px 12px; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); font: inherit; font-weight: 600; cursor: pointer; }
+  progress { display: block; width: 100%; height: 6px; margin-top: 8px; accent-color: var(--accent); }
+  .check-zahl { margin-left: auto; padding: 2px 8px; border-radius: 7px; background: var(--bg); color: var(--muted); font-size: 12px; font-weight: 600; }
+  .live-satz { position: sticky; top: 0; z-index: 5; display: grid; gap: 2px; margin: 0; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--card); font-size: 15px; }
+  .live-satz strong { font-size: 1.35rem; color: var(--accent); }
+  details.kalk-gruppe > summary { flex-wrap: wrap; }
+  .kalk-kurz { flex: 1 1 100%; color: var(--muted); font-size: 12px; font-weight: 500; order: 3; }
+  .kalk-gruppe label { margin-top: 10px; }
+  .tarif-wahl { margin-bottom: 4px; }
+  .szenarien { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 10px 0; }
+  .szenario { display: grid; gap: 2px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); text-align: center; }
+  .szenario span { color: var(--muted); font-size: 12px; font-weight: 600; }
+  .szenario strong { font-size: 1.05rem; }
+  .szenario small { color: var(--muted); font-size: 11px; }
+  .szenario.normal { border-color: var(--accent); }
+  .export-leiste { display: flex; flex-wrap: wrap; gap: 8px; }
+  .export-leiste > * { flex: 1 1 140px; font-size: .95rem; }
+  @media print { .konto-nav, .konto-kopf, form, .export-leiste, footer, details:not([open]) { display: none !important; } body { background: #fff; color: #000; } }
   .frist-schalter { margin: 16px 0 6px; font-size: 14px; }
   .aktionsleiste { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0 0 16px; }
   .aktionsleiste a { display: grid; place-items: center; min-height: 52px; padding: 8px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; text-align: center; font-weight: 650; font-size: 14px; line-height: 1.3; }

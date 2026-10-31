@@ -8,7 +8,8 @@ import { funktionsListe, personFormular } from "./mitarbeiter.ts";
 import { darfFinanzen, ZUGRIFFE } from "./rechte.ts";
 import { einladungsMail, senden } from "./mail.ts";
 import { CSP } from "./app.ts";
-import { FELDER, STANDARD, felderHtml, fmt, zahl, type Eingaben } from "./kalkulation.ts";
+import { FELDER, STANDARD, felderHtml, fmt, tarifSchnellwahl, zahl, type Eingaben } from "./kalkulation.ts";
+import { GVP, lohnAm } from "./tarife.ts";
 import { escape, hilfe, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
@@ -274,8 +275,13 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       kalkuliert: new Set(kalk.ok ? kalk.daten.map((k) => k.vorgang_id) : []),
     }));
   } else if (unterseite === "unterlagen") {
-    const unterlagen = await unterlagenListe(liste, env);
-    inhalt = rahmen(`${finanzrecht ? `<p><a class="knopf" href="/konto/firmenunterlagen?firma=${m.firma_id}">Firmenunterlagen & Angebotsvorlagen</a></p>` : ""}<p>Lade Vergabeunterlagen auch ohne vorhandenen Treffer hoch. Jarvis erstellt daraus einen Steckbrief und eine Kalkulation.</p>${hilfe("Was passiert mit den Dateien?", "Jarvis liest sie nur, um die Ausschreibung zu prüfen und den Steckbrief zu erstellen. Vergabeunterlagen werden nach 30 Tagen gelöscht. Firmen-Nachweise und Angebotsvorlagen verwaltest du separat unter Firmenunterlagen.")}${["inhaber","admin","bearbeiter"].includes(m.rolle) ? `<form method="post" action="/konto/unterlagen" enctype="multipart/form-data"><input type="hidden" name="firma" value="${m.firma_id}">${auswahlFeld(liste)}<div data-neu><label>Titel oder Link der neuen Ausschreibung<input name="titel" maxlength="300"></label>${b.length ? `<label>Bereich<select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label>` : ""}</div><label>Unterlagen<input name="dateien" type="file" multiple required accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label><button>Hochladen und prüfen</button></form>` : `<p class="klein">Als Leser kannst du vorhandene Steckbriefe ansehen.</p>`}<h2>Bisherige Steckbriefe aus Unterlagen</h2>${unterlagen || `<p>Noch keine Unterlagen geprüft.</p>`}<p><a href="/konto/treffer">Unterlagen bei einem Treffer nachreichen →</a></p>`);
+    const [unterlagen, nachweise] = await Promise.all([
+      unterlagenListe(liste, env),
+      finanzrecht ? db<{ name: string; gueltig_bis: string | null }[]>(s, env, `firmenunterlagen?firma_id=eq.${m.firma_id}&art=eq.nachweis&gueltig_bis=not.is.null&select=name,gueltig_bis&order=gueltig_bis`) : Promise.resolve(null),
+    ]);
+    const ablauf = (nachweise?.ok ? nachweise.daten : []).map((d) => ({ ...d, tage: Math.round((Date.parse(d.gueltig_bis!) - Date.parse(heute)) / 86400_000) })).filter((d) => d.tage <= 30);
+    const warnung = ablauf.length ? `<aside class="ablauf-warnung"><strong>⚠️ ${ablauf.length === 1 ? "Ein Nachweis braucht" : `${ablauf.length} Nachweise brauchen`} bald Ersatz</strong><ul>${ablauf.map((d) => `<li><span>${escape(d.name)}</span><span class="${d.tage < 0 ? "abgelaufen" : "bald"}">${d.tage < 0 ? "abgelaufen" : d.tage === 0 ? "läuft heute ab" : `noch ${d.tage} ${d.tage === 1 ? "Tag" : "Tage"}`}</span></li>`).join("")}</ul><a href="/konto/firmenunterlagen?firma=${m.firma_id}">Neue Version hochladen →</a></aside>` : "";
+    inhalt = rahmen(`${warnung}${finanzrecht ? `<p><a class="knopf zweit" href="/konto/firmenunterlagen?firma=${m.firma_id}">📁 Firmenunterlagen & Angebotsvorlagen</a></p>` : ""}<p>Lade Vergabeunterlagen auch ohne vorhandenen Treffer hoch. Jarvis erstellt daraus einen Steckbrief und eine Kalkulation.</p>${hilfe("Was passiert mit den Dateien?", "Jarvis liest sie nur, um die Ausschreibung zu prüfen und den Steckbrief zu erstellen. Vergabeunterlagen werden nach 30 Tagen gelöscht. Firmen-Nachweise und Angebotsvorlagen verwaltest du separat unter Firmenunterlagen.")}${["inhaber","admin","bearbeiter"].includes(m.rolle) ? `<form method="post" action="/konto/unterlagen" enctype="multipart/form-data"><input type="hidden" name="firma" value="${m.firma_id}">${auswahlFeld(liste)}<div data-neu><label>Titel oder Link der neuen Ausschreibung<input name="titel" maxlength="300"></label>${b.length ? `<label>Bereich<select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label>` : ""}</div><label>Unterlagen<input name="dateien" type="file" multiple required accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label><button>Hochladen und prüfen</button></form>` : `<p class="klein">Als Leser kannst du vorhandene Steckbriefe ansehen.</p>`}<h2>Bisherige Steckbriefe aus Unterlagen</h2>${unterlagen ? `<input type="search" class="listen-filter" data-listenfilter="steckbrief-liste" placeholder="🔍 Steckbriefe durchsuchen" aria-label="Steckbriefe durchsuchen">${unterlagen}` : `<p>Noch keine Unterlagen geprüft.</p>`}<p><a href="/konto/treffer">Unterlagen bei einem Treffer nachreichen →</a></p>`);
   } else if (unterseite === "kalkulation" && !finanzrecht) {
     inhalt = rahmen(`<p>Für Kalkulationen brauchst du eine Finanzfreigabe. Frage einen Inhaber oder Administrator.</p>`);
   } else if (unterseite === "kalkulation") {
@@ -287,7 +293,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const lokaldaten = bereich && vorlagen.ok ? vorlagen.daten.find((x) => x.bereich_id === bereich.id)?.eingaben : undefined;
     const werte = { ...STANDARD, ...(lokaldaten ?? firmendaten ?? {}) };
     const ortWahl = `<form method="get" action="/konto/kalkulation"><label>Werte bearbeiten für<select name="bereich"><option value="">Ganze Firma</option>${standorte.map((x) => `<option value="${escape(x.id)}"${x.id === gewaehlt ? " selected" : ""}>${escape(bereichPfad(x, b))}</option>`).join("")}</select></label><button>Werte laden</button></form>`;
-    inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${hilfe("So entsteht der Preis", "Die Kalkulation schätzt eure Selbstkosten je Stunde aus Bruttolohn, Nebenkosten, Ausfallzeit und Einsatzkosten. Gemeinkosten sowie Wagnis und Gewinn ergeben daraus den Angebotspreis. Prüfe die Werte pro Los, bevor du ein Angebot erstellst.")}${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte</h2>${ortWahl}<p>${bereich ? `Diese Werte gelten für ${escape(bereichPfad(bereich, b))}. Fehlen eigene Standortwerte, dienen die Firmenwerte als Ausgangspunkt.` : "Diese Werte gelten für die ganze Firma. Standorte können eigene Werte haben."}</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="bereich" value="${bereich ? escape(bereich.id) : ""}">${felderHtml(werte, m.rolle === "leser")}${m.rolle !== "leser" ? `<button>${bereich ? "Standortwerte" : "Firmenwerte"} speichern</button>` : ""}</form>`}`);
+    inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${hilfe("So entsteht der Preis", "Die Kalkulation schätzt eure Selbstkosten je Stunde aus Bruttolohn, Nebenkosten, Ausfallzeit und Einsatzkosten. Gemeinkosten sowie Wagnis und Gewinn ergeben daraus den Angebotspreis. Prüfe die Werte pro Los, bevor du ein Angebot erstellst.")}${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte</h2>${ortWahl}<p>${bereich ? `Diese Werte gelten für ${escape(bereichPfad(bereich, b))}. Fehlen eigene Standortwerte, dienen die Firmenwerte als Ausgangspunkt.` : "Diese Werte gelten für die ganze Firma. Standorte können eigene Werte haben."}</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="bereich" value="${bereich ? escape(bereich.id) : ""}">${felderHtml(werte, m.rolle === "leser", tarifSchnellwahl(GVP.gruppen.map((g) => ({ eg: g, lohn: lohnAm(g, heute, 0) }))))}${m.rolle !== "leser" ? `<button>${bereich ? "Standortwerte" : "Firmenwerte"} speichern</button>` : ""}</form>`}`);
   } else if (unterseite === "team") {
     let team: string;
     const tarife = await tarifvertraegeLaden(s, env, m.firma_id);
@@ -415,7 +421,7 @@ async function kalkulationsAuswahl(liste: Vorgang[], env: KontoEnv): Promise<str
 
 async function unterlagenListe(liste: Vorgang[], env: KontoEnv): Promise<string> {
   const mitUnterlagen = (await Promise.all(liste.map(async (v) => ({ v, aus: await unterlagenSteckbrief(env, v.id) })))).filter((x) => x.aus);
-  return mitUnterlagen.length ? `<ul class="konto-linkliste">${mitUnterlagen.map(({ v, aus }) => `<li><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a><span class="klein">${aus!.text ? "Steckbrief ansehen / Dateien nachreichen" : "Unterlagen werden geprüft …"}</span></li>`).join("")}</ul>` : "";
+  return mitUnterlagen.length ? `<ul class="konto-linkliste" id="steckbrief-liste">${mitUnterlagen.map(({ v, aus }) => `<li><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a><span class="klein">${aus!.text ? "Steckbrief ansehen / Dateien nachreichen" : "Unterlagen werden geprüft …"}</span></li>`).join("")}</ul>` : "";
 }
 
 async function bereichAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
@@ -619,7 +625,7 @@ ${portal ? `<nav class="aktionsleiste"><a class="zweit" href="${escape(portal)}"
 ${leiste}${hochladen.replace("📥 Vergabeunterlagen", "📥 Dateien nachreichen")}
 ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summary>${brief(v.steckbrief)}</details>` : ""}`;
   } else if (aus) {
-    return html(seite(v.titel, `${kopf}${kaufverantwortlich}<p><strong>Jarvis liest gerade die Unterlagen.</strong> Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu; du kannst sie auch schließen.</p>
+    return html(seite(v.titel, `${kopf}${kaufverantwortlich}${await fortschritt(env, aus.auftrag)}
 ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}`, 20, "treffer"), 200, s.cookies);
   } else {
     teil = `${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
@@ -630,6 +636,14 @@ ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */
+/** Waiting page: step x of 3 with what the Steckbrief workflow is doing right now. */
+async function fortschritt(env: KontoEnv, auftrag: string): Promise<string> {
+  const roh = env.DATEN ? await env.DATEN.get(`auftraege/${auftrag}/status.json`) : null;
+  const st = roh ? (await roh.json().catch(() => null)) as { schritt?: number; text?: string } | null : null;
+  const schritt = Math.min(3, Math.max(1, Number(st?.schritt) || 1));
+  return `<div class="laedt" role="status"><span class="kreisel" aria-hidden="true"></span><span><strong>Schritt ${schritt} von 3: ${escape(st?.text || "Jarvis bereitet die Unterlagen vor")}</strong><br><span class="klein">Das dauert meist 2 bis 5 Minuten. Die Seite aktualisiert sich von selbst; du kannst sie auch schließen.</span><progress max="3" value="${schritt}" aria-hidden="true"></progress></span></div>`;
+}
+
 export async function unterlagenSteckbrief(env: KontoEnv, id: string): Promise<{ auftrag: string; text: string } | null> {
   if (!env.DATEN) return null;
   const zeiger = await env.DATEN.get(`auftraege/vorgaenge/${id}.json`);

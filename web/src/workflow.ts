@@ -21,7 +21,10 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
     const job = event.payload;
     const dir = `auftraege/${job.id}`;
 
+    // Progress for the waiting page: which step runs and how many files were read.
+    const stand = (schritt: number, text: string) => this.env.DATEN.put(`${dir}/status.json`, JSON.stringify({ schritt, text }));
     const lesen = await step.do("Unterlagen lesen", async () => {
+      await stand(1, "Dateien werden geöffnet und gelesen");
       const files: { name: string; data: Uint8Array }[] = [];
       for (const obj of (await this.env.DATEN.list({ prefix: `${dir}/dateien/` })).objects) {
         const data = new Uint8Array(await (await this.env.DATEN.get(obj.key))!.arrayBuffer());
@@ -63,6 +66,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
     }
 
     const ki = await step.do("Steckbrief schreiben", { retries: { limit: 2, delay: "30 seconds" }, timeout: "15 minutes" }, async () => {
+      await stand(2, `${lesen.gelesen} ${lesen.gelesen === 1 ? "Datei" : "Dateien"} gelesen, Jarvis schreibt den Steckbrief`);
       const dokumente = await (await this.env.DATEN.get(`${dir}/text.md`))!.text();
       const bekanntmachung = await (await this.env.DATEN.get(`${dir}/bekanntmachung.md`))?.text();
       const bisher = bekanntmachung
@@ -101,6 +105,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
     // Saved before the Steckbrief, because the result page appears as soon as ergebnis.md exists.
     const lose = ki.text
       ? await step.do("Lose erfassen", { retries: { limit: 2, delay: "10 seconds" } }, async () => {
+          await stand(3, "Lose und Mengen für die Kalkulation werden erfasst");
           const { lose, kosten } = await loseLesen(this.client(), ki.text);
           await this.env.DATEN.put(`${dir}/lose.json`, JSON.stringify(lose));
           return { anzahl: lose.length, kosten };

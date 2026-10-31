@@ -34,3 +34,15 @@ test("Fristen: Ampel, Abstand, Wochengruppen, Kalenderdatei", () => {
   assert.match(datei, /TRIGGER:-P1D/);
   assert.deepEqual(offenePunkte({ ...v("a", "2026-11-03"), kaufverantwortlich_id: "x" }, true), ["Entscheidung offen"]);
 });
+
+import { kalkulationCsv, rechnen, STANDARD, szenarien, verrechnungssatz, zusammenfassung } from "../src/kalkulation.ts";
+
+test("Kalkulation: Live-Satz, Kurzübersicht, Szenarien und CSV", () => {
+  assert.equal(verrechnungssatz(STANDARD), rechnen(STANDARD, [], {}).preisProStunde);
+  assert.match(zusammenfassung(STANDARD, "Lohn"), /€ · .* %/);
+  const [knapp, normal, sicher] = szenarien(STANDARD, [], {}, {});
+  assert.ok(knapp.preis < normal.preis && normal.preis < sicher.preis);
+  const csv = kalkulationCsv(rechnen(STANDARD, [{ nr: "1", name: "Service", menge: 100, einheit: "Stunden", zeitraum: "", hinweis: "" }], { "1": 100 }));
+  assert.match(csv, /"Angebotspreis pro Stunde netto";"\d+,\d\d"/);
+  assert.match(csv, /"1";"Service"/);
+});

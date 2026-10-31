@@ -64,6 +64,42 @@ document.querySelectorAll("select[data-los-wahl]").forEach(function (w) {
   });
 });
 
+// Calculation: live price per hour (same formula as stundenpreis in kalkulation.ts), section summaries, tariff wage.
+document.querySelectorAll("[data-live-satz]").forEach(function (anzeige) {
+  var form = anzeige.closest("form");
+  function wert(name) { var i = form.querySelector('[name="' + name + '"]'); return i ? Number(String(i.value).replace(/\./g, "").replace(",", ".")) || 0 : 0; }
+  function auf(x, p) { return x * (1 + p / 100); }
+  function rechnen() {
+    var zuschlag = wert("zuschlaege") + (wert("anteilNacht") * wert("zuschlagNacht") + wert("anteilSonntag") * wert("zuschlagSonntag") + wert("anteilFeiertag") * wert("zuschlagFeiertag") + wert("anteilUeber") * wert("zuschlagUeber")) / 100;
+    var personal = auf(auf(auf(wert("lohn"), wert("nebenkosten")), wert("ausfall")), zuschlag);
+    var einsatz = (wert("stundenTag") > 0 ? (wert("fahrt") + wert("verpflegung")) / wert("stundenTag") : 0) + (wert("stundenKraft") > 0 ? wert("einmalig") / wert("stundenKraft") : 0) + wert("sonstiges");
+    var preis = auf(auf(personal, wert("gemeinkosten")) + einsatz, wert("gewinn"));
+    anzeige.querySelector("strong").textContent = preis.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+    form.querySelectorAll("[data-gruppe]").forEach(function (g) {
+      var teile = [];
+      g.querySelectorAll("input[data-einheit]").forEach(function (i) { if (teile.length < 4 && Number(String(i.value).replace(",", ".")) ) teile.push(i.value + " " + i.dataset.einheit); });
+      var kurz = g.querySelector(".kalk-kurz"); if (kurz) kurz.textContent = teile.join(" · ") || "keine Werte";
+    });
+  }
+  form.addEventListener("input", rechnen);
+  var tarif = form.querySelector("[data-lohn-aus-tarif]");
+  if (tarif) tarif.addEventListener("change", function () { var lohn = form.querySelector('[name="lohn"]'); if (tarif.value && lohn) { lohn.value = tarif.value; rechnen(); } });
+});
+document.querySelectorAll("[data-drucken]").forEach(function (b) { b.addEventListener("click", function () { window.print(); }); });
+// Search fields that filter a list on the page as you type.
+document.querySelectorAll("[data-listenfilter]").forEach(function (f) {
+  var liste = document.getElementById(f.dataset.listenfilter);
+  if (!liste) return;
+  f.addEventListener("input", function () {
+    var q = f.value.trim().toLowerCase();
+    liste.querySelectorAll("li").forEach(function (li) { li.hidden = q !== "" && li.textContent.toLowerCase().indexOf(q) < 0; });
+  });
+});
+// File fields highlight while files are dragged over them (desktop).
+document.querySelectorAll('input[type="file"]').forEach(function (i) {
+  ["dragenter", "dragover"].forEach(function (e) { i.addEventListener(e, function () { i.classList.add("ziehen"); }); });
+  ["dragleave", "drop"].forEach(function (e) { i.addEventListener(e, function () { i.classList.remove("ziehen"); }); });
+});
 // Dropdowns that apply right away (filters, message topic).
 document.querySelectorAll("[data-sofort-wahl]").forEach(function (w) {
   w.addEventListener("change", function () { w.form.submit(); });
