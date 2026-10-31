@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from alarm.profile_db import im_suchgebiet, nicht_mehr_aktuelle_treffer
+from alarm.profile_db import aus_db, im_suchgebiet, nicht_mehr_aktuelle_treffer
 
 
 def bekanntmachung(plz="", ort=""):
@@ -27,6 +27,16 @@ class SuchgebietTest(unittest.TestCase):
         self.assertTrue(im_suchgebiet(profil, bekanntmachung("34537", "Bad Wildungen")))
         self.assertFalse(im_suchgebiet(profil, bekanntmachung("34537", "Kassel")))
         self.assertFalse(im_suchgebiet(profil, bekanntmachung()))
+
+    def test_single_location_without_ai_postcode_uses_registered_company_area(self):
+        profil = aus_db("firma", "Fliesenbetrieb", "Fliesen verlegen", {
+            "standorte": [{"name": "Baesweiler", "plz_praefixe": []}],
+            "leistungen": [{"name": "Fliesenarbeiten", "woerter": ["fliesen"], "cpv": []}],
+        }, "52531")
+        self.assertEqual(profil["suchorte"][0]["plz_praefixe"], ["52"])
+        self.assertTrue(im_suchgebiet(profil, bekanntmachung("52499", "Baesweiler")))
+        self.assertTrue(im_suchgebiet(profil, bekanntmachung("52062", "Aachen")))
+        self.assertFalse(im_suchgebiet(profil, bekanntmachung("80331", "München")))
 
     def test_buyer_office_is_not_used_as_performance_location(self):
         profil = {"suchorte": [{"name": "Bad Wildungen", "plz_praefixe": []}]}

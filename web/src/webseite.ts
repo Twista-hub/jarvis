@@ -69,9 +69,11 @@ function seitenText(html: string, limit = 3500): string {
   const metadaten = [...html.matchAll(/<meta\b[^>]*(?:name|property)=["'](?:description|og:title|og:description)["'][^>]*>/gi)]
     .map(([tag]) => tag.match(/content=["']([^"']*)["']/i)?.[1] ?? "");
   const title = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "";
+  const headings = [...html.matchAll(/<h[1-3]\b[^>]*>([\s\S]*?)<\/h[1-3]>/gi)]
+    .map(([, value]) => value.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim());
   const text = html.replace(/<(script|style|svg|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]+>/g, " ").replace(/&(?:nbsp|amp|quot|lt|gt|apos);|&#39;/gi, " ").replace(/\s+/g, " ").trim();
-  return [...new Set([entity(title), ...metadaten.map(entity), text].map((x) => x.trim()).filter(Boolean))].join(" · ").slice(0, limit);
+  return [...new Set([entity(title), ...headings.map(entity), ...metadaten.map(entity), text].map((x) => x.trim()).filter(Boolean))].join(" · ").slice(0, limit);
 }
 
 const RELEVANTE_PFADE = /leistung|angebot|branche|referenz|handwerk|service|qualifikation|gewerk|portfolio|unternehmen|ueber-uns|über-uns|taetig|tätig|arbeitsbereich|spektrum|produkt/i;
@@ -120,7 +122,8 @@ export async function websiteKontext(raw: string, abrufen: typeof fetch = fetch)
         return seitenText(await begrenztLesen(antwort, 100_000), 1800);
       } catch { return ""; }
     }));
-    const text = [haupttext, ...unterseiten].filter(Boolean).join("\n\n").slice(0, 9500);
+    // Put service pages first so a plain-text fallback sees their useful terms before home-page news.
+    const text = [...unterseiten, haupttext].filter(Boolean).join("\n\n").slice(0, 9500);
     return text
       ? { text, hinweis: "Jarvis hat die Startseite und bis zu vier passende Unterseiten gelesen; bitte prüfe die daraus abgeleiteten Leistungen." }
       : { text: "", hinweis: "Die Website enthält keine lesbare Leistungsbeschreibung. Du kannst mit deiner Beschreibung fortfahren." };

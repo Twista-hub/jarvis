@@ -171,9 +171,10 @@ function mitZeitlimit<T>(ms: number, p: Promise<T>): Promise<T> {
 }
 
 export function beschreibungFallback(beschreibung: string, orte: string, websiteText = ""): Vorschlag {
-  const stop = new Set(["aber", "alle", "auch", "dass", "diese", "einer", "eines", "eine", "einem", "einen", "einer", "firma", "für", "haben", "hier", "ihre", "sind", "und", "uns", "von", "werden", "wir", "mit", "nicht", "sowie", "das", "der", "die", "den", "dem", "des"]);
+  const stop = new Set(["aber", "alle", "auch", "dass", "diese", "einer", "eines", "eine", "einem", "einen", "einer", "firma", "für", "haben", "hier", "ihre", "sind", "und", "uns", "von", "werden", "wir", "mit", "nicht", "sowie", "das", "der", "die", "den", "dem", "des", "team", "unsere", "leistungen"]);
   const extrahieren = (text: string) => (text.toLocaleLowerCase("de").match(/[a-zäöüß]{4,}/g) ?? []).filter((w) => !stop.has(w));
-  const woerter = [...new Set([...extrahieren(beschreibung), ...extrahieren(websiteText)])].slice(0, 20);
+  // Website service pages are ranked first; a long plain-language description must not crowd them out.
+  const woerter = [...new Set([...extrahieren(websiteText), ...extrahieren(beschreibung)])].slice(0, 20);
   const ersterSatz = beschreibung.split(/[.!?\n]+/).map((s) => s.trim()).find(Boolean) ?? beschreibung;
   const standorte = orte.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean).slice(0, 20).map((name) => ({ name, plz_praefixe: [] }));
   return bereinigen({ beschreibung, leistungen: [{ name: ersterSatz.slice(0, 120) || "Leistung aus Firmenbeschreibung", cpv: [], woerter: woerter.length ? woerter : ["ausschreibung"] }], standorte });
