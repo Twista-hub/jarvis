@@ -1,0 +1,50 @@
+name: Suchabdeckung prüfen
+on:
+  workflow_dispatch:
+    inputs:
+      firma:
+        description: "Firma-ID für die ausschließlich lesende Diagnose"
+        required: true
+        type: string
+permissions:
+  contents: read
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q "psycopg[binary]"
+      - name: Profil und Quellenbestand lesen
+        env:
+          FIRMA: ${{ inputs.firma }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          cd alarm
+          python - <<'PY'
+          import json, os, uuid
+          from profile_db import aus_db, verbinden
+          from katalog import profil_version, BEWERTUNG_METHODE
+          firma = str(uuid.UUID(os.environ['FIRMA']))
+          with verbinden() as con:
+              con.execute('set transaction read only')
+              row = con.execute('''select f.name,s.beschreibung,s.einstellungen,f.plz
+                from public.suchprofile s join public.firmen f on f.id=s.firma_id
+                where s.firma_id=%s and s.bereich_id is null and s.aktiv''', (firma,)).fetchone()
+              if not row: raise SystemExit('Kein aktives Firmen-Suchprofil')
+              name, beschreibung, e, plz = row
+              p = aus_db(firma,name,beschreibung,e,plz)
+              p['beobachtete_auftraggeber'] = [r[0] for r in con.execute('select auftraggeber_id from public.auftraggeber_abos where firma_id=%s', (firma,)).fetchall()]
+              anzahl = con.execute("select count(*) from public.vergabekatalog where status in ('offen','unbekannt') and (frist is null or frist>now())").fetchone()[0]
+              quelle = con.execute('select id,letzter_erfolg,bestand_ab,bestand_bis,rueckstand_tage from public.katalog_quellen order by id').fetchall()
+              cache = con.execute('''select count(*),count(*) filter(where (ergebnis->>'punkte')::numeric>=6)
+                from jarvis_katalog.bewertungen where firma_id=%s and profil_version=%s and methode=%s''', (firma,profil_version(p),BEWERTUNG_METHODE)).fetchone()
+          print(json.dumps({'firma':name,'leistungsbereiche':e.get('leistungen',[]),
+            'standorte':p['suchorte'],'laender':p['laender'],'suchgebiet_modus':e.get('suchgebiet_modus'),
+            'ausschluss':e.get('ausschluss',[]),'ausschluss_cpv':e.get('ausschluss_cpv',[]),
+            'letzter_lauf':e.get('suchlauf_ergebnis'),'offene_katalogeintraege':anzahl,
+            'auswertungsgrenze':10000,'neue_ki_pruefungen_pro_lauf':40,'bewertete_cacheeintraege':cache[0],
+            'cache_ab_6_punkten':cache[1],'quellenstand':quelle},ensure_ascii=False,default=str,indent=2))
+          PY
