@@ -60,6 +60,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – Claude (Suchvorschlag hing, Verbindung abgebrochen)
+- Benjamins Test mit neuem Konto: Nach „Vorschlag machen lassen“ lief die Seite rund 5 Minuten und endete mit ERR_CONNECTION_CLOSED. Worker-Logs sind von hier aus nicht einsehbar.
+- Wahrscheinliche Ursache: Die KI-Budgetprüfung (`api-budget.ts`) öffnet vor dem KI-Aufruf eine direkte Postgres-Verbindung; der SDK-Timeout von 45 s greift nicht, solange diese hängt.
+- Behebung: harte Zeitgrenze von 40 s für den ganzen Schritt in `einrichtung.ts` (`mitZeitlimit`); danach kommt immer der einfache, bearbeitbare Vorschlag aus der Beschreibung. `npm run check` und `npm test` grün (108 Tests).
+- Offen: Benjamin testet erneut; `ACTIONS_TOKEN` weiterhin ungeprüft.
+
 ### 31.10.2026 – Claude (Kontolöschung repariert, Rechtstexte übernommen)
 - Ursache für „Database error deleting user“ lokal nachgestellt: Beim Löschen eines Logins löscht Postgres die Firmenmitgliedschaft per Cascade, der Trigger `mitglieder_regeln` wies das beim letzten Inhaber mit „Eine Firma braucht mindestens einen Inhaber“ ab. Zweite Sperre: `angebotsmappen.freigabe_von` wird auf null gesetzt, das blockierte `angebotsfreigabe_schuetzen`.
 - Migration `20261031150000_kontoloeschung_inhaber.sql`: Beide Trigger lassen die Cascade beim Löschen des Logins (bzw. der Firma) zu; die Freigabe bleibt mit Status und Datum erhalten. Neuer Trigger auf `auth.users` löscht Firmen, in denen die Person das einzige Mitglied war, damit kein verwaister Alarm weiterläuft. Firmen mit weiteren Mitgliedern bleiben bestehen.
