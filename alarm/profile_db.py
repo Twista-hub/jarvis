@@ -60,6 +60,11 @@ def im_suchgebiet(profile: dict, rel: dict) -> bool:
     return False
 
 
+def nicht_mehr_aktuelle_treffer(vorgaenge: list[tuple[str, str]], aktuelle_ids: set[str]) -> list[str]:
+    """IDs of untouched search hits absent from a complete, current search result."""
+    return [vorgang_id for vorgang_id, quelle_id in vorgaenge if quelle_id not in aktuelle_ids]
+
+
 def aus_db(firma_id: str, name: str, beschreibung: str, e: dict) -> dict:
     """Converts a saved profile into the format of profile.json."""
     leistungen = e.get("leistungen") or []

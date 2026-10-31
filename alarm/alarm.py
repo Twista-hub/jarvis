@@ -315,7 +315,8 @@ def run(days: list[str]) -> str:
             lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
         if not rows:
             lines += ["Heute nichts Passendes.", ""]
-    (ROOT / "treffer.json").write_text(json.dumps(treffer, ensure_ascii=False), encoding="utf-8")
+    kompletter_katalog = gemeinsam is not None and len(gemeinsam) < 10000
+    (ROOT / "treffer.json").write_text(json.dumps({"katalog_vollstaendig": kompletter_katalog, "treffer": treffer}, ensure_ascii=False), encoding="utf-8")
     import foerder
     lines += foerder.abschnitt(profiles, ki, days)
     if ki:

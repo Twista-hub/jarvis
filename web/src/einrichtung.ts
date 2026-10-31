@@ -66,7 +66,8 @@ Aus der Beschreibung der Firma erstellst du ein Suchprofil:
 - ausschluss: Wörter für Ausschreibungen, die ähnlich klingen, aber nicht passen (z. B. Bau, Software, Lieferungen), klein geschrieben.
 - ausschluss_cpv: CPV-Hauptgruppen (2 Ziffern), die sicher nicht passen und sonst oft fälschlich auftauchen, z. B. 45 Bau, 71 Architektur und Ingenieure, 34 Fahrzeuge. Nie eine Gruppe, die eine der Leistungen enthält.
 - standorte: jeder genannte Standort mit den zweistelligen Postleitzahl-Bereichen im Umkreis von etwa 50 km. Ohne Standorte: leere Liste (dann sucht Jarvis bundesweit).
-Erfinde keine Leistungen, die die Firma nicht nennt.`;
+- Nutze die angegebene Firmenwebsite als Quelle für konkrete Leistungen und Suchwörter. Lies nur die Startseite, falls robots.txt es erlaubt. Übernimm konkrete Begriffe von dort in leistungen und Suchwörter; leite keine bloß vermuteten Leistungen ab.
+Erfinde keine Leistungen, die weder die Firma beschreibt noch die Startseite nennt.`;
 
 /** vorlage: description of a firm whose profile was set up by hand (alarm/profile.json), else "". */
 export async function einrichtung(request: Request, env: EinrichtungEnv, vorlage: (firma: string) => string): Promise<Response | null> {
@@ -119,7 +120,7 @@ ${hilfe("Tipp für eine gute Suche", "Beschreibe in einfachen Worten, welche Arb
 <form method="post" action="/konto/einrichtung/vorschlag">
   <input type="hidden" name="firma" value="${firma}">
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" value="${escape(website)}"></label>
-  <p class="klein">Jarvis liest nur diese Startseite, falls robots.txt es erlaubt. Die Website ist ein zusätzlicher Hinweis und wird vor dem Speichern geprüft.</p>
+  <p class="klein">Jarvis liest diese Startseite, wenn robots.txt es erlaubt, und übernimmt konkrete Leistungen daraus als Suchwörter.</p>
   <label>Welche Arbeit macht ihr?
     <textarea name="beschreibung" maxlength="3000" placeholder="Zum Beispiel: Wir verlegen Fliesen und Mosaik in Badezimmern und Küchen.">${escape(beschreibung)}</textarea></label>
   <label>Standorte (eine Stadt pro Zeile, freiwillig)
@@ -127,7 +128,7 @@ ${hilfe("Tipp für eine gute Suche", "Beschreibe in einfachen Worten, welche Arb
     <span class="klein">Ohne Standorte sucht Jarvis in ganz Deutschland.</span></label>
   <button type="submit">Vorschlag machen lassen</button>
   <p class="klein" data-einrichtung-status role="status" aria-live="polite">Dauert etwa 30 Sekunden.</p>
-</form>`;
+</form><p><a href="/konto/suchprofil">← Zurück zum Suchprofil</a> · <a href="/konto">Zur Übersicht</a></p>`;
 }
 
 async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, form: FormData): Promise<Response> {
@@ -156,7 +157,7 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
     if (!vorschlag.leistungen.length) throw new Error("leerer Vorschlag");
   } catch (e) {
     console.warn(`Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
-    vorschlag = beschreibungFallback(beschreibung, orte);
+    vorschlag = beschreibungFallback(beschreibung, orte, websiteDaten.text);
     const webHinweis = websiteDaten.text ? "Die Firmenwebsite wurde zusätzlich berücksichtigt." : website ? "Die Firmenwebsite konnte gerade nicht gelesen werden; deine Beschreibung reicht trotzdem." : "";
     return html(seite(`Vorschlag für ${name}`, profilFormular(firma, vorschlag, `Der automatische Vorschlag klappt gerade nicht. Aus deinen Angaben ist ein einfacher Vorschlag entstanden. Bitte prüfe kurz, ob Arbeit und Einsatzorte stimmen. ${webHinweis}`.trim(), website)));
   }
@@ -169,9 +170,10 @@ function mitZeitlimit<T>(ms: number, p: Promise<T>): Promise<T> {
   return Promise.race([p, new Promise<never>((_, nein) => { t = setTimeout(() => nein(new Error("Zeitlimit")), ms); })]).finally(() => { if (t !== null) clearTimeout(t); });
 }
 
-export function beschreibungFallback(beschreibung: string, orte: string): Vorschlag {
+export function beschreibungFallback(beschreibung: string, orte: string, websiteText = ""): Vorschlag {
   const stop = new Set(["aber", "alle", "auch", "dass", "diese", "einer", "eines", "eine", "einem", "einen", "einer", "firma", "für", "haben", "hier", "ihre", "sind", "und", "uns", "von", "werden", "wir", "mit", "nicht", "sowie", "das", "der", "die", "den", "dem", "des"]);
-  const woerter = [...new Set(beschreibung.toLocaleLowerCase("de").match(/[a-zäöüß]{4,}/g) ?? [])].filter((w) => !stop.has(w)).slice(0, 12);
+  const extrahieren = (text: string) => (text.toLocaleLowerCase("de").match(/[a-zäöüß]{4,}/g) ?? []).filter((w) => !stop.has(w));
+  const woerter = [...new Set([...extrahieren(beschreibung), ...extrahieren(websiteText)])].slice(0, 20);
   const ersterSatz = beschreibung.split(/[.!?\n]+/).map((s) => s.trim()).find(Boolean) ?? beschreibung;
   const standorte = orte.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean).slice(0, 20).map((name) => ({ name, plz_praefixe: [] }));
   return bereinigen({ beschreibung, leistungen: [{ name: ersterSatz.slice(0, 120) || "Leistung aus Firmenbeschreibung", cpv: [], woerter: woerter.length ? woerter : ["ausschreibung"] }], standorte });
@@ -233,7 +235,7 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   </details>
   <button>Speichern und Suche starten</button>
 </form>
-<p class="klein"><a href="/konto/einrichtung?firma=${firma}&neu=1">Neu beschreiben</a> · <a href="/konto">Abbrechen</a></p>`;
+<p class="klein"><a href="/konto/einrichtung?firma=${firma}&neu=1">Website und Arbeit neu auswerten</a> · <a href="/konto/suchprofil">← Zurück zum Suchprofil</a> · <a href="/konto">Zur Übersicht</a></p>`;
 }
 
 function laenderAuswahl(gewaehlt: string[]): string {
@@ -342,8 +344,8 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   }
   // While the first run is busy the overview shows its own notice with a spinner, which disappears when it is done.
   if (gestartet) return weiterleiten(`/konto?firma=${firma}`);
-  const erneut = `<p class="fehler" role="status">${escape(laufstart.gestartet ? "Jarvis sucht jetzt." : `Dein Suchprofil ist gespeichert. ${laufstart.hinweis}`)}</p>${sofort ? `<form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${firma}"><button>Gespeicherte Suche jetzt starten</button></form>` : ""}<p><a href="/konto?firma=${firma}">Zur Übersicht</a></p>`;
-  return html(seite("Suchprofil gespeichert", erneut));
+  const hinweis = sofort ? `Dein Suchprofil ist gespeichert. ${laufstart.hinweis}` : "Jarvis durchsucht diese Firma bereits. Warte bitte, bis der laufende Suchlauf fertig ist.";
+  return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(hinweis)}`, s.cookies);
 }
 
 function fehlerCode(text: string): string | undefined {
@@ -361,11 +363,11 @@ async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: 
   const alt = profil.daten[0];
   const zuletzt = alt.einstellungen?.erstlauf ? String(alt.einstellungen.erstlauf) : null;
   const fertig = alt.einstellungen?.erstlauf_fertig ? String(alt.einstellungen.erstlauf_fertig) : null;
-  if (suchlaufLaeuft(zuletzt, fertig)) return weiterleiten(`/konto?firma=${firma}&hinweis=${encodeURIComponent("Jarvis sucht für diese Firma bereits. Die Treffer erscheinen nach Abschluss.")}`);
+  if (suchlaufLaeuft(zuletzt, fertig)) return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent("Jarvis sucht für diese Firma bereits. Die Treffer erscheinen nach Abschluss.")}`, s.cookies);
   const laufstart = await ersterLauf(env, firma);
   if (!laufstart.gestartet) {
-    const retry = `<p class="fehler" role="alert">${escape(`Der Suchlauf wurde nicht gestartet. ${laufstart.hinweis} Deine Suche bleibt gespeichert.`)}</p><form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${firma}"><button>Erneut versuchen</button></form><p><a href="/konto?firma=${firma}">Zur Übersicht</a></p>`;
-    return html(seite("Suche gespeichert", retry), 503);
+    const hinweis = `Der Suchlauf wurde nicht gestartet. ${laufstart.hinweis} Deine Suche bleibt gespeichert.`;
+    return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(hinweis)}`, s.cookies);
   }
   const einstellungen = { ...alt.einstellungen, erstlauf: new Date().toISOString() };
   await db(s, env, `suchprofile?id=eq.${alt.id}`, { method: "PATCH", body: JSON.stringify({ einstellungen }) });

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import psycopg
 
-from profile_db import im_suchgebiet, laden, verbinden
+from profile_db import im_suchgebiet, laden, nicht_mehr_aktuelle_treffer, verbinden
 
 ROOT = Path(__file__).parent
 
@@ -41,6 +41,21 @@ def ausserhalb_gebiet_verwerfen(con: psycopg.Connection, firma_id: str, suchorte
     return len(ausserhalb)
 
 
+def nicht_mehr_aktuell_verwerfen(con: psycopg.Connection, firma_id: str, aktuelle_treffer: list[dict], kompletter_katalog: bool) -> int:
+    """Archive untouched old hits omitted from a complete, current evaluation."""
+    if not kompletter_katalog:
+        return 0
+    rows = con.execute(
+        """select id::text, quelle_id from public.vorgaenge
+           where firma_id=%s and status='neu' and quelle_id is not null""",
+        (firma_id,),
+    ).fetchall()
+    alte = nicht_mehr_aktuelle_treffer(rows, {str(t["quelle_id"]) for t in aktuelle_treffer})
+    if alte:
+        con.execute("update public.vorgaenge set status='verworfen' where id::text = any(%s)", (alte,))
+    return len(alte)
+
+
 def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict) -> int:
     neu = 0
     for t in treffer:
@@ -70,7 +85,11 @@ def main() -> None:
     if not datei.exists():
         print("Keine Treffer-Datei.")
         return
-    treffer = json.loads(datei.read_text(encoding="utf-8"))
+    geladen = json.loads(datei.read_text(encoding="utf-8"))
+    if isinstance(geladen, list):  # Older alarm output did not include catalog completeness.
+        treffer, kompletter_katalog = geladen, False
+    else:
+        treffer, kompletter_katalog = geladen.get("treffer", []), bool(geladen.get("katalog_vollstaendig"))
     profile = laden()
     with verbinden() as con:
         for name, profil in profile.items():
@@ -79,9 +98,12 @@ def main() -> None:
                 continue
             eigene = [t for t in treffer if t["profil"] == name]
             verworfen = ausserhalb_gebiet_verwerfen(con, firma_id, profil.get("suchorte") or [])
+            nicht_aktuell = nicht_mehr_aktuell_verwerfen(con, firma_id, eigene, kompletter_katalog)
             print(f"{profil['name']}: {speichern(con, firma_id, eigene, profil.get('regionen', {}))} neue von {len(eigene)} Treffern")
             if verworfen:
                 print(f"{profil['name']}: {verworfen} alte, unbearbeitete Treffer außerhalb des Suchgebiets ins Archiv verschoben")
+            if nicht_aktuell:
+                print(f"{profil['name']}: {nicht_aktuell} alte, unbearbeitete und im aktuellen Katalog fehlende Treffer archiviert")
 
 
 if __name__ == "__main__":
