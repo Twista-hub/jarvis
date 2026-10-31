@@ -385,12 +385,12 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   const v = ausFormular(form);
   const roheWebsite = String(form.get("website") ?? "").trim().slice(0, 300);
   const website = websiteNormalisieren(roheWebsite);
-  if (roheWebsite && !website) return html(seite("Suchprofil", profilFormular(firma, v, "Bitte eine gültige Website-Adresse angeben.", alteWebsite)), 400);
+  if (roheWebsite && !website) return html(seite("Suchprofil", profilFormular(firma, v, "Bitte eine gültige Website-Adresse angeben.", roheWebsite)), 400);
   if (website !== alteWebsite && rolle !== "inhaber") {
     return html(seite("Suchprofil", profilFormular(firma, v, "Nur der Inhaber kann die gemeinsame Firmenwebsite ändern.", alteWebsite)), 403);
   }
   if (!hatProfiltext(v)) {
-    return html(seite("Suchprofil", profilFormular(firma, v, "Bitte eine Beschreibung oder genügend Website-Informationen und mindestens eine Leistung angeben.")), 400);
+    return html(seite("Suchprofil", profilFormular(firma, v, "Bitte eine Beschreibung oder genügend Website-Informationen und mindestens eine Leistung angeben.", website || alteWebsite)), 400);
   }
   // Locations become top-level areas (reused by name), so hits can be filtered per location.
   const vorhanden = await db<Bereich[]>(s, env, `bereiche?firma_id=eq.${firma}&parent_id=is.null&select=id,name,art,parent_id`);
@@ -438,11 +438,11 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
         : r.status === 400
           ? "Die Daten wurden von der Datenbank abgelehnt. Prüfe Beschreibung, Leistungen und Standorte und versuche es erneut."
           : "Das Suchprofil konnte gerade nicht gespeichert werden. Bitte versuche es erneut.";
-    return html(seite("Suchprofil", profilFormular(firma, v, meldung)), 500);
+    return html(seite("Suchprofil", profilFormular(firma, v, meldung, website || alteWebsite)), 500);
   }
   if (rolle === "inhaber" && website !== alteWebsite) {
     const firmenseite = await db(s, env, `firmen?id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ website }) });
-    if (!firmenseite.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Das Suchprofil wurde gespeichert, aber die Website nicht. Bitte erneut speichern.", alteWebsite)), 500);
+    if (!firmenseite.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Das Suchprofil wurde gespeichert, aber die Website nicht. Bitte erneut speichern.", website)), 500);
   }
   await mailZeitSetzen(s, env, firma, form.get("stunde"));
   const laufstart: Laufstart = sofort ? await ersterLauf(env, firma) : { gestartet: false, hinweis: "Jarvis durchsucht diese Firma gerade. Warte bitte, bis der laufende Suchlauf fertig ist." };
