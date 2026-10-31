@@ -68,7 +68,7 @@ Erstelle ein Suchprofil aus zwei getrennten Informationsquellen:
 - ausschluss: Wörter für Ausschreibungen, die ähnlich klingen, aber nicht passen (z. B. Bau, Software, Lieferungen), klein geschrieben.
 - ausschluss_cpv: CPV-Hauptgruppen (2 Ziffern), die sicher nicht passen und sonst oft fälschlich auftauchen, z. B. 45 Bau, 71 Architektur und Ingenieure, 34 Fahrzeuge. Nie eine Gruppe, die eine der Leistungen enthält.
 - standorte: jeder genannte Standort mit den zweistelligen Postleitzahl-Bereichen im Umkreis von etwa 50 km. Ohne Standorte: leere Liste (dann sucht Jarvis bundesweit).
-- Nutze die angegebene Firmenwebsite als Quelle für konkrete Leistungen und Suchwörter. Jarvis liest die Startseite und höchstens vier passende Unterseiten derselben Website, sofern robots.txt den Abruf erlaubt. Übernimm konkrete Begriffe von dort in leistungen und Suchwörter; leite keine bloß vermuteten Leistungen ab.
+- Nutze die angegebene Firmenwebsite als Quelle für konkrete Leistungen und Suchwörter. Jarvis liest die Startseite und höchstens zehn passende Unterseiten derselben Website, die über Links oder eine erlaubte Sitemap gefunden wurden, sofern robots.txt den Abruf erlaubt. Übernimm konkrete Begriffe von dort in leistungen und Suchwörter; leite keine bloß vermuteten Leistungen ab.
 Erfinde keine Leistungen, die weder die Firma beschreibt noch die gelesenen Seiten nennen. Lasse beim Schreiben der zwei Beschreibungen klar erkennen, aus welcher Quelle die jeweilige Information stammt.`;
 
 /** vorlage: description of a firm whose profile was set up by hand (alarm/profile.json), else "". */
@@ -122,7 +122,7 @@ ${hilfe("Tipp für eine gute Suche", "Beschreibe in einfachen Worten, welche Arb
 <form method="post" action="/konto/einrichtung/vorschlag">
   <input type="hidden" name="firma" value="${firma}">
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" value="${escape(website)}"></label>
-  <p class="klein">Jarvis liest die Startseite und bis zu vier passende Unterseiten, wenn robots.txt es erlaubt, und übernimmt konkrete Leistungen daraus als Suchwörter.</p>
+  <p class="klein">Jarvis prüft die Startseite, passende Unterseiten und – falls vorhanden – die Sitemap. Es übernimmt konkrete Leistungen als Suchwörter und beachtet robots.txt.</p>
   <label>Welche Arbeit macht ihr?
     <textarea name="beschreibung" maxlength="3000" placeholder="Zum Beispiel: Wir verlegen Fliesen und Mosaik in Badezimmern und Küchen.">${escape(beschreibung)}</textarea></label>
   <label>Standorte (eine Stadt pro Zeile, freiwillig)
