@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ausFormular, bereinigen, beschreibungFallback, profilFormular, startFormular, suchlaufLaeuft, vorschlagOderFallback } from "../src/einrichtung.ts";
+import { ausFormular, bereinigen, beschreibungFallback, FIRMEN_WEB_SUCHTOOL, hatProfiltext, profilFormular, startFormular, suchlaufLaeuft, vorschlagOderFallback, websiteFallback } from "../src/einrichtung.ts";
 
 test("erlaubt eine neue Suche nach Abschluss des vorherigen Laufs", () => {
   const jetzt = Date.parse("2026-10-31T06:00:00Z");
@@ -67,6 +67,38 @@ test("leerer oder unbrauchbarer KI-Vorschlag wird durch ein speicherbares Profil
   assert.ok(kaputt.leistungen.length);
 });
 
+test("automatischer Signup-Fallback baut das Profil aus Website-Funden ohne eigene Beschreibung", () => {
+  const v = websiteFallback("Team Effertz GmbH", "Wir bieten Fliesen Mosaik Badplanung und Natursteinarbeiten für Terrassen.", "Baesweiler", "52499");
+  assert.ok(v);
+  assert.equal(v.beschreibung, "");
+  assert.equal(v.website_beschreibung, "Wir bieten Fliesen Mosaik Badplanung und Natursteinarbeiten für Terrassen.");
+  assert.equal(v.leistungen[0].name, "Leistungen von Team Effertz GmbH");
+  assert.ok(v.leistungen[0].woerter.includes("fliesen"));
+  assert.deepEqual(v.standorte, [{ name: "Baesweiler", plz_praefixe: ["52"] }]);
+  assert.equal(websiteFallback("Firma", "Unsere Leistungen.", "", ""), null);
+});
+
+test("automatische Firmenrecherche macht öffentliche Websuche mit begrenzten Aufrufen", () => {
+  assert.equal(FIRMEN_WEB_SUCHTOOL.type, "web_search_20250305");
+  assert.equal(FIRMEN_WEB_SUCHTOOL.max_uses, 3);
+});
+
+test("öffentliche Suchzusammenfassung und sichere Quellen bleiben im Profil getrennt", () => {
+  const v = bereinigen({
+    beschreibung: "", website_beschreibung: "Website-Leistungen.", websuche_beschreibung: "Ein Branchenprofil nennt Fliesen- und Natursteinarbeiten.",
+    websuche_quellen: [{ titel: "Firmenprofil", url: "https://branchen.example/firma" }, { titel: "Unsicher", url: "javascript:alert(1)" }],
+    leistungen: [{ name: "Fliesenarbeiten", cpv: [], woerter: ["fliesen", "naturstein"] }],
+  });
+  assert.equal(v.websuche_beschreibung, "Ein Branchenprofil nennt Fliesen- und Natursteinarbeiten.");
+  assert.deepEqual(v.websuche_quellen, [{ titel: "Firmenprofil", url: "https://branchen.example/firma" }]);
+  const html = profilFormular("firma", v, "");
+  assert.match(html, /name="websuche_beschreibung"[^>]*>Ein Branchenprofil/);
+  assert.match(html, /href="https:\/\/branchen\.example\/firma"/);
+  assert.doesNotMatch(html, /href="javascript:/);
+  assert.equal(hatProfiltext(v), true, "öffentliche Suchinfos reichen auch ohne Website und eigene Beschreibung");
+  assert.equal(hatProfiltext(bereinigen({ leistungen: v.leistungen })), false);
+});
+
 test("Suchprofilvorschlag blockiert leere Eingabe nicht unsichtbar im Browser", () => {
   const html = startFormular("firma", "", "", "", "Bitte beschreib deine Firma in ein paar Sätzen.");
   assert.match(html, /role="status" aria-live="polite"/);
@@ -88,6 +120,13 @@ test("Suchprofil zeigt einfache Berufs- und Ortsfelder; technische Suchwerte sin
   assert.match(html, /Welche Aufträge soll Jarvis nicht anzeigen/);
 });
 
+test("ein Website-basiertes Suchprofil verlangt keine manuell eingetragene Firmenbeschreibung", () => {
+  const html = profilFormular("firma", bereinigen({ website_beschreibung: "Fliesen, Badplanung, Naturstein", leistungen: [{ name: "Fliesenarbeiten", cpv: [], woerter: ["fliesen", "badplanung"] }] }), "");
+  assert.match(html, /name="beschreibung"/);
+  assert.doesNotMatch(html, /name="beschreibung"[^>]*(required|minlength)/);
+  assert.match(html, /name="website_beschreibung"/);
+});
+
 test("form round trip keeps checked services and locations only", () => {
   const html = profilFormular("00000000-0000-0000-0000-000000000000", bereinigen({
     beschreibung: "Wir stellen Servicepersonal für Messen.",
@@ -98,12 +137,16 @@ test("form round trip keeps checked services and locations only", () => {
   for (const [, k, v] of html.matchAll(/name="([^"]+)"[^>]*value="([^"]*)"/g)) if (!/_an$/.test(k)) form.set(k, v);
   form.set("beschreibung", "Wir stellen Servicepersonal für Messen.");
   form.set("website_beschreibung", "Auf der Website: Messepersonal und Veranstaltungsschutz.");
+  form.set("websuche_beschreibung", "Ein Branchenprofil nennt Messepersonal.");
+  form.append("websuche_quellen", JSON.stringify({ titel: "Branchenprofil", url: "https://branchen.example/profil" }));
   form.set("l0_an", "1");
   form.set("l1_an", "1"); // the empty extra row is dropped
   const v = ausFormular(form);
   assert.deepEqual(v.leistungen, [{ name: "Messepersonal", cpv: ["79620"], woerter: ["messepersonal", "hostess"] }]);
   assert.deepEqual(v.standorte, []); // location not ticked
   assert.equal(v.website_beschreibung, "Auf der Website: Messepersonal und Veranstaltungsschutz.");
+  assert.equal(v.websuche_beschreibung, "Ein Branchenprofil nennt Messepersonal.");
+  assert.deepEqual(v.websuche_quellen, [{ titel: "Branchenprofil", url: "https://branchen.example/profil" }]);
 });
 
 test("Länder im Suchprofil: Deutschland als Standard, nur bekannte Länder, Auswahl im Formular", async () => {

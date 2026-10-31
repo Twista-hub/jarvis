@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bewertungsErklaerung, cookie, jwt, sicherWeiter, sitzung, startSucheFormular } from "../src/konto.ts";
+import { bewertungsErklaerung, cookie, jwt, konto, sicherWeiter, sitzung, startSucheFormular } from "../src/konto.ts";
 
 test("shows the AI match reason on the tender card", () => {
   assert.equal(bewertungsErklaerung("## Jarvis-Bewertung\n\n**Gesucht:** Fliesenarbeiten.\n\n**Warum passend:** Passt zur Firmenleistung.\n\n## Kurzüberblick"), "Gesucht: Fliesenarbeiten. Warum passend: Passt zur Firmenleistung.");
@@ -12,6 +12,19 @@ test("offers a direct search restart from the search profile", () => {
   assert.match(html, /method="post" action="\/konto\/einrichtung\/starten"/);
   assert.match(html, /Suche jetzt starten/);
   assert.match(html, /name="firma" value="firm-id"/);
+});
+
+test("new verified registration goes straight to automatic company research", async (t) => {
+  const firma = "11111111-1111-4111-8111-111111111111";
+  t.mock.method(globalThis, "fetch", async (input: string | URL | Request) => {
+    const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url);
+    const daten = url.pathname.endsWith("/rpc/registrierung_abschliessen") ? firma : [];
+    return Response.json(daten);
+  });
+  const token = `h.${btoa(JSON.stringify({ sub: "user", email: "neu@example.de", exp: 4_000_000_000 })).replace(/=+$/, "")}.s`;
+  const response = await konto(new Request("https://jarvis.test/konto", { headers: { cookie: `jv_at=${token}` } }), { SUPABASE_URL: "https://db.test", SUPABASE_KEY: "public" });
+  assert.equal(response?.status, 303);
+  assert.equal(response?.headers.get("location"), `/konto/einrichtung?firma=${firma}&automatisch=1`);
 });
 
 test("only local paths as redirect target", () => {

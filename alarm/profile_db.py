@@ -73,7 +73,7 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
     firmen_prefix = firmen_plz[:2] if re.fullmatch(r"\d{5}", str(firmen_plz or "")) else ""
     def plz_bereiche(o: dict) -> list[str]:
         return o.get("plz_praefixe") or ([firmen_prefix] if firmen_prefix and len(standorte) == 1 else [])
-    bewertungstext = "\n\n".join(filter(None, [beschreibung.strip(), str(e.get("website_beschreibung") or "").strip()]))
+    bewertungstext = "\n\n".join(filter(None, [beschreibung.strip(), str(e.get("website_beschreibung") or "").strip(), str(e.get("websuche_beschreibung") or "").strip()]))
     return {
         "name": name,
         "cpv": sorted({c for l in leistungen for c in l.get("cpv", [])}),

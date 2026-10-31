@@ -26,6 +26,7 @@ Stand 30.10.2026. Ziel: Ein neuer Kunde kommt ohne Erklärung zurecht.
 
 ### B. Einfacher für Neue
 4. ~~Einrichtungs-Assistent~~ (erledigt 30.10.: /konto/einrichtung; Profil in suchprofile.einstellungen, der Alarm liest es über alarm/profile_db.py; ein gespeichertes Profil ersetzt das aus profile.json).
+4a. **Automatische Firmenrecherche bei Neuanmeldung:** nach E-Mail-Bestätigung erstellt Jarvis das Suchprofil aus erlaubten Website-Inhalten und bis zu drei öffentlichen Web-Suchanfragen (Firmenname/Ort, Leistungen, Referenzen); die erste Suche startet danach automatisch. Antworten der Suche werden getrennt mit Quellenlinks gespeichert. Drei Anfragen je Einrichtung, API-Gebühren im gemeinsamen Budget. End-to-End-Live-Test mit neuer Registrierung noch offen.
 5. ~~Suchprofile in der App ändern~~ (über „Suchprofil anpassen“; offen: Mindestpunkte, Profile pro Standort).
 6. **Hilfetexte**: einklappende Erklärungen zu den Hauptabläufen ergänzt; auf den übrigen Seiten weiterführen.
 7. ~~Tägliche Mail~~ (erledigt 30.10.: Uhrzeit 7–20 Uhr pro Person, alarm/mail.py stündlich über .github/workflows/mail.yml). Erste Trefferliste sofort nach der Einrichtung (letzte 7 Tage), braucht Secret ACTIONS_TOKEN. Handy-Nachrichten (Web-Push ohne Inhalt, alarm/push.py; Tipp öffnet die Ausschreibung), Jarvis lässt sich als App installieren (manifest).
