@@ -32,7 +32,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Rechteanfragen zu Tarifentgelttabellen über das Jarvis-Postfach versenden und Antworten nachhalten.
+- Zurzeit nichts.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -40,7 +40,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 3. ~~Mitarbeiter sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen~~ (umgesetzt; Rechte und Finanzsicht bleiben rollenabhängig).
 5. Tarifdatenbank ist mit einem quellengebundenen Startbestand ausgebaut. Weitere Tarifbereiche samt aktuellen Originalgruppen, Tätigkeitsmerkmalen und Entgelten schrittweise ergänzen; keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`, `alarm/quellen.md`). Dachdecker-Mindestlohn ergänzt; das ist kein vollständiger Tarifvertrag.
-6. Tarifregister Bayern und Baden-Württemberg sowie TV-L-/IG-Metall-Originalquellen geprüft. Aktuelle Tabellen sind verfügbar, aber ihre Nutzungsbedingungen erlauben keinen Import ohne Zustimmung. Als Nächstes schriftliche Rechtefreigabe für konkret benannte Tabellen einholen oder ausdrücklich offen lizenzierte Originalquellen finden. Danach Pläne/Stripe und Telegram-Jarvis.
+6. Tarifregister Bayern und Baden-Württemberg sowie TV-L-/IG-Metall-Originalquellen geprüft. Drei konkrete Nutzungsanfragen sind versandt; Antwort abwarten. Tabellen erst nach schriftlicher Freigabe übernehmen, sonst ausdrücklich offen lizenzierte Quellen suchen. Danach Pläne/Stripe und Telegram-Jarvis.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
@@ -57,6 +57,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Nutzungsanfragen für Tarifdaten)
+- Nach Benjamins OK drei einzelne Anfragen aus `kontakt@wpdigitalranger.com` versandt: LfF Bayern (TV-L/Pflege/SuE), Tarifgemeinschaft deutscher Länder (TV-L) und IG Metall Bayern-Tarifteam (Metall/Elektro Bayern und BW).
+- Angefragt ist nur die strukturierte Darstellung ausgewählter Entgeltgruppen, Beträge, Gültigkeitsdaten und Regionen für angemeldete Firmenkunden in der kommerziellen Cloud-App Jarvis, mit Quellenlink und Prüfdatum; keine Weitergabe der PDFs oder längerer Vertragstexte. Um Nutzungsumfang, Namensnennung, Aktualisierung, Kosten und Rechteinhaberschaft wurde gebeten.
+- Versand erfolgreich bestätigt durch GitHub Actions Lauf https://github.com/Twista-hub/jarvis/actions/runs/41151858122. Antworten stehen noch aus. Einmaliger Versandworkflow danach aus dem Repo entfernt. Benjamin muss aktuell nichts tun.
 
 ### 31.10.2026 – ChatGPT (Rechteprüfung Originaltarife Bayern/BW)
 - Veröffentlichte Primärquellen geprüft: Landesamt für Finanzen Bayern stellt TV-L- und Sondertabellen nach Stichtag bereit; die `robots.txt` sperrt die geprüfte Tabelle nicht, das Impressum reserviert aber alle Rechte und verlangt Einwilligung zur Veröffentlichung. Die Tarifgemeinschaft deutscher Länder veröffentlicht TV-L samt Entgelttabellen; `robots.txt` erlaubt Abruf, ihr Impressum verlangt vorherige Zustimmung für Vervielfältigung von Informationen oder Daten.
