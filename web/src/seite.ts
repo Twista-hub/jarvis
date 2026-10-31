@@ -186,6 +186,21 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .chips input:checked + span { background: var(--accent); border-color: var(--accent); color: var(--bg); }
   .chips input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
   details > summary { cursor: pointer; }
+  /* One compact look for all fold-outs (like the search profile cards): rounded box, small accent title, arrow. */
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) { min-width: 0; margin: 10px 0; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] { padding-bottom: 14px; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 10px 0; list-style: none; color: var(--accent); font-size: .95rem; font-weight: 600; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) > summary::-webkit-details-marker { display: none; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) > summary::after { content: "›"; flex: 0 0 auto; font-size: 1.35rem; line-height: 1; color: var(--muted); transition: transform .15s; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] > summary::after { transform: rotate(90deg); }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] > summary { margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+  .steckbrief-karte { min-width: 0; padding: 4px 16px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .steckbrief-karte h2, .steckbrief-karte h3 { margin: 18px 0 6px; color: var(--accent); font-size: 1.02rem; }
+  .steckbrief-karte p { margin: 0 0 10px; }
+  /* Forms inside a fold-out are already in a box: no second frame. */
+  details > form, details details > form { border: 0; padding: 0; background: transparent; }
+  /* Compact selects with their own arrow; long option texts are cut instead of widening the page. */
+  select { appearance: none; -webkit-appearance: none; padding: 9px 36px 9px 11px; font-size: .95rem; text-overflow: ellipsis; white-space: nowrap; overflow: hidden; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px, 5px 5px; background-repeat: no-repeat; }
   .auswahl-liste { list-style: none; margin: 12px 0; padding: 0; display: grid; gap: 8px; }
   .auswahl-liste a { position: relative; display: grid; gap: 4px; padding: 12px 36px 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--text); text-decoration: none; }
   .auswahl-liste a:hover, .auswahl-liste a:focus-visible { border-color: var(--accent); }

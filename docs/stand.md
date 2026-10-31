@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Aufklapper und Auswahlfelder vereinheitlicht)
+- Benjamin: Dropdowns auf allen Seiten kleiner und aufgeräumter, andere Seiten so schön wie das Suchprofil.
+- `web/src/seite.ts`: Alle einfachen Aufklapper (`<details>` ohne eigene Gestaltung) sind jetzt kompakte Kästen wie beim Suchprofil: Rahmen, runde Ecken, kleiner Akzent-Titel, Pfeil statt schwarzem Dreieck; Formulare darin ohne zweiten Rahmen. Auswahlfelder (`<select>`) kompakter mit eigenem Pfeil, lange Texte werden abgeschnitten. Ausgenommen: Info-Symbole, Nachweis-Warnungen und die bereits eigens gestalteten Auswahlen.
+- Steckbrief auf der Ausschreibungsseite als Karte (`.steckbrief-karte`) mit Akzent-Zwischenüberschriften; Einladungsformular unter „Firma & Team“ als Aufklapper „➕ Person einladen“; lange Upload-Erklärungen unter „Tipps zum Hochladen“.
+- Mit gerenderten Handy-Screenshots (Testdaten) geprüft: Firma & Team, Ausschreibung, Einstellungen, Suchprofil, Anmeldung. `npm run check` und 168 Tests grün.
+
 ### 31.10.2026 – Claude (Hängende KI-Reservierungen)
 - Ursache: Die App wartet höchstens 40 s auf die KI (`mitZeitlimit`). Dauert z. B. eine Firmenrecherche mit Websuche länger, antwortet die Seite mit dem Ersatz; der Worker endet und die Abrechnung (`ki_abschliessen`) läuft nie. Die Reservierung blieb mit dem Höchstwert stehen.
 - `web/src/api-budget.ts`: Anfrage und Abrechnung laufen als eigener Ablauf, der über `ctx.waitUntil` (`env.WARTEN`, gesetzt in `index.ts`) nach der Antwort weiterleben darf (Cloudflare: bis etwa 30 s).
