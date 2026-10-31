@@ -46,7 +46,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
-- **Supabase-Testkonto löschen:** Ursache gefunden (31.10., Claude): Der Schutz „Eine Firma braucht mindestens einen Inhaber“ griff auch beim Löschen des Logins, weil die Mitgliedschaft per Cascade mitgelöscht wird. Gleiches galt für Personen, die ein Angebot freigegeben hatten. Migration `20261031150000_kontoloeschung_inhaber.sql` behebt beides; Firmen, in denen die gelöschte Person das einzige Mitglied war, werden mitgelöscht. Nach dem Einspielen Testkonto erneut im Supabase-Dashboard löschen.
+- ~~**Supabase-Testkonto löschen**~~: Ursache behoben (Migration `20261031150000_kontoloeschung_inhaber.sql`, live seit 31.10.), Testkonto von Benjamin erfolgreich gelöscht.
 - **Erster Suchlauf nach Registrierung:** `ACTIONS_TOKEN` wird beim App-Rollout erkannt und gesetzt. Die tatsächliche GitHub-Berechtigung (`actions:write`) und ein Live-Sofortlauf mit einem neu angemeldeten Nutzer sind noch nicht geprüft. Scheitert der Sofortstart, bleibt das Profil gespeichert und kann erneut gestartet werden. Keine öffentliche Firmendatenbank für Namensvorschläge eingebunden: beim Signup wird deshalb die Firmenwebsite optional abgefragt, statt private Kundenbestände oder unzuverlässige Trefferlisten offenzulegen.
 - **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). SAM.gov Terms und Get Opportunities Public API am 31.10. geprüft: öffentliche Daten dürfen aus der Public API verbreitet werden; Website-Scraping und private/sensitive APIs nicht. API-Schlüssel alle 90 Tage erneuern (Ende Januar 2027); Tageskontingent ist rollenabhängig. Pagination über bis zu zehn Seiten und 20 API-Aufrufe je Alarmprozess; pro Datum maximal 10.000 Ergebnisse. Mehr wird mit Warnung ausgelassen.
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
@@ -65,7 +65,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Migration `20261031150000_kontoloeschung_inhaber.sql`: Beide Trigger lassen die Cascade beim Löschen des Logins (bzw. der Firma) zu; die Freigabe bleibt mit Status und Datum erhalten. Neuer Trigger auf `auth.users` löscht Firmen, in denen die Person das einzige Mitglied war, damit kein verwaister Alarm weiterläuft. Firmen mit weiteren Mitgliedern bleiben bestehen.
 - `supabase/tests/rechte_test.sql` um zwei Prüfungen ergänzt; lokal gegen Postgres 16: ALLE TESTS OK.
 - Rechtstexte: Benjamin hat sie geprüft und übernimmt sie unverändert.
-- Offen: Testkonto nach dem Einspielen im Supabase-Dashboard löschen; Punkt `ACTIONS_TOKEN` mit einer neuen Registrierung live prüfen.
+- Migration live (https://github.com/Twista-hub/jarvis/actions/runs/41167893716); Benjamin hat das Testkonto danach erfolgreich gelöscht. Offen: `ACTIONS_TOKEN` mit einer neuen Registrierung live prüfen (Benjamin testet).
 
 ### 31.10.2026 – ChatGPT (Suchprofil verständlicher machen)
 - Auf Benjamins Rückmeldung und Screenshot die Bestätigungsseite vereinfacht: statt „Leistungen“, „Suchwörter“ und sichtbarer CPV-Felder stehen jetzt „Welche Arbeiten soll Jarvis finden?“ und „Wo soll Jarvis suchen?“ im Vordergrund. Eingaben heißen „Beruf oder Arbeit“ und „Stadt oder Gegend“.
