@@ -38,7 +38,7 @@ jobs:
           test -n "$SUPABASE_DB_PASSWORD"
           pw=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"],safe=""))')
           for host in aws-1-eu-central-1 aws-0-eu-central-1; do
-            if [ "$(psql "postgresql://postgres.juuuifrcxmitkqudqngq:$pw@$host.pooler.supabase.com:5432/postgres" -tAc "select to_regclass('jarvis_katalog.exporte') is not null" 2>/dev/null)" = t ]; then
+            if [ "$(psql "postgresql://postgres.juuuifrcxmitkqudqngq:$pw@$host.pooler.supabase.com:6543/postgres" -tAc "select to_regclass('jarvis_katalog.exporte') is not null" 2>/dev/null)" = t ]; then
               echo "bereit=1" >> "$GITHUB_OUTPUT"; exit 0
             fi
           done
