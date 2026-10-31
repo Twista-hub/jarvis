@@ -132,6 +132,12 @@ jobs:
           psql "$DB_URL" -tAc "select table_name from information_schema.tables where table_schema='public' order by 1"
           psql "$DB_URL" -c "select f.id, f.name, f.paket, f.erstellt::date, count(m.*) as mitglieder, (select count(*) from public.vorgaenge v where v.firma_id = f.id) as vorgaenge from public.firmen f left join public.mitglieder m on m.firma_id = f.id group by f.id order by f.erstellt"
 
+      - name: KI-Budget (nur lesend)
+        run: |
+          psql "$DB_URL" -c "select monat, limit_usd, reserviert from jarvis_katalog.ki_budget order by monat desc limit 2"
+          psql "$DB_URL" -c "select zweck, count(*) as aufrufe, count(*) filter(where verbraucht is null) as offen, round(sum(reserviert),3) as reserviert, round(sum(verbraucht),3) as verbraucht from jarvis_katalog.ki_kosten where zeit>=date_trunc('day',now()) group by zweck"
+          psql "$DB_URL" -c "select zeit, zweck, reserviert, verbraucht from jarvis_katalog.ki_kosten order by zeit desc limit 10"
+
       - name: Standorte und Zeilenrechte prüfen
         run: |
           psql "$DB_URL" -c "select f.name, count(*) filter(where b.parent_id is null) as regionen, count(*) filter(where b.parent_id is not null) as standorte from public.firmen f join public.bereiche b on b.firma_id=f.id group by f.name"
