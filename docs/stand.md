@@ -40,7 +40,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 3. ~~Mitarbeiter sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen~~ (umgesetzt; Rechte und Finanzsicht bleiben rollenabhängig).
 5. Tarifdatenbank ist mit einem quellengebundenen Startbestand ausgebaut. Weitere Tarifbereiche samt aktuellen Originalgruppen, Tätigkeitsmerkmalen und Entgelten schrittweise ergänzen; keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`, `alarm/quellen.md`). Dachdecker-Mindestlohn ergänzt; das ist kein vollständiger Tarifvertrag.
-6. Als Nächstes Quellenlücke Bayern/Baden-Württemberg schließen, soweit Originalquellen und Rechte es erlauben; SAM.gov-Bedingungen geprüft. Danach Pläne/Stripe und Telegram-Jarvis.
+6. Tarifregister Bayern und Baden-Württemberg geprüft: kein offener Importweg. Als Nächstes einzelne frei veröffentlichte Originalverträge aus beiden Ländern je Branche und mit geklärten Rechten ergänzen; keine Register-Sperren umgehen. Danach Pläne/Stripe und Telegram-Jarvis.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
@@ -57,6 +57,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Tarifregister Bayern und Baden-Württemberg)
+- Die amtlichen Registerseiten und Benutzerhinweise geprüft; `robots.txt` beider Domains lieferte 404. Bayern verlangt für eine Einsicht einen Termin und bietet keinen offenen Datensatz. Baden-Württemberg führt ein passwortgeschütztes Register, schließt allgemeine Nutzung aus und untersagt die Weitergabe an unberechtigte Dritte.
+- Entsprechend keine Registerdaten gescraped oder übernommen. Nutzungsgrenzen und Quellenlinks in `alarm/quellen.md` sowie `docs/personalkatalog.md` ergänzt; „In Arbeit“ geleert.
+- Offen: einzelne aktuelle Originalverträge aus Bayern/Baden-Württemberg über frei veröffentlichte oder direkt von Tarifparteien bereitgestellte Quellen finden und Rechte, Geltungsbereich, Gruppen und Laufzeiten je Vertrag prüfen. Keine Behördenanfrage versandt; Benjamin muss nichts tun.
 
 ### 31.10.2026 – ChatGPT (Tarifliche Mindestentgelte aus Bundesrecht)
 - Bundesrechtliche Mindestentgelte geprüft: Dachdecker 14,96/16,60 €/Std. ab 2026, gelernt 17,10 €/Std. ab 2027 und 17,60 €/Std. ab 2028; Pflege drei Qualifikationsstufen mit je einem Satz 2026 und 2027; Gebäudereinigung LG 1 15,00 €/Std. und LG 6 18,40 €/Std. ab 2026. Beim Malerhandwerk die bisherige Verbandsquelle durch die Rechtsnorm ersetzt und Geltungsbereich/Ablauf ergänzt.
