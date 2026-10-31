@@ -79,6 +79,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – Claude (Suchlauf ohne Profil, offene Web-Reservierungen)
+- Lauf 41251025747 brach mit „Kein Suchprofil für Firma 636fbffb…“ ab: Perlease wurde erneut neu angelegt, aktuelle Firma `98ac7ed5-2c1a-4f31-a7d3-ff9fc84e218a` (14 Vorgänge). Kein Codefehler.
+- Tagesbudget 31.10.: 10,20 von 11 USD reserviert. Davon 3,07 USD in zwei Web-Reservierungen von 19:53/19:55 UTC ohne Abschluss (`verbraucht` leer, Firmenrecherche mit Websuche). Offene Web-Reservierungen werden nie freigegeben und blockieren das Tagesbudget. Ursache klären (Zeitlimit/Stream/Fehlerpfad in `api-budget.ts` schließt nicht ab) und unabgeschlossene Reservierungen nach z. B. 30 Minuten automatisch auf die tatsächlichen Kosten setzen oder freigeben. Offen.
+- Neuer Suchlauf für die neue Firma ist auf 00:05 UTC (neuer KI-Tag und Monat) geplant.
+
 ### 31.10.2026 – Claude (Steckbriefe: 4 pro Firma und Tag, Eckdaten im Kurzüberblick)
 - Benjamin: Steckbriefe zu kurz, Lose und Arbeitsstunden fehlen. Ursache: `MAX_STECKBRIEFE` war 2 pro Lauf (nur ab 7/10); die neue Firma „Perlease gmbh“ bekam 14 Treffer, nur 2 mit vollem Steckbrief, der Rest nur „Kurzüberblick“.
 - Entscheidung Benjamin: 4 ausführliche Steckbriefe pro Firma und Tag, für die besten Treffer und die mit potenziell den meisten Arbeitsstunden. Umsetzung `alarm/alarm.py`: Grenze gilt pro Tag (`steckbriefe_heute` zählt heute erstellte Dateien der Firma); `steckbrief_auswahl` nimmt die Hälfte nach Punkten (ab 7/10), den Rest nach Umfang (geschätzter Auftragswert, sonst Summe der Loswerte, sonst Losanzahl).
