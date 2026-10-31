@@ -4,7 +4,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (31.10.2026)
 - **Mindestentgelt-Katalog (31.10.):** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen eingespielt. GitHub-Rechteprüfung, Migration und Gesamtprüfung erfolgreich; Web-Check und 20 Testdateien grün. Alle zehn Bereiche der BMAS-Übersicht zu bundesweiten Branchenmindestentgelten sind im Katalog vertreten. Destatis-Tarifdatenbank als neue manuelle Recherchequelle identifiziert; Nutzungsbedingungen des separaten PDF-Exports und Verfügbarkeit noch ungeklärt.
-- **Suchprofil (31.10.):** KI-Antworten ohne nutzbare Leistung können nicht mehr als leerer, nicht speicherbarer Vorschlag erscheinen; Supabase-Fehler werden verständlicher angezeigt und mit Status/Fehlercode (ohne Firmendaten) protokolliert. Der Vorschlagknopf zeigt während Website-/KI-Anfrage sofort den Fortschritt; Eingabefehler werden sichtbar statt still durch HTML-Mindestlänge blockiert. KI-Anfrage hat 45-Sekunden-Zeitlimit und fällt danach auf Beschreibungsvorschlag zurück. Lokale und GitHub-Prüfungen grün; App-Rollout erfolgreich.
+- **Suchprofil (31.10.):** KI-Leerantworten werden durch einen speicherbaren Vorschlag ersetzt; Speicherfehler werden verständlicher angezeigt. Der Vorschlagknopf zeigt Fortschritt, und die Sucheinrichtung ist für Nicht-Fachleute vereinfacht: Arbeit und Ort zuerst, Fachdetails standardmäßig eingeklappt. Neue Änderungen lokal geprüft; Rollout läuft.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
 - **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
@@ -34,7 +34,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (leer)
+- (ChatGPT) Suchprofil-Einrichtung für Nicht-Fachleute vereinfachen.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -59,6 +59,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Suchprofil verständlicher machen)
+- Auf Benjamins Rückmeldung und Screenshot die Bestätigungsseite vereinfacht: statt „Leistungen“, „Suchwörter“ und sichtbarer CPV-Felder stehen jetzt „Welche Arbeiten soll Jarvis finden?“ und „Wo soll Jarvis suchen?“ im Vordergrund. Eingaben heißen „Beruf oder Arbeit“ und „Stadt oder Gegend“.
+- CPV-Kennziffern, Suchwörter, Postleitzahl-Anfänge, Länderwahl, tägliche E-Mail und Ausschlüsse liegen in standardmäßig geschlossenen, optionalen Bereichen. Bestehende Werte werden weitergesendet und gespeichert.
+- Erklärung zu KI/Website und Statusmeldung in einfache Alltagssprache umformuliert. Regressionstest prüft die klaren Felder und dass Fachoptionen eingeklappt sind.
+- `cd web && npm run check && npm test`: grün (20 Testdateien, 0 Fehler). Rollout nach Push noch prüfen.
 
 ### 31.10.2026 – ChatGPT (Keine Reaktion auf „Vorschlag machen lassen“)
 - Nach Benjamins genauer Beschreibung den Klickpfad erneut geprüft. Website-Regelabruf (bis zu 5 Sekunden), Startseitenabruf (bis zu 5 Sekunden) und KI-Anfrage liefen nacheinander; der Knopf änderte dabei weder Text noch Zustand. Für Nutzer sah das nach einem toten Knopf aus.
