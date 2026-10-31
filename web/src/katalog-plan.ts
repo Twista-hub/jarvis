@@ -1,4 +1,4 @@
-import type { Bekanntmachung } from "./katalog-daten.ts";
+import { normalisieren, type Bekanntmachung } from "./katalog-daten.ts";
 import { strFromU8 } from "fflate";
 
 export function* releaseBloecke(dateien: Iterable<Uint8Array>): Generator<any[]> {
@@ -21,4 +21,21 @@ export function nachholLimit(payload: unknown): number {
 export function importierbar(n: Bekanntmachung, vorhanden: boolean, jetzt = Date.now()): boolean {
   // Amendments of known notices must still close/correct existing customer hits.
   return vorhanden || (["offen", "unbekannt"].includes(n.status) && (!n.frist || Date.parse(n.frist) > jetzt));
+}
+
+export async function normalisiereBlock(teil: any[], bestehend: Map<string, { roh: any; quell_datum: string | Date }>, tag: string): Promise<Bekanntmachung[]> {
+  const batch: Bekanntmachung[] = [];
+  for (const rel of teil) {
+    if (!(rel.tag ?? []).some((t: string) => /^(tender|award|contract|compiled)/.test(t))) continue;
+    const id = `bks:${rel.ocid || rel.id}`;
+    const current = bestehend.get(id);
+    if (current && rel.date && new Date(current.quell_datum).getTime() > Date.parse(rel.date)) continue;
+    const n = await normalisieren(rel, tag, current?.roh);
+    if (n && JSON.stringify(n.roh).length >= 100000) throw new Error("Datensatz zu groß");
+    if (n && importierbar(n, Boolean(current))) {
+      batch.push(n);
+      bestehend.set(id, { roh: n.roh, quell_datum: n.quell_datum });
+    }
+  }
+  return batch;
 }

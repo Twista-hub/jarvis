@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { importierbar, nachholLimit, releaseBloecke } from "../src/katalog-plan.ts";
+import { importierbar, nachholLimit, releaseBloecke, normalisiereBlock } from "../src/katalog-plan.ts";
 import { normalisieren } from "../src/katalog-daten.ts";
 
 test("Nachholung ist begrenzt und bekommt einen eigenen ausdrücklichen Modus", () => {
@@ -23,4 +23,15 @@ test("Neue erledigte Verfahren verbrauchen keine Plätze; bekannte Verfahren erh
   assert.equal(importierbar(n, true), true);
   assert.equal(importierbar({ ...n, status: "offen", frist: "2100-01-01" }, false), true);
   assert.equal(importierbar({ ...n, status: "offen", frist: "2000-01-01" }, false), false);
+});
+
+test("Eine Teiländerung im gleichen Block sieht den zuvor normalisierten Grunddatensatz", async () => {
+  const batch = await normalisiereBlock([
+    { ocid: "gleich", date: "2026-10-30T10:00:00Z", tag: ["tender"], tender: { title: "Fliesenarbeiten", description: "Originale Leistungsbeschreibung" } },
+    { ocid: "gleich", date: "2026-10-31T10:00:00Z", tag: ["tenderCancellation"] },
+  ], new Map(), "2026-10-31");
+  assert.equal(batch.length, 2);
+  assert.equal(batch[1].status, "aufgehoben");
+  assert.equal(batch[1].titel, "Fliesenarbeiten");
+  assert.equal(batch[1].beschreibung, "Originale Leistungsbeschreibung");
 });

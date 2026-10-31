@@ -38,7 +38,9 @@ jobs:
               p = aus_db(firma,name,beschreibung,e,plz)
               p['beobachtete_auftraggeber'] = [r[0] for r in con.execute('select auftraggeber_id from public.auftraggeber_abos where firma_id=%s', (firma,)).fetchall()]
               anzahl = con.execute("select count(*) from public.vergabekatalog where status in ('offen','unbekannt') and (frist is null or frist>now())").fetchone()[0]
-              quelle = con.execute('select id,letzter_erfolg,bestand_ab,bestand_bis,rueckstand_tage from public.katalog_quellen order by id').fetchall()
+              quelle = con.execute('select id,letzter_erfolg,bestand_ab,bestand_bis,rueckstand_tage,fehler from public.katalog_quellen order by id').fetchall()
+              speicher = con.execute('select pg_database_size(current_database()), (select count(*) from public.vergabekatalog)').fetchone()
+              importe = con.execute("select tag,fertig,versuche,naechster_versuch from jarvis_katalog.exporte where quelle='bks' and not fertig order by tag desc limit 60").fetchall()
               cache = con.execute('''select count(*),count(*) filter(where (ergebnis->>'punkte')::numeric>=6)
                 from jarvis_katalog.bewertungen where firma_id=%s and profil_version=%s and methode=%s''', (firma,profil_version(p),BEWERTUNG_METHODE)).fetchone()
           print(json.dumps({'firma':name,'leistungsbereiche':e.get('leistungen',[]),
@@ -46,5 +48,6 @@ jobs:
             'ausschluss':e.get('ausschluss',[]),'ausschluss_cpv':e.get('ausschluss_cpv',[]),
             'letzter_lauf':e.get('suchlauf_ergebnis'),'offene_katalogeintraege':anzahl,
             'auswertungsgrenze':None,'neue_ki_pruefungen_pro_lauf':'bis zur Budgetgrenze','bewertete_cacheeintraege':cache[0],
-            'cache_ab_6_punkten':cache[1],'quellenstand':quelle},ensure_ascii=False,default=str,indent=2))
+            'cache_ab_6_punkten':cache[1],'quellenstand':quelle,'speicher_bytes_und_datensaetze':speicher,
+            'offene_importe':importe},ensure_ascii=False,default=str,indent=2))
           PY
