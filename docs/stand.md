@@ -5,7 +5,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Aktueller Stand (31.10.2026)
 - **Mindestentgelt-Katalog (31.10.):** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen eingespielt. GitHub-Rechteprüfung, Migration und Gesamtprüfung erfolgreich; Web-Check und 20 Testdateien grün. Alle zehn Bereiche der BMAS-Übersicht zu bundesweiten Branchenmindestentgelten sind im Katalog vertreten. Destatis-Tarifdatenbank als neue manuelle Recherchequelle identifiziert; Nutzungsbedingungen des separaten PDF-Exports und Verfügbarkeit noch ungeklärt.
 - **Suchprofil (31.10.):** KI-Leerantworten werden durch einen speicherbaren Vorschlag ersetzt; Speicherfehler werden verständlicher angezeigt. Der Vorschlagknopf zeigt Fortschritt, und die Sucheinrichtung ist für Nicht-Fachleute vereinfacht: Arbeit und Ort zuerst, Fachdetails standardmäßig eingeklappt. Lokale und GitHub-Prüfungen grün; App live.
-- **Web-KI-Verbindung (31.10.):** Nur-Lese-Prüfung des Budgets: 0,1023/20 USD im Monat und 0,102/3 USD heute; keine Web-Aufrufe, nur Alarm-Aufrufe. Budgetlimit ist nicht erreicht. Ein schreibfreier Hyperdrive-Test direkt aus dem App-Worker wird in den Rollout aufgenommen.
+- **Web-KI-Verbindung (31.10.):** Nur-Lese-Prüfung des Budgets: 0,1023/20 USD im Monat und 0,102/3 USD heute; Budgetlimit nicht erreicht. Hyperdrive und Budgetfunktion sind im App-Worker per schreibfreiem Rollout-Test bestätigt. Echter KI-Vorschlag nach diesem Rollout noch nicht bestätigt.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
 - **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
@@ -35,7 +35,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Web-KI-Vorschlag: Hyperdrive-Verbindung live prüfen.
+- (ChatGPT) Ersten KI-Vorschlag nach dem bestätigten Hyperdrive-Rollout prüfen.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -64,8 +64,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 31.10.2026 – ChatGPT (Web-Vorschlag fällt weiter auf Eingaben zurück)
 - Benjamins erneuten Versuch untersucht. Der Nur-Lese-Lauf `datenbank.yml` (41172404786, Aktion `anzeigen`) zeigt KI-Budget 0,1023/20 USD im Monat und 0,102/3 USD am Tag. Die zwei heutigen Reservierungen stammen beide aus `alarm`; für den Web-Vorschlag gibt es keine Budgetbuchung. Ein erschöpftes Budget ist damit ausgeschlossen.
 - Die aktuelle App kompensiert einen fehlgeschlagenen KI-Aufruf mit einem Vorschlag aus den eigenen Angaben. Das erklärt die beobachtete Seite, belegt aber noch nicht, warum der App-Worker keine Web-Budgetreservierung schreibt. Eine lokale `wrangler`-Anmeldung existiert hier nicht; direkte Worker-Logs sind nicht verfügbar.
-- Schreibfreien, mit dem kurzlebigen Deployment-Testcode geschützten Hyperdrive-/Budgetfunktions-Test ergänzt. Der Web-Rollout soll ab jetzt scheitern und eine gekürzte Fehlermeldung zeigen, wenn der Worker die Datenbank nicht erreicht. Der Test ruft `ki_reservieren(0)` auf; das beendet die Funktion vor jeder Buchung und verändert keine Daten.
-- `cd web && npm run check && npm test`: grün (20 Testdateien, 0 Fehler). Rollout und Live-Test noch offen. Benjamin muss nichts vorbereiten.
+- Schreibfreien, mit dem kurzlebigen Deployment-Testcode geschützten Hyperdrive-/Budgetfunktions-Test ergänzt. Der Test ruft `ki_reservieren(0)` auf; das beendet die Funktion vor jeder Buchung und verändert keine Daten. Beim Web-Rollout 41172732155 erfolgreich: App-Worker erreicht Hyperdrive und kann die Budgetfunktion aufrufen.
+- `cd web && npm run check && npm test`: grün (20 Testdateien, 0 Fehler). Offen: echten KI-Vorschlag nach dem bestätigten DB-Test. Benjamins letzter Vorschlagversuch war vor dem neuen Rollout; er muss keine Angaben erneut eintippen, wenn er am bisherigen Formular zurückgeht und einmal absendet.
 
 ### 31.10.2026 – Claude (Übergabe an ChatGPT)
 - Erledigt heute: Kontolöschung repariert, `ACTIONS_TOKEN` bestätigt, KI-Bewertungen im Alarm repariert (numeric-Cast), Suchvorschlag mit 40-s-Grenze, Worker-Datenbankzugang über Hyperdrive (Supabase-CA, verify-full), Rechtstexte als geprüft vermerkt.
