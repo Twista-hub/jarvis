@@ -106,14 +106,14 @@ async function anzeigen(s: Sitzung, env: KontoEnv, firma: string, name: string, 
 
 export function startFormular(firma: string, beschreibung: string, orte: string, website: string, fehler: string): string {
   return `${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}
-${hilfe("Tipp für eine gute Suche", "Schreib konkret, welche Leistungen und Einsatzorte wichtig sind. Nenne auch Aufträge, die ihr nicht übernehmen wollt. Jarvis erstellt daraus einen Vorschlag, den du vor dem Start prüfst.")}
-<p>In zwei Schritten: Du beschreibst deine Firma, Jarvis schlägt das Suchprofil vor, du prüfst es und speicherst.</p>
+${hilfe("Tipp für eine gute Suche", "Beschreibe in einfachen Worten, welche Arbeit ihr macht und wo ihr arbeitet. Fachbegriffe oder Vergabe-Kennziffern brauchst du nicht.")}
+<p>Beschreibe kurz eure Arbeit und Einsatzorte. Jarvis macht daraus einen Vorschlag, den du prüfen und speichern kannst.</p>
 <form method="post" action="/konto/einrichtung/vorschlag">
   <input type="hidden" name="firma" value="${firma}">
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" value="${escape(website)}"></label>
   <p class="klein">Jarvis liest nur diese Startseite, falls robots.txt es erlaubt. Die Website ist ein zusätzlicher Hinweis und wird vor dem Speichern geprüft.</p>
-  <label>Was macht deine Firma? (2 bis 5 Sätze)
-    <textarea name="beschreibung" maxlength="3000" placeholder="z. B. Wir sind eine Zeitarbeitsfirma für Gastronomie und Events. Wir stellen Servicekräfte, Köche und Hostessen für Messen und Kantinen. Keine Reinigung, keine Pflege.">${escape(beschreibung)}</textarea></label>
+  <label>Welche Arbeit macht ihr?
+    <textarea name="beschreibung" maxlength="3000" placeholder="Zum Beispiel: Wir verlegen Fliesen und Mosaik in Badezimmern und Küchen.">${escape(beschreibung)}</textarea></label>
   <label>Standorte (eine Stadt pro Zeile, freiwillig)
     <textarea name="orte" maxlength="1000" placeholder="Köln&#10;Düsseldorf">${escape(orte)}</textarea>
     <span class="klein">Ohne Standorte sucht Jarvis in ganz Deutschland.</span></label>
@@ -147,9 +147,11 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
   } catch (e) {
     console.warn(`Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
     vorschlag = beschreibungFallback(beschreibung, orte);
-    return html(seite(`Vorschlag für ${name}`, profilFormular(firma, vorschlag, `Der automatische Vorschlag antwortet gerade nicht. Deine Angaben sind übernommen; prüfe die Leistungen und Suchwörter. ${websiteDaten.hinweis}`.trim(), website)));
+    const webHinweis = websiteDaten.text ? "Die Firmenwebsite wurde zusätzlich berücksichtigt." : website ? "Die Firmenwebsite konnte gerade nicht gelesen werden; deine Beschreibung reicht trotzdem." : "";
+    return html(seite(`Vorschlag für ${name}`, profilFormular(firma, vorschlag, `Der automatische Vorschlag klappt gerade nicht. Aus deinen Angaben ist ein einfacher Vorschlag entstanden. Bitte prüfe kurz, ob Arbeit und Einsatzorte stimmen. ${webHinweis}`.trim(), website)));
   }
-  return html(seite(`Vorschlag für ${name}`, profilFormular(firma, vorschlag, `Das schlägt Jarvis vor. Nimm Haken weg, wo etwas nicht passt, und ändere Wörter nach Belieben. ${websiteDaten.hinweis}`.trim(), website)));
+  const webHinweis = websiteDaten.text ? "Die Firmenwebsite wurde zusätzlich berücksichtigt." : website ? "Die Firmenwebsite konnte gerade nicht gelesen werden; deine Beschreibung reicht trotzdem." : "";
+  return html(seite(`Vorschlag für ${name}`, profilFormular(firma, vorschlag, `Prüfe kurz, ob die vorgeschlagenen Arbeiten und Einsatzorte stimmen. Du kannst sie ändern oder entfernen. ${webHinweis}`.trim(), website)));
 }
 
 export function beschreibungFallback(beschreibung: string, orte: string): Vorschlag {
@@ -176,39 +178,44 @@ const liste = (x: string[] | undefined) => escape((x ?? []).join(", "));
 
 export function profilFormular(firma: string, v: Vorschlag, hinweis: string, website = ""): string {
   const leistungen = [...v.leistungen, { name: "", cpv: [], woerter: [] }].map((l, i) => `<fieldset>
-  <label class="zeile"><input type="checkbox" name="l${i}_an" value="1"${l.name ? " checked" : ""}> ${l.name ? escape(l.name) : "Weitere Leistung"}</label>
-  <label>Name<input name="l${i}_name" maxlength="120" value="${escape(l.name)}"></label>
-  <label>Suchwörter (mit Komma getrennt)<input name="l${i}_woerter" maxlength="1000" value="${liste(l.woerter)}"></label>
-  <label>CPV-Codes (Leistungsgruppen, mit Komma)<input name="l${i}_cpv" maxlength="300" inputmode="numeric" value="${liste(l.cpv)}"></label>
+  <label class="zeile"><input type="checkbox" name="l${i}_an" value="1"${l.name ? " checked" : ""}> ${l.name ? `${escape(l.name)} suchen` : "Weitere Arbeit hinzufügen"}</label>
+  <label>Beruf oder Arbeit<input name="l${i}_name" maxlength="120" placeholder="z. B. Fliesen verlegen" value="${escape(l.name)}"></label>
+  <details><summary>Suchdetails (optional)</summary>
+    <label>Wörter, die in passenden Ausschreibungen vorkommen können<input name="l${i}_woerter" maxlength="1000" value="${liste(l.woerter)}"></label>
+    <label>Vergabe-Kennziffern (CPV, optional)<input name="l${i}_cpv" maxlength="300" inputmode="numeric" value="${liste(l.cpv)}"></label>
+  </details>
 </fieldset>`).join("");
   const standorte = [...v.standorte, { name: "", plz_praefixe: [] }].map((o, i) => `<fieldset>
-  <label class="zeile"><input type="checkbox" name="o${i}_an" value="1"${o.name ? " checked" : ""}> ${o.name ? escape(o.name) : "Weiterer Standort"}</label>
-  <label>Name<input name="o${i}_name" maxlength="120" value="${escape(o.name)}"></label>
-  <label>Postleitzahlen, die dazugehören (die ersten 2 Ziffern, mit Komma)<input name="o${i}_plz" maxlength="300" inputmode="numeric" value="${liste(o.plz_praefixe)}"></label>
+  <label class="zeile"><input type="checkbox" name="o${i}_an" value="1"${o.name ? " checked" : ""}> ${o.name ? `${escape(o.name)} als Einsatzort` : "Weiteren Einsatzort hinzufügen"}</label>
+  <label>Stadt oder Gegend<input name="o${i}_name" maxlength="120" placeholder="z. B. Bad Wildungen" value="${escape(o.name)}"></label>
+  <details><summary>Suchradius genauer einstellen (optional)</summary>
+    <label>Postleitzahl-Anfänge, durch Komma getrennt<input name="o${i}_plz" maxlength="300" inputmode="numeric" value="${liste(o.plz_praefixe)}"></label>
+  </details>
   ${o.bereich_id ? `<input type="hidden" name="o${i}_bereich" value="${escape(o.bereich_id)}">` : ""}
 </fieldset>`).join("");
-  return `${hinweis ? `<p>${escape(hinweis)}</p>` : ""}
-${hilfe("Was kann ich hier ändern?", "Passe Leistungen, Suchwörter, CPV-Codes und Standorte an. Haken entfernen deaktiviert einen Eintrag. Bei PLZ-Präfixen reichen die ersten zwei Ziffern. Ausschlüsse helfen, unpassende Treffer zu vermeiden.")}
+  return `${hinweis ? `<p role="status">${escape(hinweis)}</p>` : ""}
+${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Einsatzorte stimmen. Die zusätzlichen Suchdetails brauchst du nur, wenn du die Suche gezielt verfeinern möchtest.")}
 <form method="post" action="/konto/einrichtung/speichern">
   <input type="hidden" name="firma" value="${firma}">
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" value="${escape(website)}"></label>
-  <label>Beschreibung (danach bewertet die KI jede Ausschreibung)
+  <label>Was macht eure Firma?
     <textarea name="beschreibung" required minlength="20" maxlength="3000">${escape(v.beschreibung)}</textarea></label>
-  <h2>Leistungen</h2>
-  <p class="klein">Jarvis meldet Ausschreibungen, die ein Suchwort enthalten oder zu einem CPV-Code gehören, und bewertet sie dann mit der Beschreibung.</p>
+  <h2>Welche Arbeiten soll Jarvis finden?</h2>
   ${leistungen}
-  <h2>Ausschließen</h2>
-  <label>Wörter, bei denen eine Ausschreibung nicht passt (mit Komma)<input name="ausschluss" maxlength="1500" value="${liste(v.ausschluss)}"></label>
-  <label>CPV-Gruppen, die nicht passen (mit Komma)<input name="ausschluss_cpv" maxlength="300" inputmode="numeric" value="${liste(v.ausschluss_cpv)}"></label>
-  <h2>Standorte</h2>
-  <p class="klein">Treffer werden dem Standort zugeordnet, in dessen Postleitzahl-Bereich der Auftrag liegt. Jarvis legt die Standorte als Bereiche an.</p>
+  <details><summary>Unpassende Arbeiten ausschließen (optional)</summary>
+    <label>Welche Aufträge soll Jarvis nicht anzeigen?<input name="ausschluss" maxlength="1500" placeholder="z. B. Neubau, wenn ihr nur renoviert" value="${liste(v.ausschluss)}"></label>
+    <label>Vergabe-Kennziffern für Ausschlüsse (optional)<input name="ausschluss_cpv" maxlength="300" inputmode="numeric" value="${liste(v.ausschluss_cpv)}"></label>
+  </details>
+  <h2>Wo soll Jarvis suchen?</h2>
   ${standorte}
-  <h2>Länder</h2>
-  <p class="klein">Deutschland kommt aus dem Bekanntmachungsservice. Andere Länder in Europa liest Jarvis aus TED, der EU-Ausschreibungsdatenbank (meist größere Aufträge ab den EU-Schwellenwerten, Titel meist auch auf Deutsch). Großbritannien kommt aus Find a Tender, die USA aus SAM.gov (beides auf Englisch).</p>
-  ${laenderAuswahl(laenderBereinigen(v.laender))}
-  <h2>Tägliche Mail</h2>
+  <details><summary>In weiteren Ländern suchen (optional)</summary>
+    <p class="klein">Deutschland ist standardmäßig ausgewählt. Jarvis kann zusätzlich Ausschreibungen aus europäischen Ländern und den USA suchen.</p>
+    ${laenderAuswahl(laenderBereinigen(v.laender))}
+  </details>
+  <details><summary>Tägliche E-Mail einstellen (optional)</summary>
   <label>Neue Treffer per Mail an dich um<select name="stunde">${stundenOptionen(7)}</select>
-    <span class="klein">Jeder im Team stellt seine Uhrzeit selbst ein (in der Übersicht unter „Tägliche Mail“).</span></label>
+    <span class="klein">Jeder im Team stellt seine Uhrzeit selbst ein.</span></label>
+  </details>
   <button>Speichern und Suche starten</button>
 </form>
 <p class="klein"><a href="/konto/einrichtung?firma=${firma}&neu=1">Neu beschreiben</a> · <a href="/konto">Abbrechen</a></p>`;

@@ -44,6 +44,20 @@ test("Suchprofilvorschlag blockiert leere Eingabe nicht unsichtbar im Browser", 
   assert.doesNotMatch(html, /textarea name="beschreibung"[^>]*(required|minlength)/);
 });
 
+test("Suchprofil zeigt einfache Berufs- und Ortsfelder; technische Suchwerte sind eingeklappt", () => {
+  const html = profilFormular("firma", bereinigen({
+    beschreibung: "Wir verlegen Fliesen in Badezimmern und Küchen.",
+    leistungen: [{ name: "Fliesen verlegen", cpv: ["45431000"], woerter: ["fliesenarbeiten"] }],
+    standorte: [{ name: "Bad Wildungen", plz_praefixe: ["34"] }],
+  }), "Prüfe kurz, ob die Arbeiten und Einsatzorte stimmen.");
+  assert.match(html, /Welche Arbeiten soll Jarvis finden\?/);
+  assert.match(html, /Beruf oder Arbeit/);
+  assert.match(html, /Stadt oder Gegend/);
+  assert.match(html, /<details><summary>Suchdetails \(optional\)<\/summary>/);
+  assert.match(html, /Vergabe-Kennziffern \(CPV, optional\)/);
+  assert.match(html, /Welche Aufträge soll Jarvis nicht anzeigen/);
+});
+
 test("form round trip keeps checked services and locations only", () => {
   const html = profilFormular("00000000-0000-0000-0000-000000000000", bereinigen({
     beschreibung: "Wir stellen Servicepersonal für Messen.",
