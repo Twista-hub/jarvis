@@ -79,6 +79,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – Claude (KI-Tageslimit 10 Euro)
+- Auf Benjamins Wunsch Tageslimit dauerhaft auf 11 USD (rund 10 €) gesetzt: Migration `20261031180000_ki_tageslimit_10_euro.sql` ersetzt das befristete 5-USD-Testbudget. Rechte-Test angepasst, lokal und in GitHub grün, Migration live.
+- Unverändert: höchstens 3 USD je Anfrage, Monatsgrenze 20 USD (`ki_budget.limit_usd`, Check bis 20). Bei 10 €/Tag ist die Monatsgrenze nach etwa zwei vollen Tagen erreicht; anheben, sobald das Max-Guthaben da ist (siehe Offene Punkte).
+
 ### 31.10.2026 – ChatGPT (Vollständiger Katalog, Importnachholung und ehrlicher Suchfortschritt)
 - Abschluss auf ausdrücklichen Wunsch Benjamins wegen des nahezu verbrauchten Fünf-Stunden-Kontingents. Code ist auf `main`, Web-/Sammler-Rollouts und Prüfungen grün. Vollständiger Arbeits-/Datei-/Laufnachweis und konkrete nächste Schritte für Claude: `docs/uebergabe-claude-2026-10-31-suche.md`. Keine weiteren Ausbauten begonnen. Abschließender Alarm läuft autonom weiter; Benjamin muss nichts bedienen.
 - Nach Benjamins Frage nach dem nächsten Schritt die drei bestätigten Engpässe umgesetzt: vollständiger serverseitiger Katalogcursor statt 10.000er-Abbruch, alle Kandidaten statt 200er-Abbruch und Bewertung aller noch offenen Kandidaten statt 40 pro Lauf. Achterpakete und gemeinsame harte Budgetgrenzen bleiben bestehen; bei Budgetstopp wird der Rest als ausstehend gespeichert und im nächsten Lauf aus dem Cache fortgesetzt.
