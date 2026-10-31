@@ -60,6 +60,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – ChatGPT (Keine Reaktion auf „Vorschlag machen lassen“)
+- Nach Benjamins genauer Beschreibung den Klickpfad erneut geprüft. Website-Regelabruf (bis zu 5 Sekunden), Startseitenabruf (bis zu 5 Sekunden) und KI-Anfrage liefen nacheinander; der Knopf änderte dabei weder Text noch Zustand. Für Nutzer sah das nach einem toten Knopf aus.
+- Das Beschreibungsfeld hatte außerdem ein HTML-`minlength=20`; bei zu kurzer Eingabe kann der Browser das Formular lokal abweisen, ohne die serverseitige Fehlermeldung zu zeigen. Die stille Browserprüfung ist entfernt; die Serverprüfung zeigt weiterhin eine verständliche Meldung.
+- Sofortige Statusanzeige beim Absenden, Knopf wird gegen Doppelklick deaktiviert, KI-Anfrage ist auf 45 Sekunden begrenzt und fällt danach auf den Beschreibungsvorschlag zurück. Tests für Formularmeldung und Statusanzeige hinzugefügt.
+- Prüfung: `cd web && npm run check && npm test` grün (20 Testdateien, 0 Fehler). Offen: Rollout dieser Rückmeldekorrektur. Benjamin muss nichts konfigurieren.
+
 ### 31.10.2026 – ChatGPT (Suchprofil lässt sich nicht anlegen)
 - Letzten Web-Rollout geprüft: Workflow 41160655578 war erfolgreich, inklusive Typprüfung, Web-Tests und Erreichbarkeitstest. Die zuvor eingespielte Suchprofil-Änderung war somit online; ein fehlgeschlagener Rollout ist nicht die Ursache.
 - Codepfad geprüft: Bereinigung konnte einen syntaktisch gültigen, aber leeren KI-Vorschlag ohne Leistungen weiterreichen; das Speichern wies ihn anschließend ab. Leere/unbrauchbare KI-Vorschläge werden nun automatisch durch ein editierbares Profil aus der Nutzerbeschreibung und den Standorten ersetzt.

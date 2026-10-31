@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ausFormular, bereinigen, beschreibungFallback, profilFormular, vorschlagOderFallback } from "../src/einrichtung.ts";
+import { ausFormular, bereinigen, beschreibungFallback, profilFormular, startFormular, vorschlagOderFallback } from "../src/einrichtung.ts";
 
 test("cleans the proposal: digits only, lower-case words, no empty services", () => {
   const v = bereinigen({
@@ -35,6 +35,13 @@ test("leerer oder unbrauchbarer KI-Vorschlag wird durch ein speicherbares Profil
   const kaputt = vorschlagOderFallback({ beschreibung: "", leistungen: [{ name: "", cpv: [], woerter: [] }] }, text, "");
   assert.ok(kaputt.beschreibung.length >= 20);
   assert.ok(kaputt.leistungen.length);
+});
+
+test("Suchprofilvorschlag blockiert leere Eingabe nicht unsichtbar im Browser", () => {
+  const html = startFormular("firma", "", "", "", "Bitte beschreib deine Firma in ein paar Sätzen.");
+  assert.match(html, /role="status" aria-live="polite"/);
+  assert.match(html, /Bitte beschreib deine Firma in ein paar Sätzen/);
+  assert.doesNotMatch(html, /textarea name="beschreibung"[^>]*(required|minlength)/);
 });
 
 test("form round trip keeps checked services and locations only", () => {

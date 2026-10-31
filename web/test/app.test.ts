@@ -9,6 +9,8 @@ test("serves the app files with the right types", async () => {
   const png = new Uint8Array(await statisch("/icon-192.png")!.arrayBuffer());
   assert.deepEqual([...png.slice(1, 4)], [80, 78, 71]); // "PNG"
   const js = await statisch("/app.js")!.text();
+  assert.match(js, /Vorschlag wird erstellt/);
+  assert.match(js, /data-einrichtung-status/);
   assert.match(js, /data-tarifgruppen/);
   assert.match(js, /option\.disabled = !!option\.value/);
   assert.match(js, /location\.hash === "#tarifvertraege"/);

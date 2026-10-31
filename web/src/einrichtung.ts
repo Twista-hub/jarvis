@@ -104,7 +104,7 @@ async function anzeigen(s: Sitzung, env: KontoEnv, firma: string, name: string, 
   return html(seite(`Suche einrichten: ${name}`, startFormular(firma, gespeichert?.beschreibung || vorlage(firma), orte, website, "")));
 }
 
-function startFormular(firma: string, beschreibung: string, orte: string, website: string, fehler: string): string {
+export function startFormular(firma: string, beschreibung: string, orte: string, website: string, fehler: string): string {
   return `${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}
 ${hilfe("Tipp für eine gute Suche", "Schreib konkret, welche Leistungen und Einsatzorte wichtig sind. Nenne auch Aufträge, die ihr nicht übernehmen wollt. Jarvis erstellt daraus einen Vorschlag, den du vor dem Start prüfst.")}
 <p>In zwei Schritten: Du beschreibst deine Firma, Jarvis schlägt das Suchprofil vor, du prüfst es und speicherst.</p>
@@ -113,12 +113,12 @@ ${hilfe("Tipp für eine gute Suche", "Schreib konkret, welche Leistungen und Ein
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" value="${escape(website)}"></label>
   <p class="klein">Jarvis liest nur diese Startseite, falls robots.txt es erlaubt. Die Website ist ein zusätzlicher Hinweis und wird vor dem Speichern geprüft.</p>
   <label>Was macht deine Firma? (2 bis 5 Sätze)
-    <textarea name="beschreibung" required minlength="20" maxlength="3000" placeholder="z. B. Wir sind eine Zeitarbeitsfirma für Gastronomie und Events. Wir stellen Servicekräfte, Köche und Hostessen für Messen und Kantinen. Keine Reinigung, keine Pflege.">${escape(beschreibung)}</textarea></label>
+    <textarea name="beschreibung" maxlength="3000" placeholder="z. B. Wir sind eine Zeitarbeitsfirma für Gastronomie und Events. Wir stellen Servicekräfte, Köche und Hostessen für Messen und Kantinen. Keine Reinigung, keine Pflege.">${escape(beschreibung)}</textarea></label>
   <label>Standorte (eine Stadt pro Zeile, freiwillig)
     <textarea name="orte" maxlength="1000" placeholder="Köln&#10;Düsseldorf">${escape(orte)}</textarea>
     <span class="klein">Ohne Standorte sucht Jarvis in ganz Deutschland.</span></label>
-  <button>Vorschlag machen lassen</button>
-  <p class="klein">Dauert etwa 30 Sekunden.</p>
+  <button type="submit">Vorschlag machen lassen</button>
+  <p class="klein" data-einrichtung-status role="status" aria-live="polite">Dauert etwa 30 Sekunden.</p>
 </form>`;
 }
 
@@ -140,7 +140,7 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
       output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
       system: ANLEITUNG,
       messages: [{ role: "user", content: `Firma: ${name}\nWebsite: ${website || "keine angegeben"}\n\nVom Nutzer beschriebene Leistungen:\n${beschreibung}\n\nStandorte:\n${orte || "keine angegeben"}\n\nLesbare Angaben von der angegebenen Website (nur als Ergänzung, keine weiteren Leistungen erfinden):\n${websiteDaten.text || "keine Website-Informationen verfügbar"}` }],
-    });
+    }, { timeout: 45_000 });
     if (message.stop_reason === "refusal") throw new Error("abgelehnt");
     vorschlag = vorschlagOderFallback(JSON.parse(message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("")), beschreibung, orte);
     if (!vorschlag.leistungen.length) throw new Error("leerer Vorschlag");

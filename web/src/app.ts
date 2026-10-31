@@ -12,6 +12,16 @@ document.querySelectorAll("input[data-sofort]").forEach(function (i) {
   });
 });
 
+// A search profile proposal may need a moment; show immediate feedback and prevent duplicate requests.
+document.querySelectorAll('form[action="/konto/einrichtung/vorschlag"]').forEach(function (form) {
+  form.addEventListener("submit", function () {
+    var button = form.querySelector('button[type="submit"]');
+    var status = form.querySelector("[data-einrichtung-status]");
+    if (button) { button.disabled = true; button.textContent = "Vorschlag wird erstellt …"; }
+    if (status) status.textContent = "Jarvis prüft deine Angaben. Bitte warte kurz; die Seite zeigt danach den Vorschlag oder einen Hinweis.";
+  });
+});
+
 // Mail links (login, confirmation, new password) bring the login in the URL fragment; hand it to the server.
 var anmeldung = document.getElementById("anmeldung");
 if (anmeldung) {
