@@ -4,6 +4,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (31.10.2026)
 - **Mindestentgelt-Katalog (31.10.):** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen eingespielt. GitHub-Rechteprüfung, Migration und Gesamtprüfung erfolgreich; Web-Check und 20 Testdateien grün. Alle zehn Bereiche der BMAS-Übersicht zu bundesweiten Branchenmindestentgelten sind im Katalog vertreten. Destatis-Tarifdatenbank als neue manuelle Recherchequelle identifiziert; Nutzungsbedingungen des separaten PDF-Exports und Verfügbarkeit noch ungeklärt.
+- **Suchprofil (31.10.):** letzter App-Rollout vor dieser Korrektur war erfolgreich. KI-Antworten ohne nutzbare Leistung konnten dennoch als leerer, nicht speicherbarer Vorschlag angezeigt werden; zusätzlich verschwanden echte Supabase-Speicherfehler hinter einer generischen Meldung. Vorschlag-Fallback und verständlichere Fehlerbehandlung ergänzt, lokale Prüfungen grün. Live-Fehlerursache wird durch den konkreten Status/Fehlercode beim nächsten fehlgeschlagenen Speichern nachvollziehbar; neuer Rollout steht aus.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
 - **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
@@ -33,7 +34,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Nächsten gezielten Tarifdatenbank-Abgleich über Destatis vorbereiten; Exportlizenz und HTTP-503-Verfügbarkeit prüfen. Noch keine weiteren Tarifdaten übernommen.
+- (leer)
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -58,6 +59,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Suchprofil lässt sich nicht anlegen)
+- Letzten Web-Rollout geprüft: Workflow 41160655578 war erfolgreich, inklusive Typprüfung, Web-Tests und Erreichbarkeitstest. Die zuvor eingespielte Suchprofil-Änderung war somit online; ein fehlgeschlagener Rollout ist nicht die Ursache.
+- Codepfad geprüft: Bereinigung konnte einen syntaktisch gültigen, aber leeren KI-Vorschlag ohne Leistungen weiterreichen; das Speichern wies ihn anschließend ab. Leere/unbrauchbare KI-Vorschläge werden nun automatisch durch ein editierbares Profil aus der Nutzerbeschreibung und den Standorten ersetzt.
+- Die bisher allgemeine Speicherfehlermeldung verdeckte Supabase-Fehler. Die Web-App unterscheidet jetzt Berechtigungs-, Konflikt- und Validierungsfehler; Serverprotokolle enthalten nur HTTP-Status und PostgREST-Code, keine übermittelten Firmendaten.
+- Prüfung: `cd web && npm ci && npm run check && npm test` erfolgreich; 20 Testdateien, 0 Fehler. Neuer Regressionstest deckt leere und unbrauchbare KI-Antwort ab.
+- Offen: Die genaue Ursache eines produktiven Datenbankfehlers kann erst anhand des neu protokollierten Status/Fehlercodes eingegrenzt werden. Die verfügbare Supabase-Verbindung enthält nicht das Jarvis-Projekt; kein fremdes Projekt verwendet. Änderungen noch nicht ausgerollt. Benjamin muss nichts vorbereiten.
 
 ### 31.10.2026 – ChatGPT (BMAS-Abdeckung und Destatis-Tarifdatenbank)
 - Aktuelle BMAS-Liste mit dem Katalog verglichen: alle zehn bundesweiten Branchenmindestentgelt-Bereiche sind bereits erfasst; sie sind ausdrücklich Mindestuntergrenzen, keine vollständigen Tarifverträge.

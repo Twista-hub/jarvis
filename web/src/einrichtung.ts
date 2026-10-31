@@ -142,7 +142,8 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
       messages: [{ role: "user", content: `Firma: ${name}\nWebsite: ${website || "keine angegeben"}\n\nVom Nutzer beschriebene Leistungen:\n${beschreibung}\n\nStandorte:\n${orte || "keine angegeben"}\n\nLesbare Angaben von der angegebenen Website (nur als Ergänzung, keine weiteren Leistungen erfinden):\n${websiteDaten.text || "keine Website-Informationen verfügbar"}` }],
     });
     if (message.stop_reason === "refusal") throw new Error("abgelehnt");
-    vorschlag = bereinigen(JSON.parse(message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("")));
+    vorschlag = vorschlagOderFallback(JSON.parse(message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("")), beschreibung, orte);
+    if (!vorschlag.leistungen.length) throw new Error("leerer Vorschlag");
   } catch (e) {
     console.warn(`Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
     vorschlag = beschreibungFallback(beschreibung, orte);
@@ -157,6 +158,14 @@ export function beschreibungFallback(beschreibung: string, orte: string): Vorsch
   const ersterSatz = beschreibung.split(/[.!?\n]+/).map((s) => s.trim()).find(Boolean) ?? beschreibung;
   const standorte = orte.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean).slice(0, 20).map((name) => ({ name, plz_praefixe: [] }));
   return bereinigen({ beschreibung, leistungen: [{ name: ersterSatz.slice(0, 120) || "Leistung aus Firmenbeschreibung", cpv: [], woerter: woerter.length ? woerter : ["ausschreibung"] }], standorte });
+}
+
+/** A syntactically valid model answer can still contain no usable service; never show an unsaveable profile. */
+export function vorschlagOderFallback(v: Partial<Vorschlag>, beschreibung: string, orte: string): Vorschlag {
+  const bereinigt = bereinigen(v);
+  return bereinigt.beschreibung.length >= 20 && bereinigt.leistungen.length
+    ? bereinigt
+    : beschreibungFallback(beschreibung, orte);
 }
 
 function leer(): Vorschlag {
@@ -285,7 +294,18 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   const r = alt.ok && alt.daten[0]
     ? await db(s, env, `suchprofile?id=eq.${alt.daten[0].id}`, { method: "PATCH", body: JSON.stringify(zeile) })
     : await db(s, env, "suchprofile", { method: "POST", body: JSON.stringify(zeile) });
-  if (!r.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Speichern hat nicht geklappt. Bitte noch einmal versuchen.")), 500);
+  if (!r.ok) {
+    const code = fehlerCode(r.fehler);
+    console.error("Suchprofil konnte nicht gespeichert werden", { status: r.status, code });
+    const meldung = r.status === 401 || r.status === 403
+      ? "Jarvis hat keine Schreibberechtigung für dieses Suchprofil. Bitte melde dich erneut an oder lass die Firmenrechte prüfen."
+      : r.status === 409 || code === "23505"
+        ? "Für diese Firma wurde gleichzeitig ein Suchprofil angelegt. Lade die Seite neu und prüfe, ob es bereits gespeichert ist."
+        : r.status === 400
+          ? "Die Daten wurden von der Datenbank abgelehnt. Prüfe Beschreibung, Leistungen und Standorte und versuche es erneut."
+          : "Das Suchprofil konnte gerade nicht gespeichert werden. Bitte versuche es erneut.";
+    return html(seite("Suchprofil", profilFormular(firma, v, meldung)), 500);
+  }
   if (rolle === "inhaber" && website !== alteWebsite) {
     const firmenseite = await db(s, env, `firmen?id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ website }) });
     if (!firmenseite.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Das Suchprofil wurde gespeichert, aber die Website nicht. Bitte erneut speichern.", alteWebsite)), 500);
@@ -300,6 +320,15 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   if (gestartet) return weiterleiten(`/konto?firma=${firma}`);
   const erneut = `<p class="fehler" role="status">Dein Suchprofil ist gespeichert, aber die Sofortsuche konnte nicht gestartet werden. Du kannst die Suche jetzt erneut starten; deine Angaben bleiben erhalten.</p><form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${firma}"><button>Gespeicherte Suche jetzt starten</button></form><p><a href="/konto?firma=${firma}">Zur Übersicht</a></p>`;
   return html(seite("Suchprofil gespeichert", erneut));
+}
+
+function fehlerCode(text: string): string | undefined {
+  try {
+    const code = (JSON.parse(text) as { code?: unknown }).code;
+    return typeof code === "string" ? code : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: string): Promise<Response> {
