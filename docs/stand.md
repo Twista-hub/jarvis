@@ -46,7 +46,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Offene Punkte (Reihenfolge = Vorschlag)
 - **Supabase-Testkonto löschen:** Lesende Produktionsprüfung findet das Konto mit einer Firmenmitgliedschaft, aber weder blockierende Fremdschlüssel noch Angebotsbelege oder Supabase-Storage-Dateien. Supabase Auth meldet weiterhin einen internen Datenbankfehler; genaue Ursache nur über Supabase-Postgres-Logs erkennbar. Direkte Supabase-Verbindung für Jarvis fehlt diesem Zugriff.
 - **Erster Suchlauf nach Registrierung:** `ACTIONS_TOKEN` wird beim App-Rollout erkannt und gesetzt. Die tatsächliche GitHub-Berechtigung (`actions:write`) und ein Live-Sofortlauf mit einem neu angemeldeten Nutzer sind noch nicht geprüft. Scheitert der Sofortstart, bleibt das Profil gespeichert und kann erneut gestartet werden. Keine öffentliche Firmendatenbank für Namensvorschläge eingebunden: beim Signup wird deshalb die Firmenwebsite optional abgefragt, statt private Kundenbestände oder unzuverlässige Trefferlisten offenzulegen.
-- **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). SAM.gov Terms und Get Opportunities Public API am 31.10. geprüft: öffentliche Daten dürfen aus der Public API verbreitet werden; Website-Scraping und private/sensitive APIs nicht. API-Schlüssel alle 90 Tage erneuern (Ende Januar 2027); Tageskontingent ist rollenabhängig. Höchstens 1.000 Ergebnisse je angefragtem Datum; bei mehr Treffern fehlt Pagination und der Rest wird abgeschnitten.
+- **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). SAM.gov Terms und Get Opportunities Public API am 31.10. geprüft: öffentliche Daten dürfen aus der Public API verbreitet werden; Website-Scraping und private/sensitive APIs nicht. API-Schlüssel alle 90 Tage erneuern (Ende Januar 2027); Tageskontingent ist rollenabhängig. Pagination über bis zu zehn Seiten und 20 API-Aufrufe je Alarmprozess; pro Datum maximal 10.000 Ergebnisse. Mehr wird mit Warnung ausgelassen.
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
@@ -57,6 +57,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (SAM.gov-Paginierung)
+- Offizielle [Get Opportunities Public API-Doku](https://open.gsa.gov/api/get-opportunities-public-api/) erneut geprüft: `limit` maximal 1.000 und `offset` ist die Seitennummer (nicht der Datensatzindex); robots.txt erlaubt den API-Doku-Pfad. Das Kontingent bleibt je Kontorolle unterschiedlich.
+- `alarm/usa.py` folgt bei `totalRecords` automatisch den notwendigen Seiten: maximal zehn Seiten je Datum und 20 API-Aufrufe pro Alarmprozess. Bei mehr Treffern werden Restmenge bzw. wegen der Laufgrenze ausgelassene Seiten gemeldet. Exceptions geben keine Request-URL aus, da diese den API-Schlüssel enthalten kann.
+- Vier gezielte Tests ergänzt: Folgeseiten/Offset, Seitenlimit, Gesamtlaufgrenze und Verbergen des Schlüssels in Fehlerlogs. `python3 -m unittest alarm.test_ted`: grün (9 Tests); `python3 -m py_compile alarm/*.py`: grün. Ein echter API-Testlauf wurde nicht gestartet, um das rollenabhängige Kontingent nicht unnötig zu belasten.
 
 ### 31.10.2026 – ChatGPT (Nutzungsanfragen für Tarifdaten)
 - Nach Benjamins OK drei einzelne Anfragen aus `kontakt@wpdigitalranger.com` versandt: LfF Bayern (TV-L/Pflege/SuE), Tarifgemeinschaft deutscher Länder (TV-L) und IG Metall Bayern-Tarifteam (Metall/Elektro Bayern und BW).
@@ -87,7 +92,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Offene Prüfung aus dem Fahrplan abgeschlossen: Robots-Regeln von `open.gsa.gov` und `sam.gov` sowie SAM.gov Terms of Use und Get Opportunities Public API Dokumentation geprüft.
 - SAM.gov untersagt automatisches Abrufen der Website, erlaubt öffentliche Weitergabe von Daten aus öffentlichen APIs und verlangt die Erneuerung von System-/API-Schlüsseln alle 90 Tage. Tageskontingente hängen von der Kontorolle ab; die API-Doku nennt höchstens 1.000 Ergebnisse pro Anfrage.
 - Jarvis verwendet nur die öffentliche Opportunities-v2-API, zeigt öffentliche Ausschreibungsfelder und verwendet keine Entity-/D&B- oder sensiblen Endpunkte. Ein Aufruf pro angefragtem Datum; der Ersteinrichtungslauf kann sieben Datumssuchen auslösen. Das Secret bleibt im Server-Workflow; Website-Scraping ist nicht eingebaut.
-- Kommentar in `alarm/usa.py` präzisiert Aufrufe je Datum und Kontingentabhängigkeit. Pagination über 1.000 Treffer bleibt offen. Python-Syntaxprüfung `python3 -m py_compile alarm/usa.py` erfolgreich. Benjamin muss nichts tun.
+- Kommentar in `alarm/usa.py` präzisiert Aufrufe je Datum und Kontingentabhängigkeit. Die Paginierung über 1.000 Treffer wurde am 31.10. ergänzt (siehe neuesten Protokolleintrag). Benjamin muss nichts tun.
 
 ### 30.10.2026 – ChatGPT (Kontolöschung in Supabase)
 - Supabase meldete beim Löschen eines Nutzers „Database error deleting user“. Im Jarvis-Schema war `angebotsabgaben.abgegeben_von` verpflichtend und ohne Löschregel an `auth.users` gebunden. Ein vorhandener Eingangsbeleg kann dadurch das Löschen blockieren.
