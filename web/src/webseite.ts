@@ -76,7 +76,7 @@ function seitenText(html: string, limit = 3500): string {
   return [...new Set([entity(title), ...headings.map(entity), ...metadaten.map(entity), text].map((x) => x.trim()).filter(Boolean))].join(" · ").slice(0, limit);
 }
 
-const RELEVANTE_PFADE = /leistung|angebot|branche|referenz|handwerk|service|qualifikation|gewerk|portfolio|unternehmen|ueber-uns|über-uns|taetig|tätig|arbeitsbereich|spektrum|produkt|standort|einsatzgebiet|projekt|kompetenz|karriere|jobs?/i;
+const RELEVANTE_PFADE = /leistung|angebot|branche|referenz|handwerk|service|qualifikation|gewerk|portfolio|unternehmen|ueber-uns|über-uns|taetig|tätig|arbeitsbereich|spektrum|produkt|standort|niederlass|locations?|branches|einsatzgebiet|projekt|kompetenz|karriere|jobs?/i;
 const UNINTERESSANT = /(?:^|\/)(?:login|logout|anmeld\w*|registr\w*|warenkorb|checkout|kontaktformular|datenschutz|impressum|cookie|newsletter|intern|admin|private)(?:\/|$|[-_])/i;
 const MAX_UNTERSEITEN = 10;
 const MAX_SITEMAPS = 3;
