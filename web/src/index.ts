@@ -25,6 +25,7 @@ import { datenbankPruefen as hyperdrivePruefen } from "./db-check.ts";
 export { Steckbrief } from "./workflow";
 
 export interface Env extends KontoEnv {
+  WARTEN?: (p: Promise<unknown>) => void; // ctx.waitUntil, set per request in fetch()
   DATEN: R2Bucket;
   AI: Ai;
   STECKBRIEF: Workflow<Job>;
@@ -51,7 +52,9 @@ const ID = /^[0-9a-f-]{36}$/;
 export const ADRESSE = "https://app.wpdigitalranger.com";
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
+  async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
+    // KI cost settlement may finish after the page has answered (time limit); keep it alive past the response.
+    if (ctx) env = { ...env, WARTEN: (p: Promise<unknown>) => ctx.waitUntil(p) };
     // The app lives at app.wpdigitalranger.com; the old workers.dev address forwards there (links in older mails keep working).
     const alt = new URL(request.url);
     if (alt.hostname.endsWith(".workers.dev")) return Response.redirect(`${ADRESSE}${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);

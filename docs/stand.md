@@ -79,9 +79,15 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – Claude (Hängende KI-Reservierungen)
+- Ursache: Die App wartet höchstens 40 s auf die KI (`mitZeitlimit`). Dauert z. B. eine Firmenrecherche mit Websuche länger, antwortet die Seite mit dem Ersatz; der Worker endet und die Abrechnung (`ki_abschliessen`) läuft nie. Die Reservierung blieb mit dem Höchstwert stehen.
+- `web/src/api-budget.ts`: Anfrage und Abrechnung laufen als eigener Ablauf, der über `ctx.waitUntil` (`env.WARTEN`, gesetzt in `index.ts`) nach der Antwort weiterleben darf (Cloudflare: bis etwa 30 s).
+- Migration `20261101000000_ki_offene_reservierungen.sql`: `ki_reservieren` rechnet vor jeder neuen Reservierung alle seit über einer Stunde offenen Reservierungen ab, geschätzt mit dem reservierten Wert, höchstens 0,50 USD. Die zwei Fälle vom 31.10. (2,05 und 1,02 USD) werden so mit je 0,50 USD verbucht.
+- Rechte-Test ergänzt, lokal grün; Web-Tests grün.
+
 ### 31.10.2026 – Claude (Suchlauf ohne Profil, offene Web-Reservierungen)
 - Lauf 41251025747 brach mit „Kein Suchprofil für Firma 636fbffb…“ ab: Perlease wurde erneut neu angelegt, aktuelle Firma `98ac7ed5-2c1a-4f31-a7d3-ff9fc84e218a` (14 Vorgänge). Kein Codefehler.
-- Tagesbudget 31.10.: 10,20 von 11 USD reserviert. Davon 3,07 USD in zwei Web-Reservierungen von 19:53/19:55 UTC ohne Abschluss (`verbraucht` leer, Firmenrecherche mit Websuche). Offene Web-Reservierungen werden nie freigegeben und blockieren das Tagesbudget. Ursache klären (Zeitlimit/Stream/Fehlerpfad in `api-budget.ts` schließt nicht ab) und unabgeschlossene Reservierungen nach z. B. 30 Minuten automatisch auf die tatsächlichen Kosten setzen oder freigeben. Offen.
+- Tagesbudget 31.10.: 10,20 von 11 USD reserviert. Davon 3,07 USD in zwei Web-Reservierungen von 19:53/19:55 UTC ohne Abschluss (`verbraucht` leer, Firmenrecherche mit Websuche). Offene Web-Reservierungen blockierten das Tagesbudget. Behoben (siehe nächster Eintrag).
 - Neuer Suchlauf für die neue Firma ist auf 00:05 UTC (neuer KI-Tag und Monat) geplant.
 
 ### 31.10.2026 – Claude (Steckbriefe: 4 pro Firma und Tag, Eckdaten im Kurzüberblick)

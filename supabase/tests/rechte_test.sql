@@ -34,6 +34,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031150000_kontoloeschung_inhaber.sql
 \ir ../migrations/20261031160636_firmenpruefung_testbudget.sql
 \ir ../migrations/20261031180000_ki_tageslimit_10_euro.sql
+\ir ../migrations/20261101000000_ki_offene_reservierungen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -375,6 +376,10 @@ select pruefe(jarvis_katalog.ki_reservieren(3,'test') is null,'KI-Tageslimit wir
 select jarvis_katalog.ki_abschliessen(:'reservierung',0.1);
 select jarvis_katalog.ki_abschliessen(:'reservierung',0.01);
 select pruefe((select reserviert=0.1 from jarvis_katalog.ki_kosten where id=:'reservierung'),'Abrechnung gibt Reservierung nur einmal frei');
+-- A reservation left open for more than an hour is settled at an estimate (at most 0.50 USD) on the next reservation.
+insert into jarvis_katalog.ki_kosten(zeit,zweck,reserviert) values (now()-interval '2 hours','web',2.05) returning id as offen \gset
+select jarvis_katalog.ki_reservieren(0.01,'test');
+select pruefe((select verbraucht=0.5 and reserviert=0.5 from jarvis_katalog.ki_kosten where id=:'offen'),'Hängende Reservierung wird nach einer Stunde mit höchstens 0,50 USD abgerechnet');
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*)=0 from public.vergabekatalog),'Nichtmitglieder sehen keinen Katalog');
