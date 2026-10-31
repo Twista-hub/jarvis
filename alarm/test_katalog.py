@@ -2,6 +2,8 @@
 import os
 import sys
 import unittest
+from datetime import datetime, timezone
+from unittest.mock import MagicMock
 from pathlib import Path
 from unittest.mock import patch
 
@@ -11,6 +13,22 @@ from alarm.alarm import frist
 
 
 class KatalogTest(unittest.TestCase):
+    def test_cursor_reads_beyond_ten_thousand_without_materialising_whole_catalog(self):
+        cursor = MagicMock()
+        def batches():
+            for start in range(0, 11001, 250):
+                yield [(str(i), "v", {"ocid": str(i)}, datetime(2026,10,31,tzinfo=timezone.utc), "buyer") for i in range(start,min(start+250,11001))]
+            yield []
+        cursor.fetchmany.side_effect = batches()
+        with patch.object(katalog, "verbinden") as verbinden:
+            verbinden.return_value.__enter__.return_value.cursor.return_value.__enter__.return_value = cursor
+            bestand = katalog.KatalogBestand(40)
+            self.assertFalse(bestand.vollstaendig)
+            self.assertEqual(sum(1 for _ in bestand),11001)
+        self.assertTrue(bestand.vollstaendig)
+        self.assertNotIn("limit 10000", cursor.execute.call_args.args[0].lower())
+        self.assertTrue(all(c.args == (250,) for c in cursor.fetchmany.call_args_list))
+
     def test_deadline_and_cancellation(self):
         for status in ["cancelled", "complete", "awarded", "withdrawn"]:
             self.assertFalse(katalog.offen({"tender": {"status": status}}))

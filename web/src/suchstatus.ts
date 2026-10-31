@@ -3,7 +3,7 @@ import { escape } from "./seite.ts";
 export interface Suchstand {
   erstlauf?: string | null;
   fertig?: string | null;
-  ergebnis?: { neu?: number; treffer?: number; ungeprueft?: number } | null;
+  ergebnis?: { neu?: number; treffer?: number; ungeprueft?: number; kandidaten?: number; bewertet?: number; ausstehend?: number; katalog_geprueft?: number; importtage_offen?: number | null } | null;
   fehler?: boolean | null;
 }
 
@@ -23,7 +23,8 @@ export function suchmeldung(p: Suchstand, firma: string, jetzt = Date.now()): st
   const datum = new Date(fertig).toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" });
   const anzahl = (n: unknown) => typeof n === "number" && Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0;
   const ergebnis = p.ergebnis;
-  return `<p class="klein" role="status"><strong>Letzte Suche abgeschlossen: ${escape(datum)} Uhr.</strong>${ergebnis ? `<br>${anzahl(ergebnis.neu)} neu hinzugekommen · ${anzahl(ergebnis.treffer)} passende Treffer gefunden.${anzahl(ergebnis.ungeprueft) ? `<br>${anzahl(ergebnis.ungeprueft)} davon bisher nur anhand der Suchbegriffe geprüft.` : ""}` : ""}</p>`;
+  const unvollstaendig = ergebnis && (anzahl(ergebnis.ausstehend) > 0 || anzahl(ergebnis.importtage_offen) > 0);
+  return `<p class="klein" role="status"><strong>${unvollstaendig ? "Zwischenstand der Suche" : "Letzte Suche abgeschlossen"}: ${escape(datum)} Uhr.</strong>${ergebnis ? `<br>${anzahl(ergebnis.neu)} neu hinzugekommen · ${anzahl(ergebnis.treffer)} passende Treffer gefunden.${ergebnis.kandidaten !== undefined ? `<br>${anzahl(ergebnis.katalog_geprueft)} bekannte Ausschreibungen durchsucht; ${anzahl(ergebnis.bewertet)} von ${anzahl(ergebnis.kandidaten)} möglichen Treffern bewertet.` : ""}${anzahl(ergebnis.ausstehend) ? `<br>${anzahl(ergebnis.ausstehend)} Bewertungen stehen noch aus. Die nächsten Suchläufe setzen dort fort.` : ""}${anzahl(ergebnis.importtage_offen) ? `<br>Für ${anzahl(ergebnis.importtage_offen)} Tage werden Quelldaten noch nachgeholt. Es können weitere Treffer hinzukommen.` : ""}${anzahl(ergebnis.ungeprueft) ? `<br>${anzahl(ergebnis.ungeprueft)} angezeigte Treffer bisher nur anhand der Suchbegriffe geprüft.` : ""}` : ""}</p>`;
 }
 
 export const SUCHSTATUS_JS = `

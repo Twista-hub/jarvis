@@ -28,6 +28,24 @@ def offen(rel):
     return not valid or max(valid) > datetime.now(timezone.utc)
 
 
+class KatalogBestand:
+    """A server-side cursor keeps the full known catalog readable in small batches."""
+    def __init__(self, luecken):
+        self.luecken = luecken
+        self.vollstaendig = False
+
+    def __iter__(self):
+        with verbinden() as con:
+            with con.cursor(name="jarvis_offene_bekanntmachungen") as cursor:
+                cursor.execute("""select id,version,roh,quell_datum,auftraggeber_id from public.vergabekatalog
+                    where status in ('offen','unbekannt') and (frist is null or frist>now())
+                    order by quell_datum desc,id""")
+                while rows := cursor.fetchmany(250):
+                    for kid, version, rel, datum, buyer in rows:
+                        yield datum.date().isoformat(), dict(rel, _katalog_id=kid, _katalog_version=version, _auftraggeber_id=buyer)
+        self.vollstaendig = True
+
+
 def bestand():
     if not os.environ.get("SUPABASE_DB_PASSWORD"):
         return None
@@ -37,15 +55,9 @@ def bestand():
                 return None
             if not con.execute("select letzter_erfolg from public.katalog_quellen where id='bks' and letzter_erfolg is not null").fetchone():
                 return None
-            rows = con.execute("""select id,version,roh,quell_datum,auftraggeber_id from public.vergabekatalog
-                where status in ('offen','unbekannt') and (frist is null or frist>now())
-                order by quell_datum desc limit 10000""").fetchall()
-        result = []
-        for kid, version, rel, datum, buyer in rows:
-            rel = dict(rel, _katalog_id=kid, _katalog_version=version, _auftraggeber_id=buyer)
-            result.append((datum.date().isoformat(), rel))
-        print(f"Gemeinsamer Bestand: {len(result)} offene Bekanntmachungen (maximal 10000 pro Auswertung).")
-        return result
+            luecken = con.execute("select rueckstand_tage from public.katalog_quellen where id='bks'").fetchone()[0]
+        print("Gemeinsamer Bestand: vollständiger Durchlauf in Blöcken zu 250 Bekanntmachungen.")
+        return KatalogBestand(luecken)
     except Exception:
         print("Katalog vorübergehend nicht erreichbar; täglicher Quellenabruf bleibt verfügbar.")
         return None
