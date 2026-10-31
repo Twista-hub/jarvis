@@ -140,10 +140,13 @@ def main() -> None:
             neu = speichern(con, firma_id, eigene, profil.get("regionen", {}))
             ergebnis = {"treffer": len(eigene), "neu": neu, "ungeprueft": sum(t.get("punkte") is None for t in eigene),
                         "archiviert": unpassend + verworfen + nicht_aktuell}
+            suchgebiet = {"standorte": profil["standorte"], "suchgebiet_modus": "firmenstandorte"} if profil.get("suchgebiet_modus") == "firmenstandorte" else {}
             con.execute("""update public.suchprofile set einstellungen = einstellungen ||
-                jsonb_build_object('erstlauf_fertig', now(), 'suchlauf_ergebnis', %s::jsonb, 'suchlauf_fehler', false)
-                where firma_id=%s and bereich_id is null""", (json.dumps(ergebnis), firma_id))
+                jsonb_build_object('erstlauf_fertig', now(), 'suchlauf_ergebnis', %s::jsonb, 'suchlauf_fehler', false) || %s::jsonb
+                where firma_id=%s and bereich_id is null""", (json.dumps(ergebnis), json.dumps(suchgebiet), firma_id))
             print(f"{profil['name']}: {neu} neue von {len(eigene)} Treffern; {ergebnis['ungeprueft']} ohne KI-Bewertung; {ergebnis['archiviert']} unpassende unbearbeitete Treffer archiviert")
+            if suchgebiet:
+                print(f"{profil['name']}: Suche an allen {len(profil['standorte'])} Firmenstandorten gespeichert")
             if verworfen:
                 print(f"{profil['name']}: {verworfen} alte, unbearbeitete Treffer außerhalb des Suchgebiets ins Archiv verschoben")
             if nicht_aktuell:

@@ -126,7 +126,7 @@ test("Budgetfehler beim Erstlauf hält die Eingaben dauerhaft und zeigt den klar
   assert.equal(schreibt.some((x) => x.pfad.includes("dispatches")), false);
 });
 
-test("16 recherchierte Niederlassungen werden angelegt, gespeichert und erweitern nicht das gewählte Suchgebiet", async (t) => {
+test("16 recherchierte Niederlassungen werden angelegt, gespeichert und standardmäßig alle durchsucht", async (t) => {
   const schreibt = api(t);
   const dienst = dienste([]);
   const original = dienst.recherche;
@@ -142,5 +142,7 @@ test("16 recherchierte Niederlassungen werden angelegt, gespeichert und erweiter
   const p = schreibt.find((x) => x.pfad === "suchprofile")!.body.einstellungen;
   assert.equal(p.firmenstandorte.length, 16);
   assert.ok(p.firmenstandorte.every((o: { bereich_id?: string }) => o.bereich_id));
-  assert.deepEqual(p.standorte, gespeichert.standorte);
+  assert.equal(p.suchgebiet_modus, "firmenstandorte");
+  assert.equal(p.standorte.length, 16);
+  assert.equal(p.standorte[0].bereich_id, bereich);
 });

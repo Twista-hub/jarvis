@@ -1,6 +1,8 @@
 import { escape } from "./seite.ts";
 
 export type Firmenstandort = { name: string; plz: string; quelle: string; bereich_id?: string };
+export type Suchort = { name: string; plz_praefixe: string[]; bereich_id?: string };
+export type SuchgebietModus = "firmenstandorte" | "manuell";
 
 export function standortSchluessel(name: string): string {
   return name.normalize("NFKC").toLocaleLowerCase("de")
@@ -24,10 +26,19 @@ export function standorteBereinigen(werte: unknown): Firmenstandort[] {
   }).slice(0, 40);
 }
 
-export function firmenstandorteKarte(werte: unknown): string {
+export function suchorteAnStandorten(standorte: Firmenstandort[], bisher: Suchort[]): Suchort[] {
+  return standorte.map((o) => {
+    const alt = bisher.find((b) => (o.bereich_id && b.bereich_id === o.bereich_id) || standortSchluessel(b.name) === standortSchluessel(o.name));
+    const praefixe = [...new Set([...(alt?.plz_praefixe ?? []), ...(o.plz ? [o.plz.slice(0, 2)] : [])])].filter((p) => /^\d{2}$/.test(p)).sort();
+    const id = o.bereich_id || alt?.bereich_id;
+    return { name: o.name, plz_praefixe: praefixe, ...(id ? { bereich_id: id } : {}) };
+  });
+}
+
+export function firmenstandorteKarte(werte: unknown, modus?: SuchgebietModus): string {
   const standorte = standorteBereinigen(werte);
   if (!standorte.length) return "";
   return `<article class="firmen-fund firmen-standorte"><h3>${standorte.length} Firmenstandort${standorte.length === 1 ? "" : "e"} gefunden</h3>
     <ul>${standorte.map((o) => `<li><span>${escape(o.plz ? `${o.plz} ${o.name}` : o.name)}</span><a href="${escape(o.quelle)}" target="_blank" rel="noopener noreferrer" aria-label="Quelle für ${escape(o.name)}">Quelle</a></li>`).join("")}</ul>
-    <p class="klein">Als Firmenstandorte hinterlegt. Das Suchgebiet ändert sich dadurch nicht. <a href="/konto/team">Firma & Team öffnen</a></p></article>`;
+    <p class="klein">${modus === "manuell" ? "Für die Ausschreibungssuche sind eigene Suchorte ausgewählt." : `Jarvis sucht an allen ${standorte.length} Firmenstandorten nach Ausschreibungen.`} <a href="/konto/team">Firma & Team öffnen</a></p></article>`;
 }
