@@ -20,6 +20,7 @@ import { escape, markdown, seite, stapeln } from "./seite";
 import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
 import { loseLesen } from "./lose";
 import { apiClient } from "./api-budget.ts";
+import { datenbankPruefen as hyperdrivePruefen } from "./db-check.ts";
 
 export { Steckbrief } from "./workflow";
 
@@ -66,6 +67,7 @@ export default {
 
 async function verarbeiten(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
+    if (url.pathname === "/__intern/db-check" && request.method === "POST") return datenbankPruefen(request, env);
     const datei = request.method === "GET" ? statisch(url.pathname) : null;
     if (datei) return datei;
     const u = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/unterlagen$/);
@@ -114,6 +116,12 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (m && ID.test(m[1]) && m[2] === "/arbeitskraefte" && request.method === "POST") return arbeitskraefte(m[1], request, env);
     if (m && ID.test(m[1]) && !m[2]) return auftrag(m[1], env, request);
     return html(seite("Nicht gefunden", "<p>Diese Seite gibt es nicht.</p>"), 404);
+}
+
+/** One-time deployment probe: the random upload-test code gates a non-writing Hyperdrive/API-budget check. */
+async function datenbankPruefen(request: Request, env: Env): Promise<Response> {
+  const form = await request.formData().catch(() => null);
+  return hyperdrivePruefen(String(form?.get("code") ?? ""), env.TEST_CODE_HASH, env);
 }
 
 async function hochladen(request: Request, env: Env): Promise<Response> {
