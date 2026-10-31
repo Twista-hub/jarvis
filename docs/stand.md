@@ -4,7 +4,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (31.10.2026)
 - **Mindestentgelt-Katalog (31.10.):** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen eingespielt. GitHub-Rechteprüfung, Migration und Gesamtprüfung erfolgreich; Web-Check und 20 Testdateien grün. Alle zehn Bereiche der BMAS-Übersicht zu bundesweiten Branchenmindestentgelten sind im Katalog vertreten. Destatis-Tarifdatenbank als neue manuelle Recherchequelle identifiziert; Nutzungsbedingungen des separaten PDF-Exports und Verfügbarkeit noch ungeklärt.
-- **Suchprofil (31.10.):** KI-Leerantworten werden durch einen speicherbaren Vorschlag ersetzt; Speicherfehler werden verständlicher angezeigt. Der Vorschlagknopf zeigt Fortschritt, und die Sucheinrichtung ist für Nicht-Fachleute vereinfacht: Arbeit und Ort zuerst, Fachdetails standardmäßig eingeklappt. Neue Änderungen lokal geprüft; Rollout läuft.
+- **Suchprofil (31.10.):** KI-Leerantworten werden durch einen speicherbaren Vorschlag ersetzt; Speicherfehler werden verständlicher angezeigt. Der Vorschlagknopf zeigt Fortschritt, und die Sucheinrichtung ist für Nicht-Fachleute vereinfacht: Arbeit und Ort zuerst, Fachdetails standardmäßig eingeklappt. Lokale und GitHub-Prüfungen grün; App live.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
 - **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
@@ -34,7 +34,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Suchprofil-Einrichtung für Nicht-Fachleute vereinfachen.
+- (leer)
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -70,7 +70,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Nach Benjamins genauer Beschreibung den Klickpfad erneut geprüft. Website-Regelabruf (bis zu 5 Sekunden), Startseitenabruf (bis zu 5 Sekunden) und KI-Anfrage liefen nacheinander; der Knopf änderte dabei weder Text noch Zustand. Für Nutzer sah das nach einem toten Knopf aus.
 - Das Beschreibungsfeld hatte außerdem ein HTML-`minlength=20`; bei zu kurzer Eingabe kann der Browser das Formular lokal abweisen, ohne die serverseitige Fehlermeldung zu zeigen. Die stille Browserprüfung ist entfernt; die Serverprüfung zeigt weiterhin eine verständliche Meldung.
 - Sofortige Statusanzeige beim Absenden, Knopf wird gegen Doppelklick deaktiviert, KI-Anfrage ist auf 45 Sekunden begrenzt und fällt danach auf den Beschreibungsvorschlag zurück. Tests für Formularmeldung und Statusanzeige hinzugefügt.
-- Prüfung: `cd web && npm run check && npm test` grün (20 Testdateien, 0 Fehler). App-Rollout https://github.com/Twista-hub/jarvis/actions/runs/41163944079 und Gesamtprüfung https://github.com/Twista-hub/jarvis/actions/runs/41163944019 erfolgreich. Benjamin muss nichts konfigurieren.
+- Prüfung: `cd web && npm run check && npm test` grün (20 Testdateien, 0 Fehler). App-Rollout https://github.com/Twista-hub/jarvis/actions/runs/41164489479 und Gesamtprüfung https://github.com/Twista-hub/jarvis/actions/runs/41164489500 erfolgreich. Benjamin muss nichts konfigurieren.
 
 ### 31.10.2026 – ChatGPT (Suchprofil lässt sich nicht anlegen)
 - Letzten Web-Rollout geprüft: Workflow 41160655578 war erfolgreich, inklusive Typprüfung, Web-Tests und Erreichbarkeitstest. Die zuvor eingespielte Suchprofil-Änderung war somit online; ein fehlgeschlagener Rollout ist nicht die Ursache.
