@@ -109,11 +109,11 @@ jobs:
       - name: Datenbankverbindung der App prüfen (ohne Änderung)
         if: env.OHNE_SCHLUESSEL != '1'
         run: |
-          status=$(curl -sS --max-time 50 -o db-check.json -w '%{http_code}' -d "code=$TEST_CODE" "$URL/__intern/db-check")
+          status=$(curl -sS --max-time 50 -o db-check.json -w '%{http_code}' -d "code=$TEST_CODE" -d "ki=1" "$URL/__intern/db-check")
           cat db-check.json
           test "$status" = 200
           grep -q '"ok":true' db-check.json
-          echo "Hyperdrive und KI-Budgetfunktion im App-Worker erreichbar (Nur-Lese-Test)." >> "$GITHUB_STEP_SUMMARY"
+          echo "Hyperdrive, KI-Budget und ein Mini-KI-Aufruf im App-Worker erfolgreich." >> "$GITHUB_STEP_SUMMARY"
 
       - name: Test mit Bundesbank-Unterlagen
         if: inputs.test && env.OHNE_SCHLUESSEL != '1'
