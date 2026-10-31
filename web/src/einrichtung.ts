@@ -18,7 +18,7 @@ export interface EinrichtungEnv extends KontoEnv {
 export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
 export type WebQuelle = { titel: string; url: string };
-export type Vorschlag = { beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; laender?: string[]; recherche_version?: number; website_hinweis?: string };
+export type Vorschlag = { beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; laender?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string };
 
 export function suchlaufLaeuft(start: string | null | undefined, fertig: string | null | undefined, jetzt = Date.now()): boolean {
   const begonnen = start ? Date.parse(start) : NaN;
@@ -26,12 +26,15 @@ export function suchlaufLaeuft(start: string | null | undefined, fertig: string 
   return Number.isFinite(begonnen) && jetzt - begonnen < 20 * 60_000 && (!Number.isFinite(abgeschlossen) || abgeschlossen < begonnen);
 }
 
+type EinrichtungDienste = { recherche: typeof rechercheProfil; website: typeof websiteKontext };
+const DIENSTE: EinrichtungDienste = { recherche: rechercheProfil, website: websiteKontext };
+
 type Laufstart = { gestartet: true } | { gestartet: false; hinweis: string };
 
 const ID = /^[0-9a-f-]{36}$/;
 
 /** vorlage: description of a firm whose profile was set up by hand (alarm/profile.json), else "". */
-export async function einrichtung(request: Request, env: EinrichtungEnv, vorlage: (firma: string) => string): Promise<Response | null> {
+export async function einrichtung(request: Request, env: EinrichtungEnv, vorlage: (firma: string) => string, dienste: EinrichtungDienste = DIENSTE): Promise<Response | null> {
   const url = new URL(request.url);
   if (!url.pathname.startsWith("/konto/einrichtung")) return null;
   const s = await sitzung(request, env);
@@ -44,7 +47,7 @@ export async function einrichtung(request: Request, env: EinrichtungEnv, vorlage
 
   let antwort: Response;
   if (url.pathname === "/konto/einrichtung" && !post) antwort = await anzeigen(s, env, firma, f.name, f.website, url.searchParams.get("neu") === "1", vorlage, url.searchParams.get("automatisch") === "1", f.plz, f.ort);
-  else if (url.pathname === "/konto/einrichtung/automatisch" && post) antwort = await automatischEinrichten(s, env, firma, f.name, f.website, f.rolle, f.plz, f.ort);
+  else if (url.pathname === "/konto/einrichtung/automatisch" && post) antwort = await automatischEinrichten(s, env, firma, f.name, f.website, f.rolle, f.plz, f.ort, form!, dienste);
   else if (url.pathname === "/konto/einrichtung/vorschlag" && post) antwort = await vorschlagen(env, firma, f.name, form!);
   else if (url.pathname === "/konto/einrichtung/speichern" && post) antwort = await speichern(s, env, firma, f.name, f.website, f.rolle, form!);
   else if (url.pathname === "/konto/einrichtung/starten" && post) antwort = await gespeicherteSucheStarten(s, env, firma);
@@ -79,7 +82,7 @@ async function anzeigen(s: Sitzung, env: KontoEnv, firma: string, name: string, 
 
 function automatischeSeite(firma: string, name: string, website: string, plz: string, ort: string, fehler = ""): string {
   return `${fehler ? `<p class="fehler" role="alert">${escape(fehler)}</p>` : `<p>Jarvis richtet jetzt automatisch dein Suchprofil ein und startet danach die Suche. Es prüft erlaubte Inhalte der Firmenwebsite und sucht zusätzlich öffentlich nach der Firma und ihren Leistungen.</p>`}
-<form method="post" action="/konto/einrichtung/automatisch"${fehler ? "" : " data-auto-einrichtung"}>
+<form method="post" data-suchaktion action="/konto/einrichtung/automatisch"${fehler ? "" : " data-auto-einrichtung"}>
   <input type="hidden" name="firma" value="${escape(firma)}">
   <p><strong>${escape(name)}</strong>${ort ? ` · ${escape(plz)} ${escape(ort)}` : ""}</p>
   ${website ? `<p>Website: ${escape(website)}</p>` : `<p>Keine Website angegeben; die öffentliche Suche nutzt Firmenname und Firmensitz.</p>`}
@@ -87,31 +90,34 @@ function automatischeSeite(firma: string, name: string, website: string, plz: st
 </form>`;
 }
 
-async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, alteWebsite: string, rolle: string, plz: string, ort: string): Promise<Response> {
+async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, alteWebsite: string, rolle: string, plz: string, ort: string, eingabe: FormData, dienste: EinrichtungDienste): Promise<Response> {
   const alt = await db<{ id: string; beschreibung: string; einstellungen: Partial<Vorschlag> }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,beschreibung,einstellungen&limit=1`);
   if (!alt.ok) return html(seite("Suchprofil", automatischeSeite(firma, name, alteWebsite, plz, ort, "Das vorhandene Suchprofil konnte nicht geladen werden. Bitte erneut versuchen.")), 503);
   const vorhanden = alt.daten[0];
-  const eigeneBeschreibung = vorhanden?.beschreibung ?? "";
-  const eigeneOrte = vorhanden?.einstellungen?.standorte ?? [];
-  const orte = eigeneOrte.map((o) => o.name).join("\n") || `${plz} ${ort}`;
-  const websiteDaten = alteWebsite ? await websiteKontext(alteWebsite) : { text: "", hinweis: "Keine Firmenwebsite angegeben." };
+  const basis = eingabe.has("beschreibung") ? ausFormular(eingabe) : bereinigen({ ...vorhanden?.einstellungen, beschreibung: vorhanden?.beschreibung ?? "" });
+  const eigeneBeschreibung = basis.beschreibung;
+  const roheWebsite = eingabe.has("website") ? String(eingabe.get("website") ?? "").trim().slice(0, 300) : alteWebsite;
+  const website = websiteNormalisieren(roheWebsite);
+  if (roheWebsite && !website) return html(seite("Suchprofil", profilFormular(firma, basis, "Bitte eine gültige Website-Adresse angeben.", roheWebsite)), 400);
+  if (website !== alteWebsite && rolle !== "inhaber") return html(seite("Suchprofil", profilFormular(firma, basis, "Nur der Inhaber kann die gemeinsame Firmenwebsite ändern.", alteWebsite)), 403);
+  const orte = basis.standorte.map((o) => o.name).join("\n") || (vorhanden ? "Deutschlandweit, keine Ortseinschränkung" : `${plz} ${ort}`);
+  const websiteDaten = website ? await dienste.website(website) : { text: "", hinweis: "Keine Firmenwebsite angegeben." };
 
   let v: Vorschlag;
   try {
-    const { profil } = await rechercheProfil(env, { name, website: alteWebsite, beschreibung: eigeneBeschreibung, orte, websiteText: websiteDaten.text });
-    v = bereinigen({ ...profil, beschreibung: eigeneBeschreibung, recherche_version: 2, website_hinweis: websiteDaten.hinweis });
-    if (eigeneOrte.length) v.standorte = eigeneOrte;
-    if (vorhanden) { v.ausschluss = vorhanden.einstellungen?.ausschluss ?? []; v.ausschluss_cpv = vorhanden.einstellungen?.ausschluss_cpv ?? []; v.laender = vorhanden.einstellungen?.laender ?? ["DEU"]; }
+    const { profil } = await dienste.recherche(env, { name, website, beschreibung: eigeneBeschreibung, orte, websiteText: websiteDaten.text });
+    v = bereinigen({ ...profil, beschreibung: eigeneBeschreibung, recherche_version: 2, website_hinweis: websiteDaten.hinweis, recherchiert_am: new Date().toISOString() });
+    if (vorhanden || eingabe.has("beschreibung")) { v.standorte = basis.standorte; v.ausschluss = basis.ausschluss; v.ausschluss_cpv = basis.ausschluss_cpv; v.laender = basis.laender; }
     if (!v.leistungen.length) throw new Error("keine belegten Leistungen erkannt");
   } catch (e) {
     console.warn(`Automatische Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
     const meldung = `Die Firmenrecherche wurde nicht abgeschlossen: ${rechercheFehler(e)} ${websiteDaten.hinweis} Deine gespeicherten Angaben sind erhalten.`;
-    const vorschau = vorhanden ? bereinigen({ ...vorhanden.einstellungen, beschreibung: eigeneBeschreibung }) : leer();
-    return html(seite(`Suchprofil: ${name}`, `<p class="fehler" role="alert">${escape(meldung)}</p>${rechercheKnopf(firma)}${profilFormular(firma, vorschau, "", alteWebsite)}`), 502);
+    return html(seite(`Suchprofil: ${name}`, profilFormular(firma, basis, meldung, website)), 502);
 
   }
-  if (!v.standorte.length && ort) v.standorte = [{ name: ort, plz_praefixe: /^\d{5}$/.test(plz) ? [plz.slice(0, 2)] : [] }];
-  const form = profilZuFormular(v, alteWebsite);
+  if (!vorhanden && !eingabe.has("beschreibung") && !v.standorte.length && ort) v.standorte = [{ name: ort, plz_praefixe: /^\d{5}$/.test(plz) ? [plz.slice(0, 2)] : [] }];
+  const form = profilZuFormular(v, website);
+  if (eingabe.get("aktion") === "recherche") form.set("aktion", "recherche");
   return speichern(s, env, firma, name, alteWebsite, rolle, form);
 }
 
@@ -139,6 +145,7 @@ export function profilZuFormular(v: Vorschlag, website: string): FormData {
   form.set("website_beschreibung", v.website_beschreibung);
   form.set("recherche_version", String(v.recherche_version ?? ""));
   form.set("website_hinweis", v.website_hinweis ?? "");
+  form.set("recherchiert_am", v.recherchiert_am ?? "");
   form.set("websuche_beschreibung", v.websuche_beschreibung);
   for (const quelle of v.websuche_quellen) form.append("websuche_quellen", JSON.stringify(quelle));
   form.set("ausschluss", v.ausschluss.join(", "));
@@ -153,7 +160,7 @@ export function startFormular(firma: string, beschreibung: string, orte: string,
   return `${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}
 ${hilfe("Tipp für eine gute Suche", "Beschreibe in einfachen Worten, welche Arbeit ihr macht und wo ihr arbeitet. Fachbegriffe oder Vergabe-Kennziffern brauchst du nicht.")}
 <p>Jarvis wertet Website und öffentliche Suchtreffer automatisch aus. Du kannst das Ergebnis prüfen oder die Firmenarbeit selbst ergänzen.</p>
-<form method="post" action="/konto/einrichtung/vorschlag">
+<form method="post" data-suchaktion action="/konto/einrichtung/vorschlag">
   <input type="hidden" name="firma" value="${firma}">
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" value="${escape(website)}"></label>
   <p class="klein">Jarvis prüft die Website und bis zu drei öffentliche Web-Suchergebnisse. Es übernimmt belegte Leistungen als Suchwörter und beachtet Website-Zugriffssperren.</p>
@@ -162,7 +169,7 @@ ${hilfe("Tipp für eine gute Suche", "Beschreibe in einfachen Worten, welche Arb
   <label>Standorte (eine Stadt pro Zeile, freiwillig)
     <textarea name="orte" maxlength="1000" placeholder="Köln&#10;Düsseldorf">${escape(orte)}</textarea>
     <span class="klein">Ohne Standorte sucht Jarvis in ganz Deutschland.</span></label>
-  <button type="submit">Vorschlag machen lassen</button>
+  <button type="submit">Suchprofil automatisch erstellen</button>
   <p class="klein" data-einrichtung-status role="status" aria-live="polite">Jarvis recherchiert die Firma und erstellt danach das Suchprofil. Das kann bis zu zwei Minuten dauern.</p>
 </form><p><a href="/konto/suchprofil">← Zurück zum Suchprofil</a> · <a href="/konto">Zur Übersicht</a></p>`;
 }
@@ -179,7 +186,7 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
   try {
     // The shared engine searches with citations before requesting the structured profile.
     const { profil } = await rechercheProfil(env, { name, website, beschreibung, orte, websiteText: websiteDaten.text });
-    vorschlag = bereinigen({ ...profil, recherche_version: 2, website_hinweis: websiteDaten.hinweis });
+    vorschlag = bereinigen({ ...profil, recherche_version: 2, website_hinweis: websiteDaten.hinweis, recherchiert_am: new Date().toISOString() });
     if (!vorschlag.leistungen.length) throw new Error("leerer Vorschlag");
   } catch (e) {
     console.warn(`Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
@@ -213,10 +220,6 @@ function leer(): Vorschlag {
   return { beschreibung: "", website_beschreibung: "", websuche_beschreibung: "", websuche_quellen: [], leistungen: [], ausschluss: [], ausschluss_cpv: [], standorte: [] };
 }
 
-function rechercheKnopf(firma: string): string {
-  return `<form method="post" action="/konto/einrichtung/automatisch"><input type="hidden" name="firma" value="${escape(firma)}"><button>Firma automatisch recherchieren</button></form>`;
-}
-
 function rechercheFehler(e: unknown): string {
   const text = e instanceof Error ? e.message : "Unbekannter Fehler";
   if (/budget/i.test(text)) return "Das verfügbare KI-Budget reicht gerade nicht aus.";
@@ -230,29 +233,31 @@ const liste = (x: string[] | undefined) => escape((x ?? []).join(", "));
 export function profilFormular(firma: string, v: Vorschlag, hinweis: string, website = ""): string {
   const leistungen = [...v.leistungen, { name: "", cpv: [], woerter: [] }].map((l, i) => `<fieldset>
   <label class="zeile"><input type="checkbox" name="l${i}_an" value="1"${l.name ? " checked" : ""}> ${l.name ? `${escape(l.name)} suchen` : "Weitere Arbeit hinzufügen"}</label>
+  <details><summary>${l.name ? "Arbeit und Suchbegriffe ändern" : "Weitere Arbeit eintragen"}</summary>
   <label>Beruf oder Arbeit<input name="l${i}_name" maxlength="120" placeholder="z. B. Fliesen verlegen" value="${escape(l.name)}"></label>
-  <details><summary>Suchdetails (optional)</summary>
     <label>Wörter, die in passenden Ausschreibungen vorkommen können<input name="l${i}_woerter" maxlength="1000" value="${liste(l.woerter)}"></label>
     <label>Vergabe-Kennziffern (CPV, optional)<input name="l${i}_cpv" maxlength="300" inputmode="numeric" value="${liste(l.cpv)}"></label>
   </details>
 </fieldset>`).join("");
   const standorte = [...v.standorte, { name: "", plz_praefixe: [] }].map((o, i) => `<fieldset>
   <label class="zeile"><input type="checkbox" name="o${i}_an" value="1"${o.name ? " checked" : ""}> ${o.name ? `${escape(o.name)} als Einsatzort` : "Weiteren Einsatzort hinzufügen"}</label>
+  <details><summary>${o.name ? "Suchgebiet ändern" : "Weiteren Einsatzort eintragen"}</summary>
   <label>Stadt oder Gegend<input name="o${i}_name" maxlength="120" placeholder="z. B. Bad Wildungen" value="${escape(o.name)}"></label>
-  <details><summary>Suchradius genauer einstellen (optional)</summary>
     <label>Postleitzahl-Anfänge, durch Komma getrennt<input name="o${i}_plz" maxlength="300" inputmode="numeric" value="${liste(o.plz_praefixe)}"></label>
   </details>
   ${o.bereich_id ? `<input type="hidden" name="o${i}_bereich" value="${escape(o.bereich_id)}">` : ""}
 </fieldset>`).join("");
   return `${hinweis ? `<p role="status">${escape(hinweis)}</p>` : ""}
 ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Einsatzorte stimmen. Die zusätzlichen Suchdetails brauchst du nur, wenn du die Suche gezielt verfeinern möchtest.")}
-<form method="post" action="/konto/einrichtung/speichern">
+<form method="post" data-suchaktion action="/konto/einrichtung/speichern">
   <input type="hidden" name="firma" value="${firma}">
   <input type="hidden" name="recherche_version" value="${v.recherche_version ?? ""}">
   <input type="hidden" name="website_hinweis" value="${escape(v.website_hinweis ?? "")}">
+  <input type="hidden" name="recherchiert_am" value="${escape(v.recherchiert_am ?? "")}">
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" value="${escape(website)}"></label>
   <label>Deine Beschreibung der Firma (optional)
     <textarea name="beschreibung" maxlength="3000">${escape(v.beschreibung)}</textarea></label>
+  <details><summary>Was Jarvis über die Firma gefunden hat</summary>
   <label>Das hat Jarvis auf der Website gefunden
     <textarea name="website_beschreibung" maxlength="1500" placeholder="Keine Website-Informationen gefunden">${escape(v.website_beschreibung)}</textarea>
     ${v.website_hinweis ? `<span class="klein">${escape(v.website_hinweis)}</span>` : ""}</label>
@@ -261,6 +266,7 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
     <span class="klein">Zusätzliche öffentliche Fundstellen, getrennt von Website und eigener Beschreibung.</span></label>
   ${(v.websuche_quellen ?? []).map((q) => `<input type="hidden" name="websuche_quellen" value="${escape(JSON.stringify(q))}">`).join("")}
   ${(v.websuche_quellen ?? []).length ? `<p class="klein">Quellen: ${(v.websuche_quellen ?? []).map((q) => `<a href="${escape(q.url)}" target="_blank" rel="noopener noreferrer">${escape(q.titel || q.url)}</a>`).join(" · ")}</p>` : ""}
+  </details>
   <h2>Welche Arbeiten soll Jarvis finden?</h2>
   ${leistungen}
   <details><summary>Unpassende Arbeiten ausschließen (optional)</summary>
@@ -277,10 +283,11 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   <label>Neue Treffer per Mail an dich um<select name="stunde">${stundenOptionen(7)}</select>
     <span class="klein">Jeder im Team stellt seine Uhrzeit selbst ein.</span></label>
   </details>
-  <button>Speichern und Suche starten</button>
+  <button type="submit">Speichern und Ausschreibungen suchen</button>
+  <button type="submit" class="zweit" name="aktion" value="recherche" formaction="/konto/einrichtung/automatisch" formnovalidate>Firmeninfos neu recherchieren</button>
+  <p class="klein">Liest die Website und öffentliche Quellen neu und aktualisiert dein Firmenprofil.</p>
 </form>
-${rechercheKnopf(firma)}
-<p class="klein"><a href="/konto/einrichtung?firma=${firma}&neu=1">Website und Arbeit neu auswerten</a> · <a href="/konto/suchprofil">← Zurück zum Suchprofil</a> · <a href="/konto">Zur Übersicht</a></p>`;
+<p><a href="/konto/suchprofil">Suchprofil ansehen</a></p>`;
 }
 
 function laenderAuswahl(gewaehlt: string[]): string {
@@ -299,6 +306,7 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
   return {
     beschreibung: String(v.beschreibung ?? "").trim().slice(0, 3000),
     recherche_version: v.recherche_version === 2 ? 2 : undefined,
+    recherchiert_am: v.recherchiert_am && Number.isFinite(Date.parse(v.recherchiert_am)) ? v.recherchiert_am : undefined,
     website_hinweis: String(v.website_hinweis ?? "").slice(0, 500),
     website_beschreibung: String(v.website_beschreibung ?? "").trim().slice(0, 1500),
     websuche_beschreibung: String(v.websuche_beschreibung ?? "").trim().slice(0, 1500),
@@ -328,7 +336,7 @@ export function ausFormular(form: FormData): Vorschlag {
   }
   let quellen: WebQuelle[] = [];
   try { quellen = form.getAll("websuche_quellen").map(String).map((x) => JSON.parse(x) as WebQuelle); } catch { quellen = []; }
-  return bereinigen({ recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
+  return bereinigen({ recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
 }
 
 async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, alteWebsite: string, rolle: string, form: FormData): Promise<Response> {
@@ -366,7 +374,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     woerter: [...new Set(v.leistungen.flatMap((l) => l.woerter))].join(", "),
     ausschluss: v.ausschluss.join(", "),
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
-    einstellungen: { recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
+    einstellungen: { recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
   };
   const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.
@@ -375,6 +383,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   const sofort = !suchlaufLaeuft(zuletzt ? new Date(zuletzt).toISOString() : null, fertig);
   const einstellungen: Record<string, unknown> = zeile.einstellungen;
   if (zuletzt) einstellungen.erstlauf = new Date(zuletzt).toISOString();
+  if (fertig) einstellungen.erstlauf_fertig = fertig;
   const r = alt.ok && alt.daten[0]
     ? await db(s, env, `suchprofile?id=eq.${alt.daten[0].id}`, { method: "PATCH", body: JSON.stringify(zeile) })
     : await db(s, env, "suchprofile", { method: "POST", body: JSON.stringify(zeile) });
@@ -394,6 +403,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     const firmenseite = await db(s, env, `firmen?id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ website }) });
     if (!firmenseite.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Das Suchprofil wurde gespeichert, aber die Website nicht. Bitte erneut speichern.", website)), 500);
   }
+  if (form.get("aktion") === "recherche") return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(`Firmeninfos aktualisiert: ${v.leistungen.length} Arbeitsbereiche. Du kannst jetzt nach Ausschreibungen suchen.`)}`, s.cookies);
   if (form.has("stunde")) await mailZeitSetzen(s, env, firma, form.get("stunde"));
   const laufstart: Laufstart = sofort ? await ersterLauf(env, firma) : { gestartet: false, hinweis: "Jarvis durchsucht diese Firma gerade. Warte bitte, bis der laufende Suchlauf fertig ist." };
   const gestartet = laufstart.gestartet;

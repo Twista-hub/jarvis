@@ -53,7 +53,7 @@ const ARTEN: Record<string, string> = { standort: "Standort", abteilung: "Abteil
 export const COOKIE = "Path=/; HttpOnly; Secure; SameSite=Lax";
 
 export function startSucheFormular(firma: string): string {
-  return `<form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${escape(firma)}"><button>Suche jetzt starten</button></form>`;
+  return `<form method="post" data-suchaktion action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${escape(firma)}"><button type="submit">Ausschreibungen jetzt suchen</button></form>`;
 }
 
 /** Handles /konto, /anmelden, /einladung and /abmelden; null for other paths. */
@@ -189,7 +189,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
   const [profil, mail] = await Promise.all([
-    db<{ id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; erstlauf: string | null; fertig: string | null }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig&limit=1`),
+    db<{ id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; erstlauf: string | null; fertig: string | null }[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig&limit=1`),
     db<{ stunde: number | null; kanal: string }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde,kanal`),
   ]);
   const hinterlegt = dateiProfil(m.firma_id);
@@ -314,7 +314,14 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const beschreibung = (profil.ok ? profil.daten[0]?.beschreibung : "") || hinterlegt?.beschreibung || "";
     const websiteBeschreibung = profil.ok ? profil.daten[0]?.website_beschreibung ?? "" : "";
     const websucheBeschreibung = profil.ok ? profil.daten[0]?.websuche_beschreibung ?? "" : "";
-    inhalt = rahmen(`${hilfe("Wie verbessert das Suchprofil die Treffer?", "Jarvis sucht mit den Leistungen, Suchwörtern, CPV-Codes, Standorten und Ausschlüssen. Du kannst den Vorschlag anpassen. Je genauer die Angaben, desto passender werden die Treffer.")}${!profil.ok ? `<p class="fehler">Der aktuelle Stand des Suchprofils konnte nicht geladen werden. Bitte versuche es erneut.</p>` : sucheEingerichtet ? `<p><strong>Die Suche für ${escape(m.firmen.name)} ist eingerichtet.</strong></p>` : `<p>Für diese Firma ist noch keine Suche eingerichtet.</p>`}${beschreibung ? `<h3>Deine Beschreibung</h3><p>${escape(beschreibung)}</p>` : ""}${websiteBeschreibung ? `<h3>Auf der Website gefunden</h3><p>${escape(websiteBeschreibung)}</p>` : ""}${websucheBeschreibung ? `<h3>In öffentlichen Suchen gefunden</h3><p>${escape(websucheBeschreibung)}</p>` : ""}${admin && (profil.ok || sucheEingerichtet) ? `<p><a class="knopf" href="/konto/einrichtung?firma=${m.firma_id}">${sucheEingerichtet ? "Suchprofil anpassen" : "Suche einrichten"}</a></p>${sucheEingerichtet ? `<p class="klein">Ein neuer Suchlauf verwendet die gespeicherten Suchbegriffe und getrennten Firmeninformationen.</p><p><a href="/konto/einrichtung?firma=${m.firma_id}&neu=1">Website und öffentliche Suche neu auswerten</a></p>${startSucheFormular(m.firma_id)}` : ""}` : !admin ? `<p class="klein">Ein Inhaber oder Admin kann das Suchprofil anpassen.</p>` : ""}`);
+    const datum = aktuell?.recherchiert_am && Number.isFinite(Date.parse(aktuell.recherchiert_am)) ? new Date(aktuell.recherchiert_am).toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" }) : "";
+    inhalt = rahmen(`${!profil.ok ? `<p class="fehler">Das Suchprofil konnte nicht geladen werden. Bitte versuche es erneut.</p>` : sucheEingerichtet ? `<p><strong>Die Suche für ${escape(m.firmen.name)} ist eingerichtet.</strong></p>` : `<p>Für diese Firma ist noch keine Suche eingerichtet.</p>`}
+${meldungen}
+${admin && (profil.ok || sucheEingerichtet) ? `${sucheEingerichtet ? `${startSucheFormular(m.firma_id)}<p class="klein">Sucht mit deinem gespeicherten Firmenprofil nach passenden Aufträgen.</p>` : ""}
+<p><a class="knopf zweit" href="/konto/einrichtung?firma=${m.firma_id}">${sucheEingerichtet ? "Suchprofil bearbeiten" : "Suchprofil erstellen"}</a></p>
+${sucheEingerichtet ? `<form method="post" data-suchaktion action="/konto/einrichtung/automatisch"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="aktion" value="recherche"><button type="submit" class="zweit">Firmeninfos neu recherchieren</button></form><p class="klein">Prüft Website und öffentliche Quellen erneut und aktualisiert dein Firmenprofil.</p>` : ""}` : !admin ? `<p class="klein">Ein Inhaber oder Admin kann das Suchprofil bearbeiten.</p>` : ""}
+${datum ? `<p class="klein" role="status">Firmeninfos zuletzt aktualisiert: ${escape(datum)} Uhr</p>` : ""}
+${beschreibung || websiteBeschreibung || websucheBeschreibung ? `<details><summary>Firmenbeschreibung und Recherche ansehen</summary>${beschreibung ? `<h3>Deine Beschreibung</h3><p>${escape(beschreibung)}</p>` : ""}${websiteBeschreibung ? `<h3>Auf der Website gefunden</h3><p>${escape(websiteBeschreibung)}</p>` : ""}${websucheBeschreibung ? `<h3>In öffentlichen Suchen gefunden</h3><p>${escape(websucheBeschreibung)}</p>` : ""}</details>` : ""}`);
   } else {
     inhalt = rahmen(`<p><a href="/konto/suchprofil">Suchprofil</a> · <a href="/konto/profil">Mein Profil</a> · <a href="/konto/team">Firma & Team</a> · <a href="/konto/kalkulation">Kalkulation</a> · <a href="/konto/unterlagen">Unterlagen prüfen</a></p>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">

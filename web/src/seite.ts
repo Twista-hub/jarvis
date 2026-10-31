@@ -58,6 +58,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .mitarbeiter-liste { display: grid; gap: 14px; margin-bottom: 24px; }
   .mitarbeiter-liste h3 { margin-top: 0; }
   fieldset { min-width: 0; border: 1px solid var(--line); border-radius: 8px; display: grid; gap: 10px; }
+  button.zweit, a.knopf.zweit { background: var(--card); color: var(--accent); border: 1px solid var(--line); }
   .zeile { display: flex; gap: 8px; align-items: center; font-weight: 600; }
   .zeile input { width: auto; }
   input, select, textarea { min-width: 0; max-width: 100%; font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }

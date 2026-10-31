@@ -138,8 +138,8 @@ test("Bereits hinterlegtes Firmenprofil wird als eingerichtet erkannt", async (t
   const vorlage = (id: string) => id === firma ? { beschreibung: "Wir vermitteln Servicepersonal." } : undefined;
   const html = await seite("/konto/suchprofil", vorlage);
   assert.match(html, /Die Suche für Musterfirma ist eingerichtet/);
-  assert.match(html, /Suchprofil anpassen/);
-  assert.doesNotMatch(html, />Suche einrichten</);
+  assert.match(html, /Suchprofil bearbeiten/);
+  assert.doesNotMatch(html, />Suchprofil erstellen</);
   assert.match(html, /Wir vermitteln Servicepersonal/);
 });
 
@@ -158,19 +158,23 @@ test("fehlende Firmenrecherche wird für Admins nachgeholt; Leser und fertige Pr
 });
 
 test("Gespeichertes Suchprofil zeigt eigene, Website- und Websuch-Funde getrennt", async (t) => {
-  const profile: unknown[] = [{ id: "profil", beschreibung: "Eigene Firmenbeschreibung", website_beschreibung: "Auf der Website gefundene Leistungen", websuche_beschreibung: "Im öffentlichen Firmenprofil gefundene Leistungen", erstlauf: null }];
+  const profile: unknown[] = [{ id: "profil", beschreibung: "Eigene Firmenbeschreibung", website_beschreibung: "Auf der Website gefundene Leistungen", websuche_beschreibung: "Im öffentlichen Firmenprofil gefundene Leistungen", recherchiert_am: "2026-10-31T12:34:00Z", erstlauf: null }];
   mockKontoApi(t, [], "inhaber", profile);
   const eingerichtet = await seite("/konto/suchprofil");
   assert.match(eingerichtet, /Die Suche für Musterfirma ist eingerichtet/);
-  assert.match(eingerichtet, /Suchprofil anpassen/);
+  assert.match(eingerichtet, /Suchprofil bearbeiten/);
   assert.match(eingerichtet, /Deine Beschreibung[\s\S]*Eigene Firmenbeschreibung/);
   assert.match(eingerichtet, /Auf der Website gefunden[\s\S]*Auf der Website gefundene Leistungen/);
   assert.match(eingerichtet, /In öffentlichen Suchen gefunden[\s\S]*Im öffentlichen Firmenprofil gefundene Leistungen/);
+  assert.match(eingerichtet, /Ausschreibungen jetzt suchen/);
+  assert.match(eingerichtet, /Firmeninfos neu recherchieren/);
+  assert.match(eingerichtet, /Firmeninfos zuletzt aktualisiert:/);
+  assert.match(eingerichtet, /<details><summary>Firmenbeschreibung und Recherche ansehen/);
   profile.length = 0;
   const leer = await seite("/konto/suchprofil");
   assert.match(leer, /noch keine Suche eingerichtet/);
-  assert.match(leer, />Suche einrichten</);
-  assert.doesNotMatch(leer, /Suchprofil anpassen/);
+  assert.match(leer, />Suchprofil erstellen</);
+  assert.doesNotMatch(leer, /Suchprofil bearbeiten/);
 });
 
 
