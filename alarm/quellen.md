@@ -4,6 +4,9 @@ Regel: vor jedem automatischen Abruf Nutzungsbedingungen und robots.txt prüfen 
 
 ## Firmenrecherche für Suchprofile
 
+- Technische Prüfung 31.10.2026: Die [Websuche-Dokumentation](https://platform.claude.com/docs/en/agents-and-tools/tool-use/web-search-tool#citations) verlangt Quellenangaben; diese sind immer eingeschaltet. [Strikte JSON-Ausgaben](https://platform.claude.com/docs/en/build-with-claude/structured-outputs) sind mit Quellenangaben inkompatibel (HTTP 400). Jarvis recherchiert deshalb zuerst mit Quellen und erzeugt das strukturierte Suchprofil in einer zweiten Anfrage ohne Suchwerkzeug. Gespeicherte Quellen-URLs müssen in der echten Rechercheantwort enthalten sein.
+- Team Effertz: Am 31.10.2026 antwortete `/robots.txt` aus der Entwicklungsumgebung mit HTTP 403 (NinjaFirewall); dort wurde nicht weiter abgerufen. Der tatsächliche App-Worker konnte im Live-Test dagegen Startseite und drei Unterseiten lesen (7.200 Zeichen) und ergänzte die Firmenleistungen über zwei öffentliche Web-Suchanfragen mit fünf Quellen. Zugriffssperren bleiben verbindlich; öffentliche Suchmaschinen-Fundstellen bleiben eine eigene, gekennzeichnete Quelle.
+
 | Quelle | Geprüft | Ergebnis | Nutzung |
 |---|---|---|---|
 | Anthropic Claude API – Web Search Tool (`docs.anthropic.com/en/docs/build-with-claude/tool-use/web-search-tool`) | 31.10.2026 | Offizielle serverseitige Websuche über Claude API; veröffentlichter Preis 10 USD je 1.000 Suchanfragen plus Tokenkosten für Suchinhalte. Die Websuche liefert öffentliche Suchergebnisse; Jarvis lädt Drittseiten nicht direkt und prüft die vom Kunden angegebene eigene Website weiterhin separat mit robots.txt und Abruflimits. | Automatische Profileinrichtung und manuelle Profilerstellung: höchstens drei Suchanfragen je Profilvorschlag, Identitätsabgleich über Firmenname/Website/Ort, konkrete Quellenlinks im Profil; Kosten laufen durch dasselbe Tages-/Monatsbudget. Keine privaten Personendaten abfragen. |

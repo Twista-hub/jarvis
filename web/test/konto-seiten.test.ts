@@ -143,6 +143,20 @@ test("Bereits hinterlegtes Firmenprofil wird als eingerichtet erkannt", async (t
   assert.match(html, /Wir vermitteln Servicepersonal/);
 });
 
+test("fehlende Firmenrecherche wird für Admins nachgeholt; Leser und fertige Profile starten keine neue Recherche", async (t) => {
+  const alt = [{ id: "profil", beschreibung: "Wir verlegen Fliesen.", websuche_beschreibung: "", erstlauf: null }];
+  const request = () => new Request("https://jarvis.test/konto/suchprofil", { headers: { cookie: `jv_at=${token}` } });
+  const env = { SUPABASE_URL: "https://supabase.test", SUPABASE_KEY: "public" };
+  mockKontoApi(t, [], "inhaber", alt);
+  const r = await konto(request(), env);
+  assert.equal(r?.status, 303);
+  assert.equal(r?.headers.get("location"), `/konto/einrichtung?firma=${firma}&automatisch=1`);
+  mockKontoApi(t, [], "leser", alt);
+  assert.equal((await konto(request(), env))?.status, 200);
+  mockKontoApi(t, [], "inhaber", [{ ...alt[0], recherche_version: "2" }]);
+  assert.equal((await konto(request(), env))?.status, 200);
+});
+
 test("Gespeichertes Suchprofil zeigt eigene, Website- und Websuch-Funde getrennt", async (t) => {
   const profile: unknown[] = [{ id: "profil", beschreibung: "Eigene Firmenbeschreibung", website_beschreibung: "Auf der Website gefundene Leistungen", websuche_beschreibung: "Im öffentlichen Firmenprofil gefundene Leistungen", erstlauf: null }];
   mockKontoApi(t, [], "inhaber", profile);
