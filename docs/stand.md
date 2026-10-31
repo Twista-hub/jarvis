@@ -8,6 +8,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Web-KI-Verbindung (31.10.):** Nur-Lese-Prüfung des Budgets: 0,1023/20 USD im Monat und 0,102/3 USD heute; Budgetlimit nicht erreicht. Hyperdrive und Budgetfunktion sind im App-Worker per schreibfreiem Rollout-Test bestätigt. Echter KI-Vorschlag nach diesem Rollout noch nicht bestätigt.
 - **Standortfilter Ausschreibungen (31.10.):** App-Suchprofile filtern Bekanntmachungen anhand des Einsatzorts. PLZ-Anfänge werden räumlich angewendet; fehlen sie, gilt der genaue Ortsname. Beim nächsten Alarm wandern alte, unbearbeitete Katalogtreffer außerhalb des Suchgebiets ins Archiv; bearbeitete Vorgänge bleiben unangetastet.
 - **Trefferbegründung (31.10.):** KI-Bewertung, „was gesucht wird“ und „warum es passt“ werden gemeinsam am Vorgang gespeichert. Die kurze Erklärung erscheint direkt auf der Trefferkarte; lange Steckbriefe bleiben nur auf der Detailseite.
+- **Suchlauf erneut starten:** Der Schutz vor Doppelläufen blockiert jetzt nur, solange eine Suche noch läuft; eine abgeschlossene Suche kann direkt erneut gestartet werden. Im Suchprofil gibt es dafür einen eigenen Knopf. Bei Ablehnung wird der GitHub-Fehler künftig verständlicher angezeigt.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
 - **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
@@ -37,7 +38,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Beim nächsten Alarm den Standortfilter und das Archivieren alter, unbearbeiteter Ferntreffer prüfen. Das Fallback-Suchprofil hat keine PLZ-Anfänge und begrenzt deshalb zunächst auf den genauen Ortsnamen statt auf 50 km. Danach echten Web-KI-Vorschlag verifizieren.
+- (ChatGPT) Suchstart mit Team Effertz und Archivieren der alten, unbearbeiteten Ferntreffer verifizieren. Das Fallback-Suchprofil hat keine PLZ-Anfänge und begrenzt deshalb zunächst auf den genauen Ortsnamen statt auf 50 km. Danach echten Web-KI-Vorschlag verifizieren.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -62,6 +63,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Suchstart nach dem ersten Lauf freigeben)
+- Benjamins Hinweis „96“ ordnet die ursprüngliche Trefferzahl ein. Der erste Lauf für Team Effertz war am 04:37 UTC erfolgreich (GitHub-Lauf 41169302892, 96 Treffer). Beim erneuten Start innerhalb von zwei Stunden blockierte Jarvis jede Wiederholung, auch wenn der alte Lauf längst abgeschlossen war. Dadurch blieben die bisherigen Treffer stehen und die neue Standortfilterung konnte nicht angewendet werden.
+- Die Sperre gilt jetzt nur noch, wenn ein Lauf tatsächlich aktiv ist. Im Suchprofil gibt es einen eigenen Knopf „Suche jetzt starten“. GitHub-Ablehnungen oder fehlende Berechtigungen werden künftig als konkrete Meldung statt als allgemeiner Startfehler gezeigt.
+- 20 Web-Testdateien und `npm run check` grün; 22 Python-Tests und Syntaxprüfung grün. Noch nicht gepusht. Nach Rollout kann Benjamin unter `/konto/suchprofil` einmal „Suche jetzt starten“ antippen; dann werden die Treffer neu gefiltert und die alten unbearbeiteten Fern-Treffer archiviert.
 
 ### 31.10.2026 – ChatGPT (Erklärung der KI-Bewertung sichtbar machen)
 - Ursache: Die KI erzeugte `kurz` (was ausgeschrieben ist) und `grund` (warum es zur Firma passt), aber `alarm/speichern.py` übernahm nur die Punktzahl und den allgemeinen Bekanntmachungstext. Die Trefferkarte las weder diese Felder noch einen Kurztext.
