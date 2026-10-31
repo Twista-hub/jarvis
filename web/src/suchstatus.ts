@@ -5,16 +5,34 @@ export interface Suchstand {
   fertig?: string | null;
   ergebnis?: { neu?: number; treffer?: number; ungeprueft?: number; kandidaten?: number; bewertet?: number; ausstehend?: number; katalog_geprueft?: number; importtage_offen?: number | null } | null;
   fehler?: boolean | null;
+  zwischenstand?: { zeit?: string; treffer?: number; bewertet?: number; kandidaten?: number } | null;
+}
+
+// A full run over the whole catalog takes well over 20 minutes; only after an hour is it considered stuck.
+const LAUFZEIT = 60 * 60_000;
+
+/** Progress written by the running alarm; ignored when it belongs to an earlier run. */
+export function zwischenstand(p: Suchstand): { treffer: number; bewertet: number; kandidaten: number } | null {
+  const z = p.zwischenstand;
+  if (!z || !(Date.parse(z.zeit || "") >= Date.parse(p.erstlauf || ""))) return null;
+  const n = (x: unknown) => typeof x === "number" && Number.isFinite(x) && x >= 0 ? Math.floor(x) : 0;
+  return { treffer: n(z.treffer), bewertet: n(z.bewertet), kandidaten: n(z.kandidaten) };
 }
 
 export function sucheLaeuft(p: Suchstand, jetzt = Date.now()): boolean {
   const start = Date.parse(p.erstlauf || "");
   const fertig = Date.parse(p.fertig || "") || 0;
-  return Number.isFinite(start) && start <= jetzt && jetzt - start < 20 * 60_000 && fertig < start;
+  return Number.isFinite(start) && start <= jetzt && jetzt - start < LAUFZEIT && fertig < start;
 }
 
 export function suchmeldung(p: Suchstand, firma: string, jetzt = Date.now()): string {
-  if (sucheLaeuft(p, jetzt)) return `<p class="laedt" role="status" data-suchlauf="${escape(firma)}"><span class="kreisel" aria-hidden="true"></span><span><strong>Jarvis sucht passende Ausschreibungen.</strong><br><span class="klein">Vorhandene Treffer bleiben bis zum Abschluss sichtbar. Das Ergebnis erscheint hier automatisch.</span></span></p>`;
+  if (sucheLaeuft(p, jetzt)) {
+    const z = zwischenstand(p);
+    const stand = z
+      ? `Bisher ${z.treffer} passende ${z.treffer === 1 ? "Ausschreibung" : "Ausschreibungen"} gefunden${z.kandidaten ? `, ${z.bewertet} von ${z.kandidaten} möglichen geprüft` : ""}. Neue Treffer erscheinen unten, während Jarvis weitersucht.`
+      : "Jarvis sammelt die passenden Ausschreibungen. Die ersten Treffer erscheinen unten, sobald sie bewertet sind.";
+    return `<p class="laedt" role="status" data-suchlauf="${escape(firma)}" data-treffer="${z ? z.treffer : 0}"><span class="kreisel" aria-hidden="true"></span><span><strong>Jarvis sucht passende Ausschreibungen.</strong><br><span class="klein">${escape(stand)}</span></span></p>`;
+  }
   const start = Date.parse(p.erstlauf || "") || 0;
   const fertig = Date.parse(p.fertig || "") || 0;
   if (start > fertig) return `<p role="status">Die Suche dauert länger als erwartet. Du kannst sie im Suchprofil erneut starten.</p>`;
@@ -37,7 +55,9 @@ document.querySelectorAll("[data-suchlauf]").forEach(function (hinweis) {
     aktiv = true;
     try {
       var r = await fetch("/konto/suchstatus?firma=" + encodeURIComponent(hinweis.dataset.suchlauf), { cache: "no-store" });
-      if (r.ok && (await r.json()).laeuft === false) { window.location.reload(); return; }
+      var d = r.ok ? await r.json() : null;
+      // Reload when the run is done or when it has put new hits into the list.
+      if (d && (d.laeuft === false || (d.treffer || 0) > Number(hinweis.dataset.treffer || 0))) { window.location.reload(); return; }
     } catch (_) { /* The meta refresh remains available if polling fails. */ }
     finally { aktiv = false; }
     window.clearTimeout(timer);

@@ -11,13 +11,18 @@ const jetzt = Date.parse("2026-10-31T15:00:00Z");
 test("Suchstand unterscheidet laufend, abgeschlossen, Zeitüberschreitung und Fehler", () => {
   const p = { erstlauf: "2026-10-31T14:59:00Z", fertig: "2026-10-31T14:55:00Z" };
   assert.equal(sucheLaeuft(p, jetzt), true);
-  assert.match(suchmeldung(p, firma, jetzt), /Vorhandene Treffer bleiben/);
+  assert.match(suchmeldung(p, firma, jetzt), /ersten Treffer erscheinen unten/);
+  // Progress of the running alarm; a progress note from an earlier run is ignored.
+  const laufend = suchmeldung({ ...p, zwischenstand: { zeit: "2026-10-31T15:02:00Z", treffer: 3, bewertet: 24, kandidaten: 90 } }, firma, jetzt);
+  assert.match(laufend, /Bisher 3 passende Ausschreibungen gefunden, 24 von 90 möglichen geprüft/);
+  assert.match(laufend, /data-treffer="3"/);
+  assert.match(suchmeldung({ ...p, zwischenstand: { zeit: "2026-10-31T14:00:00Z", treffer: 9 } }, firma, jetzt), /data-treffer="0"/);
   assert.equal(sucheLaeuft({ ...p, fertig: "2026-10-31T15:00:00Z" }, jetzt), false);
   const html = suchmeldung({ ...p, fertig: "2026-10-31T15:00:00Z", ergebnis: { neu: 0, treffer: 12, ungeprueft: 2 } }, firma, jetzt);
   assert.match(html, /0 neu hinzugekommen · 12 passende Treffer/);
   assert.match(html, /2 angezeigte Treffer bisher nur anhand/);
   assert.doesNotMatch(html, /data-suchlauf=/);
-  assert.match(suchmeldung({ erstlauf: "2026-10-31T14:00:00Z" }, firma, jetzt), /länger als erwartet/);
+  assert.match(suchmeldung({ erstlauf: "2026-10-31T13:50:00Z" }, firma, jetzt), /länger als erwartet/);
   assert.match(suchmeldung({ ...p, fertig: "2026-10-31T15:00:00Z", fehler: true }, firma, jetzt), /nicht abgeschlossen/);
   assert.equal(sucheLaeuft({ erstlauf: "ungültig" }, jetzt), false);
   assert.equal(sucheLaeuft({ erstlauf: "2099-01-01" }, jetzt), false);
@@ -50,7 +55,7 @@ test("Statusroute braucht Sitzung, nutzt deren RLS-Token und meldet fehlende Pro
   daten = [{ erstlauf: new Date(Date.now() - 1000).toISOString(), fertig: new Date().toISOString() }];
   const r = (await konto(new Request(url, { headers }), env))!;
   assert.equal(r.headers.get("cache-control"), "no-store");
-  assert.deepEqual(await r.json(), { laeuft: false });
+  assert.deepEqual(await r.json(), { laeuft: false, treffer: 0 });
   assert.equal(mock.mock.callCount(), 2);
 });
 

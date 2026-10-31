@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – Claude (Treffer erscheinen schon während der Suche)
+- Benjamins Test mit neuem PerLease-Profil: Anzeige „lädt und lädt“. Befund: Läufe sind nicht hängengeblieben, sondern dauern mit dem vollen Katalog (über 32.000 Bekanntmachungen) mehr als 10 Minuten (z. B. 41225815168: 11 min), und Treffer kamen erst ganz am Ende in die App. Der Lauf 41226665777 scheiterte mit ForeignKeyViolation, weil die alte PerLease-Firma `efd5cfd1…` inzwischen gelöscht war (neue Firma neu angelegt).
+- Neu: `alarm/alarm.py` schreibt nach dem Cache-Abgleich und nach jedem Achterpaket bestätigte Treffer (ab `MIN_PASSUNG` oder beobachteter Auftraggeber) sofort über `speichern.zwischenspeichern` in `vorgaenge` und setzt `einstellungen.suchlauf_zwischenstand` (zeit, treffer, bewertet, kandidaten). Fehler dabei brechen den Lauf nie ab; der Schlussschritt „Treffer in die App“ bleibt unverändert und ergänzt Steckbriefe, Archivierung und Endstand.
+- App: Statuskasten zeigt „Bisher N passende Ausschreibungen gefunden, X von Y geprüft“; `/konto/suchstatus` liefert zusätzlich `treffer`, die Seite lädt neu, sobald neue Treffer da sind. Zwischenstände früherer Läufe werden ignoriert (Zeit vor `erstlauf`). Ein Lauf gilt erst nach 60 statt 20 Minuten als hängend.
+- Tests angepasst/ergänzt; `npm ci && npm run check && npm test` 168 grün, 43 Python-Tests und `py_compile` grün.
+
 ### 31.10.2026 – Claude (KI-Tageslimit 10 Euro)
 - Auf Benjamins Wunsch Tageslimit dauerhaft auf 11 USD (rund 10 €) gesetzt: Migration `20261031180000_ki_tageslimit_10_euro.sql` ersetzt das befristete 5-USD-Testbudget. Rechte-Test angepasst, lokal und in GitHub grün, Migration live.
 - Unverändert: höchstens 3 USD je Anfrage, Monatsgrenze 20 USD (`ki_budget.limit_usd`, Check bis 20). Bei 10 €/Tag ist die Monatsgrenze nach etwa zwei vollen Tagen erreicht; anheben, sobald das Max-Guthaben da ist (siehe Offene Punkte).
