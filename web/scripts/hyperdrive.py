@@ -45,8 +45,8 @@ def root_ca(host):
     return pem
 
 
-# Hyperdrive pools connections itself. Pointed at the session pooler (5432) it held Supavisor's few session slots,
-# so GitHub jobs could no longer connect; the transaction pooler (6543) multiplexes and suits Hyperdrive.
+# Hyperdrive pools connections itself. Unlimited, it held all 15 slots of Supabase's session pooler, so GitHub jobs
+# could no longer connect; the transaction pooler (6543) hangs behind Hyperdrive. Hence session pooler, capped at 5.
 
 
 def main():
@@ -57,8 +57,9 @@ def main():
         ca = api("POST", "/mtls_certificates", {"name": CA_NAME, "certificates": root_ca(host), "ca": True})
     body = {
         "name": NAME,
-        "origin": {"host": host, "port": 6543, "database": "postgres", "user": f"postgres.{REF}", "password": pw, "scheme": "postgres"},
+        "origin": {"host": host, "port": 5432, "database": "postgres", "user": f"postgres.{REF}", "password": pw, "scheme": "postgres"},
         "caching": {"disabled": True},
+        "origin_connection_limit": 5,
         "mtls": {"ca_certificate_id": ca["id"], "sslmode": "verify-full"},
     }
     vorhanden = next((c for c in api("GET", "/hyperdrive/configs") or [] if c.get("name") == NAME), None)
