@@ -1,9 +1,10 @@
 """US federal tenders via the SAM.gov Get Opportunities API (v2).
 
 Needs the free public API key of a SAM.gov account in the secret SAM_API_KEY (Benjamin requests it himself,
-docs/anleitung-sam-gov.md). Without the key nothing is fetched. One request per day with up to 1,000 notices,
-so even the small daily quota of a personal key is enough. Only federal agencies: states, counties and cities
-run their own portals and are not included.
+docs/anleitung-sam-gov.md). Without the key nothing is fetched. It makes one request per requested date,
+returning at most 1,000 notices for that date. The scheduled run normally requests one date; first-run
+backfills and manual multi-date runs make one call for every requested date. The API's daily request quota
+depends on the account role. Only federal agencies: states, counties and cities run their own portals.
 Releases are converted to the OCDS-like shape alarm.py expects.
 Usage (test): python3 alarm/usa.py YYYY-MM-DD
 """

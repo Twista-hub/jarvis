@@ -40,13 +40,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 3. ~~Mitarbeiter sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen~~ (umgesetzt; Rechte und Finanzsicht bleiben rollenabhängig).
 5. Tarifdatenbank ist mit einem quellengebundenen Startbestand ausgebaut. Weitere Tarifbereiche samt aktuellen Originalgruppen, Tätigkeitsmerkmalen und Entgelten schrittweise ergänzen; keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`, `alarm/quellen.md`). Dachdecker-Mindestlohn ergänzt; das ist kein vollständiger Tarifvertrag.
-6. Danach Quellen (Lücke Bayern/BW, SAM.gov-API-Bedingungen), dann Pläne/Stripe, Telegram-Jarvis.
+6. Als Nächstes Quellenlücke Bayern/Baden-Württemberg schließen, soweit Originalquellen und Rechte es erlauben; SAM.gov-Bedingungen geprüft. Danach Pläne/Stripe und Telegram-Jarvis.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
 - **Supabase-Testkonto löschen:** Lesende Produktionsprüfung findet das Konto mit einer Firmenmitgliedschaft, aber weder blockierende Fremdschlüssel noch Angebotsbelege oder Supabase-Storage-Dateien. Supabase Auth meldet weiterhin einen internen Datenbankfehler; genaue Ursache nur über Supabase-Postgres-Logs erkennbar. Direkte Supabase-Verbindung für Jarvis fehlt diesem Zugriff.
 - **Erster Suchlauf nach Registrierung:** `ACTIONS_TOKEN` wird beim App-Rollout erkannt und gesetzt. Die tatsächliche GitHub-Berechtigung (`actions:write`) und ein Live-Sofortlauf mit einem neu angemeldeten Nutzer sind noch nicht geprüft. Scheitert der Sofortstart, bleibt das Profil gespeichert und kann erneut gestartet werden. Keine öffentliche Firmendatenbank für Namensvorschläge eingebunden: beim Signup wird deshalb die Firmenwebsite optional abgefragt, statt private Kundenbestände oder unzuverlässige Trefferlisten offenzulegen.
-- **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). Offen: API-Bedingungen auf open.gsa.gov vollständig lesen, bevor USA beworben wird; Schlüssel läuft nach ca. 90 Tagen ab (Ende Januar 2027 erneuern). Mehr als 1.000 pro Tag würden abgeschnitten (bisher nicht nötig).
+- **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). SAM.gov Terms und Get Opportunities Public API am 31.10. geprüft: öffentliche Daten dürfen aus der Public API verbreitet werden; Website-Scraping und private/sensitive APIs nicht. API-Schlüssel alle 90 Tage erneuern (Ende Januar 2027); Tageskontingent ist rollenabhängig. Höchstens 1.000 Ergebnisse je angefragtem Datum; bei mehr Treffern fehlt Pagination und der Rest wird abgeschnitten.
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
 1. Rechtstexte von Benjamin prüfen lassen.
@@ -64,6 +64,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Der Katalog hat dann 14 gruppierte Auswahl-Einträge. Die Rechtsnormen sind Mindestuntergrenzen, keine vollständigen Tarifverträge und keine automatische Kalkulation; Geltungsbereich sowie Ablaufwarnungen sind je Eintrag dokumentiert. Quelle und Grenzen: `alarm/quellen.md` und `docs/personalkatalog.md`.
 - `cd web && npm run check && npm test`: grün, 20 Testdateien. PostgreSQL-Rechte-/Migrationstests für beide Migrationen grün. Lokaler Docker-Dienst in der Entwicklungsumgebung bleibt gesperrt, daher SQL-Test ausschließlich im vorgesehenen GitHub-Workflow.
 - Offen: aktuelle Sätze nach Ablauf der Gebäude-Arbeitsbedingungenverordnung am 31.12.2026 prüfen; weitere Tarifwerke/Regionen aus zulässigen Originalquellen belegen. Bundesweite Vollständigkeit ist nicht erreichbar. Benjamin muss nichts einrichten.
+
+### 31.10.2026 – ChatGPT (SAM.gov-API-Bedingungen)
+- Offene Prüfung aus dem Fahrplan abgeschlossen: Robots-Regeln von `open.gsa.gov` und `sam.gov` sowie SAM.gov Terms of Use und Get Opportunities Public API Dokumentation geprüft.
+- SAM.gov untersagt automatisches Abrufen der Website, erlaubt öffentliche Weitergabe von Daten aus öffentlichen APIs und verlangt die Erneuerung von System-/API-Schlüsseln alle 90 Tage. Tageskontingente hängen von der Kontorolle ab; die API-Doku nennt höchstens 1.000 Ergebnisse pro Anfrage.
+- Jarvis verwendet nur die öffentliche Opportunities-v2-API, zeigt öffentliche Ausschreibungsfelder und verwendet keine Entity-/D&B- oder sensiblen Endpunkte. Ein Aufruf pro angefragtem Datum; der Ersteinrichtungslauf kann sieben Datumssuchen auslösen. Das Secret bleibt im Server-Workflow; Website-Scraping ist nicht eingebaut.
+- Kommentar in `alarm/usa.py` präzisiert Aufrufe je Datum und Kontingentabhängigkeit. Pagination über 1.000 Treffer bleibt offen. Python-Syntaxprüfung `python3 -m py_compile alarm/usa.py` erfolgreich. Benjamin muss nichts tun.
 
 ### 30.10.2026 – ChatGPT (Kontolöschung in Supabase)
 - Supabase meldete beim Löschen eines Nutzers „Database error deleting user“. Im Jarvis-Schema war `angebotsabgaben.abgegeben_von` verpflichtend und ohne Löschregel an `auth.users` gebunden. Ein vorhandener Eingangsbeleg kann dadurch das Löschen blockieren.
