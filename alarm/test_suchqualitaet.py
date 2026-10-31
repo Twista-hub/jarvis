@@ -24,6 +24,14 @@ def bekanntmachung(key, titel, text="", cpv=""):
 
 
 class SuchqualitaetTest(unittest.TestCase):
+    def test_cpv_parent_codes_include_their_personnel_subcategories(self):
+        p = dict(profil(), cpv=["79620000"], words=r"(?!x)x", strong=r"(?!x)x")
+        self.assertGreater(alarm.score(p, "Bürokräfte stellen", ["79622000"])[0], 0)
+        self.assertEqual(alarm.score(p, "Computer liefern", ["30200000"])[0], 0)
+        self.assertEqual(alarm.cpv_praefix("50000000"), "50")
+        self.assertEqual(alarm.cpv_praefix("79620000"), "7962")
+        self.assertEqual(alarm.cpv_praefix("7962"), "7962")
+
     def test_word_boundaries_and_umlauts(self):
         import re
         m = muster(["fliesen", "büro", "IT"])
