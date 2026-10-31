@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { importierbar, nachholLimit, releaseBloecke, normalisiereBlock } from "../src/katalog-plan.ts";
+import { importierbar, nachholLimit, releaseBloecke, normalisiereBlock, wiederholen } from "../src/katalog-plan.ts";
 import { normalisieren } from "../src/katalog-daten.ts";
 
 test("Nachholung ist begrenzt und bekommt einen eigenen ausdrücklichen Modus", () => {
+  assert.equal(wiederholen({ nachholen: true }), false);
+  assert.equal(wiederholen({ wiederholen: "true" }), false);
+  assert.equal(wiederholen({ wiederholen: true }), true);
   assert.equal(nachholLimit({}), 6);
   assert.equal(nachholLimit({ nachholen: true }), 60);
   assert.equal(nachholLimit({ nachholen: "true" }), 6);
@@ -34,4 +37,15 @@ test("Eine Teiländerung im gleichen Block sieht den zuvor normalisierten Grundd
   assert.equal(batch[1].status, "aufgehoben");
   assert.equal(batch[1].titel, "Fliesenarbeiten");
   assert.equal(batch[1].beschreibung, "Originale Leistungsbeschreibung");
+});
+
+test("Große erledigte Verfahren blockieren nicht; große offene Einträge werden separat gemeldet", async () => {
+  const zuGross: string[] = [];
+  const batch = await normalisiereBlock([
+    { ocid: "erledigt", tag: ["award"], tender: { title: "Abgeschlossen", status: "complete" }, contracts: [{ id: "1", description: "x".repeat(100001) }] },
+    { ocid: "gross", tag: ["tender"], tender: { title: "Groß" }, contracts: [{ id: "1", description: "x".repeat(100001) }] },
+    { ocid: "klein", tag: ["tender"], tender: { title: "Kleiner Auftrag" } },
+  ], new Map(), "2026-10-31", zuGross);
+  assert.deepEqual(zuGross, ["bks:gross"]);
+  assert.deepEqual(batch.map((n) => n.id), ["bks:klein"]);
 });
