@@ -65,7 +65,7 @@ jobs:
           pw=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"],safe=""))')
           for versuch in $(seq 1 30); do
             for host in aws-1-eu-central-1 aws-0-eu-central-1; do
-              if [ "$(psql "postgresql://postgres.juuuifrcxmitkqudqngq:$pw@$host.pooler.supabase.com:5432/postgres" -tAc "select to_regclass('jarvis_katalog.ki_budget') is not null" 2>/dev/null)" = t ]; then exit 0; fi
+              if [ "$(psql "postgresql://postgres.juuuifrcxmitkqudqngq:$pw@$host.pooler.supabase.com:6543/postgres" -tAc "select to_regclass('jarvis_katalog.ki_budget') is not null" 2>/dev/null)" = t ]; then exit 0; fi
             done
             sleep 10
           done
