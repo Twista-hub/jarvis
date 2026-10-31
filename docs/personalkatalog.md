@@ -34,6 +34,12 @@ Zielverknüpfungen: Ausschreibung ↔ Beruf ↔ Anforderungen; Einsatzkraft ↔ 
 
 Als erster Berufskatalog dient die [BERUFENET-Berufsfeldübersicht der Bundesagentur für Arbeit](https://web.arbeitsagentur.de/berufenet/berufsfelder). Sie ist eine strukturierende Referenz, kein Tarifkatalog. Die vorhandene Zeitarbeit-Kalkulation nutzt ausschließlich die Originalquellen des [DGB/GVP-Entgelttarifvertrags](https://www.dgb.de/fileadmin/download_center/Uploads/2025-09-12_Entgelttarifvertrag_DGB-GVP_ab_01012026.pdf) und des [DGB/GVP-Entgeltrahmentarifvertrags](https://www.dgb.de/fileadmin/download_center/Uploads/2025-05-20_Entgeltrahmentarifvertrag.pdf).
 
+## Abgleich BMAS-Übersicht und neue Recherchequelle (31.10.2026)
+
+Die aktuelle BMAS-Übersicht (09.07.2026) wurde erneut mit dem Katalog abgeglichen. Alle zehn dort aufgeführten bundesweiten Branchenmindestentgelt-Bereiche sind vorhanden: Aus-/Weiterbildung, Gebäudereinigung, Maler/Lackierer, Dachdecker, Elektrohandwerk, Pflege, Gerüstbau, Luftsicherheit, Arbeitnehmerüberlassung und Bodenabfertigung. Das sind Mindestuntergrenzen, keine vollständigen Tarifverträge.
+
+Neu gefunden wurde die [Tarifdatenbank von Destatis](https://www.destatis.de/DE/Themen/Arbeit/Verdienste/Tarifverdienste-Tarifbindung/TDB/_TDB/_inhalt.html), deren Suchmaske Branchen und Bundesländer abdeckt und einzelne Treffer als PDF ausgibt. Sie führt laut Beschreibung nur Tarifverträge, die Destatis vorliegen, und wird laufend ergänzt. Die allgemeine Website-Rechteangabe gestattet auszugsweise Vervielfältigung mit Quellenangabe; für den Tarifdatenbank-Export auf der separaten Service-Subdomain ist keine konkrete Datenlizenz ausgewiesen. Eine gezielte Abfrage endete beim erneuten Abruf mit HTTP 503. Daher noch kein neuer Vertrag importiert. Nächster sicherer Schritt: Einmalige gezielte Suche nach fehlenden Branchen, Nutzungsbedingungen des konkreten Exports prüfen und Tarifbindung/Geltung am Originalvertrag abgleichen. `alarm/quellen.md` hält robots.txt, Rechtehinweis und Grenze fest.
+
 ## Recherche Tarifverträge (30.10.2026)
 
 - Das [BMAS-Tarifregister](https://www.bmas.de/DE/Arbeit/Arbeitsrecht/Tarifvertraege/Tarifregister/tarifregister.html) führt einen sehr großen Bestand (über 90.000 gültige Verträge zu Jahresbeginn 2026), stellt aber keine vollständigen Verträge als offenen Gesamtdownload bereit. Die Tarifvertragsparteien sind für die konkrete Anwendung maßgeblich.
