@@ -27,12 +27,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
-- **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 14 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. 30 GVP-Entgeltwerte über drei Stichtage, Maler, vier Dachdecker-, sechs Pflege- und zwei Gebäudereinigungs-Mindestlohnwerte sind quellengebunden gespeichert. Das bleibt ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmale und Löhnen. Für Bayern/BW gefundene Originaltabellen erfordern vor Weiterverwendung die Zustimmung der Rechteinhaber.
+- **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 15 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt (inklusive Gerüstbau-Mindestlohn ab 2026/2027, Migration noch ausstehend). 30 GVP-Entgeltwerte über drei Stichtage, Maler, vier Dachdecker-, sechs Pflege-, zwei Gerüstbau- und zwei Gebäudereinigungs-Mindestlohnwerte sind quellengebunden vorgesehen/gespeichert. Das bleibt ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmale und Löhnen. Für Bayern/BW gefundene Originaltabellen erfordern vor Weiterverwendung die Zustimmung der Rechteinhaber.
 - **Zentraler Vergabekatalog (Code bereitgestellt):** eigener stündlicher Worker, gemeinsame offene Bekanntmachungen und neue Markt-/Teilnahmefunktionen. Aktivierung und Live-Datenstand über die Ausrollläufe prüfen; der Erstbestand wird schrittweise aufgebaut.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- Zurzeit nichts.
+- (ChatGPT) Gerüstbau-Mindestlohn aus amtlicher Rechtsquelle ergänzen und Migration prüfen/ausrollen.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
