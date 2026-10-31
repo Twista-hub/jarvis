@@ -138,12 +138,10 @@ jobs:
           psql "$DB_URL" -c "select zweck, count(*) as aufrufe, count(*) filter(where verbraucht is null) as offen, round(sum(reserviert),3) as reserviert, round(sum(verbraucht),3) as verbraucht from jarvis_katalog.ki_kosten where zeit>=date_trunc('day',now()) group by zweck"
           psql "$DB_URL" -c "select zeit, zweck, reserviert, verbraucht from jarvis_katalog.ki_kosten order by zeit desc limit 10"
 
-      - name: TLS-Prüfung wie im Worker (nur lesend)
+      - name: KI-Budget-Funktion testen (Rollback, speichert nichts)
         run: |
-          for host in aws-1-eu-central-1 aws-0-eu-central-1; do
-            echo "== $host"
-            echo | openssl s_client -connect $host.pooler.supabase.com:5432 -starttls postgres -verify_return_error 2>&1 | grep -E "^depth|verify|Verify return" | head -8 || true
-          done
+          psql "$DB_URL" -X -c "begin" -c "select jarvis_katalog.ki_reservieren(0.01,'test') as id" -c "rollback" || true
+          psql "$DB_URL" -X -c "select p.proname, pg_get_userbyid(p.proowner) as owner, n.nspname from pg_proc p join pg_namespace n on n.oid=p.pronamespace where p.proname like 'ki_%'" || true
 
       - name: Standorte und Zeilenrechte prüfen
         run: |
