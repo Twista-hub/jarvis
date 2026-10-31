@@ -1,10 +1,17 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { bewertungsErklaerung, cookie, jwt, sicherWeiter, sitzung } from "../src/konto.ts";
+import { bewertungsErklaerung, cookie, jwt, sicherWeiter, sitzung, startSucheFormular } from "../src/konto.ts";
 
 test("shows the AI match reason on the tender card", () => {
   assert.equal(bewertungsErklaerung("## Jarvis-Bewertung\n\n**Gesucht:** Fliesenarbeiten.\n\n**Warum passend:** Passt zur Firmenleistung.\n\n## Kurzüberblick"), "Gesucht: Fliesenarbeiten. Warum passend: Passt zur Firmenleistung.");
   assert.equal(bewertungsErklaerung("## Kurzüberblick\n\nNur Bekanntmachungsdaten."), "");
+});
+
+test("offers a direct search restart from the search profile", () => {
+  const html = startSucheFormular("firm-id");
+  assert.match(html, /method="post" action="\/konto\/einrichtung\/starten"/);
+  assert.match(html, /Suche jetzt starten/);
+  assert.match(html, /name="firma" value="firm-id"/);
 });
 
 test("only local paths as redirect target", () => {

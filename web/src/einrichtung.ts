@@ -18,6 +18,14 @@ export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
 export type Vorschlag = { beschreibung: string; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; laender?: string[] };
 
+export function suchlaufLaeuft(start: string | null | undefined, fertig: string | null | undefined, jetzt = Date.now()): boolean {
+  const begonnen = start ? Date.parse(start) : NaN;
+  const abgeschlossen = fertig ? Date.parse(fertig) : NaN;
+  return Number.isFinite(begonnen) && jetzt - begonnen < 20 * 60_000 && (!Number.isFinite(abgeschlossen) || abgeschlossen < begonnen);
+}
+
+type Laufstart = { gestartet: true } | { gestartet: false; hinweis: string };
+
 // Once per firm, short text: Sonnet 5.5 is enough (half the price of Opus).
 const MODEL = "claude-sonnet-5-5";
 const ID = /^[0-9a-f-]{36}$/;
@@ -299,10 +307,11 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
     einstellungen: { leistungen: v.leistungen, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
   };
-  const alt = await db<{ id: string; erstlauf: string | null }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf&limit=1`);
-  // First hit list right away (last 7 days) instead of waiting for tomorrow; at most every 2 hours (costs).
+  const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig&limit=1`);
+  // A completed search can be rerun; only suppress duplicate concurrent runs.
   const zuletzt = alt.ok && alt.daten[0]?.erstlauf ? Date.parse(alt.daten[0].erstlauf) : 0;
-  const sofort = Date.now() - zuletzt > 2 * 3600_000;
+  const fertig = alt.ok ? alt.daten[0]?.fertig : null;
+  const sofort = !suchlaufLaeuft(zuletzt ? new Date(zuletzt).toISOString() : null, fertig);
   const einstellungen: Record<string, unknown> = zeile.einstellungen;
   if (zuletzt) einstellungen.erstlauf = new Date(zuletzt).toISOString();
   const r = alt.ok && alt.daten[0]
@@ -325,14 +334,15 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     if (!firmenseite.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Das Suchprofil wurde gespeichert, aber die Website nicht. Bitte erneut speichern.", alteWebsite)), 500);
   }
   await mailZeitSetzen(s, env, firma, form.get("stunde"));
-  const gestartet = sofort && (await ersterLauf(env, firma));
+  const laufstart: Laufstart = sofort ? await ersterLauf(env, firma) : { gestartet: false, hinweis: "Jarvis durchsucht diese Firma gerade. Warte bitte, bis der laufende Suchlauf fertig ist." };
+  const gestartet = laufstart.gestartet;
   if (gestartet) {
     // Remembered for the "Jarvis is searching" notice in the overview and the 2-hour limit.
     await db(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null`, { method: "PATCH", body: JSON.stringify({ einstellungen: { ...einstellungen, erstlauf: new Date().toISOString() } }) });
   }
   // While the first run is busy the overview shows its own notice with a spinner, which disappears when it is done.
   if (gestartet) return weiterleiten(`/konto?firma=${firma}`);
-  const erneut = `<p class="fehler" role="status">Dein Suchprofil ist gespeichert, aber die Sofortsuche konnte nicht gestartet werden. Du kannst die Suche jetzt erneut starten; deine Angaben bleiben erhalten.</p><form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${firma}"><button>Gespeicherte Suche jetzt starten</button></form><p><a href="/konto?firma=${firma}">Zur Übersicht</a></p>`;
+  const erneut = `<p class="fehler" role="status">${escape(laufstart.gestartet ? "Jarvis sucht jetzt." : `Dein Suchprofil ist gespeichert. ${laufstart.hinweis}`)}</p>${sofort ? `<form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${firma}"><button>Gespeicherte Suche jetzt starten</button></form>` : ""}<p><a href="/konto?firma=${firma}">Zur Übersicht</a></p>`;
   return html(seite("Suchprofil gespeichert", erneut));
 }
 
@@ -349,10 +359,12 @@ async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: 
   const profil = await db<{ id: string; einstellungen: Record<string, unknown> }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,einstellungen&limit=1`);
   if (!profil.ok || !profil.daten[0]) return weiterleiten(`/konto/einrichtung?firma=${firma}`);
   const alt = profil.daten[0];
-  const zuletzt = alt.einstellungen?.erstlauf ? Date.parse(String(alt.einstellungen.erstlauf)) : 0;
-  if (Date.now() - zuletzt < 2 * 3600_000) return weiterleiten(`/konto?firma=${firma}&hinweis=${encodeURIComponent("Eine Suche wurde vor weniger als zwei Stunden gestartet.")}`);
-  if (!(await ersterLauf(env, firma))) {
-    const retry = `<p class="fehler" role="alert">Der Start ist noch fehlgeschlagen. Deine Suche bleibt gespeichert. Bitte versuche es später erneut.</p><form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${firma}"><button>Erneut versuchen</button></form><p><a href="/konto?firma=${firma}">Zur Übersicht</a></p>`;
+  const zuletzt = alt.einstellungen?.erstlauf ? String(alt.einstellungen.erstlauf) : null;
+  const fertig = alt.einstellungen?.erstlauf_fertig ? String(alt.einstellungen.erstlauf_fertig) : null;
+  if (suchlaufLaeuft(zuletzt, fertig)) return weiterleiten(`/konto?firma=${firma}&hinweis=${encodeURIComponent("Jarvis sucht für diese Firma bereits. Die Treffer erscheinen nach Abschluss.")}`);
+  const laufstart = await ersterLauf(env, firma);
+  if (!laufstart.gestartet) {
+    const retry = `<p class="fehler" role="alert">${escape(`Der Suchlauf wurde nicht gestartet. ${laufstart.hinweis} Deine Suche bleibt gespeichert.`)}</p><form method="post" action="/konto/einrichtung/starten"><input type="hidden" name="firma" value="${firma}"><button>Erneut versuchen</button></form><p><a href="/konto?firma=${firma}">Zur Übersicht</a></p>`;
     return html(seite("Suche gespeichert", retry), 503);
   }
   const einstellungen = { ...alt.einstellungen, erstlauf: new Date().toISOString() };
@@ -361,13 +373,22 @@ async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: 
 }
 
 /** Starts the alarm for this firm only (last 7 days) via GitHub Actions. */
-async function ersterLauf(env: EinrichtungEnv, firma: string): Promise<boolean> {
-  if (!env.ACTIONS_TOKEN) return false;
-  const r = await fetch("https://api.github.com/repos/Twista-hub/jarvis/actions/workflows/alarm.yml/dispatches", {
-    method: "POST",
-    headers: { authorization: `Bearer ${env.ACTIONS_TOKEN}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "jarvis-alarm" },
-    body: JSON.stringify({ ref: "main", inputs: { firma } }),
-  });
-  if (!r.ok) console.warn(`Erster Lauf nicht gestartet: ${r.status} ${(await r.text()).slice(0, 200)}`);
-  return r.ok;
+async function ersterLauf(env: EinrichtungEnv, firma: string): Promise<Laufstart> {
+  if (!env.ACTIONS_TOKEN) return { gestartet: false, hinweis: "Der App fehlt die GitHub-Berechtigung für den Suchstart." };
+  try {
+    const r = await fetch("https://api.github.com/repos/Twista-hub/jarvis/actions/workflows/alarm.yml/dispatches", {
+      method: "POST",
+      headers: { authorization: `Bearer ${env.ACTIONS_TOKEN}`, accept: "application/vnd.github+json", "x-github-api-version": "2022-11-28", "user-agent": "jarvis-alarm" },
+      body: JSON.stringify({ ref: "main", inputs: { firma } }),
+    });
+    if (!r.ok) {
+      console.warn(`Erster Lauf nicht gestartet: ${r.status} ${(await r.text()).slice(0, 200)}`);
+      const grund = r.status === 401 || r.status === 403 ? "GitHub hat den App-Zugriff abgelehnt." : `GitHub antwortet mit Fehler ${r.status}.`;
+      return { gestartet: false, hinweis: `${grund} Bitte später erneut versuchen.` };
+    }
+    return { gestartet: true };
+  } catch (error) {
+    console.warn(`Erster Lauf nicht gestartet: ${error instanceof Error ? error.name : "Netzwerkfehler"}`);
+    return { gestartet: false, hinweis: "GitHub ist gerade nicht erreichbar. Bitte später erneut versuchen." };
+  }
 }

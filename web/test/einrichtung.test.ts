@@ -1,6 +1,13 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ausFormular, bereinigen, beschreibungFallback, profilFormular, startFormular, vorschlagOderFallback } from "../src/einrichtung.ts";
+import { ausFormular, bereinigen, beschreibungFallback, profilFormular, startFormular, suchlaufLaeuft, vorschlagOderFallback } from "../src/einrichtung.ts";
+
+test("erlaubt eine neue Suche nach Abschluss des vorherigen Laufs", () => {
+  const jetzt = Date.parse("2026-10-31T06:00:00Z");
+  assert.equal(suchlaufLaeuft("2026-10-31T05:30:00Z", "2026-10-31T05:35:00Z", jetzt), false);
+  assert.equal(suchlaufLaeuft("2026-10-31T05:59:00Z", "2026-10-31T05:58:00Z", jetzt), true);
+  assert.equal(suchlaufLaeuft("2026-10-31T05:30:00Z", null, jetzt), false);
+});
 
 test("cleans the proposal: digits only, lower-case words, no empty services", () => {
   const v = bereinigen({
