@@ -8,7 +8,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
 - **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
-  - Startseite mit Erklärung und Beispiel-Steckbrief; Impressum, Datenschutz, Nutzungsbedingungen, AVV (Entwürfe, Benjamin prüft noch).
+  - Startseite mit Erklärung und Beispiel-Steckbrief; Impressum, Datenschutz, Nutzungsbedingungen, AVV (von Benjamin am 31.10. geprüft und übernommen).
   - Registrierung mit Passwort, Passwort-Anmeldung/-Wiederherstellung und Mail-Link; bestätigte neue Firmen werden zunächst kostenlos angelegt. Firmen, Bereiche/Standorte, Rollen und Einladungen.
   - Ausschreibungen als Handy-Karten mit Punkten, Frist, Stand und Bereichsfilter; Treffer-Seite mit Steckbrief, Knopf „Hier runterladen“
     (zum Portal) und Upload, Jarvis schreibt daraus den ausführlichen Steckbrief (ergänzt den aus der Bekanntmachung) und die Kalkulation.
@@ -46,12 +46,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
-- **Supabase-Testkonto löschen:** Lesende Produktionsprüfung findet das Konto mit einer Firmenmitgliedschaft, aber weder blockierende Fremdschlüssel noch Angebotsbelege oder Supabase-Storage-Dateien. Supabase Auth meldet weiterhin einen internen Datenbankfehler; genaue Ursache nur über Supabase-Postgres-Logs erkennbar. Direkte Supabase-Verbindung für Jarvis fehlt diesem Zugriff.
+- **Supabase-Testkonto löschen:** Ursache gefunden (31.10., Claude): Der Schutz „Eine Firma braucht mindestens einen Inhaber“ griff auch beim Löschen des Logins, weil die Mitgliedschaft per Cascade mitgelöscht wird. Gleiches galt für Personen, die ein Angebot freigegeben hatten. Migration `20261031150000_kontoloeschung_inhaber.sql` behebt beides; Firmen, in denen die gelöschte Person das einzige Mitglied war, werden mitgelöscht. Nach dem Einspielen Testkonto erneut im Supabase-Dashboard löschen.
 - **Erster Suchlauf nach Registrierung:** `ACTIONS_TOKEN` wird beim App-Rollout erkannt und gesetzt. Die tatsächliche GitHub-Berechtigung (`actions:write`) und ein Live-Sofortlauf mit einem neu angemeldeten Nutzer sind noch nicht geprüft. Scheitert der Sofortstart, bleibt das Profil gespeichert und kann erneut gestartet werden. Keine öffentliche Firmendatenbank für Namensvorschläge eingebunden: beim Signup wird deshalb die Firmenwebsite optional abgefragt, statt private Kundenbestände oder unzuverlässige Trefferlisten offenzulegen.
 - **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). SAM.gov Terms und Get Opportunities Public API am 31.10. geprüft: öffentliche Daten dürfen aus der Public API verbreitet werden; Website-Scraping und private/sensitive APIs nicht. API-Schlüssel alle 90 Tage erneuern (Ende Januar 2027); Tageskontingent ist rollenabhängig. Pagination über bis zu zehn Seiten und 20 API-Aufrufe je Alarmprozess; pro Datum maximal 10.000 Ergebnisse. Mehr wird mit Warnung ausgelassen.
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
 0. Ganz zum Schluss, wenn die App fertig ist: Pläne festlegen und Plan-Seite einschalten (Free/Basis/Pro/Erfolg in `web/src/plaene.ts`): Preise und was jeder Plan darf; danach Zahlung per Stripe und Sperren nach Plan. Bis dahin läuft der tägliche KI-Alarm für jede Firma mit Suchprofil, also auch für kostenlose (API-Kosten im Blick behalten).
-1. Rechtstexte von Benjamin prüfen lassen.
+1. ~~Rechtstexte von Benjamin prüfen lassen~~ (am 31.10. geprüft und übernommen).
 2. Personal pro Ausschreibung mit geplant/angefragt/zugesagt und kaufmännische Zuständigkeit sind umgesetzt. Berufekatalog samt Ausschreibungssynonymen ist erweitert. Die bundesweite Tarifdatenbank bleibt offen: geprüfte Quellen decken nur ausgewählte Branchen/Berufe ab; Vollständigkeit, Nutzungsrechte und Aktualisierung für eine automatische Übernahme sind ungeklärt (docs/personalkatalog.md, alarm/quellen.md).
 3. ~~Mitarbeiterzugänge sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Logo und Grundgestaltung in der Konto-Kopfzeile~~ (umgesetzt); übrige Seitensymbole/Farben können später vereinheitlicht werden.
@@ -59,6 +59,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – Claude (Kontolöschung repariert, Rechtstexte übernommen)
+- Ursache für „Database error deleting user“ lokal nachgestellt: Beim Löschen eines Logins löscht Postgres die Firmenmitgliedschaft per Cascade, der Trigger `mitglieder_regeln` wies das beim letzten Inhaber mit „Eine Firma braucht mindestens einen Inhaber“ ab. Zweite Sperre: `angebotsmappen.freigabe_von` wird auf null gesetzt, das blockierte `angebotsfreigabe_schuetzen`.
+- Migration `20261031150000_kontoloeschung_inhaber.sql`: Beide Trigger lassen die Cascade beim Löschen des Logins (bzw. der Firma) zu; die Freigabe bleibt mit Status und Datum erhalten. Neuer Trigger auf `auth.users` löscht Firmen, in denen die Person das einzige Mitglied war, damit kein verwaister Alarm weiterläuft. Firmen mit weiteren Mitgliedern bleiben bestehen.
+- `supabase/tests/rechte_test.sql` um zwei Prüfungen ergänzt; lokal gegen Postgres 16: ALLE TESTS OK.
+- Rechtstexte: Benjamin hat sie geprüft und übernimmt sie unverändert.
+- Offen: Testkonto nach dem Einspielen im Supabase-Dashboard löschen; Punkt `ACTIONS_TOKEN` mit einer neuen Registrierung live prüfen.
 
 ### 31.10.2026 – ChatGPT (Suchprofil verständlicher machen)
 - Auf Benjamins Rückmeldung und Screenshot die Bestätigungsseite vereinfacht: statt „Leistungen“, „Suchwörter“ und sichtbarer CPV-Felder stehen jetzt „Welche Arbeiten soll Jarvis finden?“ und „Wo soll Jarvis suchen?“ im Vordergrund. Eingaben heißen „Beruf oder Arbeit“ und „Stadt oder Gegend“.
