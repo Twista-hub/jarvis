@@ -60,7 +60,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ### 31.10.2026 – ChatGPT (Tarifregister Bayern und Baden-Württemberg)
 - Die amtlichen Registerseiten und Benutzerhinweise geprüft; `robots.txt` beider Domains lieferte 404. Bayern verlangt für eine Einsicht einen Termin und bietet keinen offenen Datensatz. Baden-Württemberg führt ein passwortgeschütztes Register, schließt allgemeine Nutzung aus und untersagt die Weitergabe an unberechtigte Dritte.
-- Entsprechend keine Registerdaten gescraped oder übernommen. Nutzungsgrenzen und Quellenlinks in `alarm/quellen.md` sowie `docs/personalkatalog.md` ergänzt; „In Arbeit“ geleert.
+- Als einzelne regionale Tarifquelle die IG-Metall-Tabelle Metall/Elektro mit Entgelten für Bayern und Baden-Württemberg ab 01.04.2026 gefunden. robots.txt erlaubt ChatGPT-User, aber kein offenes Wiederverwendungsrecht gefunden; daher nicht importiert und als manuelle Recherchequelle dokumentiert.
+- Entsprechend keine Tarifinhalte aus den Registern übernommen. Nutzungsgrenzen und Quellenlinks in `alarm/quellen.md` sowie `docs/personalkatalog.md` ergänzt; „In Arbeit“ geleert.
 - Offen: einzelne aktuelle Originalverträge aus Bayern/Baden-Württemberg über frei veröffentlichte oder direkt von Tarifparteien bereitgestellte Quellen finden und Rechte, Geltungsbereich, Gruppen und Laufzeiten je Vertrag prüfen. Keine Behördenanfrage versandt; Benjamin muss nichts tun.
 
 ### 31.10.2026 – ChatGPT (Tarifliche Mindestentgelte aus Bundesrecht)
