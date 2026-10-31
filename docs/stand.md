@@ -27,7 +27,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
-- **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 14 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. 30 GVP-Entgeltwerte über drei Stichtage, Maler, vier Dachdecker-, sechs Pflege- und zwei Gebäudereinigungs-Mindestlohnwerte sind quellengebunden gespeichert. Das bleibt ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmale und Löhnen.
+- **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 14 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. 30 GVP-Entgeltwerte über drei Stichtage, Maler, vier Dachdecker-, sechs Pflege- und zwei Gebäudereinigungs-Mindestlohnwerte sind quellengebunden gespeichert. Das bleibt ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmale und Löhnen. Für Bayern/BW gefundene Originaltabellen erfordern vor Weiterverwendung die Zustimmung der Rechteinhaber.
 - **Zentraler Vergabekatalog (Code bereitgestellt):** eigener stündlicher Worker, gemeinsame offene Bekanntmachungen und neue Markt-/Teilnahmefunktionen. Aktivierung und Live-Datenstand über die Ausrollläufe prüfen; der Erstbestand wird schrittweise aufgebaut.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
@@ -40,7 +40,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 3. ~~Mitarbeiter sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen~~ (umgesetzt; Rechte und Finanzsicht bleiben rollenabhängig).
 5. Tarifdatenbank ist mit einem quellengebundenen Startbestand ausgebaut. Weitere Tarifbereiche samt aktuellen Originalgruppen, Tätigkeitsmerkmalen und Entgelten schrittweise ergänzen; keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`, `alarm/quellen.md`). Dachdecker-Mindestlohn ergänzt; das ist kein vollständiger Tarifvertrag.
-6. Tarifregister Bayern und Baden-Württemberg geprüft: kein offener Importweg. Als Nächstes einzelne frei veröffentlichte Originalverträge aus beiden Ländern je Branche und mit geklärten Rechten ergänzen; keine Register-Sperren umgehen. Danach Pläne/Stripe und Telegram-Jarvis.
+6. Tarifregister Bayern und Baden-Württemberg sowie TV-L-/IG-Metall-Originalquellen geprüft. Aktuelle Tabellen sind verfügbar, aber ihre Nutzungsbedingungen erlauben keinen Import ohne Zustimmung. Als Nächstes schriftliche Rechtefreigabe für konkret benannte Tabellen einholen oder ausdrücklich offen lizenzierte Originalquellen finden. Danach Pläne/Stripe und Telegram-Jarvis.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
@@ -58,11 +58,18 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – ChatGPT (Rechteprüfung Originaltarife Bayern/BW)
+- Veröffentlichte Primärquellen geprüft: Landesamt für Finanzen Bayern stellt TV-L- und Sondertabellen nach Stichtag bereit; die `robots.txt` sperrt die geprüfte Tabelle nicht, das Impressum reserviert aber alle Rechte und verlangt Einwilligung zur Veröffentlichung. Die Tarifgemeinschaft deutscher Länder veröffentlicht TV-L samt Entgelttabellen; `robots.txt` erlaubt Abruf, ihr Impressum verlangt vorherige Zustimmung für Vervielfältigung von Informationen oder Daten.
+- Beide Quellen bestätigen den schon vorhandenen Tarifwerk-Eintrag TV-L, liefern jedoch keine Erlaubnis, Tabellenwerte in Jarvis weiterzuverwenden. IG-Metall-Tabellen zeigen regionale Metall-/Elektro-Werte für Bayern und BW, aber ebenfalls keine offene Lizenz. Deshalb wurden keine neuen Lohnwerte kopiert oder in die Datenbank importiert.
+- Nutzungsbedingungen und Quellenstatus in `alarm/quellen.md` und `docs/personalkatalog.md` ergänzt. Offen: schriftliche Zustimmung für genau benannte Tabellen oder eine ausdrücklich offen lizenzierte Primärquelle; externe Anfrage nicht versandt, weil AGENTS.md dafür Benjamins OK verlangt.
+
+
 ### 31.10.2026 – ChatGPT (Tarifregister Bayern und Baden-Württemberg)
 - Die amtlichen Registerseiten und Benutzerhinweise geprüft; `robots.txt` beider Domains lieferte 404. Bayern verlangt für eine Einsicht einen Termin und bietet keinen offenen Datensatz. Baden-Württemberg führt ein passwortgeschütztes Register, schließt allgemeine Nutzung aus und untersagt die Weitergabe an unberechtigte Dritte.
 - Als einzelne regionale Tarifquelle die IG-Metall-Tabelle Metall/Elektro mit Entgelten für Bayern und Baden-Württemberg ab 01.04.2026 gefunden. robots.txt erlaubt ChatGPT-User, aber kein offenes Wiederverwendungsrecht gefunden; daher nicht importiert und als manuelle Recherchequelle dokumentiert.
+- Zusätzlich die TV-L-Originalquellen von Landesamt für Finanzen Bayern und TdL geprüft: Tabellen sind öffentlich verlinkt, aber beide Impressen verlangen Zustimmung zur Vervielfältigung/Weiterverwendung. TV-L ist bereits als Tarifwerk hinterlegt; Tabellen wurden nicht erneut importiert.
 - Entsprechend keine Tarifinhalte aus den Registern übernommen. Nutzungsgrenzen und Quellenlinks in `alarm/quellen.md` sowie `docs/personalkatalog.md` ergänzt; „In Arbeit“ geleert.
-- Offen: einzelne aktuelle Originalverträge aus Bayern/Baden-Württemberg über frei veröffentlichte oder direkt von Tarifparteien bereitgestellte Quellen finden und Rechte, Geltungsbereich, Gruppen und Laufzeiten je Vertrag prüfen. Keine Behördenanfrage versandt; Benjamin muss nichts tun.
+- Offen: schriftliche Nutzungserlaubnis für konkret ausgewählte Tabellen einholen oder ausdrücklich offen lizenzierte Originalquellen finden. Keine Behörden-/Tarifparteien-Anfrage versandt; nach AGENTS.md braucht eine Kontaktaufnahme Benjamins vorheriges OK. Benjamin muss aktuell nichts tun.
 
 ### 31.10.2026 – ChatGPT (Tarifliche Mindestentgelte aus Bundesrecht)
 - Bundesrechtliche Mindestentgelte geprüft: Dachdecker 14,96/16,60 €/Std. ab 2026, gelernt 17,10 €/Std. ab 2027 und 17,60 €/Std. ab 2028; Pflege drei Qualifikationsstufen mit je einem Satz 2026 und 2027; Gebäudereinigung LG 1 15,00 €/Std. und LG 6 18,40 €/Std. ab 2026. Beim Malerhandwerk die bisherige Verbandsquelle durch die Rechtsnorm ersetzt und Geltungsbereich/Ablauf ergänzt.
