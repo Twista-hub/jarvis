@@ -57,3 +57,13 @@ jobs:
           createdb -h localhost -U postgres jarvis_suchtest
           pip install -q "psycopg[binary]"
           python -m unittest alarm.test_speichern_sql
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Katalog-Blöcke mit echten Datenbankparametern prüfen
+        env:
+          JARVIS_TEST_DATABASE_URL: postgresql://postgres:test@127.0.0.1:5432/jarvis_suchtest
+        run: |
+          cd web
+          npm ci
+          node --experimental-strip-types test/katalog-sql.integration.ts

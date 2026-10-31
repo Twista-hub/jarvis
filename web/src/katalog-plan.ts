@@ -1,5 +1,12 @@
 import { normalisieren, type Bekanntmachung } from "./katalog-daten.ts";
 import { strFromU8 } from "fflate";
+import type postgres from "postgres";
+
+export async function bestehendeBekanntmachungen(sql: postgres.Sql | postgres.TransactionSql, ids: string[]) {
+  if (!ids.length) return [];
+  // fetch_types:false deliberately disables array discovery; bind individual text values.
+  return sql`select id,roh,quell_datum from public.vergabekatalog where id in ${sql(ids)}`;
+}
 
 export function* releaseBloecke(dateien: Iterable<Uint8Array>): Generator<any[]> {
   let block: any[] = [];
