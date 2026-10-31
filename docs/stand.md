@@ -32,7 +32,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Lesende Jarvis-Datenbankdiagnose für den fehlgeschlagenen Supabase-Kontolöschversuch.
+- Zurzeit nichts.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -44,7 +44,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
-- **Supabase-Testkonto löschen:** Der Dialog scheitert weiter trotz Migration für Angebotsbelege. Die vorhandene Anmeldeprotokoll-Prüfung zeigte keinen passenden Auth-Eintrag; Ursache noch nicht festgestellt. Nächster Schritt: konkreten PostgreSQL-Fehler im Supabase-Log prüfen (möglicher Storage-Owner oder weitere Live-Referenz).
+- **Supabase-Testkonto löschen:** Lesende Produktionsprüfung findet das Konto mit einer Firmenmitgliedschaft, aber weder blockierende Fremdschlüssel noch Angebotsbelege oder Supabase-Storage-Dateien. Supabase Auth meldet weiterhin einen internen Datenbankfehler; genaue Ursache nur über Supabase-Postgres-Logs erkennbar. Direkte Supabase-Verbindung für Jarvis fehlt diesem Zugriff.
 - **Erster Suchlauf nach Registrierung:** `ACTIONS_TOKEN` wird beim App-Rollout erkannt und gesetzt. Die tatsächliche GitHub-Berechtigung (`actions:write`) und ein Live-Sofortlauf mit einem neu angemeldeten Nutzer sind noch nicht geprüft. Scheitert der Sofortstart, bleibt das Profil gespeichert und kann erneut gestartet werden. Keine öffentliche Firmendatenbank für Namensvorschläge eingebunden: beim Signup wird deshalb die Firmenwebsite optional abgefragt, statt private Kundenbestände oder unzuverlässige Trefferlisten offenzulegen.
 - **USA:** Secret `SAM_API_KEY` ist seit 30.10.2026 gesetzt, Testlauf erfolgreich (637 Bundesausschreibungen am 29.10.). Offen: API-Bedingungen auf open.gsa.gov vollständig lesen, bevor USA beworben wird; Schlüssel läuft nach ca. 90 Tagen ab (Ende Januar 2027 erneuern). Mehr als 1.000 pro Tag würden abgeschnitten (bisher nicht nötig).
 - **Automatische tägliche Mail:** Geplanter Lauf am 30.10. 18:31 UTC erfolgreich (Claude). Tatsächliche Zustellung beim Empfänger noch von Benjamin bestätigen lassen.
@@ -62,7 +62,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Supabase meldete beim Löschen eines Nutzers „Database error deleting user“. Im Jarvis-Schema war `angebotsabgaben.abgegeben_von` verpflichtend und ohne Löschregel an `auth.users` gebunden. Ein vorhandener Eingangsbeleg kann dadurch das Löschen blockieren.
 - Neue Migration macht die Verfasserreferenz optional und setzt sie beim Löschen auf `NULL`; Angebotsbeleg und übrige Firmendaten bleiben erhalten. Rechte-Test ergänzt, der Löschung bei erhaltenem Beleg prüft.
 - Rechte-Test und Produktionsmigration sind nach Push grün. Der erneute Delete-Versuch scheiterte weiterhin. Der lesende Datenbanklauf fand keinen Auth-Audit-Eintrag zum Löschversuch.
-- Offen: Die genaue Live-Ursache ist unbekannt. Supabase-Postgres-Logs zu diesem Zeitpunkt prüfen; möglicher Storage-Owner oder eine andere Referenz. Der direkte Supabase-Zugang für das Jarvis-Projekt ist hier nicht verfügbar.
+- Die anschließende lesende Prüfung fand das Konto, eine `mitglieder`-Referenz mit `ON DELETE CASCADE`, keine übrigen blockierenden Fremdschlüssel, keine Angebotsbelege und 0 Supabase-Storage-Dateien. Der frühere Angebotsbeleg war nicht die Ursache.
+- Die Sicherheitsprüfung lehnte einen Workflow ab, der Auth-Nutzer direkt aus Produktion hätte löschen können, weil er beliebige Konten hätte erfassen können. Es wurde kein Löschversuch durch diesen Weg ausgeführt. Offen bleibt nur die Supabase-interne Fehlerursache; die direkte Supabase-Verbindung für Jarvis ist hier nicht verfügbar.
 
 ### 30.10.2026 – ChatGPT (Firmenwebsite und erster Suchlauf)
 - Registrierung speichert optional die Firmenwebsite in den Anmeldedaten und übernimmt sie beim bestätigten Konto in `firmen.website`. Im Suchprofil kann der Inhaber sie später ändern.
