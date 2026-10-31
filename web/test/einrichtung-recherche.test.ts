@@ -132,13 +132,13 @@ test("16 recherchierte Niederlassungen werden angelegt, gespeichert und erweiter
   const original = dienst.recherche;
   dienst.recherche = async (...args) => {
     const r = await original(...args);
-    r.profil.firmenstandorte = Array.from({ length: 16 }, (_, i) => ({ name: `Niederlassung ${i}`, plz: "", quelle: "https://firma.example/standorte" }));
+    r.profil.firmenstandorte = Array.from({ length: 16 }, (_, i) => ({ name: i === 0 ? "Aachen (Zentrale)" : `Niederlassung ${i}`, plz: "", quelle: "https://firma.example/standorte" }));
     return r;
   };
   const form = new FormData(); form.set("aktion", "recherche");
   const r = await einrichtung(request(form), env, () => "", dienst);
   assert.equal(r?.status, 303);
-  assert.equal(schreibt.filter((x) => x.pfad === "bereiche").length, 16);
+  assert.equal(schreibt.filter((x) => x.pfad === "bereiche").length, 15, "Aachen (Zentrale) verwendet den bestehenden Standort Aachen");
   const p = schreibt.find((x) => x.pfad === "suchprofile")!.body.einstellungen;
   assert.equal(p.firmenstandorte.length, 16);
   assert.ok(p.firmenstandorte.every((o: { bereich_id?: string }) => o.bereich_id));
