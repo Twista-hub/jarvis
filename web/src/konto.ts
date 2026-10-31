@@ -652,13 +652,13 @@ async function pushNeu(request: Request, env: KontoEnv): Promise<Response> {
 
 // ---------- Helpers ----------
 
-export async function db<T = unknown>(s: Sitzung, env: KontoEnv, pfad: string, init: RequestInit = {}): Promise<{ ok: true; daten: T } | { ok: false; fehler: string }> {
+export async function db<T = unknown>(s: Sitzung, env: KontoEnv, pfad: string, init: RequestInit = {}): Promise<{ ok: true; daten: T } | { ok: false; status: number; fehler: string }> {
   const r = await fetch(`${env.SUPABASE_URL}/rest/v1/${pfad}`, {
     ...init,
     headers: { apikey: env.SUPABASE_KEY, authorization: `Bearer ${s.token}`, "content-type": "application/json", prefer: "return=minimal", ...(init.headers as Record<string, string> | undefined) },
   });
   const text = await r.text();
-  if (!r.ok) return { ok: false, fehler: text.slice(0, 500) };
+  if (!r.ok) return { ok: false, status: r.status, fehler: text.slice(0, 500) };
   return { ok: true, daten: (text ? JSON.parse(text) : null) as T };
 }
 

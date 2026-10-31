@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { ausFormular, bereinigen, beschreibungFallback, profilFormular } from "../src/einrichtung.ts";
+import { ausFormular, bereinigen, beschreibungFallback, profilFormular, vorschlagOderFallback } from "../src/einrichtung.ts";
 
 test("cleans the proposal: digits only, lower-case words, no empty services", () => {
   const v = bereinigen({
@@ -24,6 +24,17 @@ test("KI-Fallback übernimmt selbst beschriebene Leistungen und Stadt, damit man
   const html = profilFormular("firm", v, "Automatischer Vorschlag gerade nicht verfügbar.", "https://firma.example");
   assert.match(html, /value="https:\/\/firma\.example"/);
   assert.match(html, /name="o0_name"[^>]*value="Berlin"/);
+});
+
+test("leerer oder unbrauchbarer KI-Vorschlag wird durch ein speicherbares Profil ersetzt", () => {
+  const text = "Wir vermitteln Elektriker und Schweißer für Industrie und Wartung.";
+  const leer = vorschlagOderFallback({ beschreibung: text, leistungen: [], standorte: [] }, text, "Essen");
+  assert.equal(leer.leistungen.length, 1);
+  assert.equal(leer.standorte[0].name, "Essen");
+
+  const kaputt = vorschlagOderFallback({ beschreibung: "", leistungen: [{ name: "", cpv: [], woerter: [] }] }, text, "");
+  assert.ok(kaputt.beschreibung.length >= 20);
+  assert.ok(kaputt.leistungen.length);
 });
 
 test("form round trip keeps checked services and locations only", () => {
