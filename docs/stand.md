@@ -3,7 +3,7 @@
 Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (31.10.2026)
-- **Mindestentgelt-Katalog (31.10.):** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen eingespielt. GitHub-Rechteprüfung, Migration und Gesamtprüfung erfolgreich; Web-Check und 20 Testdateien grün. Der Rollout der Upload-Seite war erfolgreich. Offen bleibt die Lizenzklärung für weitere vollständige Tarifwerke.
+- **Mindestentgelt-Katalog (31.10.):** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen eingespielt. GitHub-Rechteprüfung, Migration und Gesamtprüfung erfolgreich; Web-Check und 20 Testdateien grün. Alle zehn Bereiche der BMAS-Übersicht zu bundesweiten Branchenmindestentgelten sind im Katalog vertreten. Destatis-Tarifdatenbank als neue manuelle Recherchequelle identifiziert; Nutzungsbedingungen des separaten PDF-Exports und Verfügbarkeit noch ungeklärt.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
 - **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
@@ -33,7 +33,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- Zurzeit nichts.
+- (ChatGPT) Nächsten gezielten Tarifdatenbank-Abgleich über Destatis vorbereiten; Exportlizenz und HTTP-503-Verfügbarkeit prüfen. Noch keine weiteren Tarifdaten übernommen.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -58,6 +58,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (BMAS-Abdeckung und Destatis-Tarifdatenbank)
+- Aktuelle BMAS-Liste mit dem Katalog verglichen: alle zehn bundesweiten Branchenmindestentgelt-Bereiche sind bereits erfasst; sie sind ausdrücklich Mindestuntergrenzen, keine vollständigen Tarifverträge.
+- Destatis-Tarifdatenbank als breitere Einzelrecherchequelle entdeckt: Suche über 21 Wirtschaftszweige und Bundesländer, PDF-Export und laufende Ergänzung. `www.destatis.de/robots.txt` erlaubt die Tarifseiten, setzt 30 Sekunden Crawl-Abstand; auf der separaten Service-Subdomain kam kein robots.txt-Inhalt. Destatis erlaubt laut Impressum die Weiterverwendung von Website-Inhalten mit Quellenangabe; eine spezielle Lizenz für Tarifdatenbank-Exporte ist nicht ausgewiesen. Ein späterer Abruf antwortete HTTP 503. Keine Datensätze aus einem nicht verfügbaren Export übernommen.
+- Nächster Schritt: gezielte einzelne Treffer für noch fehlende Branchen verifizieren, Lizenz/Originalvertrag prüfen und nur anschließend weitere Tarife übernehmen. Der volle Satz von 90.000 Tarifverträgen bleibt ohne offenen Vollbestand und nachgewiesene Rechte nicht realistisch. Benjamin muss nichts tun.
 
 ### 31.10.2026 – ChatGPT (Tarifkatalog ausgerollt)
 - Sechs zusätzliche Einträge mit 37 Stundenwerten und Quellen-/Geltungshinweisen ergänzt: Aus- und Weiterbildung, Luftsicherheit, Elektrohandwerk, Bodenabfertigung, gesetzlicher Mindestlohn und AÜ-Lohnuntergrenze. Berufsauswahl um Flughafenberufe erweitert; Test für Synonyme ergänzt.
