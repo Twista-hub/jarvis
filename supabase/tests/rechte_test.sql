@@ -27,6 +27,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031080000_onboarding_firmenwebsite_suchprofil.sql
 \ir ../migrations/20261031090000_angebotsabgabe_verfasser_bei_kontoloeschung.sql
 \ir ../migrations/20261031110000_dachdecker_mindestlohn.sql
+\ir ../migrations/20261031120000_tarifliche_mindestentgelte_pflege_reinigung.sql
 \ir ../migrations/20261030224121_kaufverantwortung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -88,7 +89,7 @@ end $$;
 insert into public.personal (firma_id, bereich_id, vorname, berufe) values (:'firma', :'berlin', 'Eva', '{Servicekraft}');
 select pruefe((select count(*) = 1 from public.personal), 'Bearbeiter trägt Personal in Berlin ein');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name='Zeitarbeit GVP/DGB' and '2a'=any(gruppen)), 'Firma erhält GVP/DGB mit dokumentierten Entgeltgruppen');
-select pruefe((select count(*) = 12 from public.firmen_tarifvertraege where firma_id=:'firma' and vorgegeben), 'Neue Firma erhält den quellengebundenen Startbestand einschließlich Dachdecker-Mindestlohn');
+select pruefe((select count(*) = 14 from public.firmen_tarifvertraege where firma_id=:'firma' and vorgegeben), 'Neue Firma erhält den quellengebundenen Startbestand einschließlich der Pflege- und Reinigungsmindestentgelte');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name='Elektrohandwerk NRW' and 'EG 12'=any(gruppen) and 'Elektriker/in'=any(berufe) and quelle_url like 'https://%'), 'Branchenvertrag hat Gruppen, Beruf und Quelle');
 select pruefe((select cardinality(gruppen) = 38 from public.firmen_tarifvertraege where firma_id=:'firma' and name like 'Garten-, Landschaft%'), 'Tarif mit getrennten Lohn- und Gehaltsgruppen passt vollständig ins Schema');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name like 'Maler-%' and tarifart='Branchenmindestlohn'), 'Branchenmindestlohn ist als solcher gekennzeichnet');
@@ -98,6 +99,13 @@ select pruefe((select betrag=14.96 from public.tarifkatalog_saetze where tarif_i
 select pruefe((select betrag=16.60 from public.tarifkatalog_saetze where tarif_id='dachdecker-mindestlohn-2026' and gruppe='Mindestlohn 2 · gelernt/Geselle' and gueltig_ab='2026-01-01'), 'Dachdecker-Mindestlohn 2 stimmt mit der Rechtsnorm überein');
 select pruefe((select betrag=17.10 from public.tarifkatalog_saetze where tarif_id='dachdecker-mindestlohn-2026' and gueltig_ab='2027-01-01'), 'Dachdecker-Mindestlohn 2027 ist als eigener Stichtag gespeichert');
 select pruefe((select betrag=17.60 from public.tarifkatalog_saetze where tarif_id='dachdecker-mindestlohn-2026' and gueltig_ab='2028-01-01'), 'Dachdecker-Mindestlohn 2028 ist als eigener Stichtag gespeichert');
+select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and katalog_id='pflege-mindestentgelt-2026' and cardinality(gruppen)=3 and gueltig_bis='2028-09-30'), 'Pflegemindestentgelt wird mit drei Qualifikationsstufen und Verordnungsende vorbelegt');
+select pruefe((select count(*) = 6 from public.tarifkatalog_saetze where tarif_id='pflege-mindestentgelt-2026' and einheit='Stunde'), 'Pflegemindestentgelt enthält alle drei Stufen für 2026 und 2027');
+select pruefe((select betrag=21.03 from public.tarifkatalog_saetze where tarif_id='pflege-mindestentgelt-2026' and gruppe='Pflegefachkraft' and gueltig_ab='2026-07-01'), 'Pflegemindestentgelt für Pflegefachkräfte stimmt mit der Verordnung überein');
+select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and katalog_id='gebaeudereinigung-mindestlohn-de-2026' and cardinality(gruppen)=2 and gueltig_bis='2026-12-31'), 'Gebäudereinigungsmindestlohn wird national mit zwei belegten Lohngruppen und Ende vorbelegt');
+select pruefe((select count(*) = 1 from public.tarifkatalog_saetze where tarif_id='gebaeudereinigung-mindestlohn-de-2026' and gruppe='LG 1 · Innen-/Unterhaltsreinigung' and betrag=15.00 and gueltig_ab='2026-01-01'), 'Reinigungsmindestlohn LG 1 stimmt mit der Verordnung überein');
+select pruefe((select count(*) = 1 from public.tarifkatalog_saetze where tarif_id='gebaeudereinigung-mindestlohn-de-2026' and gruppe='LG 6 · Glas-/Fassadenreinigung' and betrag=18.40 and gueltig_ab='2026-01-01'), 'Reinigungsmindestlohn LG 6 stimmt mit der Verordnung überein');
+select pruefe((select quelle_url='https://www.gesetze-im-internet.de/tvmindestlohn_maler_12/BJNR0B30B0025.html' and datenstatus='Originalquelle' and hinweis like '%30.06.2027%' from public.tarifkatalog where id='maler-gesellenmindestlohn-2026'), 'Maler-Mindestlohn verweist auf Rechtsnorm und Ablaufdatum');
 select pruefe((select count(*) = 30 from public.tarifkatalog_saetze where tarif_id='aue-gvp-dgb-2026'), 'GVP/DGB-Löhne enthalten drei datierte Tabellen für EG 1–9');
 select pruefe((select count(*) = 1 from public.tarifkatalog_saetze where tarif_id='maler-gesellenmindestlohn-2026' and betrag=16.13 and einheit='Stunde'), 'Maler-Mindestlohn hat Betrag und Einheit aus Quelle');
 select pruefe(has_table_privilege('authenticated','public.tarifkatalog','select') and (select relrowsecurity from pg_class where oid='public.tarifkatalog'::regclass), 'Gemeinsamer Tarifkatalog hat Leserecht und RLS');
@@ -113,6 +121,9 @@ select pruefe((select count(*) = 1 from public.personal where vorname='Tarifkraf
 insert into public.personal (firma_id, bereich_id, vorname, tarifvertrag_id, eg)
   select :'firma', :'berlin', 'Dachdecker', id, 'Mindestlohn 2 · gelernt/Geselle' from public.firmen_tarifvertraege where firma_id=:'firma' and katalog_id='dachdecker-mindestlohn-2026';
 select pruefe((select count(*) = 1 from public.personal where vorname='Dachdecker' and eg='Mindestlohn 2 · gelernt/Geselle'), 'Dachdecker-Mindestlohnstufe kann als vertragsgebundene Auswahl gespeichert werden');
+insert into public.personal (firma_id, bereich_id, vorname, tarifvertrag_id, eg)
+  select :'firma', :'berlin', 'Pflegefachkraft', id, 'Pflegefachkraft' from public.firmen_tarifvertraege where firma_id=:'firma' and katalog_id='pflege-mindestentgelt-2026';
+select pruefe((select count(*) = 1 from public.personal where vorname='Pflegefachkraft' and eg='Pflegefachkraft'), 'Pflegemindestentgeltstufe kann als vertragsgebundene Auswahl gespeichert werden');
 do $$ begin
   insert into public.personal (firma_id, bereich_id, vorname, tarifvertrag_id, eg)
     select current_setting('test.firma')::uuid, (select id from public.bereiche where name='Berlin'), 'Falsche Gruppe', id, 'Meister'
