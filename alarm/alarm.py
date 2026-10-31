@@ -56,14 +56,19 @@ def cpv_codes(tender: dict) -> list[str]:
     return codes
 
 
+def cpv_praefix(code: str) -> str:
+    """Trailing zeros denote a parent class; CPV divisions have at least two digits."""
+    return code[:max(2, len(code.rstrip("0")))] if re.fullmatch(r"\d{2,8}", code) else code
+
+
 def score(profile: dict, text: str, codes: list[str]) -> tuple[int, str]:
     """0 = no match. Higher = better fit. Returns (score, reason)."""
     if re.search(profile["exclude"], text):
         return 0, ""
-    excluded = codes and all(c.startswith(tuple(profile["exclude_cpv"])) for c in codes)
-    by_cpv = [c for c in codes if c.startswith(tuple(profile["cpv"]))]
+    excluded = codes and all(c.startswith(tuple(cpv_praefix(p) for p in profile["exclude_cpv"])) for c in codes)
+    by_cpv = [c for c in codes if c.startswith(tuple(cpv_praefix(p) for p in profile["cpv"]))]
     for prefix, context in profile.get("cpv_needs_context", {}).items():
-        by_cpv = [c for c in by_cpv if not c.startswith(prefix) or re.search(context, text)]
+        by_cpv = [c for c in by_cpv if not c.startswith(cpv_praefix(prefix)) or re.search(context, text)]
     word = re.search(profile["words"], text)
     if not by_cpv and (not word or excluded):
         return 0, ""
@@ -79,7 +84,7 @@ def ohne_ki_passend(profile: dict, rel: dict) -> bool:
     text = f"{titel} {t.get('description') or ''}".lower()
     stark = profile.get("strong") or r"(?!x)x"
     return bool(re.search(stark, titel) or (
-        any(c.startswith(tuple(profile.get("cpv") or [])) for c in cpv_codes(t))
+        any(c.startswith(tuple(cpv_praefix(p) for p in profile.get("cpv") or [])) for c in cpv_codes(t))
         and re.search(stark, text)))
 
 
