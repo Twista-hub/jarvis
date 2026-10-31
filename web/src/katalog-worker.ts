@@ -1,7 +1,6 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
-import { normalisieren } from "./katalog-daten.ts";
-import { importierbar, nachholLimit, releaseBloecke } from "./katalog-plan.ts";
+import { nachholLimit, releaseBloecke, normalisiereBlock } from "./katalog-plan.ts";
 
 type Env = DbEnv & { AKTIV: string; SAMMLER: Workflow };
 const UA = "Jarvis-Katalog/1.0 (public procurement index)";
@@ -56,19 +55,10 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
               let expanded = 0;
               const files = unzipSync(zip, { filter: (file) => { expanded += file.originalSize; if (expanded > 24_000_000) throw new Error("Entpackgrenze erreicht"); return file.name.endsWith(".json"); } });
               for (const teil of releaseBloecke(Object.values(files))) {
-                  const batch = [];
                   const ids = teil.map((rel: any) => `bks:${rel.ocid || rel.id}`);
                   const bisher = await sql`select id,roh,quell_datum from public.vergabekatalog where id=any(${ids}::text[])`;
-                  const bestehend = new Map(bisher.map((r) => [r.id, r]));
-                  for (const rel of teil) {
-                    if (!(rel.tag ?? []).some((t: string) => /^(tender|award|contract|compiled)/.test(t))) continue;
-                    const id = `bks:${rel.ocid || rel.id}`;
-                    const current = bestehend.get(id);
-                    if (current && rel.date && new Date(current.quell_datum).getTime() > Date.parse(rel.date)) continue;
-                    const n = await normalisieren(rel, tag, current?.roh);
-                    if (n && JSON.stringify(n.roh).length >= 100000) throw new Error("Datensatz zu groß");
-                    if (n && importierbar(n, Boolean(current))) batch.push(n);
-                  }
+                  const bestehend = new Map(bisher.map((r) => [String(r.id), { roh: r.roh, quell_datum: r.quell_datum }]));
+                  const batch = await normalisiereBlock(teil, bestehend, tag);
                   if (batch.length) await sql`select jarvis_katalog.aufnehmen(${sql.json(batch)})`;
               }
             }
