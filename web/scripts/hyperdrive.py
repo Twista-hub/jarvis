@@ -30,7 +30,16 @@ def api(method, path, body=None):
             return json.load(r)["result"]
     except urllib.error.HTTPError as e:
         fehler = json.loads(e.read() or b"{}").get("errors", [])
-        sys.exit(f"Cloudflare {method} {path}: HTTP {e.code} {[f.get('message') for f in fehler]}")
+        raise RuntimeError(f"Cloudflare {method} {path}: HTTP {e.code} {[f.get('message') for f in fehler]}") from None
+
+
+def unveraendert(config, body):
+    """Only reuse the same origin, certificate, cache policy and connection cap."""
+    origin = {k: v for k, v in body["origin"].items() if k != "password"}
+    return (all(config.get("origin", {}).get(k) == v for k, v in origin.items())
+            and config.get("origin_connection_limit") == body["origin_connection_limit"]
+            and config.get("mtls") == body["mtls"]
+            and config.get("caching", {}).get("disabled") is True)
 
 
 def root_ca(host):
@@ -63,9 +72,20 @@ def main():
         "mtls": {"ca_certificate_id": ca["id"], "sslmode": "verify-full"},
     }
     vorhanden = next((c for c in api("GET", "/hyperdrive/configs") or [] if c.get("name") == NAME), None)
-    config = api("PUT", f"/hyperdrive/configs/{vorhanden['id']}", body) if vorhanden else api("POST", "/hyperdrive/configs", body)
+    try:
+        config = api("PUT", f"/hyperdrive/configs/{vorhanden['id']}", body) if vorhanden else api("POST", "/hyperdrive/configs", body)
+    except RuntimeError as e:
+        if not vorhanden or "EMAXCONNSESSION" not in str(e):
+            raise
+        config = api("GET", f"/hyperdrive/configs/{vorhanden['id']}")
+        if not unveraendert(config, body):
+            raise e
+        print("Bestehenden unveränderten Hyperdrive-Zugang weiterverwenden; erneute Verbindungsprüfung war ausgelastet.", file=sys.stderr)
     print(config["id"])
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as e:
+        sys.exit(str(e))

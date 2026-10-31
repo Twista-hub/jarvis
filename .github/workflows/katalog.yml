@@ -8,6 +8,11 @@ on:
     types: [completed]
     branches: [main]
   workflow_dispatch:
+    inputs:
+      wiederholen:
+        description: "Nach behobenem Verarbeitungsfehler einmalig die interne Wiederholpause überspringen"
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -59,7 +64,7 @@ jobs:
       - name: Ersten Sammellauf starten
         if: steps.schema.outputs.bereit == '1'
         run: |
-          npx wrangler workflows trigger jarvis-katalog-sammeln '{"nachholen":true}' --id "nachholen-${{ github.run_id }}" --json --config wrangler-katalog.toml
+          npx wrangler workflows trigger jarvis-katalog-sammeln '{"nachholen":true,"wiederholen":${{ inputs.wiederholen == true }}}' --id "nachholen-${{ github.run_id }}" --json --config wrangler-katalog.toml
       - name: Nachholung verfolgen
         if: steps.schema.outputs.bereit == '1'
         run: |
