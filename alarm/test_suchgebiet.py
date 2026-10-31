@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from alarm.profile_db import im_suchgebiet
+from alarm.profile_db import im_suchgebiet, nicht_mehr_aktuelle_treffer
 
 
 def bekanntmachung(plz="", ort=""):
@@ -33,6 +33,10 @@ class SuchgebietTest(unittest.TestCase):
         rel = bekanntmachung()
         rel["buyer"] = {"address": {"locality": "Bad Wildungen", "postalCode": "34537"}}
         self.assertFalse(im_suchgebiet(profil, rel))
+
+    def test_complete_search_archives_old_unmatched_ids_only(self):
+        old = [("one", "still-open"), ("two", "withdrawn"), ("three", "outside")]
+        self.assertEqual(nicht_mehr_aktuelle_treffer(old, {"still-open"}), ["two", "three"])
 
 
 if __name__ == "__main__":

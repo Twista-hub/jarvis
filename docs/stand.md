@@ -8,6 +8,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Web-KI-Verbindung (31.10.):** Nur-Lese-Prüfung des Budgets: 0,1023/20 USD im Monat und 0,102/3 USD heute; Budgetlimit nicht erreicht. Hyperdrive und Budgetfunktion sind im App-Worker per schreibfreiem Rollout-Test bestätigt. Echter KI-Vorschlag nach diesem Rollout noch nicht bestätigt.
 - **Standortfilter Ausschreibungen (31.10.):** App-Suchprofile filtern Bekanntmachungen anhand des Einsatzorts. PLZ-Anfänge werden räumlich angewendet; fehlen sie, gilt der genaue Ortsname. Beim nächsten Alarm wandern alte, unbearbeitete Katalogtreffer außerhalb des Suchgebiets ins Archiv; bearbeitete Vorgänge bleiben unangetastet.
 - **Trefferbegründung (31.10.):** KI-Bewertung, „was gesucht wird“ und „warum es passt“ werden gemeinsam am Vorgang gespeichert. Die kurze Erklärung erscheint direkt auf der Trefferkarte; lange Steckbriefe bleiben nur auf der Detailseite.
+- **Suchprofil und veraltete Treffer (31.10.):** Fehlermeldungen führen zurück ins Konto; abgeschlossene Läufe sind erneut startbar. Die Website kann gezielt neu ausgewertet werden; auch beim einfachen KI-Ersatz werden daraus erkannte Suchwörter übernommen. Aktive Trefferlisten blenden bekannte abgelaufene Fristen aus; nach vollständigem Kataloglauf werden nicht mehr aktuelle, unbearbeitete Treffer archiviert.
 - **Suchlauf erneut starten:** Der Schutz vor Doppelläufen blockiert jetzt nur, solange eine Suche noch läuft; eine abgeschlossene Suche kann direkt erneut gestartet werden. Im Suchprofil gibt es dafür einen eigenen Knopf. Bei Ablehnung wird der GitHub-Fehler künftig verständlicher angezeigt.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
@@ -38,7 +39,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Suchstart mit Team Effertz und Archivieren der alten, unbearbeiteten Ferntreffer verifizieren. Das Fallback-Suchprofil hat keine PLZ-Anfänge und begrenzt deshalb zunächst auf den genauen Ortsnamen statt auf 50 km. Danach echten Web-KI-Vorschlag verifizieren.
+- (ChatGPT) Rollout und neuen Suchlauf für Team Effertz prüfen: aktuelle Quelle meldet 1 Treffer in Baesweiler; die 26 alten Karten müssen nach dem neuen Archivabgleich verschwinden. Danach echten Web-KI-Vorschlag verifizieren.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -63,6 +64,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Suchprofil-Navigation, Website-Wörter und veraltete Treffer)
+- Letzten Suchlauf geprüft: Bericht 41198686741 enthält für „Team Effertz gmbh“ einen aktuellen Treffer in Baesweiler. Die 26 weit entfernten Karten blieben, weil die alte Bereinigung nur Vorgänge mit `katalog_id` prüfte; ältere Erstlauf-Treffer ohne diese ID wurden übergangen.
+- Neue Suche mit vollständigem Katalog markiert jetzt alle unbearbeiteten, nicht mehr in den aktuellen Treffern enthaltenen Vorgänge als verworfen. Die aktiven Karten filtern außerdem direkt bekannte abgelaufene Fristen aus.
+- Beim Suchstart-Fehler bleibt die App im normalen Konto statt auf einer isolierten HTML-Seite; es gibt klare Zurück-Links. Auf der Suchprofil-Seite kann man Suchbegriffe von der Firmenwebsite neu ableiten. Liest Jarvis die Homepage, aber die KI schlägt fehl, übernimmt auch der Ersatzvorschlag nun deren konkrete Wörter.
+- `npm run check`, alle 20 Web-Testdateien und 23 Python-Tests plus Syntaxprüfung grün. Noch nicht gepusht. Nach Rollout einmal „Suche jetzt starten“; offen ist der Live-Nachweis, dass die 26 alten Treffer ins Archiv wandern.
 
 ### 31.10.2026 – ChatGPT (Suchstart nach dem ersten Lauf freigeben)
 - Benjamins Hinweis „96“ ordnet die ursprüngliche Trefferzahl ein. Der erste Lauf für Team Effertz war am 04:37 UTC erfolgreich (GitHub-Lauf 41169302892, 96 Treffer). Beim erneuten Start innerhalb von zwei Stunden blockierte Jarvis jede Wiederholung, auch wenn der alte Lauf längst abgeschlossen war. Dadurch blieben die bisherigen Treffer stehen und die neue Standortfilterung konnte nicht angewendet werden.

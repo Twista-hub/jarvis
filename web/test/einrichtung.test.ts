@@ -33,6 +33,14 @@ test("KI-Fallback übernimmt selbst beschriebene Leistungen und Stadt, damit man
   assert.match(html, /name="o0_name"[^>]*value="Berlin"/);
 });
 
+test("KI-Fallback behält konkrete Suchwörter aus der Firmenwebsite bei", () => {
+  const v = beschreibungFallback("Wir arbeiten regional für Unternehmen.", "Baesweiler", "Fliesen und Mosaik · Badezimmer sanieren · Naturstein verlegen");
+  const woerter = v.leistungen.flatMap((l) => l.woerter);
+  assert.ok(woerter.includes("fliesen"));
+  assert.ok(woerter.includes("mosaik"));
+  assert.ok(woerter.includes("naturstein"));
+});
+
 test("leerer oder unbrauchbarer KI-Vorschlag wird durch ein speicherbares Profil ersetzt", () => {
   const text = "Wir vermitteln Elektriker und Schweißer für Industrie und Wartung.";
   const leer = vorschlagOderFallback({ beschreibung: text, leistungen: [], standorte: [] }, text, "Essen");
