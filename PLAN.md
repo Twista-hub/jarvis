@@ -44,7 +44,7 @@ Kein eigener Server. Jarvis ist auf Clouddienste verteilt, die ohne Wartung lauf
 | Weg | Wofür | Reaktion |
 |---|---|---|
 | Claude-App (Repo `jarvis`), auch per Sprache | alles: planen, bauen, ändern | sofort |
-| Telegram-Bot | Briefing, OK/Nein-Knöpfe, `/status`, `/aufgabe …` | Knöpfe sofort, Aufgaben beim nächsten Lauf (höchstens ca. 1 Std.) |
+| Telegram-Bot je Projekt (eigener Bot und eigenes Secret) | Briefing, OK/Nein-Knöpfe, `/status`, `/aufgabe …` | Knöpfe sofort, Aufgaben beim nächsten Lauf (höchstens ca. 1 Std.) |
 | Cockpit-Webseite (PWA) | Überblick: Aufgaben, Freigaben, Kosten, Kunden | sofort |
 | Mail an eigene Jarvis-Adresse | Mail weiterleiten → wird Aufgabe | beim nächsten Lauf |
 
@@ -97,12 +97,12 @@ Perlease: 2 Monate kostenlos, danach z. B. 199 € + 1,5 %. Preis erst nennen, w
 | 1 | Ausschreibungs-Alarm per Mail: zuerst WP Digital Ranger, dann Perlease | echte Treffer prüfen | läuft: täglicher Bericht `alarm/berichte/` seit 29.10. (Quelle Bekanntmachungsservice, CC0), KI-Bewertung 1–10 und bis zu 2 Steckbriefe pro Tag mit Claude Opus (`alarm/steckbriefe/`, Kostenbremse 3 $/Lauf). DTVP-Unterlagen nicht automatisch laden (AGB, siehe `alarm/quellen.md`). Upload-Seite für Kunden-Unterlagen (`web/`, Worker jarvis-alarm: R2 EU, Workers AI liest PDFs, Claude schreibt den Steckbrief, Löschung nach 30 Tagen). Offen: Fristen (eForms), Zustellung per Mail/Telegram, Anwaltsfrage Kunden-Unterlagen |
 | 2 | Webseite: Login, Firmen mit Bereichen (Standorte/Abteilungen) und Rollen, Abrechnung pro Nutzer, Vertrag per Klick, Stripe, App-Ansicht mit 👍/👎 | erste zahlende Kunden | begonnen: Rechte-Schema getestet (`docs/app-konzept.md`). Offen: Supabase-Projekt „jarvis“ (Frankfurt), Login, Oberfläche |
 | 3 | Angebotsentwürfe, Zuschlags-Abgleich, Provisionsrechnung, Play-Store-App | volles Produkt | offen |
-| 4 | Telegram-Briefing und Freigaben für alle Projekte, optional Hermes | Jarvis-Gefühl | offen |
+| 4 | Telegram-Briefings und Freigaben je Projekt mit eigenem Bot und eigenen Zugangsdaten; optional Hermes | Jarvis-Gefühl | offen |
 
 ## Offene Entscheidungen
 
 - [ ] Name und Domain für den Alarm
 - [x] Perlease nicht vorab fragen, Überraschung (29.10.)
 - [ ] Wie mit Jarvis reden: nur Telegram-Knöpfe oder freier Chat (Hermes)?
-- [ ] Telegram-Bot „Jarvis“ anlegen (Secret `JARVIS_TELEGRAM_TOKEN` in restockhero), Benjamin macht das später
+- [ ] Eigenständigen Telegram-Bot „Jarvis“ anlegen; sein Token kommt ausschließlich in ein Jarvis-eigenes Cloudflare-Worker-Secret (`JARVIS_TELEGRAM_TOKEN`). Kein Bot-Token oder Konto aus RestockHero oder Demopin verwenden. Benjamin legt den Bot später an.
 - [ ] Rechte von Jarvis bestätigen: lesen, planen, programmieren, Entwürfe; Senden, Bezahlen und Veröffentlichen nur mit OK

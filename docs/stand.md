@@ -40,7 +40,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 3. ~~Mitarbeiter sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen~~ (umgesetzt; Rechte und Finanzsicht bleiben rollenabhängig).
 5. Tarifdatenbank ist mit einem quellengebundenen Startbestand ausgebaut. Weitere Tarifbereiche samt aktuellen Originalgruppen, Tätigkeitsmerkmalen und Entgelten schrittweise ergänzen; keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`, `alarm/quellen.md`). Dachdecker-Mindestlohn ergänzt; das ist kein vollständiger Tarifvertrag.
-6. Tarifregister Bayern und Baden-Württemberg sowie TV-L-/IG-Metall-Originalquellen geprüft. Drei konkrete Nutzungsanfragen sind versandt; Antwort abwarten. Tabellen erst nach schriftlicher Freigabe übernehmen, sonst ausdrücklich offen lizenzierte Quellen suchen. Danach Pläne/Stripe und Telegram-Jarvis.
+6. Tarifregister Bayern und Baden-Württemberg sowie TV-L-/IG-Metall-Originalquellen geprüft. Drei konkrete Nutzungsanfragen sind versandt; Antwort abwarten. Tabellen erst nach schriftlicher Freigabe übernehmen, sonst ausdrücklich offen lizenzierte Quellen suchen. Danach Plan-/Stripe-Entscheidungen von Benjamin und ein Jarvis-eigener Telegram-Bot mit getrenntem Secret; niemals RestockHero-Zugangsdaten verwenden.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
 ## Offene Punkte (Reihenfolge = Vorschlag)
@@ -57,6 +57,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Telegram-Plan projektgetrennt)
+- `PLAN.md` enthielt die Anweisung, das Telegram-Bot-Token in RestockHero zu speichern. Das widerspricht AGENTS.md, das Projektkonten, Schlüssel und Domains strikt trennt.
+- Fahrplan korrigiert: Telegram-Bot und Token müssen Jarvis gehören; Secret `JARVIS_TELEGRAM_TOKEN` ausschließlich im Jarvis-Worker speichern. Noch kein Bot angelegt und kein Token erzeugt. Umsetzung wartet auf Benjamins spätere Bot-Einrichtung.
 
 ### 31.10.2026 – ChatGPT (SAM.gov-Paginierung)
 - Offizielle [Get Opportunities Public API-Doku](https://open.gsa.gov/api/get-opportunities-public-api/) erneut geprüft: `limit` maximal 1.000 und `offset` ist die Seitennummer (nicht der Datensatzindex); robots.txt erlaubt den API-Doku-Pfad. Das Kontingent bleibt je Kontorolle unterschiedlich.
