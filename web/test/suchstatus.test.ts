@@ -30,6 +30,9 @@ test("Offene Bewertungen und Quellenlücken werden als Zwischenstand angezeigt",
   assert.match(html, /68 Bewertungen stehen noch aus/);
   assert.match(html, /40 Tage/);
   assert.doesNotMatch(html, /Letzte Suche abgeschlossen/);
+  const unklar = suchmeldung({ fertig: "2026-10-31T15:00:00Z", ergebnis: { kandidaten: 0, importtage_offen: null } }, firma, jetzt);
+  assert.match(unklar, /Zwischenstand/);
+  assert.match(unklar, /Quellenstand ist derzeit nicht bestätigt/);
 });
 
 test("Statusroute braucht Sitzung, nutzt deren RLS-Token und meldet fehlende Profile nicht als fertig", async (t) => {
