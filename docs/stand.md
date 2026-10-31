@@ -27,12 +27,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
-- **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 15 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. 30 GVP-Entgeltwerte über drei Stichtage, Maler, vier Dachdecker-, sechs Pflege-, zwei Gerüstbau- und zwei Gebäudereinigungs-Mindestlohnwerte sind quellengebunden gespeichert. Das bleibt ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmale und Löhnen. Für Bayern/BW gefundene Originaltabellen erfordern vor Weiterverwendung die Zustimmung der Rechteinhaber.
+- **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 21 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. Es sind 82 belegte Stundenwerte gespeichert (30 GVP über drei Stichtage und ausgewählte Mindestentgelte u. a. für Maler, Dachdecker, Pflege, Gerüstbau, Gebäudereinigung, Bildung, Flughafenluftsicherheit, Elektrohandwerk, Bodenabfertigung, allgemeiner Mindestlohn und AÜ-Lohnuntergrenze). Das bleibt ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmale und Löhnen. Für Bayern/BW gefundene Originaltabellen erfordern vor Weiterverwendung die Zustimmung der Rechteinhaber.
 - **Zentraler Vergabekatalog (Code bereitgestellt):** eigener stündlicher Worker, gemeinsame offene Bekanntmachungen und neue Markt-/Teilnahmefunktionen. Aktivierung und Live-Datenstand über die Ausrollläufe prüfen; der Erstbestand wird schrittweise aufgebaut.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- Zurzeit nichts.
+- (ChatGPT) Weitere amtliche Branchenmindestentgelte und Flughafenberufe ergänzen; Rechte- und Migrationstests durchführen.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -57,6 +57,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Weitere aktuelle Branchenmindestentgelte)
+- Die offizielle BMAS-Übersicht auf fehlende Branchen geprüft, robots.txt und amtliche Primärquellen kontrolliert. Ergänzt werden sechs weitere Einträge: Aus-/Weiterbildung nach SGB II/III (20,24/20,86 €/Std. 2026), Luftsicherheit an Verkehrsflughäfen (EG II–IV, Stichtage Januar/April 2026), bundesweites Elektrohandwerk-Mindestentgelt (14,41–16,10 €/Std. 2025–2028), Bodenabfertigung an Flughäfen (10 tatsächlich AVE-erfasste Gruppen/Stufen für 2025/2026), allgemeiner Mindestlohn (13,90 €/Std. 2026, 14,60 €/Std. 2027) und AÜ-Lohnuntergrenze (14,96/15,33 €/Std. 2026, 15,87 €/Std. 2027).
+- Bei Bodenabfertigung wurden die Ausnahmen der AVE im Original-Bundesanzeiger geprüft: EG 1 und 8–10 sowie benannte weitere Stufen sind ausdrücklich ausgeschlossen und erscheinen nicht im Katalog. Quellennutzung, Grenzen und Enddaten in `alarm/quellen.md`/`docs/personalkatalog.md`; neue Berufe für Flugzeug-/Gepäckabfertigung, Rampenpersonal und Luftsicherheitskontrolle im Personal-Dropdown samt Synonymen ergänzt.
+- Migration `20261031140000_weitere_branchenmindestentgelte.sql` und DB-/Berufetests vorbereitet. Offen: PostgreSQL-/Webtests und automatische Migration nach Push; zusätzlich weitere vollständige Tarifverträge aus lizenzrechtlich zulässigen Quellen suchen. Benjamin muss nichts tun.
 
 ### 31.10.2026 – ChatGPT (Gerüstbau-Mindestlohn)
 - Als weiteren tarifbezogenen Datensatz den gesetzlichen Gerüstbau-Mindestlohn aus `§ 2 TVMindestlohn Gerüstb 9` ergänzt: 14,35 €/Std. ab 01.01.2026 und 14,90 €/Std. ab 01.01.2027. `9. GerüstbauerArbbV` erstreckt die Rechtsnormen für den gesetzlichen betrieblichen/persönlichen Geltungsbereich vom 01.01.2026 bis 31.12.2027. Der Eintrag ist ausdrücklich eine sektorale Untergrenze, kein vollständiger Tarifvertrag und keine automatische Kalkulationsgrundlage.

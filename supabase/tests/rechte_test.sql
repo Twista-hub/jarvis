@@ -29,6 +29,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031110000_dachdecker_mindestlohn.sql
 \ir ../migrations/20261031120000_tarifliche_mindestentgelte_pflege_reinigung.sql
 \ir ../migrations/20261031130000_geruestbau_mindestlohn.sql
+\ir ../migrations/20261031140000_weitere_branchenmindestentgelte.sql
 \ir ../migrations/20261030224121_kaufverantwortung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -90,11 +91,27 @@ end $$;
 insert into public.personal (firma_id, bereich_id, vorname, berufe) values (:'firma', :'berlin', 'Eva', '{Servicekraft}');
 select pruefe((select count(*) = 1 from public.personal), 'Bearbeiter trägt Personal in Berlin ein');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name='Zeitarbeit GVP/DGB' and '2a'=any(gruppen)), 'Firma erhält GVP/DGB mit dokumentierten Entgeltgruppen');
-select pruefe((select count(*) = 15 from public.firmen_tarifvertraege where firma_id=:'firma' and vorgegeben), 'Neue Firma erhält den quellengebundenen Startbestand einschließlich Pflege-, Reinigungs- und Gerüstbaumindestentgelt');
+select pruefe((select count(*) = 21 from public.firmen_tarifvertraege where firma_id=:'firma' and vorgegeben), 'Neue Firma erhält den quellengebundenen Startbestand einschließlich der ergänzten Mindestentgelte');
 select pruefe((select count(*) = 1 from public.tarifkatalog where id='geruestbau-mindestlohn-2026' and aktiv and 'Gerüstbauer/in'=any(berufe) and gueltig_ab='2026-01-01' and gueltig_bis='2027-12-31'), 'Gerüstbau-Mindestlohn ist mit Branche, Beruf und Geltungszeitraum dokumentiert');
 select pruefe((select count(*) = 2 from public.tarifkatalog_saetze where tarif_id='geruestbau-mindestlohn-2026' and einheit='Stunde'), 'Gerüstbau-Mindestlohn hat beide amtlichen Stichtagswerte');
 select pruefe((select betrag=14.35 from public.tarifkatalog_saetze where tarif_id='geruestbau-mindestlohn-2026' and gueltig_ab='2026-01-01'), 'Gerüstbau-Mindestlohn 2026 stimmt mit § 2 TVMindestlohn Gerüstb 9 überein');
 select pruefe((select betrag=14.90 from public.tarifkatalog_saetze where tarif_id='geruestbau-mindestlohn-2026' and gueltig_ab='2027-01-01'), 'Gerüstbau-Mindestlohn 2027 stimmt mit § 2 TVMindestlohn Gerüstb 9 überein');
+select pruefe((select count(*)=2 from public.tarifkatalog_saetze where tarif_id='ausbildung-mindestentgelt-2026' and einheit='Stunde'), 'Aus- und Weiterbildungsmindestentgelt enthält beide 2026er Qualifikationsgruppen');
+select pruefe((select betrag=20.24 from public.tarifkatalog_saetze where tarif_id='ausbildung-mindestentgelt-2026' and gruppe like 'Mindestlohn I%' and gueltig_ab='2026-01-01'), 'Ausbildungsmindestentgelt I stimmt mit der BMAS-Übersicht überein');
+select pruefe((select count(*)=6 from public.tarifkatalog_saetze where tarif_id='luftsicherheit-flughaefen-2026' and einheit='Stunde'), 'Luftsicherheitsmindestentgelt enthält beide Stichtage für die erfassten Gruppen');
+select pruefe((select betrag=24.09 from public.tarifkatalog_saetze where tarif_id='luftsicherheit-flughaefen-2026' and gruppe like 'Entgeltgruppe II%' and gueltig_ab='2026-04-01'), 'Luftsicherheitsmindestentgelt EG II stimmt mit dem 01.04.2026-Satz überein');
+select pruefe((select count(*)=4 from public.tarifkatalog_saetze where tarif_id='elektrohandwerk-mindestentgelt-2025' and einheit='Stunde'), 'Elektrohandwerk-Mindestentgelt enthält alle vier vertraglichen Stichtage');
+select pruefe((select betrag=14.93 from public.tarifkatalog_saetze where tarif_id='elektrohandwerk-mindestentgelt-2025' and gueltig_ab='2026-01-01'), 'Elektrohandwerk-Mindestentgelt 2026 stimmt mit der AVE-Bekanntmachung überein');
+select pruefe((select count(*)=20 from public.tarifkatalog_saetze where tarif_id='bodenabfertigung-flughaefen-mindestentgelt-2025' and einheit='Stunde'), 'Bodenabfertigung enthält 10 AVE-Gruppen/Stufen an beiden Stichtagen');
+select pruefe((select betrag=24.09 from public.tarifkatalog_saetze where tarif_id='bodenabfertigung-flughaefen-mindestentgelt-2025' and gruppe='EG 6 · Stufe 2' and gueltig_ab='2026-05-01'), 'Bodenabfertigung EG 6 Stufe 2 stimmt mit der AVE 2026 überein');
+select pruefe(not exists (select 1 from public.tarifkatalog where id='bodenabfertigung-flughaefen-mindestentgelt-2025' and ('EG 1'=any(gruppen) or 'EG 8'=any(gruppen) or 'EG 9'=any(gruppen) or 'EG 10'=any(gruppen))), 'Von der AVE ausgenommene Bodenabfertigungsgruppen werden nicht angeboten');
+select pruefe((select count(*)=2 from public.tarifkatalog_saetze where tarif_id='allgemeiner-mindestlohn-2026' and einheit='Stunde'), 'Allgemeiner Mindestlohn enthält die gültigen Stichtage 2026 und 2027');
+select pruefe((select betrag=14.60 from public.tarifkatalog_saetze where tarif_id='allgemeiner-mindestlohn-2026' and gueltig_ab='2027-01-01'), 'Allgemeiner Mindestlohn 2027 stimmt mit MiLoV5 überein');
+select pruefe((select tarifart='Gesetzlicher Mindestlohn' from public.tarifkatalog where id='allgemeiner-mindestlohn-2026'), 'Allgemeiner Mindestlohn ist als gesetzlicher statt als Branchenmindestlohn markiert');
+select pruefe((select count(*)=3 from public.tarifkatalog_saetze where tarif_id='aue-lohnuntergrenze-2026' and einheit='Stunde'), 'AÜ-Lohnuntergrenze enthält alle drei gesetzlichen Stichtage');
+select pruefe((select betrag=15.33 from public.tarifkatalog_saetze where tarif_id='aue-lohnuntergrenze-2026' and gueltig_ab='2026-09-01'), 'AÜ-Lohnuntergrenze September 2026 stimmt mit der 7. Verordnung überein');
+insert into public.firmen (name) values ('Tarif-Trigger-Prüfung');
+select pruefe((select count(*)=21 from public.firmen_tarifvertraege t join public.firmen f on f.id=t.firma_id where f.name='Tarif-Trigger-Prüfung' and t.vorgegeben), 'Neu angelegte Firmen erhalten alle 21 geschützten Tarifauswahlen');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name='Elektrohandwerk NRW' and 'EG 12'=any(gruppen) and 'Elektriker/in'=any(berufe) and quelle_url like 'https://%'), 'Branchenvertrag hat Gruppen, Beruf und Quelle');
 select pruefe((select cardinality(gruppen) = 38 from public.firmen_tarifvertraege where firma_id=:'firma' and name like 'Garten-, Landschaft%'), 'Tarif mit getrennten Lohn- und Gehaltsgruppen passt vollständig ins Schema');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name like 'Maler-%' and tarifart='Branchenmindestlohn'), 'Branchenmindestlohn ist als solcher gekennzeichnet');

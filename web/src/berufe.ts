@@ -10,9 +10,9 @@ export const BERUFE: Record<string, string[]> = {
   "Pflege, Medizin & Soziales": ["Pflegehelfer/in", "Pflegefachkraft", "Medizinische/r Fachangestellte/r", "Betreuungskraft", "Erzieher/in", "Sozialassistent/in"],
   "Bildung & Betreuung": ["Pädagogische Fachkraft", "Kinderpfleger/in", "Schulbegleiter/in", "Integrationshelfer/in", "Lehrkraft", "Dozent/in"],
   "Einzelhandel & Verkauf": ["Verkäufer/in", "Kassierer/in", "Warenverräumer/in", "Einzelhandelskaufmann/-frau", "Promoter/in"],
-  "Sicherheit & Veranstaltung": ["Sicherheitskraft", "Messehelfer/in", "Veranstaltungstechniker/in", "Garderobenkraft", "Ordner/in"],
+  "Sicherheit & Veranstaltung": ["Sicherheitskraft", "Luftsicherheitskontrollkraft", "Messehelfer/in", "Veranstaltungstechniker/in", "Garderobenkraft", "Ordner/in"],
   "Garten, Agrar & Tierpflege": ["Garten- und Landschaftsbauer/in", "Gärtner/in", "Landwirtschaftliche/r Helfer/in", "Landwirt/in", "Tierpfleger/in", "Forstwirt/in"],
-  "Fahrzeug & Verkehr": ["Busfahrer/in", "Lkw-Fahrer/in", "Fahrzeugaufbereiter/in", "Kfz-Mechaniker/in", "Fahrradmechaniker/in", "Triebfahrzeugführer/in"],
+  "Fahrzeug & Verkehr": ["Busfahrer/in", "Lkw-Fahrer/in", "Fahrzeugaufbereiter/in", "Kfz-Mechaniker/in", "Fahrradmechaniker/in", "Triebfahrzeugführer/in", "Flugzeugabfertiger/in", "Gepäckabfertiger/in", "Ramp Agent", "Vorfeldmitarbeiter/in", "Flughafenservicekraft", "Bodenverkehrsdienstmitarbeiter/in", "Check-in-Agent/in"],
   "Gebäudetechnik & Energie": ["Anlagenmechaniker/in", "Sanitärinstallateur/in", "Heizungsbauer/in", "Klimatechniker/in", "Solar-/Photovoltaikmonteur/in", "Elektroniker/in für Energie- und Gebäudetechnik"],
 };
 
@@ -33,4 +33,8 @@ export const BERUF_SYNONYME: Record<string, string[]> = {
   "Solar-/Photovoltaikmonteur/in": ["PV-Monteur", "Photovoltaikmonteur", "Solarmonteur"],
   "Pflegefachkraft": ["Pflegefachfrau", "Pflegefachmann", "Altenpfleger", "Altenpflegerin"],
   "Pädagogische Fachkraft": ["pädagogisches Personal", "pädagogische Mitarbeiter"],
+  "Flugzeugabfertiger/in": ["Flugzeugabfertigung", "Bodenabfertigung"],
+  "Gepäckabfertiger/in": ["Gepäckabfertigung", "Gepäckservice Flughafen"],
+  "Ramp Agent": ["Ramp-Agent", "Ramp Operator", "Vorfeldabfertigung"],
+  "Luftsicherheitskontrollkraft": ["Luftsicherheitskontrollpersonal", "Luftsicherheitskontrolle", "Fluggastkontrolle"],
 };
