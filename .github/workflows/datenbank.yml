@@ -11,10 +11,18 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anzeigen, einspielen, anmeldungen]
+        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose]
         default: anzeigen
       bestaetigung:
         description: "Zum Einspielen hier EINSPIELEN eintippen"
+        default: ""
+      ziel_hash:
+        description: "Nur für die lesende Kontolöschungsdiagnose: gesalzener SHA-256 der kleingeschriebenen E-Mail"
+        type: string
+        default: ""
+      ziel_salz:
+        description: Salt zur lesenden Kontolöschungsdiagnose
+        type: string
         default: ""
 
 concurrency:
@@ -64,6 +72,54 @@ jobs:
           # E-Mail-Adressen nur gekürzt (erste 3 Zeichen + Domain).
           psql "$DB_URL" -c "select created_at, payload->>'action' as aktion, regexp_replace(coalesce(payload->>'actor_username', payload->'traits'->>'user_email', ''), '^(.{3})[^@]*', '\\1…') as wer, payload->>'log_type' as art from auth.audit_log_entries order by created_at desc limit 25"
           psql "$DB_URL" -c "select created_at, authentication_method, auth_code_issued_at, updated_at from auth.flow_state order by created_at desc limit 10"
+      - name: Kontolöschungs-Blocker prüfen (nur lesend)
+        if: inputs.aktion == 'loeschdiagnose'
+        env:
+          ZIEL_HASH: ${{ inputs.ziel_hash }}
+          ZIEL_SALZ: ${{ inputs.ziel_salz }}
+        run: |
+          if ! [[ "$ZIEL_HASH" =~ ^[a-f0-9]{64}$ && "$ZIEL_SALZ" =~ ^[a-f0-9]{32}$ ]]; then
+            echo "::error::Für die Diagnose fehlen Hash oder Salt im richtigen Format."; exit 1
+          fi
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -v ziel_hash="$ZIEL_HASH" -v ziel_salz="$ZIEL_SALZ" <<'SQL'
+          create temp table _ziel as
+            select id from auth.users
+            where encode(sha256(convert_to(lower(email) || :'ziel_salz', 'UTF8')), 'hex') = :'ziel_hash';
+          select count(*) as passendes_konto from _ziel;
+          do $$
+          declare
+            ziel_id uuid;
+            ref record;
+            anzahl bigint;
+            aktion text;
+          begin
+            select id into ziel_id from pg_temp._ziel limit 1;
+            if ziel_id is null then
+              raise notice 'Kein Konto zum Hash gefunden.';
+              return;
+            end if;
+            for ref in
+              select c.conrelid::regclass as tabelle, c.conname as constraint_name,
+                     a.attname as spalte, c.confdeltype as loeschregel
+              from pg_constraint c
+              cross join lateral unnest(c.conkey) as k(attnum)
+              join pg_attribute a on a.attrelid=c.conrelid and a.attnum=k.attnum
+              where c.contype='f' and c.confrelid='auth.users'::regclass
+            loop
+              execute format('select count(*) from %s where %I = $1', ref.tabelle, ref.spalte)
+                into anzahl using ziel_id;
+              aktion := case ref.loeschregel when 'a' then 'NO ACTION' when 'r' then 'RESTRICT'
+                        when 'c' then 'CASCADE' when 'n' then 'SET NULL' when 'd' then 'SET DEFAULT' end;
+              raise notice 'FK: Tabelle=%, Constraint=%, Spalte=%, Regel=%, betroffene Zeilen=%',
+                ref.tabelle, ref.constraint_name, ref.spalte, aktion, anzahl;
+            end loop;
+            if to_regclass('storage.objects') is not null then
+              execute 'select count(*) from storage.objects o where coalesce(to_jsonb(o)->>''owner_id'', to_jsonb(o)->>''owner'') = $1'
+                into anzahl using ziel_id::text;
+              raise notice 'Supabase-Storage-Objekte dieses Kontos: %', anzahl;
+            end if;
+          end $$;
+          SQL
       - name: Migrationen
         if: inputs.aktion != 'anmeldungen'
         run: |
