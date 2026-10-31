@@ -64,7 +64,9 @@ def bestand():
 
 
 def profil_version(profil):
-    return hashlib.sha256(json.dumps(profil, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    # The display threshold does not change the scores, so changing it must not trigger a paid re-scoring.
+    inhalt = {k: v for k, v in profil.items() if k != "min_punkte"}
+    return hashlib.sha256(json.dumps(inhalt, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 
 def schluessel(rel):

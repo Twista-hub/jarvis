@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (40 Verbesserungen: Paket 3 Team, Suchprofil, Übersicht, Einstellungen)
+- Firma & Team: Standorte als kompakte Liste (`.standort-liste`), Rechte als Etiketten (Rolle, Finanzen, Bereiche, gesperrt), offene Einladungen mit „Erneut senden“ (neue Einladung ersetzt die alte) und „Zurückziehen“ (`/konto/einladung/zurueckziehen`), Personalsuche nach Beruf/Status über alle Standorte oben, „Nutzer: null“ entfernt, Erklärtexte ins Info-Symbol.
+- Suchprofil: „Treffer je Arbeit (letzte 30 Tage)“, Kostenhinweis vor dem Speichern, einstellbare Mindestpunktzahl 4–8/10 (`einstellungen.min_punkte`, Alarm nutzt `profile["min_punkte"]`; zählt nicht zur Profilversion, also keine Neubewertung). Offen: Karte der Suchgebiete und Radius in km, beides braucht Geodaten (PLZ-Koordinaten, z. B. OpenGeoDB/GeoNames mit Lizenzprüfung) und für eine Karte einen Kartendienst samt Datenschutz-Hinweis.
+- Übersicht: Leiste „Heute wichtig“ (neue Treffer, Fristen in 7 Tagen, wartende Freigaben, ablaufende Nachweise), Kacheln mit echten Zahlen. Einstellungen: Linkzeile als Liste mit Pfeilen, „Probe-Mail an mich senden“ (`/konto/mail/test`), Darstellung Farben (Gerät/Hell/Dunkel) und Schrift (Normal/Groß) per Cookie `jv_darstellung`, serverseitig auf `<html>` gesetzt (`darstellen` in `index.ts`).
+- 172 Web-Tests und 45 Python-Tests grün.
+
 ### 01.11.2026 – Claude (40 Verbesserungen: Paket 2 Unterlagen und Kalkulation)
 - Unterlagen: Fortschritt beim Lesen („Schritt x von 3“, Dateizahl; `workflow.ts` schreibt `status.json`), Eignungs-Checkliste mit Zähler „x/y erfüllt“ am Aufklapper „Können wir den Auftrag übernehmen?“, Warnkasten für Nachweise, die in 30 Tagen ablaufen oder abgelaufen sind, Ablegefeld fürs Hochladen am PC (Rahmen, Hervorhebung beim Ziehen), Suchfeld über der Steckbriefliste (`data-listenfilter`). „Firmenunterlagen“ als Zweitknopf.
 - Kalkulation (`kalkulation.ts`, `index.ts`, `app.ts`): Abschnitte als Aufklapper mit Kurzübersicht, die beim Tippen mitläuft; Live-Verrechnungssatz oben (gleiche Formel wie `stundenpreis`, Test vergleicht); „Lohn aus Tarif übernehmen“ (GVP-Gruppen mit heutigem Lohn); Szenarien Knapp/Normal/Sicher (Gewinn −4/±0/+4 Punkte); Export als Excel-CSV (`/auftrag/<id>/kalkulation.csv`) und Drucken/PDF mit Druckansicht.

@@ -32,8 +32,11 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 <style>
   :root { --bg: #f7f7f5; --text: #1d1d1b; --muted: #66665f; --card: #fff; --line: #ddddd6; --accent: #1f5f8b; --error: #a8321f; }
   @media (prefers-color-scheme: dark) {
-    :root { --bg: #161615; --text: #ececea; --muted: #a3a39c; --card: #20201e; --line: #3a3a36; --accent: #7cb6e0; --error: #f0907c; }
+    :root:not([data-theme="light"]) { --bg: #161615; --text: #ececea; --muted: #a3a39c; --card: #20201e; --line: #3a3a36; --accent: #7cb6e0; --error: #f0907c; }
   }
+  /* Own choice in the settings (cookie jv_darstellung): dark mode and larger text. */
+  :root[data-theme="dark"] { --bg: #161615; --text: #ececea; --muted: #a3a39c; --card: #20201e; --line: #3a3a36; --accent: #7cb6e0; --error: #f0907c; }
+  :root[data-schrift="gross"] body { font-size: 18.5px; }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
@@ -298,6 +301,33 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .export-leiste { display: flex; flex-wrap: wrap; gap: 8px; }
   .export-leiste > * { flex: 1 1 140px; font-size: .95rem; }
   @media print { .konto-nav, .konto-kopf, form, .export-leiste, footer, details:not([open]) { display: none !important; } body { background: #fff; color: #000; } }
+  .standort-liste { display: grid; margin: 8px 0 20px; padding: 0; list-style: none; border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; }
+  .standort-zeile { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 10px 14px; border-bottom: 1px solid var(--line); color: var(--text); text-decoration: none; }
+  .standort-zeile:last-child { border-bottom: 0; }
+  .standort-zeile:hover { background: var(--bg); }
+  .standort-icon { font-size: 1.15rem; }
+  .standort-text { display: grid; flex: 1; min-width: 0; }
+  .standort-text strong { font-size: .98rem; }
+  .standort-zeile .konto-pfeil { position: static; color: var(--accent); font-size: 1.3rem; }
+  .rechte-chips { display: flex; flex-wrap: wrap; gap: 5px; margin: 6px 0 4px; padding: 0; list-style: none; }
+  .rechte-chips li { padding: 3px 8px; border-radius: 7px; background: var(--bg); font-size: 12px; font-weight: 600; color: var(--muted); }
+  .rechte-chips li.stark { color: var(--accent); }
+  .einladungen-liste { list-style: none; margin: 8px 0 14px; padding: 0; display: grid; gap: 8px; }
+  .einladungen-liste li { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-size: 14px; }
+  .einladungen-liste .knoepfe { display: flex; gap: 6px; }
+  .einladungen-liste form { padding: 0; border: 0; background: none; }
+  .einladungen-liste button { min-height: 36px; padding: 6px 10px; font-size: 13px; }
+  .kosten-hinweis { margin: 4px 0; padding: 10px 12px; border-radius: 10px; background: var(--bg); color: var(--muted); font-size: 13px; }
+  .leistung-treffer { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 8px 0 16px; padding: 0; }
+  .leistung-treffer li { display: inline-flex; gap: 6px; align-items: baseline; padding: 5px 10px; border: 1px solid var(--line); border-radius: 9px; background: var(--card); font-size: 13px; font-weight: 600; }
+  .leistung-treffer li span { color: var(--accent); }
+  .leistung-treffer li.leer span { color: var(--muted); }
+  .heute-wichtig { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 4px 0 18px; padding: 0; }
+  .heute-wichtig a { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 20px; background: var(--card); color: var(--text); font-size: 14px; font-weight: 600; text-decoration: none; }
+  .heute-wichtig a strong { color: var(--accent); }
+  .heute-wichtig a.dringend strong { color: var(--error); }
+  .einstellungs-liste { margin: 0 0 20px; }
+  .darstellung { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .frist-schalter { margin: 16px 0 6px; font-size: 14px; }
   .aktionsleiste { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0 0 16px; }
   .aktionsleiste a { display: grid; place-items: center; min-height: 52px; padding: 8px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; text-align: center; font-weight: 650; font-size: 14px; line-height: 1.3; }

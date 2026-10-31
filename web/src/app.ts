@@ -86,6 +86,22 @@ document.querySelectorAll("[data-live-satz]").forEach(function (anzeige) {
   if (tarif) tarif.addEventListener("change", function () { var lohn = form.querySelector('[name="lohn"]'); if (tarif.value && lohn) { lohn.value = tarif.value; rechnen(); } });
 });
 document.querySelectorAll("[data-drucken]").forEach(function (b) { b.addEventListener("click", function () { window.print(); }); });
+// Display settings: stored in a cookie so the server draws the page in the chosen look right away.
+(function () {
+  var wahl = (document.cookie.match(/(?:^|;\s*)jv_darstellung=([a-z-]+)/) || [])[1] || "";
+  var theme = wahl.indexOf("dark") >= 0 ? "dark" : wahl.indexOf("light") >= 0 ? "light" : "";
+  var schrift = wahl.indexOf("gross") >= 0 ? "gross" : "";
+  document.querySelectorAll("[data-darstellung]").forEach(function (sel) {
+    sel.value = sel.dataset.darstellung === "theme" ? theme : schrift;
+    sel.addEventListener("change", function () {
+      if (sel.dataset.darstellung === "theme") theme = sel.value; else schrift = sel.value;
+      var wert = [theme, schrift].filter(Boolean).join("-");
+      document.cookie = "jv_darstellung=" + (wert || "auto") + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
+      if (theme) document.documentElement.dataset.theme = theme; else delete document.documentElement.dataset.theme;
+      if (schrift) document.documentElement.dataset.schrift = schrift; else delete document.documentElement.dataset.schrift;
+    });
+  });
+})();
 // Search fields that filter a list on the page as you type.
 document.querySelectorAll("[data-listenfilter]").forEach(function (f) {
   var liste = document.getElementById(f.dataset.listenfilter);

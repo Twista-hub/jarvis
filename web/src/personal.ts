@@ -125,14 +125,15 @@ export function standortKacheln(bereiche: Bereich[], personal: { bereich_id: str
     const p = personal.filter((x) => x.bereich_id === id);
     return `${p.filter((x) => x.status === "verfuegbar").length} verfügbar · ${p.length} gesamt`;
   };
-  const kachel = (href: string, icon: string, titel: string, hinweis: string, id?: string) => { const leitung = id ? leitungen.find((x) => x.bereich_id === id) : undefined; return `<a class="konto-kachel" href="${href}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(titel)}</strong><span class="klein">${hinweis}</span>${leitung ? `<span class="klein">👤 Leitung: ${escape(leitung.name)}</span>` : `<span class="klein">👤 Keine Standortleitung zugeordnet</span>`}<span class="konto-pfeil" aria-hidden="true">›</span></a>`; };
-  if (!bereiche.length) return `<div class="konto-kacheln standort-kacheln">${kachel("/konto/standort/firma", "🏢", "Ganze Firma", zahl(null))}</div>`;
+  // Compact rows instead of large tiles: name, staff available and the location head in one line.
+  const kachel = (href: string, icon: string, titel: string, hinweis: string, id?: string) => { const leitung = id ? leitungen.find((x) => x.bereich_id === id) : undefined; return `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${escape(titel)}</strong><span class="klein">${hinweis} · ${leitung ? `👤 Leitung: ${escape(leitung.name)}` : "ohne Leitung"}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`; };
+  if (!bereiche.length) return `<div class="standort-liste">${kachel("/konto/standort/firma", "🏢", "Ganze Firma", zahl(null))}</div>`;
   const oben = bereiche.filter((b) => !b.parent_id);
   const einzeln = oben.filter((b) => !bereiche.some((c) => c.parent_id === b.id));
   const gruppen = oben.filter((b) => bereiche.some((c) => c.parent_id === b.id));
   const ohne = personal.some((x) => !x.bereich_id) ? kachel("/konto/standort/firma", "🏢", "Ohne Standort", zahl(null)) : "";
-  return `${einzeln.length || ohne ? `<div class="konto-kacheln standort-kacheln">${einzeln.map((b) => kachel(`/konto/standort/${b.id}`, "📍", b.name, zahl(b.id), b.id)).join("")}${ohne}</div>` : ""}
-${gruppen.map((g) => `<section class="org-region"><h3>${escape(g.name)}</h3><div class="konto-kacheln standort-kacheln">${[g, ...bereiche.filter((c) => c.parent_id === g.id)].map((b) => kachel(`/konto/standort/${b.id}`, b.id === g.id ? "🗺️" : "📍", b.id === g.id ? `${b.name} (Region)` : b.name, zahl(b.id), b.id)).join("")}</div></section>`).join("")}`;
+  return `${einzeln.length || ohne ? `<div class="standort-liste">${einzeln.map((b) => kachel(`/konto/standort/${b.id}`, "📍", b.name, zahl(b.id), b.id)).join("")}${ohne}</div>` : ""}
+${gruppen.map((g) => `<section class="org-region"><h3>${escape(g.name)}</h3><div class="standort-liste">${[g, ...bereiche.filter((c) => c.parent_id === g.id)].map((b) => kachel(`/konto/standort/${b.id}`, b.id === g.id ? "🗺️" : "📍", b.id === g.id ? `${b.name} (Region)` : b.name, zahl(b.id), b.id)).join("")}</div></section>`).join("")}`;
 }
 
 export function qualifikationenBlock(bereich: string | null, liste: { id: string; name: string; bereich_id: string | null }[], darfAendern: boolean): string {

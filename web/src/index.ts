@@ -58,7 +58,7 @@ export default {
     // The app lives at app.wpdigitalranger.com; the old workers.dev address forwards there (links in older mails keep working).
     const alt = new URL(request.url);
     if (alt.hostname.endsWith(".workers.dev")) return Response.redirect(`${ADRESSE}${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
-    const r = await verarbeiten(request,env);
+    const r = darstellen(request, await verarbeiten(request,env));
     if (!new URL(request.url).pathname.startsWith("/auftrag/")) return r;
     const s = await sitzung(request,env);
     const headers = new Headers(r.headers);
@@ -67,6 +67,18 @@ export default {
     return new Response(r.body,{status:r.status,statusText:r.statusText,headers});
   },
 };
+
+/** The user's display choice (cookie jv_darstellung, e.g. "dark-gross") goes onto <html> before the page is drawn. */
+function darstellen(request: Request, r: Response): Response {
+  const wahl = /(?:^|;\s*)jv_darstellung=([a-z-]{1,20})/.exec(request.headers.get("cookie") ?? "")?.[1];
+  if (!wahl || !(r.headers.get("content-type") ?? "").startsWith("text/html")) return r;
+  const theme = wahl.includes("dark") ? "dark" : wahl.includes("light") ? "light" : "";
+  const attribute = `${theme ? ` data-theme="${theme}"` : ""}${wahl.includes("gross") ? ' data-schrift="gross"' : ""}`;
+  if (!attribute) return r;
+  const body = r.body ? new Response(r.body).text() : Promise.resolve("");
+  const h = new Headers(r.headers);
+  return new Response(new ReadableStream({ async start(c) { c.enqueue(new TextEncoder().encode((await body).replace('<html lang="de">', `<html lang="de"${attribute}>`))); c.close(); } }), { status: r.status, statusText: r.statusText, headers: h });
+}
 
 async function verarbeiten(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
