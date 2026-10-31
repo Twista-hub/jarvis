@@ -1,6 +1,6 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
-import { nachholLimit, releaseBloecke, normalisiereBlock, wiederholen, bestehendeBekanntmachungen } from "./katalog-plan.ts";
+import { nachholLimit, releaseBloecke, normalisiereBlock, wiederholen, bestehendeBekanntmachungen, exportTage } from "./katalog-plan.ts";
 
 type Env = DbEnv & { AKTIV: string; SAMMLER: Workflow };
 const UA = "Jarvis-Katalog/1.0 (public procurement index)";
@@ -24,13 +24,15 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
       if ((await sql`select pg_database_size(current_database()) as groesse`)[0].groesse > 350_000_000) throw new Error("Speichergrenze erreicht; Sammlung pausiert");
       if ((await sql`select count(*)::int as n from public.vergabekatalog`)[0].n > 50000) throw new Error("Bestandsgrenze erreicht; Sammlung pausiert");
       const today = new Date().toISOString().slice(0, 10);
-      const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+      // The source publishes completed daily exports. Today's HTTP 400 is not a failed import.
+      // Remove only the old collector's premature retry marker, preserving successful records.
+      await sql`delete from jarvis_katalog.exporte where quelle='bks' and tag>=current_date and not fertig`;
       const backfill = await sql`select d::date::text as tag from generate_series(current_date-60,current_date-2,interval '1 day') d left join jarvis_katalog.exporte e on e.quelle='bks' and e.tag=d::date where coalesce(e.fertig,false)=false and (${erneut} or e.naechster_versuch is null or e.naechster_versuch<now()) order by d desc limit ${limit}`;
       await sql`update public.katalog_quellen set letzter_versuch=now() where id='bks'`;
       // Bound operational tables without discarding current notices or customer records.
       await sql`delete from public.katalog_aenderungen where zeit<now()-interval '90 days'`;
       await sql`delete from jarvis_katalog.bewertungen where erstellt<now()-interval '180 days'`;
-      return [...new Set([today, yesterday, ...backfill.map((x) => String(x.tag))])];
+      return exportTage(today, backfill.map((x) => String(x.tag)));
     }));
     for (const tag of tage) {
       const ergebnis = await step.do(`Export ${tag}`, { retries: { limit: 2, delay: "30 seconds", backoff: "exponential" }, timeout: "5 minutes" }, async () => {

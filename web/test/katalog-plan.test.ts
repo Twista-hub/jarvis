@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { importierbar, nachholLimit, releaseBloecke, normalisiereBlock, wiederholen } from "../src/katalog-plan.ts";
+import { importierbar, nachholLimit, releaseBloecke, normalisiereBlock, wiederholen, exportTage } from "../src/katalog-plan.ts";
 import { normalisieren } from "../src/katalog-daten.ts";
 
 test("Nachholung ist begrenzt und bekommt einen eigenen ausdrücklichen Modus", () => {
@@ -10,6 +10,10 @@ test("Nachholung ist begrenzt und bekommt einen eigenen ausdrücklichen Modus", 
   assert.equal(nachholLimit({}), 6);
   assert.equal(nachholLimit({ nachholen: true }), 60);
   assert.equal(nachholLimit({ nachholen: "true" }), 6);
+});
+
+test("Nur abgeschlossene Exporttage abfragen; Vortag am UTC-Jahreswechsel nur einmal", () => {
+  assert.deepEqual(exportTage("2027-01-01", ["2026-12-31", "2026-12-30", "2027-01-01", "2027-01-02"]), ["2026-12-31", "2026-12-30"]);
 });
 
 test("Einzeldateien eines Tages werden zu echten 40er-Datenbankblöcken gebündelt", () => {
