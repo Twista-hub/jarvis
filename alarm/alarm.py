@@ -205,7 +205,7 @@ def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str)
 
 
 def run(days: list[str]) -> str:
-    from profile_db import laden
+    from profile_db import im_suchgebiet, laden
     import katalog
     profiles = laden()
     if FIRMA:  # first run right after the setup assistant: only this firm
@@ -243,6 +243,8 @@ def run(days: list[str]) -> str:
         land = rel.get("_land") or "DEU"
         for name, profile in profiles.items():
             if land not in profile.get("laender", ["DEU"]):
+                continue
+            if not im_suchgebiet(profile, rel):
                 continue
             points, reason = score(profile, text, codes)
             beobachtet = rel.get("_auftraggeber_id") in profile.get("beobachtete_auftraggeber", [])
