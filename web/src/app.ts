@@ -22,6 +22,13 @@ document.querySelectorAll('form[action="/konto/einrichtung/vorschlag"]').forEach
   });
 });
 
+// A new customer is taken through automatic company research after e-mail confirmation.
+document.querySelectorAll("form[data-auto-einrichtung]").forEach(function (form) {
+  var button = form.querySelector('button[type="submit"]');
+  if (button) { button.textContent = "Jarvis richtet dein Profil ein …"; }
+  window.setTimeout(function () { form.requestSubmit(); }, 0);
+});
+
 // Mail links (login, confirmation, new password) bring the login in the URL fragment; hand it to the server.
 var anmeldung = document.getElementById("anmeldung");
 if (anmeldung) {

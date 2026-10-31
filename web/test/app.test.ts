@@ -12,6 +12,7 @@ test("serves the app files with the right types", async () => {
   const js = await statisch("/app.js")!.text();
   assert.match(js, /Vorschlag wird erstellt/);
   assert.match(js, /data-einrichtung-status/);
+  assert.match(js, /data-auto-einrichtung/);
   assert.match(js, /data-tarifgruppen/);
   assert.match(js, /option\.disabled = !!option\.value/);
   assert.match(js, /location\.hash === "#tarifvertraege"/);

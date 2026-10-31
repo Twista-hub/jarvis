@@ -38,6 +38,12 @@ test("invited people see no firm fields", () => {
   assert.doesNotMatch(registrierFormular({}, "", "/einladung?token=abc"), /name="website"/);
 });
 
+test("Anmeldung erklärt automatische Website-Auswertung nach E-Mail-Bestätigung", () => {
+  const html = registrierFormular({}, "", "/konto");
+  assert.match(html, /Nach der E-Mail-Bestätigung liest Jarvis automatisch/);
+  assert.match(html, /startet die erste Suche/);
+});
+
 test("company website is normalized and restricted to HTTPS addresses", () => {
   assert.equal(websiteNormalisieren("www.muster.de"), "https://www.muster.de");
   assert.equal(websiteNormalisieren("http://muster.de/leistungen#team"), "https://muster.de/leistungen");

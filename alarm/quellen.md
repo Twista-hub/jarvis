@@ -2,6 +2,12 @@
 
 Regel: vor jedem automatischen Abruf Nutzungsbedingungen und robots.txt prüfen und hier festhalten.
 
+## Firmenrecherche für Suchprofile
+
+| Quelle | Geprüft | Ergebnis | Nutzung |
+|---|---|---|---|
+| Anthropic Claude API – Web Search Tool (`docs.anthropic.com/en/docs/build-with-claude/tool-use/web-search-tool`) | 31.10.2026 | Offizielle serverseitige Websuche über Claude API; veröffentlichter Preis 10 USD je 1.000 Suchanfragen plus Tokenkosten für Suchinhalte. Die Websuche liefert öffentliche Suchergebnisse; Jarvis lädt Drittseiten nicht direkt und prüft die vom Kunden angegebene eigene Website weiterhin separat mit robots.txt und Abruflimits. | Automatische Profileinrichtung und manuelle Profilerstellung: höchstens drei Suchanfragen je Profilvorschlag, Identitätsabgleich über Firmenname/Website/Ort, konkrete Quellenlinks im Profil; Kosten laufen durch dasselbe Tages-/Monatsbudget. Keine privaten Personendaten abfragen. |
+
 ## Bekanntmachungen (wer schreibt was aus?)
 
 | Quelle | Geprüft | Ergebnis | Nutzung |

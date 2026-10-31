@@ -143,14 +143,15 @@ test("Bereits hinterlegtes Firmenprofil wird als eingerichtet erkannt", async (t
   assert.match(html, /Wir vermitteln Servicepersonal/);
 });
 
-test("Gespeichertes Suchprofil wird erkannt, Einrichtung erscheint nur ohne Profil", async (t) => {
-  const profile: unknown[] = [{ id: "profil", beschreibung: "Eigene Firmenbeschreibung", website_beschreibung: "Auf der Website gefundene Leistungen", erstlauf: null }];
+test("Gespeichertes Suchprofil zeigt eigene, Website- und Websuch-Funde getrennt", async (t) => {
+  const profile: unknown[] = [{ id: "profil", beschreibung: "Eigene Firmenbeschreibung", website_beschreibung: "Auf der Website gefundene Leistungen", websuche_beschreibung: "Im öffentlichen Firmenprofil gefundene Leistungen", erstlauf: null }];
   mockKontoApi(t, [], "inhaber", profile);
   const eingerichtet = await seite("/konto/suchprofil");
   assert.match(eingerichtet, /Die Suche für Musterfirma ist eingerichtet/);
   assert.match(eingerichtet, /Suchprofil anpassen/);
   assert.match(eingerichtet, /Deine Beschreibung[\s\S]*Eigene Firmenbeschreibung/);
   assert.match(eingerichtet, /Auf der Website gefunden[\s\S]*Auf der Website gefundene Leistungen/);
+  assert.match(eingerichtet, /In öffentlichen Suchen gefunden[\s\S]*Im öffentlichen Firmenprofil gefundene Leistungen/);
   profile.length = 0;
   const leer = await seite("/konto/suchprofil");
   assert.match(leer, /noch keine Suche eingerichtet/);

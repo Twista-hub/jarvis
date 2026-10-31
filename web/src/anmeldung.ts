@@ -66,7 +66,7 @@ export function registrierFormular(w: Registrierung, fehler = "", weiter = "/kon
   ${eingeladen ? "" : `<fieldset><legend>Firma</legend>
     ${feld("firma", "Name der Firma", `required minlength="2" maxlength="200" autocomplete="organization" placeholder="z. B. Muster GmbH"`)}
     ${feld("website", "Website der Firma (freiwillig)", `type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de"`)}
-    <p class="klein">Damit kann Jarvis eure Leistungen genauer erkennen. Es wird nur die von dir angegebene Website berücksichtigt.</p>
+    <p class="klein">Nach der E-Mail-Bestätigung liest Jarvis automatisch die erlaubten Seiten dieser Website, erstellt dein Suchprofil und startet die erste Suche. Zugriffssperren werden beachtet.</p>
     ${feld("strasse", "Straße und Hausnummer", `required maxlength="200" autocomplete="street-address"`)}
     ${feld("plz", "PLZ", `required pattern="[0-9]{5}" inputmode="numeric" maxlength="5" autocomplete="postal-code"`)}
     ${feld("ort", "Ort", `required maxlength="100" autocomplete="address-level2"`)}

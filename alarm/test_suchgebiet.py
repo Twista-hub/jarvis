@@ -46,6 +46,13 @@ class SuchgebietTest(unittest.TestCase):
         self.assertIn("Wir verlegen Fliesen in Baesweiler.", profil["beschreibung"])
         self.assertIn("Die Website nennt Badsanierung und Naturstein.", profil["beschreibung"])
 
+    def test_scoring_receives_public_web_search_research(self):
+        profil = aus_db("firma", "Fliesenbetrieb", "", {
+            "websuche_beschreibung": "Ein zugeordnetes Firmenprofil belegt Natursteinarbeiten.",
+            "leistungen": [{"name": "Fliesen", "woerter": ["fliesen"], "cpv": []}],
+        })
+        self.assertIn("Natursteinarbeiten", profil["beschreibung"])
+
     def test_buyer_office_is_not_used_as_performance_location(self):
         profil = {"suchorte": [{"name": "Bad Wildungen", "plz_praefixe": []}]}
         rel = bekanntmachung()
