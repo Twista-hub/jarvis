@@ -4,7 +4,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (31.10.2026)
 - **Mindestentgelt-Katalog (31.10.):** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen eingespielt. GitHub-Rechteprüfung, Migration und Gesamtprüfung erfolgreich; Web-Check und 20 Testdateien grün. Alle zehn Bereiche der BMAS-Übersicht zu bundesweiten Branchenmindestentgelten sind im Katalog vertreten. Destatis-Tarifdatenbank als neue manuelle Recherchequelle identifiziert; Nutzungsbedingungen des separaten PDF-Exports und Verfügbarkeit noch ungeklärt.
-- **Suchprofil (31.10.):** Eigene Firmenbeschreibung und Website-Auswertung werden getrennt gespeichert und angezeigt. Die Suche und Trefferbewertung erhalten beide Angaben; die Originalbeschreibung bleibt erhalten. KI-Leerantworten werden durch einen speicherbaren Vorschlag ersetzt, und die Sucheinrichtung bleibt für Nicht-Fachleute vereinfacht.
+- **Suchprofil (31.10.):** Eigene Firmenbeschreibung und Website-Auswertung werden getrennt gespeichert und angezeigt. Bei der Einrichtung prüft Jarvis jetzt Startseite, bis zu zehn relevante Unterseiten sowie deklarierte/Standard-Sitemaps derselben Website. Externe Domains und durch `robots.txt` gesperrte Pfade bleiben ausgeschlossen. Die Suche und Trefferbewertung erhalten beide Beschreibungen; die Originalbeschreibung bleibt erhalten.
 - **Web-KI-Verbindung (31.10.):** Nur-Lese-Prüfung des Budgets: 0,1023/20 USD im Monat und 0,102/3 USD heute; Budgetlimit nicht erreicht. Hyperdrive und Budgetfunktion sind im App-Worker per schreibfreiem Rollout-Test bestätigt. Echter KI-Vorschlag nach diesem Rollout noch nicht bestätigt.
 - **Standortfilter Ausschreibungen (31.10.):** App-Suchprofile filtern Bekanntmachungen anhand des Einsatzorts. PLZ-Anfänge werden räumlich angewendet; wenn sie beim einfachen Vorschlag fehlen, verwendet ein einzelner Suchort ersatzweise den PLZ-Bereich des Firmensitzes statt nur des Ortsnamens. Das ist eine grobe Gebietsnäherung, kein exakter Radius. Beim vollständigen Katalogabgleich wandern alte, unbearbeitete und nicht mehr aktuelle Treffer ins Archiv, auch wenn ältere Treffer keine Katalog-ID haben; bearbeitete Vorgänge bleiben unangetastet.
 - **Trefferbegründung (31.10.):** KI-Bewertung, „was gesucht wird“ und „warum es passt“ werden gemeinsam am Vorgang gespeichert. Die kurze Erklärung erscheint direkt auf der Trefferkarte; lange Steckbriefe bleiben nur auf der Detailseite.
@@ -18,7 +18,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Ausschreibungen als Handy-Karten mit Punkten, Frist, Stand und Bereichsfilter; Treffer-Seite mit Steckbrief, Knopf „Hier runterladen“
     (zum Portal) und Upload, Jarvis schreibt daraus den ausführlichen Steckbrief (ergänzt den aus der Bekanntmachung) und die Kalkulation.
   - Einrichtungs-Assistent: Firma beschreiben → KI schlägt Suchprofil vor → speichern → Alarm sucht sofort die letzten 7 Tage.
-  - Registrierung und Einrichtungs-Assistent nehmen optional die Firmenwebsite an. Jarvis liest die Startseite und bis zu vier passende Unterseiten derselben Domain, prüft robots.txt und beachtet Zeit- und Größenlimits; bei KI-Ausfall werden Beschreibung, Website-Begriffe und Standorte in einen bearbeitbaren Profilvorschlag übernommen. Scheitert der Sofortstart, bleibt das Profil gespeichert und ein direkter Wiederholungsstart wird angeboten.
+  - Registrierung und Einrichtungs-Assistent nehmen optional die Firmenwebsite an. Jarvis liest die Startseite, bis zu zehn passende Unterseiten derselben Domain und erlaubt Sitemap-Einträge; es prüft robots.txt und beachtet Zeit- und Größenlimits. Bei KI-Ausfall werden Beschreibung, Website-Begriffe und Standorte in einen bearbeitbaren Profilvorschlag übernommen. Scheitert der Sofortstart, bleibt das Profil gespeichert und ein direkter Wiederholungsstart wird angeboten.
   - Tägliche Nachricht pro Person: Uhrzeit 7–20 Uhr, per Mail, Handy oder beides; Fristen-Erinnerung 7 und 2 Tage vorher.
   - Handy-Nachrichten (Web-Push) und als App installierbar.
   - Profil-Icon oben rechts (/konto/profil), Firmenwechsel im Profil; Suchprofil als eigener Bereich (/konto/suchprofil). Keine E-Mail-Zeile oder Einrichtung auf der Übersicht.
@@ -64,6 +64,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Firmenrecherche für Suchprofile vertiefen)
+- Jarvis prüft beim Erstellen oder erneuten Auswerten des Suchprofils nicht mehr nur vier verlinkte Unterseiten: es findet relevante Leistungs-, Branchen-, Referenz-, Projekt-, Kompetenz-, Standort- und Karriereseiten und liest bis zu zehn davon. `robots.txt`-Sitemap-Einträge und `/sitemap.xml` helfen, Seiten zu finden, die nicht auf der Startseite verlinkt sind.
+- Abruf bleibt auf HTTPS und derselben Domain, folgt keinen Weiterleitungen, ignoriert externe/private/interne Pfade und prüft die Robots-Regeln für Sitemap und jede Unterseite. Pro Seite gelten Größen- und Zeitlimits; Firmenwebsite-Auswertung läuft nur beim Einrichten/erneuten Prüfen, nicht stündlich im Ausschreibungsalarm. Die eigene Beschreibung bleibt getrennt und unverändert.
+- Neue Regressionstests decken Sitemap-Seiten, Zehn-Seiten-Limit, Robots-Sperren und externe Hosts ab. `npm ci && npm run check && npm test`: 116 Tests grün. Noch offen: eine Suche über unabhängige externe Webquellen/Suchmaschinen ist nicht eingerichtet; dafür müssten geeignete Quellen und Kosten separat geklärt werden.
 
 ### 31.10.2026 – ChatGPT (Eigene Beschreibung und Website-Fund trennen)
 - Das Profilformular speichert jetzt die eigene Firmenbeschreibung und Jarvis’ Website-Auswertung in zwei getrennten Feldern. Die Übersichtsseite zeigt beide getrennt; beim erneuten Vorschlag bleibt die eigene Eingabe erhalten.
