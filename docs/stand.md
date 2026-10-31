@@ -27,12 +27,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
-- **Tarifdatenbank (Code bereitgestellt):** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 12 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. 30 GVP-Entgeltwerte über drei Stichtage sowie Maler- und vier Dachdecker-Mindestlohnwerte sind quellengebunden gespeichert. Das ist ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmalen und Löhnen.
+- **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 12 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. 30 GVP-Entgeltwerte über drei Stichtage sowie Maler- und vier Dachdecker-Mindestlohnwerte sind quellengebunden gespeichert. Dachdecker-Eintrag wurde am 31.10. per Migration eingespielt. Das ist ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmalen und Löhnen.
 - **Zentraler Vergabekatalog (Code bereitgestellt):** eigener stündlicher Worker, gemeinsame offene Bekanntmachungen und neue Markt-/Teilnahmefunktionen. Aktivierung und Live-Datenstand über die Ausrollläufe prüfen; der Erstbestand wird schrittweise aufgebaut.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Dachdecker-Mindestlohn im Tarifkatalog; Datenbank-Rechteprüfung ausstehend.
+- Zurzeit nichts.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -61,7 +61,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 31.10.2026 – ChatGPT (Dachdecker-Mindestlohn)
 - Den nächsten offenen Fahrplanpunkt zur quellengebundenen Tarifdatenbank bearbeitet. Veröffentlichte Rechtsnorm § 2 TVMindestlohnDachd 13 auf `gesetze-im-internet.de` nach vorheriger robots-Prüfung geprüft; enthält 14,96 €/Std. (ungelernt) und 16,60 €/Std. (gelernt) ab 2026 sowie 17,10 €/Std. ab 2027 und 17,60 €/Std. ab 2028.
 - Neue Migration ergänzt den Dachdecker-Branchenmindestlohn als eigenen, bundesweiten Eintrag mit zwei Stufen und Stichtagswerten. Firmen erhalten eine eigene Auswahlkopie; künftige Tarifkalkulation verwendet den Wert nicht automatisch. Hinweis stellt klar: gesetzlicher Mindestboden, kein vollständiger Tarifvertrag, tatsächliche Tarifbindung und höhere Ansprüche prüfen.
-- Web-Typprüfung und alle 20 Testdateien erfolgreich. Rechte-/Migrationstest um Werte und Auswahl erweitert, konnte lokal mangels Zugriff auf den Docker-Dienst nicht ausgeführt werden; muss im vorgeschriebenen GitHub-Workflow laufen, bevor die Migration eingespielt wird. Quelle und Grenzen in `alarm/quellen.md` und `docs/personalkatalog.md` festgehalten.
+- Web-Typprüfung und alle 20 Testdateien erfolgreich. Rechte-/Migrationstest wegen lokal gesperrtem Docker im GitHub-Workflow erfolgreich gelaufen; Migration am 31.10. automatisch eingespielt: https://github.com/Twista-hub/jarvis/actions/runs/41149680138. Quelle und Grenzen in `alarm/quellen.md` und `docs/personalkatalog.md` festgehalten.
 - Offene Arbeit: weitere Tarifwerke/Regionen aus zulässigen Originalquellen belegen; bundesweite Vollständigkeit ist nicht erreichbar. Benjamin muss nichts einrichten.
 
 ### 30.10.2026 – ChatGPT (Kontolöschung in Supabase)
