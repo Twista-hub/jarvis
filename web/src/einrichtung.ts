@@ -132,7 +132,9 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
   const websiteDaten = website ? await websiteKontext(website) : { text: "", hinweis: "" };
   let vorschlag: Vorschlag;
   try {
-    const message = await apiClient(env).beta.messages.create({
+    // Hard limit for the whole step (budget check in the database plus KI request): the SDK timeout does not
+    // cover a hanging database connection, and the page must always answer, at worst with the simple proposal.
+    const message = await mitZeitlimit(40_000, apiClient(env).beta.messages.create({
       model: MODEL,
       betas: ["server-side-fallback-2026-07-01"],
       fallbacks: "default",
@@ -140,7 +142,7 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
       output_config: { effort: "low", format: { type: "json_schema", schema: SCHEMA } },
       system: ANLEITUNG,
       messages: [{ role: "user", content: `Firma: ${name}\nWebsite: ${website || "keine angegeben"}\n\nVom Nutzer beschriebene Leistungen:\n${beschreibung}\n\nStandorte:\n${orte || "keine angegeben"}\n\nLesbare Angaben von der angegebenen Website (nur als Ergänzung, keine weiteren Leistungen erfinden):\n${websiteDaten.text || "keine Website-Informationen verfügbar"}` }],
-    }, { timeout: 45_000 });
+    }, { timeout: 38_000 }));
     if (message.stop_reason === "refusal") throw new Error("abgelehnt");
     vorschlag = vorschlagOderFallback(JSON.parse(message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("")), beschreibung, orte);
     if (!vorschlag.leistungen.length) throw new Error("leerer Vorschlag");
@@ -152,6 +154,11 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
   }
   const webHinweis = websiteDaten.text ? "Die Firmenwebsite wurde zusätzlich berücksichtigt." : website ? "Die Firmenwebsite konnte gerade nicht gelesen werden; deine Beschreibung reicht trotzdem." : "";
   return html(seite(`Vorschlag für ${name}`, profilFormular(firma, vorschlag, `Prüfe kurz, ob die vorgeschlagenen Arbeiten und Einsatzorte stimmen. Du kannst sie ändern oder entfernen. ${webHinweis}`.trim(), website)));
+}
+
+function mitZeitlimit<T>(ms: number, p: Promise<T>): Promise<T> {
+  let t: ReturnType<typeof setTimeout> | null = null;
+  return Promise.race([p, new Promise<never>((_, nein) => { t = setTimeout(() => nein(new Error("Zeitlimit")), ms); })]).finally(() => { if (t !== null) clearTimeout(t); });
 }
 
 export function beschreibungFallback(beschreibung: string, orte: string): Vorschlag {
