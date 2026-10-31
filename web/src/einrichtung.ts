@@ -1,6 +1,8 @@
 // Setup assistant: the firm describes itself in a few sentences, Claude proposes the search profile
 // (services with CPV codes and search words, exclusions, locations with postal code areas), the admin
 // confirms or edits it. Saved in suchprofile (firm level); the daily alarm reads it from there.
+import { arbeitsAuswahl, arbeitAusName, MAX_ARBEITEN } from "./arbeitsauswahl.ts";
+import { firmenInfos } from "./firmeninfos.ts";
 import { rechercheProfil } from "./firmenrecherche.ts";
 export { FIRMEN_WEB_SUCHTOOL } from "./firmenrecherche.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
@@ -231,14 +233,8 @@ function rechercheFehler(e: unknown): string {
 const liste = (x: string[] | undefined) => escape((x ?? []).join(", "));
 
 export function profilFormular(firma: string, v: Vorschlag, hinweis: string, website = ""): string {
-  const leistungen = [...v.leistungen, { name: "", cpv: [], woerter: [] }].map((l, i) => `<fieldset>
-  <label class="zeile"><input type="checkbox" name="l${i}_an" value="1"${l.name ? " checked" : ""}> ${l.name ? `${escape(l.name)} suchen` : "Weitere Arbeit hinzufügen"}</label>
-  <details><summary>${l.name ? "Arbeit und Suchbegriffe ändern" : "Weitere Arbeit eintragen"}</summary>
-  <label>Beruf oder Arbeit<input name="l${i}_name" maxlength="120" placeholder="z. B. Fliesen verlegen" value="${escape(l.name)}"></label>
-    <label>Wörter, die in passenden Ausschreibungen vorkommen können<input name="l${i}_woerter" maxlength="1000" value="${liste(l.woerter)}"></label>
-    <label>Vergabe-Kennziffern (CPV, optional)<input name="l${i}_cpv" maxlength="300" inputmode="numeric" value="${liste(l.cpv)}"></label>
-  </details>
-</fieldset>`).join("");
+  v = bereinigen(v);
+  const leistungen = arbeitsAuswahl(v.leistungen);
   const standorte = [...v.standorte, { name: "", plz_praefixe: [] }].map((o, i) => `<fieldset>
   <label class="zeile"><input type="checkbox" name="o${i}_an" value="1"${o.name ? " checked" : ""}> ${o.name ? `${escape(o.name)} als Einsatzort` : "Weiteren Einsatzort hinzufügen"}</label>
   <details><summary>${o.name ? "Suchgebiet ändern" : "Weiteren Einsatzort eintragen"}</summary>
@@ -257,17 +253,9 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" value="${escape(website)}"></label>
   <label>Deine Beschreibung der Firma (optional)
     <textarea name="beschreibung" maxlength="3000">${escape(v.beschreibung)}</textarea></label>
-  <details><summary>Was Jarvis über die Firma gefunden hat</summary>
-  <label>Das hat Jarvis auf der Website gefunden
-    <textarea name="website_beschreibung" maxlength="1500" placeholder="Keine Website-Informationen gefunden">${escape(v.website_beschreibung)}</textarea>
-    ${v.website_hinweis ? `<span class="klein">${escape(v.website_hinweis)}</span>` : ""}</label>
-  <label>Das hat Jarvis in öffentlichen Suchen gefunden
-    <textarea name="websuche_beschreibung" maxlength="1500" placeholder="Keine passenden Suchinformationen gefunden">${escape(v.websuche_beschreibung)}</textarea>
-    <span class="klein">Zusätzliche öffentliche Fundstellen, getrennt von Website und eigener Beschreibung.</span></label>
+  ${firmenInfos(v, true)}
   ${(v.websuche_quellen ?? []).map((q) => `<input type="hidden" name="websuche_quellen" value="${escape(JSON.stringify(q))}">`).join("")}
-  ${(v.websuche_quellen ?? []).length ? `<p class="klein">Quellen: ${(v.websuche_quellen ?? []).map((q) => `<a href="${escape(q.url)}" target="_blank" rel="noopener noreferrer">${escape(q.titel || q.url)}</a>`).join(" · ")}</p>` : ""}
-  </details>
-  <h2>Welche Arbeiten soll Jarvis finden?</h2>
+  <h2>Welche Arbeiten soll Jarvis für dich finden?</h2>
   ${leistungen}
   <details><summary>Unpassende Arbeiten ausschließen (optional)</summary>
     <label>Welche Aufträge soll Jarvis nicht anzeigen?<input name="ausschluss" maxlength="1500" placeholder="z. B. Neubau, wenn ihr nur renoviert" value="${liste(v.ausschluss)}"></label>
@@ -311,7 +299,7 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
     website_beschreibung: String(v.website_beschreibung ?? "").trim().slice(0, 1500),
     websuche_beschreibung: String(v.websuche_beschreibung ?? "").trim().slice(0, 1500),
     websuche_quellen: (Array.isArray(v.websuche_quellen) ? v.websuche_quellen : []).map((q) => ({ titel: String(q?.titel ?? "").trim().slice(0, 200), url: sichereQuellenUrl(q?.url) })).filter((q) => q.url).slice(0, 5),
-    leistungen: (v.leistungen ?? []).map((l) => ({ name: String(l.name ?? "").trim().slice(0, 120), cpv: ziffern(l.cpv, 2, 8), woerter: woerter(l.woerter) })).filter((l) => l.name && (l.cpv.length || l.woerter.length)).slice(0, 12),
+    leistungen: (v.leistungen ?? []).map((l) => ({ name: String(l.name ?? "").trim().slice(0, 120), cpv: ziffern(l.cpv, 2, 8), woerter: woerter(l.woerter) })).filter((l) => l.name && (l.cpv.length || l.woerter.length)).slice(0, MAX_ARBEITEN),
     ausschluss: woerter(v.ausschluss),
     ausschluss_cpv: ziffern(v.ausschluss_cpv, 2, 8),
     standorte: (v.standorte ?? []).map((o) => ({ name: String(o.name ?? "").trim().slice(0, 120), plz_praefixe: ziffern(o.plz_praefixe, 2, 2), ...(o.bereich_id && ID.test(o.bereich_id) ? { bereich_id: o.bereich_id } : {}) })).filter((o) => o.name).slice(0, 40),
@@ -331,7 +319,12 @@ export function ausFormular(form: FormData): Vorschlag {
   const leistungen: Leistung[] = [];
   const standorte: Standort[] = [];
   for (let i = 0; i < 20; i++) {
-    if (form.get(`l${i}_an`)) leistungen.push({ name: String(form.get(`l${i}_name`) ?? ""), cpv: teile(`l${i}_cpv`), woerter: teile(`l${i}_woerter`) });
+    if (form.get(`l${i}_an`)) {
+      const name = String(form.get(`l${i}_name`) ?? "");
+      const cpv = teile(`l${i}_cpv`).filter((w) => w.trim());
+      const woerter = teile(`l${i}_woerter`).filter((w) => w.trim());
+      leistungen.push({ name, cpv, woerter: !cpv.length && !woerter.length ? arbeitAusName(name).woerter : woerter });
+    }
     if (form.get(`o${i}_an`)) standorte.push({ name: String(form.get(`o${i}_name`) ?? ""), plz_praefixe: teile(`o${i}_plz`), bereich_id: String(form.get(`o${i}_bereich`) ?? "") || undefined });
   }
   let quellen: WebQuelle[] = [];

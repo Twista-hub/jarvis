@@ -164,12 +164,12 @@ test("Gespeichertes Suchprofil zeigt eigene, Website- und Websuch-Funde getrennt
   assert.match(eingerichtet, /Die Suche für Musterfirma ist eingerichtet/);
   assert.match(eingerichtet, /Suchprofil bearbeiten/);
   assert.match(eingerichtet, /Deine Beschreibung[\s\S]*Eigene Firmenbeschreibung/);
-  assert.match(eingerichtet, /Auf der Website gefunden[\s\S]*Auf der Website gefundene Leistungen/);
-  assert.match(eingerichtet, /In öffentlichen Suchen gefunden[\s\S]*Im öffentlichen Firmenprofil gefundene Leistungen/);
+  assert.match(eingerichtet, /Von eurer Website[\s\S]*Auf der Website gefundene Leistungen/);
+  assert.match(eingerichtet, /Aus öffentlichen Quellen[\s\S]*Im öffentlichen Firmenprofil gefundene Leistungen/);
   assert.match(eingerichtet, /Ausschreibungen jetzt suchen/);
   assert.match(eingerichtet, /Firmeninfos neu recherchieren/);
   assert.match(eingerichtet, /Firmeninfos zuletzt aktualisiert:/);
-  assert.match(eingerichtet, /<details><summary>Firmenbeschreibung und Recherche ansehen/);
+  assert.match(eingerichtet, /<details class="firmen-erkenntnisse" open><summary>Was Jarvis über die Firma gefunden hat/);
   profile.length = 0;
   const leer = await seite("/konto/suchprofil");
   assert.match(leer, /noch keine Suche eingerichtet/);

@@ -61,6 +61,29 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   button.zweit, a.knopf.zweit { background: var(--card); color: var(--accent); border: 1px solid var(--line); }
   .zeile { display: flex; gap: 8px; align-items: center; font-weight: 600; }
   .zeile input { width: auto; }
+  .firmen-erkenntnisse { min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--bg); padding: 4px 14px 14px; }
+  .firmen-erkenntnisse > summary { min-height: 48px; padding: 10px 0; font-weight: 700; cursor: pointer; }
+  .firmen-fund-karten { display: grid; gap: 12px; margin-top: 8px; }
+  .firmen-fund { min-width: 0; padding: 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .firmen-fund h3 { color: var(--accent); font-size: 1rem; margin: 0 0 8px; }
+  .firmen-fund p { margin: 0 0 10px; }
+  .firmen-fund-text { white-space: pre-line; line-height: 1.65; }
+  .fund-bearbeiten { font-size: .9rem; }
+  .fund-bearbeiten > summary { min-height: 44px; padding: 10px 0; color: var(--accent); cursor: pointer; }
+  .firmen-quellen { margin-top: 14px; font-size: .88rem; }
+  .firmen-quellen ul { list-style: none; display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 8px 0 0; }
+  .firmen-quellen li { min-width: 0; max-width: 100%; }
+  .firmen-quellen a { display: block; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); overflow-wrap: anywhere; }
+  .arbeitsauswahl { min-width: 0; display: grid; gap: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--bg); }
+  .arbeits-chips { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+  .arbeits-chip { display: flex; align-items: stretch; min-width: 0; max-width: 100%; border: 1px solid var(--line); border-radius: 9px; overflow: hidden; background: var(--card); }
+  .arbeits-chip button { background: transparent; color: var(--accent); border-radius: 0; }
+  .arbeits-chip-name { min-width: 0; padding: 8px 10px; text-align: left; font-size: .9rem; overflow-wrap: anywhere; }
+  .arbeits-chip-entfernen { flex: 0 0 44px; padding: 4px 8px; font-size: 1.3rem; border-left: 1px solid var(--line); }
+  .arbeits-editor { display: grid; gap: 10px; }
+  .arbeits-editor fieldset { margin: 0; background: var(--card); }
+  .eigene-arbeit { display: grid; gap: 10px; }
+  @media (min-width: 640px) { .firmen-fund-karten { grid-template-columns: repeat(2, minmax(0, 1fr)); } .eigene-arbeit { grid-template-columns: minmax(0, 1fr) auto; align-items: end; } }
   input, select, textarea { min-width: 0; max-width: 100%; font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }
   button { font: inherit; font-weight: 600; padding: 12px; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); cursor: pointer; }
   button, input, select { min-height: 44px; }
