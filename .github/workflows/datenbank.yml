@@ -65,7 +65,8 @@ jobs:
               echo "::add-mask::$url"; echo "DB_URL=$url" >> "$GITHUB_ENV"; exit 0
             fi
           done
-          echo "::error::Keine Verbindung (Passwort falsch oder Projekt pausiert)."; exit 1
+          psql "postgresql://postgres.$REF:$pw@aws-1-eu-central-1.pooler.supabase.com:5432/postgres" -tAc "select 1" 2>&1 | sed 's/postgres\.[a-z]*:[^@]*@/***@/' | head -3
+          echo "::error::Keine Verbindung (Passwort falsch, Projekt pausiert oder Pool voll)."; exit 1
       - name: Letzte Anmeldungen (Fehlersuche Login)
         if: inputs.aktion == 'anmeldungen'
         run: |
