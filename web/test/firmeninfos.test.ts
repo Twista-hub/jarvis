@@ -18,5 +18,5 @@ test("belegte Firmenstandorte sind direkt sichtbar mit Quellen und Team-Link", (
   assert.match(document.querySelector(".firmen-standorte")!.textContent!, /1 Firmenstandort gefunden/);
   assert.match(document.querySelector(".firmen-standorte")!.textContent!, /52062 Aachen/);
   assert.equal(document.querySelector('.firmen-standorte a[href="/konto/team"]')!.textContent, "Firma & Team öffnen");
-  assert.match(document.querySelector(".firmen-standorte")!.textContent!, /Suchgebiet ändert sich dadurch nicht/);
+  assert.match(document.querySelector(".firmen-standorte")!.textContent!, /sucht an allen 1 Firmenstandorten/);
 });

@@ -1,4 +1,5 @@
 import sys
+import json
 import unittest
 from pathlib import Path
 
@@ -14,6 +15,35 @@ def bekanntmachung(plz="", ort=""):
 
 
 class SuchgebietTest(unittest.TestCase):
+    def alle_standorte(self, modus=None):
+        standorte = json.loads((Path(__file__).parent / "testdaten" / "firmenstandorte.json").read_text())
+        e = {"firmenstandorte": standorte, "standorte": [{"name": "Berlin", "plz_praefixe": ["10", "14"], "bereich_id": standorte[0]["bereich_id"]}]}
+        if modus:
+            e["suchgebiet_modus"] = modus
+        return aus_db("firma", "Personaldienstleister", "Personal", e)
+
+    def test_all_sixteen_branches_are_searched_and_mapped_to_their_own_area(self):
+        p = self.alle_standorte()
+        self.assertEqual(len(p["suchorte"]), 16)
+        self.assertEqual(len(p["regionen"]), 16)
+        self.assertEqual(p["suchorte"][0]["plz_praefixe"], ["10", "14"])
+        for ort in p["standorte"]:
+            self.assertTrue(im_suchgebiet(p, bekanntmachung(ort["plz_praefixe"][0] + "000", ort["name"])))
+        self.assertTrue(im_suchgebiet(p, bekanntmachung("52062", "Aachen")))
+        self.assertTrue(im_suchgebiet(p, bekanntmachung("20457", "Hamburg")))
+        self.assertTrue(im_suchgebiet(p, bekanntmachung("14057", "Berlin")))
+        self.assertFalse(im_suchgebiet(p, bekanntmachung("80331", "München")))
+
+    def test_explicit_manual_selection_keeps_berlin_only(self):
+        p = self.alle_standorte("manuell")
+        self.assertEqual(len(p["suchorte"]), 1)
+        self.assertFalse(im_suchgebiet(p, bekanntmachung("52062", "Aachen")))
+
+    def test_delivery_city_still_matches_when_its_postcode_has_another_prefix(self):
+        p = self.alle_standorte()
+        self.assertTrue(im_suchgebiet(p, bekanntmachung("22111", "Hamburg")))
+        self.assertTrue(im_suchgebiet(p, bekanntmachung("10115", "Berlin")))
+
     def test_profile_without_location_remains_nationwide(self):
         self.assertTrue(im_suchgebiet({}, bekanntmachung("80331", "München")))
 

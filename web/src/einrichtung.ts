@@ -6,7 +6,7 @@ import { sucheLaeuft } from "./suchstatus.ts";
 import { firmenInfos } from "./firmeninfos.ts";
 import { rechercheProfil } from "./firmenrecherche.ts";
 import { kiFehlerart, kiFehlermeldung, type KiFehlerart } from "./ki-fehler.ts";
-import { standorteBereinigen, standortSchluessel, type Firmenstandort } from "./firmenstandorte.ts";
+import { standorteBereinigen, standortSchluessel, suchorteAnStandorten, type Firmenstandort, type SuchgebietModus } from "./firmenstandorte.ts";
 export { FIRMEN_WEB_SUCHTOOL } from "./firmenrecherche.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
@@ -23,7 +23,7 @@ export interface EinrichtungEnv extends KontoEnv {
 export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
 export type WebQuelle = { titel: string; url: string };
-export type Vorschlag = { beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; laender?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string };
+export type Vorschlag = { beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; laender?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string };
 
 export function suchlaufLaeuft(start: string | null | undefined, fertig: string | null | undefined, jetzt = Date.now()): boolean {
   return sucheLaeuft({ erstlauf: start, fertig }, jetzt);
@@ -126,6 +126,7 @@ async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: str
     v = bereinigen({ ...profil, beschreibung: eigeneBeschreibung, recherche_version: 2, website_hinweis: websiteDaten.hinweis, recherchiert_am: new Date().toISOString() });
     if (eingerichtet || basis.standorte.length) { v.standorte = basis.standorte; v.ausschluss = basis.ausschluss; v.ausschluss_cpv = basis.ausschluss_cpv; v.laender = basis.laender; }
     if (!v.firmenstandorte?.length) v.firmenstandorte = basis.firmenstandorte;
+    v.suchgebiet_modus = (eingabe.get("suchgebiet_modus") || vorhanden?.einstellungen?.suchgebiet_modus) === "manuell" ? "manuell" : undefined;
     if (!v.leistungen.length) throw new Error("keine belegten Leistungen erkannt");
   } catch (e) {
     console.warn(`Automatische Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
@@ -148,7 +149,7 @@ async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: str
     const amFirmensitz = v.standorte.find((o) => o.name.toLocaleLowerCase("de") === ort.toLocaleLowerCase("de"));
     v.standorte = [amFirmensitz ?? { name: ort, plz_praefixe: /^\d{5}$/.test(plz) ? [plz.slice(0, 2)] : [] }];
   }
-  const form = profilZuFormular(v, website);
+  const form = profilZuFormular(bereinigen(v), website);
   if (eingabe.get("aktion") === "recherche") form.set("aktion", "recherche");
   return speichern(s, env, firma, name, alteWebsite, rolle, form);
 }
@@ -170,6 +171,7 @@ export function hatProfiltext(v: Vorschlag): boolean {
 }
 
 export function profilZuFormular(v: Vorschlag, website: string): FormData {
+  v = bereinigen(v);
   const form = new FormData();
   form.set("firma", "");
   form.set("website", website);
@@ -179,6 +181,7 @@ export function profilZuFormular(v: Vorschlag, website: string): FormData {
   form.set("website_hinweis", v.website_hinweis ?? "");
   form.set("recherchiert_am", v.recherchiert_am ?? "");
   form.set("firmenstandorte", JSON.stringify(v.firmenstandorte ?? []));
+  if (v.suchgebiet_modus) form.set("suchgebiet_modus", v.suchgebiet_modus);
   form.set("websuche_beschreibung", v.websuche_beschreibung);
   for (const quelle of v.websuche_quellen) form.append("websuche_quellen", JSON.stringify(quelle));
   form.set("ausschluss", v.ausschluss.join(", "));
@@ -290,7 +293,9 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
     <label>Vergabe-Kennziffern für Ausschlüsse (optional)<input name="ausschluss_cpv" maxlength="300" inputmode="numeric" value="${liste(v.ausschluss_cpv)}"></label>
   </details>
   <h2>Wo soll Jarvis suchen?</h2>
-  ${standorte}
+  ${v.firmenstandorte?.length ? `<label>Suchgebiet<select name="suchgebiet_modus"><option value="firmenstandorte"${v.suchgebiet_modus !== "manuell" ? " selected" : ""}>Alle ${v.firmenstandorte.length} Firmenstandorte</option><option value="manuell"${v.suchgebiet_modus === "manuell" ? " selected" : ""}>Nur ausgewählte Orte</option></select></label>
+  <p class="klein">Die Ausschreibungssuche berücksichtigt jeden Firmenstandort. Mehrfach gefundene Ausschreibungen erscheinen einmal.</p>
+  <details${v.suchgebiet_modus === "manuell" ? " open" : ""}><summary>Eigene Suchorte festlegen (optional)</summary><p class="klein">Wähle dafür oben „Nur ausgewählte Orte“. Ohne eigene Suchorte gilt ganz Deutschland.</p>${standorte}</details>` : standorte}
   <details><summary>In weiteren Ländern suchen (optional)</summary>
     <p class="klein">Deutschland ist standardmäßig ausgewählt. Jarvis kann zusätzlich Ausschreibungen aus europäischen Ländern und den USA suchen.</p>
     ${laenderAuswahl(laenderBereinigen(v.laender))}
@@ -319,6 +324,9 @@ function laenderAuswahl(gewaehlt: string[]): string {
 export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
   const woerter = (x: unknown) => [...new Set((Array.isArray(x) ? x : []).map((w) => String(w).toLowerCase().replace(/\s+/g, " ").trim()).filter((w) => w.length >= 3 && w.length <= 60))].slice(0, 40);
   const ziffern = (x: unknown, min: number, max: number) => [...new Set((Array.isArray(x) ? x : []).map((c) => String(c).replace(/\D/g, "")).filter((c) => c.length >= min && c.length <= max))].slice(0, 40);
+  const firmenstandorte = standorteBereinigen(v.firmenstandorte);
+  const modus = firmenstandorte.length ? (v.suchgebiet_modus === "manuell" ? "manuell" : "firmenstandorte") : undefined;
+  const suchorte = (v.standorte ?? []).map((o) => ({ name: String(o.name ?? "").trim().slice(0, 120), plz_praefixe: ziffern(o.plz_praefixe, 2, 2), ...(o.bereich_id && ID.test(o.bereich_id) ? { bereich_id: o.bereich_id } : {}) })).filter((o) => o.name).slice(0, 40);
   return {
     beschreibung: String(v.beschreibung ?? "").trim().slice(0, 3000),
     recherche_version: v.recherche_version === 2 ? 2 : undefined,
@@ -327,11 +335,12 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
     website_beschreibung: String(v.website_beschreibung ?? "").trim().slice(0, 1500),
     websuche_beschreibung: String(v.websuche_beschreibung ?? "").trim().slice(0, 1500),
     websuche_quellen: (Array.isArray(v.websuche_quellen) ? v.websuche_quellen : []).map((q) => ({ titel: String(q?.titel ?? "").trim().slice(0, 200), url: sichereQuellenUrl(q?.url) })).filter((q) => q.url).slice(0, 5),
-    firmenstandorte: standorteBereinigen(v.firmenstandorte),
+    firmenstandorte,
+    suchgebiet_modus: modus,
     leistungen: (v.leistungen ?? []).map((l) => ({ name: String(l.name ?? "").trim().slice(0, 120), cpv: ziffern(l.cpv, 2, 8), woerter: woerter(l.woerter) })).filter((l) => l.name && (l.cpv.length || l.woerter.length)).slice(0, MAX_ARBEITEN),
     ausschluss: woerter(v.ausschluss),
     ausschluss_cpv: ziffern(v.ausschluss_cpv, 2, 8),
-    standorte: (v.standorte ?? []).map((o) => ({ name: String(o.name ?? "").trim().slice(0, 120), plz_praefixe: ziffern(o.plz_praefixe, 2, 2), ...(o.bereich_id && ID.test(o.bereich_id) ? { bereich_id: o.bereich_id } : {}) })).filter((o) => o.name).slice(0, 40),
+    standorte: modus === "firmenstandorte" ? suchorteAnStandorten(firmenstandorte, suchorte) : suchorte,
     laender: laenderBereinigen(v.laender),
   };
 }
@@ -360,7 +369,7 @@ export function ausFormular(form: FormData): Vorschlag {
   try { quellen = form.getAll("websuche_quellen").map(String).map((x) => JSON.parse(x) as WebQuelle); } catch { quellen = []; }
   let firmenstandorte: Firmenstandort[] = [];
   try { firmenstandorte = standorteBereinigen(JSON.parse(String(form.get("firmenstandorte") ?? "[]").slice(0, 40000))); } catch { /* Keep invalid client input out of the profile. */ }
-  return bereinigen({ recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
+  return bereinigen({ recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, suchgebiet_modus: form.get("suchgebiet_modus") === "manuell" ? "manuell" : undefined, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
 }
 
 async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, alteWebsite: string, rolle: string, form: FormData): Promise<Response> {
@@ -399,7 +408,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     woerter: [...new Set(v.leistungen.flatMap((l) => l.woerter))].join(", "),
     ausschluss: v.ausschluss.join(", "),
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
-    einstellungen: { recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
+    einstellungen: { recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
   };
   const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.
@@ -466,7 +475,8 @@ async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: 
     const hinweis = `Der Suchlauf wurde nicht gestartet. ${laufstart.hinweis} Deine Suche bleibt gespeichert.`;
     return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(hinweis)}`, s.cookies);
   }
-  const einstellungen = { ...alt.einstellungen, erstlauf: new Date().toISOString() };
+  const normal = bereinigen(alt.einstellungen);
+  const einstellungen = { ...alt.einstellungen, standorte: normal.standorte, suchgebiet_modus: normal.suchgebiet_modus, erstlauf: new Date().toISOString() };
   await db(s, env, `suchprofile?id=eq.${alt.id}`, { method: "PATCH", body: JSON.stringify({ einstellungen }) });
   return weiterleiten(`/konto?firma=${firma}`);
 }

@@ -287,6 +287,7 @@ def run(days: list[str]) -> str:
     briefe = 0
     treffer = []  # for the firms' accounts in the app (alarm/speichern.py)
     for name, profile in profiles.items():
+        lines += [f"Suchgebiet {profile['name']}: {len(profile.get('suchorte') or [])} Standorte" if profile.get("suchorte") else f"Suchgebiet {profile['name']}: bundesweit", ""]
         alle = sorted(hits[name], key=lambda h: -h[0])
         cache = katalog.bewertungen(profile)
         neu = [r for r in alle if katalog.schluessel(r[2]) not in cache][:40]
@@ -343,6 +344,10 @@ def run(days: list[str]) -> str:
                             "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version")})
         if weg:
             lines += [f"_{len(weg)} weitere Kandidaten aussortiert: unter {MIN_PASSUNG}/10 oder ohne eindeutigen Leistungsbezug._", ""]
+            lines += ["<details><summary>Aussortierte Kandidaten und Gründe</summary>", ""]
+            for b, _, _, rel, grund in weg[:40]:
+                lines += [f"- {b.get('punkte', 'ohne KI')}/10 · {(rel.get('tender') or {}).get('title', '')}: {b.get('grund') or grund}"]
+            lines += ["", "</details>", ""]
         if not rows:
             lines += ["Heute nichts Passendes.", ""]
     kompletter_katalog = gemeinsam is not None and len(gemeinsam) < 10000 and not ausland and all(len(h) <= 200 for h in hits.values())

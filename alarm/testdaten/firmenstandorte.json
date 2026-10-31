@@ -1,0 +1,98 @@
+[
+  {
+    "name": "Berlin (Zentrale)",
+    "plz": "14057",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000001"
+  },
+  {
+    "name": "Aachen",
+    "plz": "52062",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000002"
+  },
+  {
+    "name": "Bochum",
+    "plz": "44801",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000003"
+  },
+  {
+    "name": "Bonn",
+    "plz": "53111",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000004"
+  },
+  {
+    "name": "Bremen",
+    "plz": "28195",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000005"
+  },
+  {
+    "name": "Dortmund",
+    "plz": "44227",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000006"
+  },
+  {
+    "name": "Düsseldorf",
+    "plz": "40210",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000007"
+  },
+  {
+    "name": "Frankfurt am Main",
+    "plz": "60486",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000008"
+  },
+  {
+    "name": "Gelsenkirchen",
+    "plz": "45899",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000009"
+  },
+  {
+    "name": "Hamburg",
+    "plz": "20457",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000010"
+  },
+  {
+    "name": "Hannover",
+    "plz": "30453",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000011"
+  },
+  {
+    "name": "Köln",
+    "plz": "50668",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000012"
+  },
+  {
+    "name": "Leverkusen",
+    "plz": "51373",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000013"
+  },
+  {
+    "name": "Lübeck",
+    "plz": "23558",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000014"
+  },
+  {
+    "name": "Mainz",
+    "plz": "55131",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000015"
+  },
+  {
+    "name": "Neuss",
+    "plz": "41460",
+    "quelle": "https://www.perlease.de/standorte",
+    "bereich_id": "00000000-0000-4000-8000-000000000016"
+  }
+]

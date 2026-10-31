@@ -42,6 +42,36 @@ def muster(woerter: list[str]) -> str:
     return "|".join(teile) or NIE
 
 
+def standort_schluessel(name: str) -> str:
+    import unicodedata
+    text = unicodedata.normalize("NFKC", name).lower()
+    text = re.sub(r"\((?:zentrale|hauptsitz|hauptniederlassung|niederlassung|standort)\)", "", text)
+    text = re.sub(r"^(?:standort|niederlassung|geschäftsstelle)\s*[:–-]?\s+", "", text)
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def suchorte_fuer_standorte(e: dict) -> list[dict]:
+    bisher = e.get("standorte") or []
+    firmenstandorte = [o for o in e.get("firmenstandorte") or []
+                      if isinstance(o, dict) and o.get("name") and str(o.get("quelle", "")).startswith("https://")][:40]
+    if e.get("suchgebiet_modus") == "manuell" or not firmenstandorte:
+        return bisher
+    result, gesehen = [], set()
+    for o in firmenstandorte:
+        key = standort_schluessel(str(o["name"]))
+        if key in gesehen:
+            continue
+        gesehen.add(key)
+        alt = next((a for a in bisher if (o.get("bereich_id") and a.get("bereich_id") == o["bereich_id"])
+                    or standort_schluessel(str(a.get("name", ""))) == key), {})
+        plz = str(o.get("plz") or "")
+        praefixe = sorted({str(p) for p in alt.get("plz_praefixe") or [] if re.fullmatch(r"\d{2}", str(p))}
+                          | ({plz[:2]} if re.fullmatch(r"\d{5}", plz) else set()))
+        bereich = o.get("bereich_id") or alt.get("bereich_id")
+        result.append({"name": o["name"], "plz_praefixe": praefixe, **({"bereich_id": bereich} if bereich else {})})
+    return result
+
+
 def im_suchgebiet(profile: dict, rel: dict) -> bool:
     """Limit app profiles to tender delivery locations; profiles without places stay nationwide."""
     suchorte = profile.get("suchorte") or []
@@ -51,7 +81,7 @@ def im_suchgebiet(profile: dict, rel: dict) -> bool:
     if not items:
         return False
     for ort in suchorte:
-        name = re.sub(r"\s+", " ", str(ort.get("name", ""))).strip().casefold()
+        name = standort_schluessel(str(ort.get("name", "")))
         praefixe = [str(p) for p in ort.get("plz_praefixe", []) if re.fullmatch(r"\d{2}", str(p))]
         for item in items:
             adresse = item.get("deliveryAddress") or {}
@@ -61,7 +91,7 @@ def im_suchgebiet(profile: dict, rel: dict) -> bool:
                 postleitzahl = re.search(r"\b(\d{5})\b", ortstext)
                 if postleitzahl and postleitzahl.group(1)[:2] in praefixe:
                     return True
-            elif name and re.search(rf"(?<![\w]){re.escape(name)}(?![\w])", ortstext, re.IGNORECASE):
+            if name and re.search(rf"(?<![\w]){re.escape(name)}(?![\w])", ortstext, re.IGNORECASE):
                 return True
     return False
 
@@ -74,7 +104,7 @@ def nicht_mehr_aktuelle_treffer(vorgaenge: list[tuple[str, str]], aktuelle_ids: 
 def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str = "") -> dict:
     """Converts a saved profile into the format of profile.json."""
     leistungen = e.get("leistungen") or []
-    standorte = e.get("standorte") or []
+    standorte = suchorte_fuer_standorte(e)
     ortswoerter = {w for o in standorte for w in re.findall(r"\w+", str(o.get("name", "")).lower())}
     woerter = muster([w for l in leistungen for w in l.get("woerter", [])])
     stark = muster([w for l in leistungen for w in l.get("woerter", [])
@@ -104,6 +134,8 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         "regionen": {o["bereich_id"]: plz_bereiche(o) for o in standorte if o.get("bereich_id")},
         # Countries to search (ISO3). Germany = Bekanntmachungsservice, others = TED. Default: Germany only.
         "laender": [l for l in e.get("laender") or ["DEU"] if isinstance(l, str) and len(l) == 3] or ["DEU"],
+        **({"standorte": standorte, "suchgebiet_modus": "firmenstandorte"}
+           if e.get("firmenstandorte") and e.get("suchgebiet_modus") != "manuell" else {}),
     }
 
 

@@ -10,7 +10,7 @@ test("automatische Ergänzung bewahrt eigene Beschreibung, Suchgebiete, Länder 
 });
 
 test("Firmenstandorte und bis zu vierzig Suchorte bleiben im Formular vollständig erhalten", () => {
-  const v = bereinigen({ beschreibung: "Unsere Leistungen und Niederlassungen", firmenstandorte: [{ name: "Köln", plz: "50667", quelle: "https://firma.example/standorte" }],
+  const v = bereinigen({ beschreibung: "Unsere Leistungen und Niederlassungen", suchgebiet_modus: "manuell", firmenstandorte: [{ name: "Köln", plz: "50667", quelle: "https://firma.example/standorte" }],
     standorte: Array.from({ length: 40 }, (_, i) => ({ name: `Ort ${i}`, plz_praefixe: ["50"] })) });
   assert.deepEqual(ausFormular(profilZuFormular(v, "https://firma.example")), v);
 });
