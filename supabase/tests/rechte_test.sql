@@ -28,6 +28,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031090000_angebotsabgabe_verfasser_bei_kontoloeschung.sql
 \ir ../migrations/20261031110000_dachdecker_mindestlohn.sql
 \ir ../migrations/20261031120000_tarifliche_mindestentgelte_pflege_reinigung.sql
+\ir ../migrations/20261031130000_geruestbau_mindestlohn.sql
 \ir ../migrations/20261030224121_kaufverantwortung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
@@ -89,7 +90,11 @@ end $$;
 insert into public.personal (firma_id, bereich_id, vorname, berufe) values (:'firma', :'berlin', 'Eva', '{Servicekraft}');
 select pruefe((select count(*) = 1 from public.personal), 'Bearbeiter trägt Personal in Berlin ein');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name='Zeitarbeit GVP/DGB' and '2a'=any(gruppen)), 'Firma erhält GVP/DGB mit dokumentierten Entgeltgruppen');
-select pruefe((select count(*) = 14 from public.firmen_tarifvertraege where firma_id=:'firma' and vorgegeben), 'Neue Firma erhält den quellengebundenen Startbestand einschließlich der Pflege- und Reinigungsmindestentgelte');
+select pruefe((select count(*) = 15 from public.firmen_tarifvertraege where firma_id=:'firma' and vorgegeben), 'Neue Firma erhält den quellengebundenen Startbestand einschließlich Pflege-, Reinigungs- und Gerüstbaumindestentgelt');
+select pruefe((select count(*) = 1 from public.tarifkatalog where id='geruestbau-mindestlohn-2026' and aktiv and 'Gerüstbauer/in'=any(berufe) and gueltig_ab='2026-01-01' and gueltig_bis='2027-12-31'), 'Gerüstbau-Mindestlohn ist mit Branche, Beruf und Geltungszeitraum dokumentiert');
+select pruefe((select count(*) = 2 from public.tarifkatalog_saetze where tarif_id='geruestbau-mindestlohn-2026' and einheit='Stunde'), 'Gerüstbau-Mindestlohn hat beide amtlichen Stichtagswerte');
+select pruefe((select betrag=14.35 from public.tarifkatalog_saetze where tarif_id='geruestbau-mindestlohn-2026' and gueltig_ab='2026-01-01'), 'Gerüstbau-Mindestlohn 2026 stimmt mit § 2 TVMindestlohn Gerüstb 9 überein');
+select pruefe((select betrag=14.90 from public.tarifkatalog_saetze where tarif_id='geruestbau-mindestlohn-2026' and gueltig_ab='2027-01-01'), 'Gerüstbau-Mindestlohn 2027 stimmt mit § 2 TVMindestlohn Gerüstb 9 überein');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name='Elektrohandwerk NRW' and 'EG 12'=any(gruppen) and 'Elektriker/in'=any(berufe) and quelle_url like 'https://%'), 'Branchenvertrag hat Gruppen, Beruf und Quelle');
 select pruefe((select cardinality(gruppen) = 38 from public.firmen_tarifvertraege where firma_id=:'firma' and name like 'Garten-, Landschaft%'), 'Tarif mit getrennten Lohn- und Gehaltsgruppen passt vollständig ins Schema');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name like 'Maler-%' and tarifart='Branchenmindestlohn'), 'Branchenmindestlohn ist als solcher gekennzeichnet');
