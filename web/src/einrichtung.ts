@@ -23,7 +23,7 @@ export interface EinrichtungEnv extends KontoEnv {
 export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
 export type WebQuelle = { titel: string; url: string };
-export type Vorschlag = { beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; laender?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string };
+export type Vorschlag = { min_punkte?: number; beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; laender?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string };
 
 export function suchlaufLaeuft(start: string | null | undefined, fertig: string | null | undefined, jetzt = Date.now()): boolean {
   return sucheLaeuft({ erstlauf: start, fertig }, jetzt);
@@ -304,6 +304,11 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   <label>Neue Treffer per Mail an dich um<select name="stunde">${stundenOptionen(7)}</select>
     <span class="klein">Jeder im Team stellt seine Uhrzeit selbst ein.</span></label>
   </details>
+  <details><summary>Ab welcher Punktzahl zeigen? <span class="check-zahl">ab ${v.min_punkte ?? 6}/10</span></summary>
+  <label>Treffer anzeigen und melden ab<select name="min_punkte">${[4, 5, 6, 7, 8].map((n) => `<option value="${n}"${n === (v.min_punkte ?? 6) ? " selected" : ""}>${n}/10${n === 6 ? " (empfohlen)" : n < 6 ? " – mehr, auch unsichere Treffer" : " – nur sehr passende"}</option>`).join("")}</select></label>
+  <span class="klein">Ändert nur, welche bewerteten Treffer erscheinen. Kostet nichts extra.</span>
+  </details>
+  <p class="kosten-hinweis">💡 Wenn du Arbeiten, Suchwörter oder Orte änderst, bewertet Jarvis beim nächsten Suchlauf alle passenden Ausschreibungen neu. Das kostet einmalig etwa 0,50–1 € KI-Guthaben.</p>
   <button type="submit">Speichern und Ausschreibungen suchen</button>
   <button type="submit" class="zweit" name="aktion" value="recherche" formaction="/konto/einrichtung/automatisch" formnovalidate>Firmeninfos neu recherchieren</button>
   <p class="klein">Liest die Website und öffentliche Quellen neu und aktualisiert dein Firmenprofil.</p>
@@ -327,7 +332,9 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
   const firmenstandorte = standorteBereinigen(v.firmenstandorte);
   const modus = firmenstandorte.length ? (v.suchgebiet_modus === "manuell" ? "manuell" : "firmenstandorte") : undefined;
   const suchorte = (v.standorte ?? []).map((o) => ({ name: String(o.name ?? "").trim().slice(0, 120), plz_praefixe: ziffern(o.plz_praefixe, 2, 2), ...(o.bereich_id && ID.test(o.bereich_id) ? { bereich_id: o.bereich_id } : {}) })).filter((o) => o.name).slice(0, 40);
+  const mindest = Math.round(Number(v.min_punkte));
   return {
+    min_punkte: mindest >= 3 && mindest <= 9 ? mindest : undefined,
     beschreibung: String(v.beschreibung ?? "").trim().slice(0, 3000),
     recherche_version: v.recherche_version === 2 ? 2 : undefined,
     recherchiert_am: v.recherchiert_am && Number.isFinite(Date.parse(v.recherchiert_am)) ? v.recherchiert_am : undefined,
@@ -369,7 +376,7 @@ export function ausFormular(form: FormData): Vorschlag {
   try { quellen = form.getAll("websuche_quellen").map(String).map((x) => JSON.parse(x) as WebQuelle); } catch { quellen = []; }
   let firmenstandorte: Firmenstandort[] = [];
   try { firmenstandorte = standorteBereinigen(JSON.parse(String(form.get("firmenstandorte") ?? "[]").slice(0, 40000))); } catch { /* Keep invalid client input out of the profile. */ }
-  return bereinigen({ recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, suchgebiet_modus: form.get("suchgebiet_modus") === "manuell" ? "manuell" : undefined, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
+  return bereinigen({ min_punkte: Number(form.get("min_punkte")) || undefined, recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, suchgebiet_modus: form.get("suchgebiet_modus") === "manuell" ? "manuell" : undefined, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
 }
 
 async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, alteWebsite: string, rolle: string, form: FormData): Promise<Response> {
@@ -408,7 +415,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     woerter: [...new Set(v.leistungen.flatMap((l) => l.woerter))].join(", "),
     ausschluss: v.ausschluss.join(", "),
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
-    einstellungen: { recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
+    einstellungen: { min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
   };
   const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.

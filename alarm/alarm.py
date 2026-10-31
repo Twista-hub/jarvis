@@ -307,7 +307,7 @@ def zwischenstand(name: str, profile: dict, alle: list, cache: dict, gespeichert
     neue = []
     for points, day, rel, _ in alle:
         b = cache.get(katalog.schluessel(rel))
-        if not (rel.get("_beobachtet") or (b and b.get("punkte", 0) >= MIN_PASSUNG)):
+        if not (rel.get("_beobachtet") or (b and b.get("punkte", 0) >= profile.get("min_punkte", MIN_PASSUNG))):
             continue
         eintrag = treffer_eintrag(name, b or {}, day, rel, steckbrief_datei(name, day, rel) if steckbrief_datei(name, day, rel).exists() else None)
         if eintrag["quelle_id"] not in gespeichert:
@@ -407,7 +407,7 @@ def run(days: list[str]) -> str:
         rows = [(bewertung.get(i, {}), *r) for i, r in enumerate(rows)]
         rows.sort(key=lambda r: (-r[0].get("punkte", 0), -r[1]))
         def passend(r):
-            return r[3].get("_beobachtet") or (r[0].get("punkte", 0) >= MIN_PASSUNG if r[0] else ohne_ki_passend(profile, r[3]))
+            return r[3].get("_beobachtet") or (r[0].get("punkte", 0) >= profile.get("min_punkte", MIN_PASSUNG) if r[0] else ohne_ki_passend(profile, r[3]))
         offen = [r for r in rows if not r[0]]
         weg = [r for r in rows if r[0] and not passend(r)]
         rows = [r for r in rows if passend(r)]
@@ -440,7 +440,7 @@ def run(days: list[str]) -> str:
             lines += [links, ""]
             treffer.append(treffer_eintrag(name, b, day, rel, pfad))
         if weg:
-            lines += [f"_{len(weg)} weitere Kandidaten aussortiert: unter {MIN_PASSUNG}/10 oder ohne eindeutigen Leistungsbezug._", ""]
+            lines += [f"_{len(weg)} weitere Kandidaten aussortiert: unter {profile.get('min_punkte', MIN_PASSUNG)}/10 oder ohne eindeutigen Leistungsbezug._", ""]
             lines += ["<details><summary>Aussortierte Kandidaten und Gründe</summary>", ""]
             for b, _, _, rel, grund in weg[:40]:
                 lines += [f"- {b.get('punkte', 'ohne KI')}/10 · {(rel.get('tender') or {}).get('title', '')}: {b.get('grund') or grund}"]

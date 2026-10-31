@@ -137,6 +137,8 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         "regionen": {o["bereich_id"]: plz_bereiche(o) for o in standorte if o.get("bereich_id")},
         # Countries to search (ISO3). Germany = Bekanntmachungsservice, others = TED. Default: Germany only.
         "laender": [l for l in e.get("laender") or ["DEU"] if isinstance(l, str) and len(l) == 3] or ["DEU"],
+        # Lowest score shown as a hit (set in the app, default 6/10).
+        "min_punkte": min(9, max(3, int(e.get("min_punkte") or 6))) if str(e.get("min_punkte") or "6").isdigit() else 6,
         **({"standorte": standorte, "suchgebiet_modus": "firmenstandorte"}
            if e.get("firmenstandorte") and e.get("suchgebiet_modus") != "manuell" else {}),
     }

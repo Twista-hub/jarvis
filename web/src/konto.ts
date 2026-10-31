@@ -6,14 +6,14 @@ import type { Firmenstandort, SuchgebietModus } from "./firmenstandorte.ts";
 import { bereichOptionen as optionenFuerBereiche } from "./bereiche.ts";
 import { funktionsListe, personFormular } from "./mitarbeiter.ts";
 import { darfFinanzen, ZUGRIFFE } from "./rechte.ts";
-import { einladungsMail, senden } from "./mail.ts";
+import { ABSENDER, einladungsMail, senden } from "./mail.ts";
 import { CSP } from "./app.ts";
 import { FELDER, STANDARD, felderHtml, fmt, tarifSchnellwahl, zahl, type Eingaben } from "./kalkulation.ts";
 import { GVP, lohnAm } from "./tarife.ts";
 import { escape, hilfe, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
-import { einsaetzeLaden, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, standortleitungBlock, tarifvertraegeBlock, tarifvertraegeLaden, type Kraft } from "./personal.ts";
+import { einsaetzeLaden, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, standortleitungBlock, STATUS as PERSONAL_STATUS, tarifvertraegeBlock, tarifvertraegeLaden, type Kraft } from "./personal.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { teilnahmeTeil } from "./markt.ts";
 import { kurzberichte } from "./kurzberichte.ts";
@@ -87,8 +87,10 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (p === "/konto/firma" && post) return mitSitzung(request, env, firmaAnlegen);
   if (p === "/konto/bereich" && post) return mitSitzung(request, env, bereichAnlegen);
   if (p === "/konto/einladen" && post) return mitSitzung(request, env, einladen);
+  if (p === "/konto/einladung/zurueckziehen" && post) return mitSitzung(request, env, einladungZurueckziehen);
   if (p === "/konto/status" && post) return mitSitzung(request, env, statusSetzen);
   if (p === "/konto/mail" && post) return mitSitzung(request, env, mailSetzen);
+  if (p === "/konto/mail/test" && post) return mitSitzung(request, env, probeMail);
   if (p === "/konto/push/schluessel") return pushSchluessel(env);
   if (p === "/konto/push/abo" && post) return pushAbo(request, env);
   if (p === "/konto/push/neu") return pushNeu(request, env);
@@ -217,12 +219,12 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
   const [profil, mail] = await Promise.all([
-    db<(Suchstand & { id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; websuche_quellen?: { titel: string; url: string }[]; website_hinweis?: string })[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,websuche_quellen:einstellungen->websuche_quellen,firmenstandorte:einstellungen->firmenstandorte,suchgebiet_modus:einstellungen->>suchgebiet_modus,website_hinweis:einstellungen->>website_hinweis,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zwischenstand:einstellungen->suchlauf_zwischenstand&limit=1`),
+    db<(Suchstand & { id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; websuche_quellen?: { titel: string; url: string }[]; website_hinweis?: string; leistungen?: { name: string; woerter: string[] }[] })[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,websuche_quellen:einstellungen->websuche_quellen,firmenstandorte:einstellungen->firmenstandorte,suchgebiet_modus:einstellungen->>suchgebiet_modus,website_hinweis:einstellungen->>website_hinweis,leistungen:einstellungen->leistungen,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zwischenstand:einstellungen->suchlauf_zwischenstand&limit=1`),
     db<{ stunde: number | null; kanal: string }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde,kanal`),
   ]);
   const hinterlegt = dateiProfil(m.firma_id);
   const sucheEingerichtet = (profil.ok && profil.daten.length > 0) || Boolean(hinterlegt);
-  const suchstand = profil.ok ? profil.daten[0] || {} : {};
+  const suchstand: Suchstand = profil.ok ? profil.daten[0] || {} : {};
   const sucht = sucheLaeuft(suchstand);
   const stunde = mail.ok && mail.daten[0] ? mail.daten[0].stunde : null;
   const kanal = mail.ok && mail.daten[0] ? mail.daten[0].kanal : "mail";
@@ -245,20 +247,34 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const rahmen = (body: string) => `${kopf}${body}`;
   const meldungen = suchmeldung(suchstand, m.firma_id);
   const cards = [
-    ["treffer", "📋", "Ausschreibungen", `${neu} offene Treffer`],
-    ["fristen", "⏰", "Fristen", `${bald} Fristen diese Woche`],
+    ["treffer", "📋", "Ausschreibungen", `${neu} ${neu === 1 ? "offener Treffer" : "offene Treffer"}`],
+    ["fristen", "⏰", "Fristen", `${bald} ${bald === 1 ? "Frist" : "Fristen"} diese Woche`],
     ["unterlagen", "📥", "Unterlagen", "Dateien hochladen und prüfen lassen"],
-    ["kalkulation", "💶", "Kalkulation", "Ergebnisse aus Unterlagen ansehen"],
-    ["team", "👥", "Firma & Team", "Standorte und Einladungen verwalten"],
+    ["kalkulation", "💶", "Kalkulation", "Preise pro Stunde und Los berechnen"],
+    ["team", "👥", "Firma & Team", `${mitglieder.ok ? mitglieder.daten.filter((x) => x.aktiv !== false).length : 0} App-Zugänge · ${b.length || 1} ${b.length === 1 || !b.length ? "Standort" : "Standorte"}`],
     ["markt", "🌐", "Markt & Chancen", "Offene Aufträge, Bedarf und Partner"],
-    ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? "Suche ansehen und anpassen" : "Passende Ausschreibungen finden"],
+    ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? (suchstand.ergebnis?.treffer !== undefined ? `Letzte Suche: ${suchstand.ergebnis.treffer} Treffer` : "Suche ansehen und anpassen") : "Passende Ausschreibungen finden"],
   ];
   cards.push(["freigaben", "📨", "Für mich freigegeben", "Ausgewählte Informationen vom Team"]);
   const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? path === "freigaben" : path !== "kalkulation" || finanzrecht);
   const kacheln = `<div class="konto-kacheln">${sichtbareKarten.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
   let inhalt: string;
   if (!unterseite) {
-    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat.</p>${kacheln}`) : rahmen(`${meldungen}<h2>Was möchtest du tun?</h2><p>${neu} offene Treffer · ${bald} Fristen diese Woche</p>${kacheln}${admin && finanzrecht ? `<p><a href="/konto/angebotsfreigaben">Angebote zur Chef-Freigabe prüfen →</a></p>` : ""}`);
+    // "Heute wichtig": what needs attention today, each with a direct link.
+    const [wartend, ablaufend] = await Promise.all([
+      admin && finanzrecht ? db<{ id: string }[]>(s, env, `angebotsmappen?firma_id=eq.${m.firma_id}&freigabe_status=eq.wartet&select=id&limit=50`) : Promise.resolve(null),
+      finanzrecht ? db<{ id: string }[]>(s, env, `firmenunterlagen?firma_id=eq.${m.firma_id}&art=eq.nachweis&gueltig_bis=lte.${new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10)}&select=id`) : Promise.resolve(null),
+    ]);
+    const freigaben = wartend?.ok ? wartend.daten.length : 0;
+    const nachweise = ablaufend?.ok ? ablaufend.daten.length : 0;
+    const wichtig = [
+      neu ? `<li><a href="/konto/treffer"><strong>${neu}</strong> ${neu === 1 ? "neuer Treffer" : "neue Treffer"}</a></li>` : "",
+      bald ? `<li><a class="dringend" href="/konto/fristen"><strong>${bald}</strong> ${bald === 1 ? "Frist" : "Fristen"} in 7 Tagen</a></li>` : "",
+      freigaben ? `<li><a href="/konto/angebotsfreigaben"><strong>${freigaben}</strong> ${freigaben === 1 ? "Angebot wartet" : "Angebote warten"} auf Freigabe</a></li>` : "",
+      nachweise ? `<li><a class="dringend" href="/konto/unterlagen"><strong>${nachweise}</strong> ${nachweise === 1 ? "Nachweis läuft" : "Nachweise laufen"} ab</a></li>` : "",
+    ].join("");
+    const heuteWichtig = wichtig ? `<h2>Heute wichtig</h2><ul class="heute-wichtig">${wichtig}</ul>` : `<p class="klein">✅ Heute steht nichts Dringendes an.</p>`;
+    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat.</p>${kacheln}`) : rahmen(`${meldungen}${heuteWichtig}<h2>Was möchtest du tun?</h2>${kacheln}`);
   } else if (unterseite === "treffer") {
     const fb = await db<{ vorgang_id: string; grund: string }[]>(s, env, `treffer_feedback?firma_id=eq.${m.firma_id}&select=vorgang_id,grund`);
     const rueckmeldungen = new Map((fb.ok ? fb.daten : []).map((x) => [x.vorgang_id, x.grund]));
@@ -310,8 +326,16 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       const qs = qualifikationen.ok ? qualifikationen.daten.filter((q) => q.bereich_id === null || q.bereich_id === ort) : [];
       team = `<h2>Organisationsbaum · ${b[0] ? escape(b[0].name) : escape(m.firmen.name)}</h2>${ort ? standortleitungBlock(ort, (mitglieder.ok ? mitglieder.daten : []).map((x) => ({ user_id: x.user_id, rolle: x.rolle, anzeigename: x.anzeigename || "", funktion: x.funktion || "" })), zuordnungen.ok ? zuordnungen.daten : [], admin) : ""}<h3>Einsatzpersonal</h3>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, einsaetze, qs.map((q) => q.name), tarife)}${qualifikationenBlock(ort, qs, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle))}`;
     } else {
-      const pool = await db<{ bereich_id: string | null; status: string }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=bereich_id,status`);
-      team = `<h2>Organisationsbaum</h2><p class="klein">Firma → Region → Standort. Die Standortleitung erhält ihre Rechte über genau einen zugeordneten Standort. Einsatzpersonal und App-Zugänge werden getrennt verwaltet.</p>`;
+      const pool = await db<{ id: string; bereich_id: string | null; status: string; vorname: string; nachname: string; berufe: string[] }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=id,bereich_id,status,vorname,nachname,berufe&order=vorname`);
+      // Staff search across all locations, right at the top of the page.
+      const kraefte = pool.ok ? pool.daten : [];
+      const beruf = url.searchParams.get("beruf") ?? "";
+      const st = PERSONAL_STATUS[url.searchParams.get("status") ?? ""] ? url.searchParams.get("status")! : "";
+      const berufe = [...new Set(kraefte.flatMap((k) => k.berufe))].sort((x, y) => x.localeCompare(y, "de"));
+      const gefunden = beruf || st ? kraefte.filter((k) => (!beruf || k.berufe.includes(beruf)) && (!st || k.status === st)) : [];
+      team = kraefte.length ? `<form method="get" action="/konto/team" class="filter-leiste personal-suche"><label>Beruf<select name="beruf" data-sofort-wahl><option value="">Alle Berufe</option>${berufe.map((x) => `<option${x === beruf ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></label><label>Status<select name="status" data-sofort-wahl><option value="">Alle</option>${Object.entries(PERSONAL_STATUS).map(([w, [i, t]]) => `<option value="${w}"${w === st ? " selected" : ""}>${i} ${t}</option>`).join("")}</select></label><noscript><button>Personal suchen</button></noscript></form>
+${beruf || st ? `<ul class="standort-liste">${gefunden.map((k) => `<li><a class="standort-zeile" href="/konto/standort/${k.bereich_id ?? "firma"}"><span class="standort-icon" aria-hidden="true">${PERSONAL_STATUS[k.status]?.[0] ?? "⚪"}</span><span class="standort-text"><strong>${escape(`${k.vorname} ${k.nachname}`.trim())}</strong><span class="klein">${escape(k.berufe.slice(0, 3).join(", "))} · ${escape(name(k.bereich_id) || "ohne Standort")}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a></li>`).join("") || `<li class="standort-zeile">Niemand passt zu diesem Filter.</li>`}</ul>` : ""}` : "";
+      team += `<h2>Standorte</h2>${hilfe("Organisationsbaum", "Firma → Region → Standort. Die Standortleitung erhält ihre Rechte über genau einen zugeordneten Standort. Einsatzpersonal und App-Zugänge werden getrennt verwaltet.")}`;
       team += standortKacheln(b, pool.ok ? pool.daten : [], leitungKacheln);
     }
     if (admin) {
@@ -323,14 +347,16 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   <button>Bereich anlegen</button>
 </form></details>`;
     }
-      team += `<h2 id="app-zugaenge">App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> · Nutzer: ${anzahl.ok ? anzahl.daten : "?"}. Standortleitung darf Personal und Einsätze nur am zugeordneten Standort verwalten; Kalkulation und Firmenunterlagen bleiben gesperrt.</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen.")}${tarifvertraegeBlock(tarife, admin)}`;
+      team += `<h2 id="app-zugaenge">App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> ${anzahl.ok && typeof anzahl.daten === "number" ? ` · ${anzahl.daten} ${anzahl.daten === 1 ? "Nutzer" : "Nutzer"}` : ""}</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen. Eine Standortleitung verwaltet Personal und Einsätze nur am zugeordneten Standort; Kalkulation und Firmenunterlagen bleiben für sie gesperrt.")}${tarifvertraegeBlock(tarife, admin)}`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
     team += funktionsListe;
-    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"${x.aktiv === false ? ' style="opacity:.75"' : ""}><h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3><p>${escape(x.funktion || "Mitarbeiter/in")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}${x.aktiv === false ? " · Zugang gesperrt" : ""}</p>${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
+    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"${x.aktiv === false ? ' style="opacity:.75"' : ""}><h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3><ul class="rechte-chips">${(x.funktion || "Mitarbeiter/in") !== (ROLLEN[x.rolle] ?? x.rolle) ? `<li>${escape(x.funktion || "Mitarbeiter/in")}</li>` : ""}<li class="stark">${escape(ROLLEN[x.rolle] ?? x.rolle)}</li>${x.finanzen || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>💶 Finanzen</li>" : ""}${x.alle_bereiche || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>Ganze Firma</li>" : (zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id) : []).map((z) => `<li>📍 ${escape(name(z.bereich_id))}</li>`).join("")}${x.aktiv === false ? "<li>🔒 gesperrt</li>" : ""}</ul>${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
     if (admin) {
     const offen = einladungen.ok ? einladungen.daten : [];
     if (offen.length) {
-      team += `<p class="klein">Offene Einladungen: ${offen.map((e) => `${escape(e.email)} (${ROLLEN[e.rolle] ?? e.rolle}, bis ${datum(e.gueltig_bis)})`).join(", ")}</p>`;
+      team += `<h3>Offene Einladungen</h3><ul class="einladungen-liste">${offen.map((e) => `<li><span><strong>${escape(e.email)}</strong> · ${escape(ROLLEN[e.rolle] ?? e.rolle)} · gültig bis ${datum(e.gueltig_bis)}</span><span class="knoepfe">
+  <form method="post" action="/konto/einladen"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="email" value="${escape(e.email)}"><input type="hidden" name="rolle" value="${escape(e.rolle)}"><input type="hidden" name="funktion" value="Mitarbeiter/in"><input type="hidden" name="ersetzt" value="${e.id}"><button class="zweit">✉️ Erneut senden</button></form>
+  <form method="post" action="/konto/einladung/zurueckziehen"><input type="hidden" name="id" value="${e.id}"><button class="zweit">Zurückziehen</button></form></span></li>`).join("")}</ul>`;
     }
     team += `<details class="einladen"><summary>➕ Person einladen</summary><form method="post" action="/konto/einladen">
   <input type="hidden" name="firma" value="${m.firma_id}">
@@ -360,9 +386,11 @@ ${admin && (profil.ok || sucheEingerichtet) ? `${sucheEingerichtet ? `${startSuc
 <p><a class="knopf zweit" href="/konto/einrichtung?firma=${m.firma_id}">${sucheEingerichtet ? "Suchprofil bearbeiten" : "Suchprofil erstellen"}</a></p>
 ${sucheEingerichtet ? `<form method="post" data-suchaktion action="/konto/einrichtung/automatisch"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="aktion" value="recherche"><button type="submit" class="zweit">Firmeninfos neu recherchieren</button></form><p class="klein">Prüft Website und öffentliche Quellen erneut und aktualisiert dein Firmenprofil.</p>` : ""}` : !admin ? `<p class="klein">Ein Inhaber oder Admin kann das Suchprofil bearbeiten.</p>` : ""}
 ${datum ? `<p class="klein" role="status">Firmeninfos zuletzt aktualisiert: ${escape(datum)} Uhr</p>` : ""}
+${leistungsTreffer(aktuell?.leistungen ?? [], liste)}
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
-    inhalt = rahmen(`<p><a href="/konto/suchprofil">Suchprofil</a> · <a href="/konto/profil">Mein Profil</a> · <a href="/konto/team">Firma & Team</a> · <a href="/konto/kalkulation">Kalkulation</a> · <a href="/konto/unterlagen">Unterlagen prüfen</a></p>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
+    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
@@ -370,11 +398,26 @@ ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmen
   <button>Speichern</button>
   <p class="klein">Nur wenn es etwas Neues gibt. Mail an ${escape(s.email)}. Ein Tipp auf die Handy-Nachricht öffnet direkt die Ausschreibung. Jeder im Team stellt das für sich selbst ein.</p>
 </form>
+<form method="post" action="/konto/mail/test"><button class="zweit">✉️ Probe-Mail an mich senden</button></form>
 <p><button type="button" id="push-an" hidden>📱 Nachrichten auf diesem Handy einschalten</button> <button type="button" id="push-test" hidden>🔔 Test auf diesem Handy</button></p>
 <p class="klein" id="push-status"></p>
+<h2>🎨 Darstellung</h2>
+<div class="darstellung"><label>Farben<select data-darstellung="theme"><option value="">Wie am Gerät</option><option value="light">Hell</option><option value="dark">Dunkel</option></select></label><label>Schrift<select data-darstellung="schrift"><option value="">Normal</option><option value="gross">Groß</option></select></label></div>
+<p class="klein">Gilt für dieses Gerät.</p>
 <h2>Konto</h2>${abmelden}`);
   }
   return html(seite(unterseite ? labels[unterseite] : m.firmen.name, inhalt, sucht ? 30 : 0, unterseite), 200, s.cookies);
+}
+
+async function probeMail(s: Sitzung, _form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
+  let hinweis = "Probe-Mail verschickt. Schau in dein Postfach (auch im Spam-Ordner).";
+  try {
+    await senden(env, { from: ABSENDER, to: s.email, reply: ABSENDER, subject: "Jarvis: Probe-Mail", text: "Hallo,\n\ndiese Probe-Mail zeigt, dass Jarvis dich erreicht. So kommen auch neue Treffer und Fristen-Erinnerungen bei dir an.\n\nViele Grüße\nJarvis · WP Digital Ranger\n" });
+  } catch (e) {
+    console.warn(`Probe-Mail nicht verschickt: ${e instanceof Error ? e.message : String(e)}`);
+    hinweis = "Die Probe-Mail konnte gerade nicht verschickt werden. Bitte später erneut versuchen.";
+  }
+  return weiterleiten(`/konto/einstellungen?hinweis=${encodeURIComponent(hinweis)}`);
 }
 
 async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
@@ -437,6 +480,9 @@ async function bereichAnlegen(s: Sitzung, form: FormData, _r: Request, env: Kont
 async function einladen(s: Sitzung, form: FormData, request: Request, env: KontoEnv): Promise<Response> {
   const email = String(form.get("email") ?? "").trim().toLowerCase();
   const rolle = String(form.get("rolle") ?? "mitarbeiter");
+  // "Erneut senden": the new invitation replaces the old one (same address and access).
+  const ersetzt = String(form.get("ersetzt") ?? "");
+  if (/^[0-9a-f-]{36}$/.test(ersetzt)) await db(s, env, `einladungen?id=eq.${ersetzt}&angenommen=is.null`, { method: "DELETE" });
   const bereich = String(form.get("bereich") ?? "");
   if (rolle === "standortleitung") {
     if (!/^[0-9a-f-]{36}$/i.test(bereich)) return weiterleiten(`/konto/team?hinweis=${encodeURIComponent("Für eine Standortleitung bitte genau einen Standort auswählen.")}`);
@@ -478,6 +524,12 @@ async function einladen(s: Sitzung, form: FormData, request: Request, env: Konto
 <p><a href="/konto">Zurück zur Übersicht</a></p>`));
 }
 
+async function einladungZurueckziehen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
+  const id = String(form.get("id") ?? "");
+  const r = /^[0-9a-f-]{36}$/.test(id) ? await db<{ id: string }[]>(s, env, `einladungen?id=eq.${id}&angenommen=is.null&select=id`, { method: "DELETE", headers: { prefer: "return=representation" } }) : null;
+  return weiterleiten(`/konto/team?hinweis=${encodeURIComponent(r?.ok && r.daten.length ? "Einladung zurückgezogen." : "Die Einladung konnte nicht zurückgezogen werden.")}`);
+}
+
 async function einladungZeigen(url: URL, request: Request, env: KontoEnv): Promise<Response> {
   const token = url.searchParams.get("token") ?? "";
   if (!/^[A-Za-z0-9_-]{20,}$/.test(token)) return html(seite("Einladung", "<p>Dieser Einladungs-Link ist unvollständig.</p>"), 400);
@@ -495,6 +547,19 @@ async function einladungAnnehmen(s: Sitzung, form: FormData, _r: Request, env: K
   if (r.ok) return weiterleiten(`/konto?hinweis=${encodeURIComponent("Willkommen! Du bist jetzt dabei.")}`);
   const grund = /andere E-Mail/.test(r.fehler) ? "Die Einladung gilt für eine andere E-Mail-Adresse. Melde dich mit der eingeladenen Adresse an." : "Die Einladung ist ungültig oder abgelaufen.";
   return html(seite("Einladung", `<p class="fehler">${grund}</p><p><a href="/konto">Zur Übersicht</a></p>`), 400);
+}
+
+/** How many hits of the last 30 days mention each service; shows which search terms pay off. */
+function leistungsTreffer(leistungen: { name: string; woerter: string[] }[], liste: Vorgang[]): string {
+  if (!leistungen.length) return "";
+  const seit = Date.now() - 30 * 86400_000;
+  const neu = liste.filter((v) => Date.parse(v.erstellt) >= seit).map((v) => `${v.titel} ${v.steckbrief ?? ""}`.toLowerCase());
+  const zeilen = leistungen.slice(0, 12).map((l) => {
+    const woerter = (l.woerter ?? []).map((w) => w.toLowerCase()).filter((w) => w.length >= 3);
+    const anzahl = neu.filter((t) => woerter.some((w) => t.includes(w))).length;
+    return `<li${anzahl ? "" : ' class="leer"'}>${escape(l.name)} <span>${anzahl}</span></li>`;
+  }).join("");
+  return `<h3>Treffer je Arbeit (letzte 30 Tage)</h3><ul class="leistung-treffer">${zeilen}</ul>`;
 }
 
 export function bewertungsErklaerung(steckbrief?: string | null): string {
