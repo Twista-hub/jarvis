@@ -64,8 +64,8 @@ def _reservieren(kwargs):
     worst = (len(body.encode()) * 5 + kwargs.get("max_tokens", 32000) * 20) / 1e6
     try:
         return katalog.reservieren(round(worst + 0.0001, 4), "alarm")
-    except Exception:
-        print("Zentrales KI-Budget nicht prüfbar; API-Anfrage übersprungen.")
+    except Exception as e:
+        print(f"Zentrales KI-Budget nicht prüfbar ({type(e).__name__}); API-Anfrage übersprungen.")
         return None
 
 
