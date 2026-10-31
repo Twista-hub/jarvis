@@ -17,7 +17,7 @@ export async function datenbankPruefen(code: string, hashErwartet: string | unde
       const m = await apiClient(env).messages.create({ model: "claude-haiku-5-5", max_tokens: 16, messages: [{ role: "user", content: "Antworte nur mit: ok" }] });
       if (!m.content.length) throw new Error("KI-Antwort leer");
     }
-    return Response.json({ ok: true }, { headers: { "cache-control": "no-store" } });
+    return Response.json({ ok: true, ki }, { headers: { "cache-control": "no-store" } });
   } catch (e) {
     const fehler = e instanceof Error ? e.message.slice(0, 180) : "Unbekannter Datenbankfehler";
     console.error("Hyperdrive-Verbindungstest fehlgeschlagen", fehler);
