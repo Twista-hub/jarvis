@@ -122,7 +122,9 @@ test("Suchprofil zeigt einfache Berufs- und Ortsfelder; technische Suchwerte sin
   assert.match(html, /Welche Arbeiten soll Jarvis finden\?/);
   assert.match(html, /Beruf oder Arbeit/);
   assert.match(html, /Stadt oder Gegend/);
-  assert.match(html, /<details><summary>Suchdetails \(optional\)<\/summary>/);
+  assert.match(html, /<details><summary>Arbeit und Suchbegriffe ändern<\/summary>/);
+  assert.match(html, /formaction="\/konto\/einrichtung\/automatisch"/);
+  assert.match(html, /Firmeninfos neu recherchieren/);
   assert.match(html, /Vergabe-Kennziffern \(CPV, optional\)/);
   assert.match(html, /Welche Aufträge soll Jarvis nicht anzeigen/);
 });

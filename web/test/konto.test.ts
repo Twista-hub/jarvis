@@ -9,8 +9,8 @@ test("shows the AI match reason on the tender card", () => {
 
 test("offers a direct search restart from the search profile", () => {
   const html = startSucheFormular("firm-id");
-  assert.match(html, /method="post" action="\/konto\/einrichtung\/starten"/);
-  assert.match(html, /Suche jetzt starten/);
+  assert.match(html, /action="\/konto\/einrichtung\/starten"/);
+  assert.match(html, /Ausschreibungen jetzt suchen/);
   assert.match(html, /name="firma" value="firm-id"/);
 });
 

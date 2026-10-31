@@ -2,6 +2,7 @@
 // notifications, and the service worker that shows them and opens the right page on tap.
 // Served from our own origin, so the content security policy only needs script-src 'self'.
 import { ICON_192, ICON_512 } from "./icons.ts";
+import { SUCH_AKTION_JS } from "./suchaktionen.ts";
 
 export const APP_JS = `"use strict";
 // Own scope, so names like "status" do not collide with window properties.
@@ -12,23 +13,7 @@ document.querySelectorAll("input[data-sofort]").forEach(function (i) {
   });
 });
 
-// A search profile proposal may need a moment; show immediate feedback and prevent duplicate requests.
-document.querySelectorAll('form[action="/konto/einrichtung/vorschlag"]').forEach(function (form) {
-  form.addEventListener("submit", function () {
-    var button = form.querySelector('button[type="submit"]');
-    var status = form.querySelector("[data-einrichtung-status]");
-    if (button) { button.disabled = true; button.textContent = "Vorschlag wird erstellt …"; }
-    if (status) status.textContent = "Jarvis prüft deine Angaben. Bitte warte kurz; die Seite zeigt danach den Vorschlag oder einen Hinweis.";
-  });
-});
-
-// A new customer is taken through automatic company research after e-mail confirmation.
-document.querySelectorAll("form[data-auto-einrichtung]").forEach(function (form) {
-  var button = form.querySelector('button[type="submit"]');
-  if (button) { button.textContent = "Jarvis richtet dein Profil ein …"; }
-  window.setTimeout(function () { form.requestSubmit(); }, 0);
-});
-
+${SUCH_AKTION_JS}
 // Mail links (login, confirmation, new password) bring the login in the URL fragment; hand it to the server.
 var anmeldung = document.getElementById("anmeldung");
 if (anmeldung) {
