@@ -1,6 +1,6 @@
 // Jarvis upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import kunden from "../kunden.json";
-import { euro, FELDER, felderHtml, fmt, rechnen, STANDARD, zahl, vorlageFuerBereich, type Eingaben, type Los, type LosWerte } from "./kalkulation";
+import { euro, FELDER, felderHtml, fmt, kalkulationCsv, rechnen, STANDARD, szenarien, tarifSchnellwahl, zahl, vorlageFuerBereich, type Eingaben, type Los, type LosWerte } from "./kalkulation";
 import profile from "../../alarm/profile.json";
 import { CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
@@ -116,6 +116,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (url.pathname === "/hochladen" && request.method === "POST") return hochladen(request, env);
     const m = url.pathname.match(/^\/auftrag\/([^/]+)(\/kalkulation|\/arbeitskraefte)?$/);
     if (m && ID.test(m[1]) && m[2] === "/kalkulation" && request.method === "POST") return kalkulieren(m[1], request, env);
+    const csv = url.pathname.match(/^\/auftrag\/([^/]+)\/kalkulation\.csv$/);
+    if (csv && ID.test(csv[1]) && request.method === "GET") return kalkulationHerunterladen(csv[1], request, env);
     if (m && ID.test(m[1]) && m[2] === "/arbeitskraefte" && request.method === "POST") return arbeitskraefte(m[1], request, env);
     if (m && ID.test(m[1]) && !m[2]) return auftrag(m[1], env, request);
     return html(seite("Nicht gefunden", "<p>Diese Seite gibt es nicht.</p>"), 404);
@@ -255,7 +257,7 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
       <label>Erwartete Erhöhung pro Jahr nach der letzten bekannten Tabelle (%)<input name="tarif_steigerung" inputmode="decimal" value="${fmt(tarif.steigerung)}"></label>
       <label class="zeile"><input type="checkbox" name="tarif_erfahrung" value="1"${tarif.erfahrung ? " checked" : ""}> Erfahrungszuschläge einrechnen (1,5 % nach 9, 3 % nach 12 Monaten beim selben Kunden)</label>
     </fieldset>`;
-  const felder = felderHtml(vorlage) + tarifFelder;
+  const felder = felderHtml(vorlage, false, tarifSchnellwahl(GVP.gruppen.map((g) => ({ eg: g, lohn: lohnAm(g, heute, 0) })))) + tarifFelder;
   // Per lot: hours, own wage (empty = standard) and "away from home" for accommodation costs.
   // Lots: the workforce from the documents and the suggested wage group are filled in until the user changes them.
   const loseFelder = lose.map((l) => {
@@ -274,8 +276,11 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   let ergebnis = "";
   if (eigene) {
     const r = rechnen(eigene.eingaben, lose, eigene.mengen, proLos, tarif);
+    const varianten = szenarien(eigene.eingaben, lose, eigene.mengen, proLos, tarif);
     ergebnis = `<h3>Ergebnis</h3>
       ${r.warnungen.map((w) => `<p class="fehler">⚠️ ${escape(w)}</p>`).join("")}
+      <div class="szenarien">${varianten.map((v) => `<div class="szenario${v.name === "Normal" ? " normal" : ""}"><span>${v.name}</span><strong>${euro(v.preis)}</strong><small>pro Std. · Gewinn ${fmt(v.gewinn)} %${v.netto ? `<br>${euro(v.netto)} netto` : ""}</small></div>`).join("")}</div>
+      <p class="export-leiste"><a class="knopf zweit" href="/auftrag/${job.id}/kalkulation.csv" download>📊 Als Excel (CSV)</a><button type="button" class="zweit" data-drucken>🖨️ Drucken / PDF</button></p>
       <div class="tabelle"><table><tbody>
         ${r.schritte.map((s) => `<tr><td>${escape(s.name)}</td><td>${euro(s.betrag)}</td></tr>`).join("")}
         <tr><th>Angebotspreis pro Stunde (netto)</th><th>${euro(r.preisProStunde)}</th></tr>
@@ -296,6 +301,16 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
       ${loseFelder ? `<h3>Lose, Arbeitskräfte und Löhne</h3>${losWahl}${loseFelder}` : ""}
       <button>Berechnen</button>
     </form>` : `<p>Als Leser kannst du die Kalkulation ansehen, aber nicht ändern.</p>`}`;
+}
+
+async function kalkulationHerunterladen(id: string, request: Request, env: Env): Promise<Response> {
+  const job = await jsonAus<Job>(env, `auftraege/${id}/auftrag.json`);
+  const eigene = await jsonAus<Gespeichert>(env, `auftraege/${id}/kalkulation.json`);
+  if (!job || !eigene) return html(seite("Nicht gefunden", "<p>Für diesen Auftrag gibt es noch keine Kalkulation.</p>"), 404);
+  if (!(await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true))) return html(seite("Nicht erlaubt","<p>Für die Kalkulation brauchst du eine Finanzfreigabe.</p>"),403);
+  const lose = (await jsonAus<Los[]>(env, `auftraege/${id}/lose.json`)) ?? [];
+  const r = rechnen(eigene.eingaben, lose, eigene.mengen, eigene.proLos ?? {}, eigene.tarif ?? standardTarif());
+  return new Response(kalkulationCsv(r), { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="kalkulation-${id.slice(0, 8)}.csv"`, "cache-control": "private, no-store" } });
 }
 
 async function kalkulieren(id: string, request: Request, env: Env): Promise<Response> {

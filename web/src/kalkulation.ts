@@ -82,8 +82,43 @@ export const FELDER: Feld[] = [
 ];
 
 /** Form fields grouped in boxes (labels are fixed text, values numbers). */
-export function felderHtml(werte: Eingaben, nurLesen = false): string {
-  return GRUPPEN.map((g) => `<fieldset><legend>${g}</legend>${FELDER.filter((f) => f.gruppe === g).map((f) => `<label>${f.label} (${f.einheit})<input name="${f.key}" inputmode="decimal" value="${fmt(werte[f.key])}"${nurLesen ? " readonly" : ""}>${f.hilfe ? `<span class="klein">${f.hilfe}</span>` : ""}</label>`).join("")}</fieldset>`).join("");
+/** Short line for a folded section, e.g. "15 € · 23 % · 20 %"; the page script keeps it current while typing. */
+export function zusammenfassung(werte: Eingaben, gruppe: string): string {
+  return FELDER.filter((f) => f.gruppe === gruppe && werte[f.key]).slice(0, 4).map((f) => `${fmt(werte[f.key])} ${f.einheit}`).join(" · ") || "keine Werte";
+}
+
+/** Price per hour for the standard wage, also computed live in the browser (same formula, see APP_JS). */
+export function verrechnungssatz(werte: Eingaben): number {
+  return runden(stundenpreis(werte, werte.lohn, false).preis);
+}
+
+/** Collective wages to take over into the standard wage field with one tap. */
+export function tarifSchnellwahl(gruppen: { eg: string; lohn: number }[]): string {
+  return gruppen.length ? `<label class="tarif-wahl">Lohn aus Tarif übernehmen<select data-lohn-aus-tarif><option value="">Tarifgruppe wählen …</option>${gruppen.map((g) => `<option value="${fmt(g.lohn)}">EG ${g.eg} · ${fmt(g.lohn)} €</option>`).join("")}</select></label>` : "";
+}
+
+/** The input sections fold up like the rest of the app; the live price stays visible above them. */
+export function felderHtml(werte: Eingaben, nurLesen = false, schnellwahl = ""): string {
+  const satz = `<p class="live-satz" data-live-satz>Verrechnungssatz <strong>${euro(verrechnungssatz(werte))}</strong> pro Stunde<span class="klein">mit dem Standardlohn, ohne Unterkunft</span></p>`;
+  return satz + GRUPPEN.map((g, i) => `<details class="kalk-gruppe" data-gruppe="${g}"${i === 0 ? " open" : ""}><summary>${g}<span class="kalk-kurz">${zusammenfassung(werte, g)}</span></summary>${g === "Lohn" ? schnellwahl : ""}${FELDER.filter((f) => f.gruppe === g).map((f) => `<label>${f.label} (${f.einheit})<input name="${f.key}" inputmode="decimal" data-einheit="${f.einheit}" value="${fmt(werte[f.key])}"${nurLesen ? " readonly" : ""}>${f.hilfe ? `<span class="klein">${f.hilfe}</span>` : ""}</label>`).join("")}</details>`).join("");
+}
+
+/** Three prices with different profit margins, to choose how close to calculate. */
+export function szenarien(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record<string, number>, proLos: LosWerte, tarif?: TarifWahl) {
+  const basis = zahl(eingaben.gewinn, STANDARD.gewinn);
+  return [["Knapp", Math.max(0, basis - 4)], ["Normal", basis], ["Sicher", basis + 4]].map(([name, gewinn]) => {
+    const r = rechnen({ ...eingaben, gewinn: gewinn as number }, lose, mengen, proLos, tarif);
+    return { name: name as string, gewinn: gewinn as number, preis: r.preisProStunde, netto: r.netto };
+  });
+}
+
+/** Excel-readable CSV (semicolon, German decimals) of the result per lot. */
+export function kalkulationCsv(r: Ergebnis): string {
+  const z = (x: number) => fmt(runden(x));
+  const zelle = (x: string) => `"${x.replace(/"/g, '""')}"`;
+  const zeilen = [["Schritt", "Betrag pro Stunde (€)"], ...r.schritte.map((s) => [s.name, z(s.betrag)]), ["Angebotspreis pro Stunde netto", z(r.preisProStunde)], [], ["Los", "Bezeichnung", "Lohn (€)", "Preis pro Stunde (€)", "Stunden", "Netto (€)"],
+    ...r.lose.map((l) => [l.los.nr, l.los.name, z(l.lohn), z(l.preisProStunde), z(l.stunden), z(l.netto)]), [], ["Gesamt netto", "", "", "", "", z(r.netto)], ["Gesamt brutto (19 % USt)", "", "", "", "", z(r.brutto)]];
+  return "\ufeff" + zeilen.map((r) => r.map((x) => zelle(String(x))).join(";")).join("\r\n") + "\r\n";
 }
 
 export type Ergebnis = {
