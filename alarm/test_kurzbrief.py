@@ -3,7 +3,8 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from alarm.alarm import bewertungsabschnitt, kurzbrief
+import alarm.alarm as alarm_modul
+from alarm.alarm import bewertungsabschnitt, eckdaten, kurzbrief, steckbrief_auswahl
 
 
 class KurzbriefTest(unittest.TestCase):
@@ -24,6 +25,27 @@ class KurzbriefTest(unittest.TestCase):
         self.assertIn("Gesucht:", text)
         self.assertIn("Warum passend:", text)
         self.assertIn("passt zum Angebot", text)
+
+
+    def test_key_facts_from_the_notice(self):
+        text = eckdaten({"lots": [{"title": "Küche", "value": {"amount": 120000}}, {"title": "Service", "value": {"amount": 80000}}],
+                         "contractPeriod": {"durationInDays": 730},
+                         "items": [{"quantity": 5000, "unit": {"name": "Stunden"}, "description": "Servicekräfte"}]})
+        for fakt in ["**Lose:** 2 (Küche; Service)", "200.000 €", "730 Tage", "5000 Stunden Servicekräfte"]:
+            self.assertIn(fakt, text)
+
+    def test_daily_steckbriefe_for_best_and_largest_hits(self):
+        gross = {"ocid": "gross", "tender": {"title": "Groß", "value": {"amount": 900000}}}
+        rows = [({"punkte": 9}, 1, "2026-10-30", {"ocid": "beste", "tender": {"title": "Beste"}}, ""),
+                ({"punkte": 8}, 1, "2026-10-30", {"ocid": "zweite", "tender": {"title": "Zweite"}}, ""),
+                ({"punkte": 6}, 1, "2026-10-30", gross, "")]
+        alt = alarm_modul.MAX_STECKBRIEFE
+        alarm_modul.MAX_STECKBRIEFE = 2
+        try:
+            gewaehlt = steckbrief_auswahl("test-ohne-dateien", rows)
+        finally:
+            alarm_modul.MAX_STECKBRIEFE = alt
+        self.assertEqual({r[3]["ocid"] for r in rows if id(r[3]) in gewaehlt}, {"beste", "gross"})
 
 
 if __name__ == "__main__":

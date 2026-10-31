@@ -76,7 +76,8 @@ def brief_aktualisieren(alt: str | None, t: dict) -> str | None:
     bewertung, inhalt = teilen(neu)
     _, bisher = teilen(alt)
     # Keep uploaded/detailed analyses; replace only the old relevance explanation.
-    behalten = bisher.strip() and (t.get("steckbrief_kurz") or not bisher.startswith("## Kurzüberblick"))
+    # An older short overview is refreshed (it gains the key facts); detailed or uploaded analyses stay.
+    behalten = bisher.strip() and not bisher.startswith("## Kurzüberblick")
     return bewertung + (bisher if behalten else inhalt) if neu else alt
 
 

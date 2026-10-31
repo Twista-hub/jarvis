@@ -79,6 +79,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – Claude (Steckbriefe: 4 pro Firma und Tag, Eckdaten im Kurzüberblick)
+- Benjamin: Steckbriefe zu kurz, Lose und Arbeitsstunden fehlen. Ursache: `MAX_STECKBRIEFE` war 2 pro Lauf (nur ab 7/10); die neue Firma „Perlease gmbh“ bekam 14 Treffer, nur 2 mit vollem Steckbrief, der Rest nur „Kurzüberblick“.
+- Entscheidung Benjamin: 4 ausführliche Steckbriefe pro Firma und Tag, für die besten Treffer und die mit potenziell den meisten Arbeitsstunden. Umsetzung `alarm/alarm.py`: Grenze gilt pro Tag (`steckbriefe_heute` zählt heute erstellte Dateien der Firma); `steckbrief_auswahl` nimmt die Hälfte nach Punkten (ab 7/10), den Rest nach Umfang (geschätzter Auftragswert, sonst Summe der Loswerte, sonst Losanzahl).
+- Kurzüberblick enthält jetzt kostenlos Eckdaten aus der Bekanntmachung (`eckdaten`): Lose mit Namen, geschätzter Auftragswert, Laufzeit, Mengen. Ältere Kurzüberblicke werden beim nächsten Lauf ersetzt (`brief_aktualisieren`); ausführliche/hochgeladene Analysen bleiben.
+- Später bei den Plänen (Benjamin): Steckbriefe pro Tag je Plan staffeln, z. B. kleiner Plan 2, größerer 4.
+- Tests ergänzt (`alarm/test_kurzbrief.py`), 45 Python-Tests grün.
+
 ### 31.10.2026 – Claude (Treffer erscheinen schon während der Suche)
 - Benjamins Test mit neuem PerLease-Profil: Anzeige „lädt und lädt“. Befund: Läufe sind nicht hängengeblieben, sondern dauern mit dem vollen Katalog (über 32.000 Bekanntmachungen) mehr als 10 Minuten (z. B. 41225815168: 11 min), und Treffer kamen erst ganz am Ende in die App. Der Lauf 41226665777 scheiterte mit ForeignKeyViolation, weil die alte PerLease-Firma `efd5cfd1…` inzwischen gelöscht war (neue Firma neu angelegt).
 - Neu: `alarm/alarm.py` schreibt nach dem Cache-Abgleich und nach jedem Achterpaket bestätigte Treffer (ab `MIN_PASSUNG` oder beobachteter Auftraggeber) sofort über `speichern.zwischenspeichern` in `vorgaenge` und setzt `einstellungen.suchlauf_zwischenstand` (zeit, treffer, bewertet, kandidaten). Fehler dabei brechen den Lauf nie ab; der Schlussschritt „Treffer in die App“ bleibt unverändert und ergänzt Steckbriefe, Archivierung und Endstand.

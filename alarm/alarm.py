@@ -5,7 +5,7 @@ Source: https://oeffentlichevergabe.de/api/notice-exports?pubDay=YYYY-MM-DD&form
 Usage: python3 alarm/alarm.py [YYYY-MM-DD ...]   (default: yesterday)
 Writes alarm/berichte/<date>.md and prints it.
 With ANTHROPIC_API_KEY set, Claude scores the hits and writes Steckbriefe for the best ones
-(alarm/steckbriefe/), at most MAX_STECKBRIEFE per run.
+(alarm/steckbriefe/), at most MAX_STECKBRIEFE per firm and day: the best hits and those with the most work.
 """
 import io
 import itertools
@@ -27,7 +27,7 @@ UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger
 # Portals whose terms and robots.txt allow downloading the documents for our service (checked by hand).
 # Not DTVP: its AGB (29.10.2026) forbid systematic downloads of notices and documents for commercial offers.
 PORTALE: set[str] = set()
-MAX_STECKBRIEFE = int(os.environ.get("MAX_STECKBRIEFE", "2"))
+MAX_STECKBRIEFE = int(os.environ.get("MAX_STECKBRIEFE", "4"))  # per firm and day (Benjamin, 31.10.2026)
 STECKBRIEF_AB = 7
 MIN_PASSUNG = 6
 FIRMA = os.environ.get("FIRMA", "") if re.fullmatch(r"[0-9a-f-]{36}", os.environ.get("FIRMA", "")) else ""
@@ -183,9 +183,66 @@ def kurzbrief(rel: dict, day: str) -> str:
             + ("**Land:** Großbritannien · Quelle: Find a Tender. Contains public sector information licensed under the Open Government Licence v3.0.\n\n" if rel.get("_quelle") == "Find a Tender" else "")
             + ("**Land:** USA (Bundesbehörde) · Quelle: SAM.gov\n\n" if rel.get("_quelle") == "SAM.gov" else "")
             + f"**Angebotsfrist:** {frist(t) or 'nicht angegeben'}\n\n"
-            f"{beschreibung or 'Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.'}\n\n"
+            + eckdaten(t)
+            + f"{beschreibung or 'Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.'}\n\n"
             "_Dieser Kurzüberblick enthält Angaben aus der öffentlichen Bekanntmachung. "
             "Die Vergabeunterlagen wurden nicht geprüft. Für die ausführliche Analyse bitte die Unterlagen hochladen._")
+
+
+def betrag(v) -> float:
+    try:
+        return float((v or {}).get("amount") or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def umfang(t: dict) -> float:
+    """Rough size of the work: estimated value of the whole procedure, else of its lots, else the number of lots."""
+    wert = betrag(t.get("value")) or sum(betrag(l.get("value")) for l in t.get("lots") or [])
+    return wert or len(t.get("lots") or [])
+
+
+def eckdaten(t: dict) -> str:
+    """Key facts read straight from the notice (no AI): lots, estimated value, term and quantities."""
+    teile = []
+    lose = t.get("lots") or []
+    if lose:
+        namen = "; ".join(str(l.get("title") or l.get("id") or "").strip() for l in lose[:10])
+        teile.append(f"**Lose:** {len(lose)}" + (f" ({namen}{' …' if len(lose) > 10 else ''})" if namen.strip("; ") else ""))
+    wert = betrag(t.get("value")) or sum(betrag(l.get("value")) for l in lose)
+    if wert:
+        teile.append(f"**Geschätzter Auftragswert:** {wert:,.0f} €".replace(",", "."))
+    zeiten = [p for p in [t.get("contractPeriod"), *((l.get("contractPeriod") for l in lose))] if p]
+    for z in zeiten[:1]:
+        if z.get("durationInDays"):
+            teile.append(f"**Laufzeit:** {z['durationInDays']} Tage")
+        elif z.get("startDate") or z.get("endDate"):
+            teile.append(f"**Laufzeit:** {str(z.get('startDate') or '?')[:10]} bis {str(z.get('endDate') or '?')[:10]}")
+    mengen = [f"{i.get('quantity')} {(i.get('unit') or {}).get('name') or ''}".strip() + (f" {i.get('description')[:80]}" if i.get("description") else "")
+              for i in t.get("items") or [] if i.get("quantity")]
+    if mengen:
+        teile.append("**Mengen:** " + "; ".join(mengen[:5]))
+    return "".join(f"{x}\n\n" for x in teile)
+
+
+def steckbriefe_heute(name: str) -> int:
+    """Steckbriefe already written today for this firm (the limit applies per day, not per run)."""
+    heute = f"am {date.today().isoformat()} "
+    return sum(heute in f.read_text(encoding="utf-8") for f in (ROOT / "steckbriefe").glob(f"*-{name}-*.md"))
+
+
+def steckbrief_auswahl(name: str, rows: list) -> set:
+    """Half of the daily Steckbriefe for the best hits, the rest for the hits with the most work."""
+    frei = MAX_STECKBRIEFE - steckbriefe_heute(name)
+    offen = [r for r in rows if r[0] and not steckbrief_datei(name, r[2], r[3]).exists()]
+    beste = sorted((r for r in offen if r[0].get("punkte", 0) >= STECKBRIEF_AB),
+                   key=lambda r: (-r[0].get("punkte", 0), -umfang(r[3].get("tender") or {})))
+    gewaehlt = beste[:max(0, (frei + 1) // 2)]
+    rest = sorted((r for r in offen if r not in gewaehlt and umfang(r[3].get("tender") or {})),
+                  key=lambda r: (-umfang(r[3].get("tender") or {}), -r[0].get("punkte", 0)))
+    gewaehlt += rest[:max(0, frei - len(gewaehlt))]
+    gewaehlt += [r for r in beste if r not in gewaehlt][:max(0, frei - len(gewaehlt))]
+    return {id(r[3]) for r in gewaehlt}
 
 
 def bewertungsabschnitt(bewertung: dict) -> str:
@@ -359,6 +416,7 @@ def run(days: list[str]) -> str:
                          "ausstehend": len(offen), "importtage_offen": getattr(gemeinsam, "luecken", None)}
         lines += [f"Bewertung: {len(alle) - len(offen)} von {len(alle)} Kandidaten geprüft; {len(offen)} noch offen.", ""]
         lines += [f"## {profile['name']}: {len(rows)} Treffer", ""]
+        auswahl = steckbrief_auswahl(name, rows)
         for b, points, day, rel, reason in rows:
             t = rel.get("tender") or {}
             url = link(rel)
@@ -373,7 +431,7 @@ def run(days: list[str]) -> str:
             links = f"[Zur Ausschreibung]({url}) · [⬆️ Unterlagen prüfen lassen]({UPLOAD}?titel={urllib.parse.quote(t.get('title', '').strip()[:200])})"
             datei = steckbrief_datei(name, day, rel)
             pfad = datei if datei.exists() else None
-            if ki and not pfad and b.get("punkte", 0) >= STECKBRIEF_AB and briefe < MAX_STECKBRIEFE:
+            if ki and not pfad and id(rel) in auswahl:
                 pfad = steckbrief_fuer(ki, name, profile, day, rel, url)
                 if pfad:
                     briefe += 1
