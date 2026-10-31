@@ -38,6 +38,14 @@ class SuchgebietTest(unittest.TestCase):
         self.assertTrue(im_suchgebiet(profil, bekanntmachung("52062", "Aachen")))
         self.assertFalse(im_suchgebiet(profil, bekanntmachung("80331", "München")))
 
+    def test_scoring_receives_both_user_and_website_descriptions(self):
+        profil = aus_db("firma", "Fliesenbetrieb", "Wir verlegen Fliesen in Baesweiler.", {
+            "website_beschreibung": "Die Website nennt Badsanierung und Naturstein.",
+            "leistungen": [{"name": "Fliesen", "woerter": ["fliesen"], "cpv": []}],
+        })
+        self.assertIn("Wir verlegen Fliesen in Baesweiler.", profil["beschreibung"])
+        self.assertIn("Die Website nennt Badsanierung und Naturstein.", profil["beschreibung"])
+
     def test_buyer_office_is_not_used_as_performance_location(self):
         profil = {"suchorte": [{"name": "Bad Wildungen", "plz_praefixe": []}]}
         rel = bekanntmachung()
