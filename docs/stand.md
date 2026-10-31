@@ -60,6 +60,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 31.10.2026 – Claude (Keine KI-Bewertungen, KI in der App ohne Wirkung)
+- `ACTIONS_TOKEN` funktioniert: Benjamins neue Testfirma „Team Effertz gmbh“ hat den Erstlauf gestartet (96 Treffer, Run 41169302892).
+- Treffer hatten keine KI-Bewertung. Ursache: `alarm/katalog.py` übergab den Betrag als Python-float; Postgres findet `ki_reservieren(double precision, unknown)` nicht (float8→numeric ist keine implizite Umwandlung). Jede Budget-Reservierung schlug fehl, also keine einzige KI-Anfrage im Alarm (`ki_kosten` war leer). Behoben mit `%s::numeric`; lokal gegen Postgres 16 geprüft. Fehlermeldung nennt jetzt den Ausnahmetyp.
+- Zweiter Befund: Die Web-App (Worker) erreicht die Datenbank für die Budget-Prüfung nie. Der Supabase-Pooler nutzt das eigene „Supabase Root 2021 CA“ (selbst signiert), `katalog-db.ts` verlangt `rejectUnauthorized: true`, Workers kennen diese CA nicht. Folge: Suchvorschlag, Los-Erkennung und Steckbrief in der App fallen immer auf den Ersatz zurück; auch der Katalog-Worker kann nicht schreiben. Lösung offen (Vorschlag: Cloudflare Hyperdrive mit hochgeladener Supabase-CA), braucht Benjamins Entscheidung.
+- `datenbank.yml` zeigt jetzt KI-Budget, testet die Budget-Funktion mit Rollback und prüft die TLS-Kette.
+
 ### 31.10.2026 – Claude (Suchvorschlag hing, Verbindung abgebrochen)
 - Benjamins Test mit neuem Konto: Nach „Vorschlag machen lassen“ lief die Seite rund 5 Minuten und endete mit ERR_CONNECTION_CLOSED. Worker-Logs sind von hier aus nicht einsehbar.
 - Wahrscheinliche Ursache: Die KI-Budgetprüfung (`api-budget.ts`) öffnet vor dem KI-Aufruf eine direkte Postgres-Verbindung; der SDK-Timeout von 45 s greift nicht, solange diese hängt.

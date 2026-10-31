@@ -82,9 +82,9 @@ def reservieren(betrag, zweck):
     if not os.environ.get("SUPABASE_DB_PASSWORD"):
         return None  # Budget checks fail closed; no customer API request without a ledger.
     with verbinden() as con:
-        return con.execute("select jarvis_katalog.ki_reservieren(%s,%s)", (betrag, zweck)).fetchone()[0]
+        return con.execute("select jarvis_katalog.ki_reservieren(%s::numeric,%s)", (betrag, zweck)).fetchone()[0]
 
 
 def abschliessen(i, betrag):
     with verbinden() as con:
-        con.execute("select jarvis_katalog.ki_abschliessen(%s,%s)", (i, betrag))
+        con.execute("select jarvis_katalog.ki_abschliessen(%s,%s::numeric)", (i, betrag))
