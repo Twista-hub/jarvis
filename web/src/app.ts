@@ -2,6 +2,7 @@
 // notifications, and the service worker that shows them and opens the right page on tap.
 // Served from our own origin, so the content security policy only needs script-src 'self'.
 import { ICON_192, ICON_512 } from "./icons.ts";
+import { ARBEITSAUSWAHL_JS } from "./arbeitsauswahl-browser.ts";
 import { SUCH_AKTION_JS } from "./suchaktionen.ts";
 
 export const APP_JS = `"use strict";
@@ -13,6 +14,7 @@ document.querySelectorAll("input[data-sofort]").forEach(function (i) {
   });
 });
 
+${ARBEITSAUSWAHL_JS}
 ${SUCH_AKTION_JS}
 // Mail links (login, confirmation, new password) bring the login in the URL fragment; hand it to the server.
 var anmeldung = document.getElementById("anmeldung");

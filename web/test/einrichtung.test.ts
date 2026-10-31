@@ -119,10 +119,10 @@ test("Suchprofil zeigt einfache Berufs- und Ortsfelder; technische Suchwerte sin
     leistungen: [{ name: "Fliesen verlegen", cpv: ["45431000"], woerter: ["fliesenarbeiten"] }],
     standorte: [{ name: "Bad Wildungen", plz_praefixe: ["34"] }],
   }), "Prüfe kurz, ob die Arbeiten und Einsatzorte stimmen.");
-  assert.match(html, /Welche Arbeiten soll Jarvis finden\?/);
+  assert.match(html, /Welche Arbeiten soll Jarvis für dich finden\?/);
   assert.match(html, /Beruf oder Arbeit/);
   assert.match(html, /Stadt oder Gegend/);
-  assert.match(html, /<details><summary>Arbeit und Suchbegriffe ändern<\/summary>/);
+  assert.match(html, /<details data-arbeit-editor><summary>Arbeit und Suchbegriffe ändern<\/summary>/);
   assert.match(html, /formaction="\/konto\/einrichtung\/automatisch"/);
   assert.match(html, /Firmeninfos neu recherchieren/);
   assert.match(html, /Vergabe-Kennziffern \(CPV, optional\)/);

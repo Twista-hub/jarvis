@@ -1,7 +1,7 @@
 // Browser feedback shared by company research, profile saving and tender search.
 export const SUCH_AKTION_JS = `// Every search action reports work immediately, including secondary buttons with their own form action.
 document.querySelectorAll("form[data-suchaktion]").forEach(function (form) {
-  var idleButtons = Array.from(form.querySelectorAll("button")).map(function (b) { return { button: b, text: b.textContent, disabled: b.disabled }; });
+  var idleButtons = [];
   var idleStatus = form.querySelector("[data-einrichtung-status]");
   var idleText = idleStatus ? idleStatus.textContent : "";
   var idleClass = idleStatus ? idleStatus.className : "";
@@ -19,6 +19,7 @@ document.querySelectorAll("form[data-suchaktion]").forEach(function (form) {
   });
   form.addEventListener("submit", function (event) {
     if (form.dataset.beschaeftigt === "1") { event.preventDefault(); return; }
+    idleButtons = Array.from(form.querySelectorAll("button")).map(function (b) { return { button: b, text: b.textContent, disabled: b.disabled }; });
     form.dataset.beschaeftigt = "1";
     form.setAttribute("aria-busy", "true");
     var button = event.submitter || form.querySelector('button[type="submit"], button:not([type])');
