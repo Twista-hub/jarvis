@@ -1,11 +1,12 @@
 """US federal tenders via the SAM.gov Get Opportunities API (v2).
 
 Needs the free public API key of a SAM.gov account in the secret SAM_API_KEY (Benjamin requests it himself,
-docs/anleitung-sam-gov.md). Without the key nothing is fetched. It makes one request per requested date,
-returning at most 1,000 notices for that date. The scheduled run normally requests one date; first-run
-backfills and manual multi-date runs make one call for every requested date. The API's daily request quota
-depends on the account role. Only federal agencies: states, counties and cities run their own portals.
-Releases are converted to the OCDS-like shape alarm.py expects.
+docs/anleitung-sam-gov.md). Without the key nothing is fetched. It requests up to 1,000 notices per page and
+follows the API's page-index offset for up to ten pages per requested date and twenty requests per process
+run. Most dates use one request; the scheduled run normally requests one date, while first-run backfills and
+manual multi-date runs may use more.
+The API's daily request quota depends on the account role. Only federal agencies: states, counties and cities
+run their own portals. Releases are converted to the OCDS-like shape alarm.py expects.
 Usage (test): python3 alarm/usa.py YYYY-MM-DD
 """
 import json
@@ -19,6 +20,14 @@ API = "https://api.sam.gov/opportunities/v2/search"
 UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)", "Accept": "application/json"}
 # o = solicitation, k = combined synopsis/solicitation (open calls for offers); no award notices.
 ARTEN = "o,k"
+SEITE_GROESSE = 1000
+MAX_SEITEN_PRO_DATUM = 10
+MAX_API_AUFRUFE_PRO_LAUF = 20
+_api_aufrufe = 0
+
+
+class _KontingentGrenze(Exception):
+    pass
 
 
 def _us_datum(tag: str) -> str:
@@ -29,9 +38,44 @@ def suchen(tag: str) -> list[dict]:
     schluessel = os.environ.get("SAM_API_KEY", "").strip()
     if not schluessel:
         return []
-    url = f"{API}?{urllib.parse.urlencode({'api_key': schluessel, 'postedFrom': _us_datum(tag), 'postedTo': _us_datum(tag), 'ptype': ARTEN, 'limit': 1000, 'offset': 0})}"
-    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120) as r:
-        return json.loads(r.read()).get("opportunitiesData") or []
+
+    def seite(offset: int) -> dict:
+        global _api_aufrufe
+        if _api_aufrufe >= MAX_API_AUFRUFE_PRO_LAUF:
+            raise _KontingentGrenze
+        _api_aufrufe += 1
+        # The API defines offset as a page index, not a record offset.
+        url = f"{API}?{urllib.parse.urlencode({'api_key': schluessel, 'postedFrom': _us_datum(tag), 'postedTo': _us_datum(tag), 'ptype': ARTEN, 'limit': SEITE_GROESSE, 'offset': offset})}"
+        with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120) as r:
+            return json.loads(r.read())
+
+    try:
+        erste = seite(0)
+    except _KontingentGrenze:
+        print(f"SAM.gov ({tag}): Laufgrenze bei {MAX_API_AUFRUFE_PRO_LAUF} API-Aufrufen erreicht; Datum nicht abgefragt.")
+        return []
+    resultate = erste.get("opportunitiesData") or []
+    try:
+        gesamt = max(int(erste.get("totalRecords", len(resultate))), len(resultate))
+    except (TypeError, ValueError):
+        gesamt = len(resultate)
+
+    benoetigte_seiten = (gesamt + SEITE_GROESSE - 1) // SEITE_GROESSE
+    seiten = min(benoetigte_seiten, MAX_SEITEN_PRO_DATUM)
+    if benoetigte_seiten > MAX_SEITEN_PRO_DATUM:
+        print(f"SAM.gov ({tag}): {gesamt} Treffer; Sicherheitsgrenze bei {MAX_SEITEN_PRO_DATUM} Seiten, Rest bleibt offen.")
+
+    for offset in range(1, seiten):
+        try:
+            daten = seite(offset).get("opportunitiesData") or []
+        except _KontingentGrenze:
+            print(f"SAM.gov ({tag}): Laufgrenze bei {MAX_API_AUFRUFE_PRO_LAUF} API-Aufrufen erreicht; weitere Seiten ausgelassen.")
+            break
+        if not daten:
+            print(f"SAM.gov ({tag}): Seite {offset + 1} leer; weitere Seiten nicht geladen.")
+            break
+        resultate.extend(daten)
+    return resultate
 
 
 def als_release(n: dict) -> dict:
@@ -63,8 +107,10 @@ def als_release(n: dict) -> dict:
 def releases(tag: str) -> list[dict]:
     try:
         return [als_release(n) for n in suchen(tag) if str(n.get("active", "Yes")).lower() == "yes"]
-    except Exception as e:  # noqa: BLE001 – a SAM.gov outage must not stop the German alarm
-        print(f"SAM.gov nicht erreichbar ({tag}): {e}")
+    except Exception as e:  # noqa: BLE001 – never print the request URL; it contains the API key
+        status = getattr(e, "code", None)
+        fehler = f"HTTP {status}" if status else type(e).__name__
+        print(f"SAM.gov nicht erreichbar ({tag}): {fehler}")
         return []
 
 

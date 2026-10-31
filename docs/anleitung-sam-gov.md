@@ -18,7 +18,7 @@ der Schlüssel gehört nicht in den Chat.
 
 Hinweis: Die Bezeichnungen der Knöpfe können sich bei SAM.gov ändern. Der Schlüssel läuft nach etwa
 **90 Tagen** ab und muss dann an derselben Stelle erneuert werden (Jarvis meldet es im Bericht, wenn SAM.gov nicht antwortet).
-Das tägliche Kontingent richtet sich nach deiner SAM.gov-Kontorolle. Jarvis fragt höchstens 1.000 Ergebnisse je Datum ab; ein Ersteinrichtungslauf über sieben Tage macht bis zu sieben Anfragen. Häufige manuelle Mehrtageläufe können das Kontingent verbrauchen.
+Das tägliche Kontingent richtet sich nach deiner SAM.gov-Kontorolle. Jarvis fragt 1.000 Ergebnisse pro API-Seite ab und kann bei Bedarf bis zu zehn Seiten pro Datum laden. Zum Kontingentschutz sind es höchstens 20 API-Aufrufe pro Alarmprozess. Ein Ersteinrichtungslauf über sieben Tage macht normalerweise sieben Aufrufe, kann bei Folgeseiten mehr benötigen; häufige manuelle Läufe können das Tageskontingent verbrauchen.
 
 ## 3. Schlüssel bei GitHub hinterlegen
 1. https://github.com/Twista-hub/jarvis/settings/secrets/actions/new öffnen.
