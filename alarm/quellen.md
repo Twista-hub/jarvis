@@ -98,3 +98,7 @@ Es gibt keine geprüfte, frei abrufbare Komplettdatenbank mit allen deutschen Ve
 ## Zentraler Vergabekatalog (30.10.2026)
 
 Bekanntmachungsservice erneut geprüft: robots.txt liefert 404. Der erlaubte Tagesexport wurde exemplarisch abgerufen (29.10.2026: 1.018 JSON-Dateien); die Pakete enthalten die Lizenz https://opendefinition.org/licenses/cc-zero/. Der Worker prüft robots.txt und die CC0-Paketlizenz auch zur Laufzeit, nutzt bedingte HTTP-Abfragen und begrenzte historische Abrufe. Gesperrte Portale werden weiter nur verlinkt; dortige Unterlagen werden nicht heruntergeladen. Weitere Quellen werden ohne Adapterprüfung und Freigabe nicht automatisch aktiviert.
+
+## Geodaten für Suchradius und Karte (01.11.2026, Claude)
+- **Postleitzahl-Koordinaten:** GeoNames Postal Codes Deutschland (`https://download.geonames.org/export/zip/DE.zip`), Lizenz CC BY 4.0, Namensnennung „GeoNames“ (steht unter der Karte). Einmalig per `.github/workflows/geodaten.yml` geladen, umgerechnet mit `alarm/geo/plz_bauen.py` nach `alarm/geo/plz.json` (10.815 PLZ, Mittelpunkt je PLZ, auf ca. 100 m gerundet). Hinweis: `download.geonames.org/robots.txt` enthält `Disallow: /` für alle Agenten; die Readme bietet die Datei ausdrücklich zum Download unter CC BY an. Entscheidung Benjamins dazu siehe `docs/stand.md`.
+- **Kartenumrisse:** Natural Earth, Admin-0 1:50 Mio. (Deutschland) und Admin-1-Grenzlinien 1:10 Mio., gemeinfrei (public domain). Vereinfacht als SVG-Pfad in `web/src/karte.ts`; kein Kartendienst, keine Anfragen an Dritte beim Anzeigen.

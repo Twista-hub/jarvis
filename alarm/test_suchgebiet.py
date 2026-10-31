@@ -94,5 +94,19 @@ class SuchgebietTest(unittest.TestCase):
         self.assertEqual(nicht_mehr_aktuelle_treffer(old, {"still-open"}), ["two", "three"])
 
 
+    def test_radius_in_km_around_the_firms_locations(self):
+        profil = aus_db("f", "Firma", "", {"leistungen": [{"name": "Service", "woerter": ["service"]}],
+                                           "standorte": [{"name": "Berlin", "plz_praefixe": ["10"]}], "radius_km": 50}, "10115")
+        self.assertEqual(profil["radius_km"], 50)
+        self.assertEqual(profil["suchpunkte"][0]["plz"], "10115")
+        self.assertTrue(im_suchgebiet(profil, bekanntmachung("14467", "Potsdam")))   # about 27 km
+        self.assertFalse(im_suchgebiet(profil, bekanntmachung("20095", "Hamburg")))  # about 255 km
+        self.assertFalse(im_suchgebiet(profil, bekanntmachung("10999", "Frankfurt (Oder)") | {"tender": {"items": [{"deliveryAddress": {"postalCode": "15230"}}]}}))
+        ohne_radius = aus_db("f", "Firma", "", {"leistungen": [{"name": "Service", "woerter": ["service"]}],
+                                                "standorte": [{"name": "Berlin", "plz_praefixe": ["10"]}]}, "10115")
+        self.assertIsNone(ohne_radius["radius_km"])
+        self.assertTrue(im_suchgebiet(ohne_radius, bekanntmachung("10999", "Berlin")))
+
+
 if __name__ == "__main__":
     unittest.main()

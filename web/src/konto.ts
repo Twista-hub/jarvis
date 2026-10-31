@@ -19,6 +19,7 @@ import { teilnahmeTeil } from "./markt.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
 import { fristenSeite, ics } from "./fristen.ts";
+import { suchgebietKarte, type Suchpunkt } from "./karte.ts";
 import { bewertung, daumen, eckdaten, filterLeiste, sortieren, SORTIERUNGEN, suchbegriff } from "./treffer.ts";
 
 export interface KontoEnv {
@@ -219,7 +220,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
   const [profil, mail] = await Promise.all([
-    db<(Suchstand & { id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; websuche_quellen?: { titel: string; url: string }[]; website_hinweis?: string; leistungen?: { name: string; woerter: string[] }[] })[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,websuche_quellen:einstellungen->websuche_quellen,firmenstandorte:einstellungen->firmenstandorte,suchgebiet_modus:einstellungen->>suchgebiet_modus,website_hinweis:einstellungen->>website_hinweis,leistungen:einstellungen->leistungen,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zwischenstand:einstellungen->suchlauf_zwischenstand&limit=1`),
+    db<(Suchstand & { id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; websuche_quellen?: { titel: string; url: string }[]; website_hinweis?: string; leistungen?: { name: string; woerter: string[] }[]; suchpunkte?: Suchpunkt[]; radius_km?: number | null })[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,websuche_quellen:einstellungen->websuche_quellen,firmenstandorte:einstellungen->firmenstandorte,suchgebiet_modus:einstellungen->>suchgebiet_modus,website_hinweis:einstellungen->>website_hinweis,leistungen:einstellungen->leistungen,suchpunkte:einstellungen->suchpunkte,radius_km:einstellungen->radius_km,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zwischenstand:einstellungen->suchlauf_zwischenstand&limit=1`),
     db<{ stunde: number | null; kanal: string }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde,kanal`),
   ]);
   const hinterlegt = dateiProfil(m.firma_id);
@@ -386,6 +387,7 @@ ${admin && (profil.ok || sucheEingerichtet) ? `${sucheEingerichtet ? `${startSuc
 <p><a class="knopf zweit" href="/konto/einrichtung?firma=${m.firma_id}">${sucheEingerichtet ? "Suchprofil bearbeiten" : "Suchprofil erstellen"}</a></p>
 ${sucheEingerichtet ? `<form method="post" data-suchaktion action="/konto/einrichtung/automatisch"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="aktion" value="recherche"><button type="submit" class="zweit">Firmeninfos neu recherchieren</button></form><p class="klein">Prüft Website und öffentliche Quellen erneut und aktualisiert dein Firmenprofil.</p>` : ""}` : !admin ? `<p class="klein">Ein Inhaber oder Admin kann das Suchprofil bearbeiten.</p>` : ""}
 ${datum ? `<p class="klein" role="status">Firmeninfos zuletzt aktualisiert: ${escape(datum)} Uhr</p>` : ""}
+${suchgebietKarte(aktuell?.suchpunkte ?? [], aktuell?.radius_km ?? null)}
 ${leistungsTreffer(aktuell?.leistungen ?? [], liste)}
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {

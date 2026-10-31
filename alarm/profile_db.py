@@ -75,6 +75,21 @@ def suchorte_fuer_standorte(e: dict) -> list[dict]:
     return result
 
 
+def suchpunkte(e: dict, firmen_plz: str = "") -> list[dict]:
+    """Coordinates of the locations Jarvis searches around: researched locations with a postal code, else the firm's seat."""
+    from geo_radius import koordinaten
+    quellen = [(str(o.get("name", "")), str(o.get("plz") or "")) for o in e.get("firmenstandorte") or [] if isinstance(o, dict)]
+    if e.get("suchgebiet_modus") == "manuell" or not quellen:
+        orte = e.get("standorte") or []
+        quellen = [(str(o.get("name", "")), str(o.get("plz") or (firmen_plz if len(orte) <= 1 else ""))) for o in orte] or [("Firmensitz", firmen_plz)]
+    punkte = []
+    for name, plz in quellen[:40]:
+        k = koordinaten(plz)
+        if k:
+            punkte.append({"name": name or plz, "plz": plz, "lat": k[0], "lon": k[1]})
+    return punkte
+
+
 def im_suchgebiet(profile: dict, rel: dict) -> bool:
     """Limit app profiles to tender delivery locations; profiles without places stay nationwide."""
     suchorte = profile.get("suchorte") or []
@@ -83,6 +98,22 @@ def im_suchgebiet(profile: dict, rel: dict) -> bool:
     items = (rel.get("tender") or {}).get("items") or []
     if not items:
         return False
+    # Radius in km around the firm's locations, when set and the notice names a known postal code.
+    radius = profile.get("radius_km")
+    punkte = [p for p in profile.get("suchpunkte") or [] if p.get("lat") is not None]
+    if radius and punkte:
+        from geo_radius import entfernung_km, koordinaten
+        bekannt = False
+        for item in items:
+            text = str((item.get("deliveryAddress") or {}).get("postalCode", "")) + " " + str((item.get("deliveryLocation") or {}).get("description") or "")
+            for plz in re.findall(r"\b(\d{5})\b", text):
+                ziel = koordinaten(plz)
+                if ziel:
+                    bekannt = True
+                    if any(entfernung_km([p["lat"], p["lon"]], ziel) <= radius for p in punkte):
+                        return True
+        if bekannt:
+            return False  # Known place outside every radius; names alone do not override the distance.
     for ort in suchorte:
         name = standort_schluessel(str(ort.get("name", "")))
         praefixe = [str(p) for p in ort.get("plz_praefixe", []) if re.fullmatch(r"\d{2}", str(p))]
@@ -137,6 +168,9 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         "regionen": {o["bereich_id"]: plz_bereiche(o) for o in standorte if o.get("bereich_id")},
         # Countries to search (ISO3). Germany = Bekanntmachungsservice, others = TED. Default: Germany only.
         "laender": [l for l in e.get("laender") or ["DEU"] if isinstance(l, str) and len(l) == 3] or ["DEU"],
+        # Search radius in km and the coordinates of the firm's locations (postal codes via GeoNames).
+        "radius_km": min(300, max(10, int(e.get("radius_km")))) if str(e.get("radius_km") or "").isdigit() else None,
+        "suchpunkte": suchpunkte(e, firmen_plz),
         # Lowest score shown as a hit (set in the app, default 6/10).
         "min_punkte": min(9, max(3, int(e.get("min_punkte") or 6))) if str(e.get("min_punkte") or "6").isdigit() else 6,
         **({"standorte": standorte, "suchgebiet_modus": "firmenstandorte"}
