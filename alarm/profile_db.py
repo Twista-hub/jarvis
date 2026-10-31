@@ -11,6 +11,10 @@ from pathlib import Path
 ROOT = Path(__file__).parent
 REF = "juuuifrcxmitkqudqngq"
 NIE = r"(?!x)x"  # a pattern that never matches (an empty pattern would match everything)
+# These words describe places, rooms or generic work; alone they do not identify a trade.
+ALLGEMEIN = {"bad", "bäder", "baeder", "boden", "böden", "boeden", "bau", "arbeit", "arbeiten",
+             "leistung", "leistungen", "sanierung", "firma", "unternehmen", "alles", "dazu",
+             "drumherum", "umgebung", "suchen", "suche", "und", "oder", "für", "mit"}
 
 
 def verbinden():
@@ -32,7 +36,9 @@ def muster(woerter: list[str]) -> str:
         for a, b in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
             e = e.replace(a, f"({a}|{b})")
         if e:
-            teile.append(e)
+            # Match the start of a word, including German compounds (Fliesenarbeiten).
+            # Short words must be complete: IT must not match 'Sanitär'.
+            teile.append(r"(?<!\w)" + e + (r"(?!\w)" if len(w.strip()) <= 3 else ""))
     return "|".join(teile) or NIE
 
 
@@ -68,17 +74,23 @@ def nicht_mehr_aktuelle_treffer(vorgaenge: list[tuple[str, str]], aktuelle_ids: 
 def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str = "") -> dict:
     """Converts a saved profile into the format of profile.json."""
     leistungen = e.get("leistungen") or []
-    woerter = muster([w for l in leistungen for w in l.get("woerter", [])])
     standorte = e.get("standorte") or []
+    ortswoerter = {w for o in standorte for w in re.findall(r"\w+", str(o.get("name", "")).lower())}
+    woerter = muster([w for l in leistungen for w in l.get("woerter", [])])
+    stark = muster([w for l in leistungen for w in l.get("woerter", [])
+                    if w.lower().strip() not in ALLGEMEIN | ortswoerter])
     firmen_prefix = firmen_plz[:2] if re.fullmatch(r"\d{5}", str(firmen_plz or "")) else ""
     def plz_bereiche(o: dict) -> list[str]:
         return o.get("plz_praefixe") or ([firmen_prefix] if firmen_prefix and len(standorte) == 1 else [])
-    bewertungstext = "\n\n".join(filter(None, [beschreibung.strip(), str(e.get("website_beschreibung") or "").strip(), str(e.get("websuche_beschreibung") or "").strip()]))
+    bewertungstext = "\n\n".join(filter(None, [
+        "Gesuchte Arbeiten: " + ", ".join(l.get("name", "") for l in leistungen),
+        beschreibung.strip(), str(e.get("website_beschreibung") or "").strip(),
+        str(e.get("websuche_beschreibung") or "").strip()]))
     return {
         "name": name,
         "cpv": sorted({c for l in leistungen for c in l.get("cpv", [])}),
         "words": woerter,
-        "strong": woerter,
+        "strong": stark,
         "exclude": muster(e.get("ausschluss") or []),
         "exclude_cpv": e.get("ausschluss_cpv") or [],
         # Preserve the user's description in the app; give scoring both sources explicitly.

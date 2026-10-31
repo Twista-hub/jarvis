@@ -61,12 +61,15 @@ export function arbeitsAuswahl(leistungen: Leistung[]): string {
   const blank: Leistung = { name: "", cpv: [], woerter: [] };
   return `<section class="arbeitsauswahl" data-arbeitsauswahl aria-label="Gesuchte Arbeiten">
     <ul class="arbeits-chips" data-arbeit-chips aria-label="Ausgewählte Arbeiten" hidden></ul>
-    <div data-arbeit-auswahl hidden><label>Arbeit hinzufügen<select data-arbeit-dropdown>
+    <div data-arbeit-auswahl hidden><select data-arbeit-dropdown hidden aria-hidden="true" tabindex="-1">
       <option value="">Arbeit auswählen …</option>
       <optgroup label="Eure Arbeiten" data-arbeit-optionen>${leistungen.map((l, i) => option(l, `firma-${i}`)).join("")}</optgroup>
       ${Object.entries(VORSCHLAEGE).map(([gruppe, arbeiten], g) => `<optgroup label="${escape(gruppe)}">${arbeiten.filter(([name]) => !vorhanden.has(name.toLocaleLowerCase("de"))).map(([name, woerter], i) => option({ name, woerter, cpv: [] }, `vorschlag-${g}-${i}`)).join("")}</optgroup>`).join("")}
       <option value="__eigen">Eigene Arbeit eingeben …</option>
-    </select></label></div>
+    </select><details class="arbeit-dropdown" data-arbeit-menue><summary>Arbeit hinzufügen<span aria-hidden="true">⌄</span></summary>
+      <label class="arbeit-filtern">Arbeit suchen<input type="search" data-arbeit-filter placeholder="z. B. Fliesen" autocomplete="off"></label>
+      <div class="arbeit-optionen" data-arbeit-liste></div>
+    </details></div>
     <div class="eigene-arbeit" data-arbeit-eigene hidden><label>Welche Arbeit?<input data-arbeit-eigener-name maxlength="120" placeholder="z. B. Küchenrückwände montieren"></label><button type="button" data-arbeit-eigene-anlegen>Hinzufügen</button></div>
     <p class="klein" data-arbeit-status role="status" aria-live="polite" hidden></p>
     <div class="arbeits-editor" data-arbeit-felder>${[...leistungen, blank].map((l, i) => zeile(l, String(i))).join("")}</div>

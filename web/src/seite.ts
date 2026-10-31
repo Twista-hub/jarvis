@@ -82,6 +82,16 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .arbeits-chip-entfernen { flex: 0 0 44px; padding: 4px 8px; font-size: 1.3rem; border-left: 1px solid var(--line); }
   .arbeits-editor { display: grid; gap: 10px; }
   .arbeits-editor fieldset { margin: 0; background: var(--card); }
+  .arbeit-dropdown { min-width: 0; border: 1px solid var(--line); border-radius: 9px; background: var(--card); }
+  .arbeit-dropdown > summary { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 10px 12px; min-height: 44px; cursor: pointer; list-style: none; font-size: 1rem; font-weight: 500; }
+  .arbeit-dropdown > summary::-webkit-details-marker { display: none; }
+  .arbeit-filtern { padding: 0 12px 10px; font-size: .875rem; font-weight: 400; }
+  .arbeit-filtern input { font-size: 1rem; }
+  .arbeit-optionen { max-height: 320px; max-height: min(320px, 50dvh); overflow-y: auto; overscroll-behavior: contain; padding: 0 12px 12px; }
+  .arbeit-optionen h3 { margin: 12px 0 4px; color: var(--muted); font-size: .8rem; font-weight: 500; text-align: left; }
+  .arbeit-optionen button { display: block; width: 100%; margin: 0; padding: 10px 0; min-height: 44px; border-radius: 0; border-bottom: 1px solid var(--line); background: transparent; color: var(--text); font-size: 1rem; line-height: 1.4; font-weight: 400; text-align: left; overflow-wrap: anywhere; }
+  .arbeit-optionen button:hover, .arbeit-optionen button:focus-visible { color: var(--accent); }
+  .arbeit-optionen button:disabled { opacity: .5; cursor: default; }
   .eigene-arbeit { display: grid; gap: 10px; }
   @media (min-width: 640px) { .firmen-fund-karten { grid-template-columns: repeat(2, minmax(0, 1fr)); } .eigene-arbeit { grid-template-columns: minmax(0, 1fr) auto; align-items: end; } }
   input, select, textarea { min-width: 0; max-width: 100%; font: inherit; padding: 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); color: var(--text); width: 100%; }

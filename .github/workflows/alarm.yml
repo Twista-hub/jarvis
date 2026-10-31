@@ -18,6 +18,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: alarm-${{ inputs.firma || 'alle' }}
+  cancel-in-progress: false
+
 jobs:
   bericht:
     runs-on: ubuntu-latest
@@ -35,7 +39,8 @@ jobs:
         if: github.event_name == 'schedule'
         run: |
           if [ -f "alarm/berichte/$(date -u -d yesterday +%F).md" ]; then echo "SCHON=1" >> "$GITHUB_ENV"; echo "Bericht für gestern gibt es schon."; fi
-      - if: env.SCHON != '1'
+      - id: suche
+        if: env.SCHON != '1'
         run: python alarm/alarm.py ${{ inputs.tage }}
         env:
           FIRMA: ${{ inputs.firma }}
@@ -45,7 +50,8 @@ jobs:
           # Reads the search profiles firms saved in the app (alarm/profile_db.py).
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       - name: Treffer in die App
-        continue-on-error: true
+        id: speichern
+        if: env.SCHON != '1'
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
@@ -59,9 +65,9 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
         run: python alarm/mail.py --sofort "$FIRMA"
-      - name: Erster Lauf fertig
-        # Ends the "Jarvis is searching" notice in the app, also when nothing was found or a step failed.
-        if: always() && inputs.firma != ''
+      - name: Suchfehler anzeigen
+        # Success and counts are saved atomically with the hits by speichern.py.
+        if: always() && inputs.firma != '' && (steps.suche.outcome != 'success' || steps.speichern.outcome != 'success')
         continue-on-error: true
         env:
           FIRMA: ${{ inputs.firma }}
@@ -71,8 +77,8 @@ jobs:
           import os
           from profile_db import verbinden
           with verbinden() as c:
-              c.execute("update public.suchprofile set einstellungen = einstellungen || jsonb_build_object('erstlauf_fertig', now()) where firma_id = %s::uuid and bereich_id is null", (os.environ["FIRMA"],))
-          print("Erster Lauf als fertig markiert.")
+              c.execute("update public.suchprofile set einstellungen = einstellungen || jsonb_build_object('erstlauf_fertig', now(), 'suchlauf_fehler', true) where firma_id = %s::uuid and bereich_id is null", (os.environ["FIRMA"],))
+          print("Suchfehler als abgeschlossen markiert; bisherige Treffer bleiben erhalten.")
           PY
       - name: Datenbank wach halten
         # Free Supabase projects pause after 7 days without access; one query a day prevents that.

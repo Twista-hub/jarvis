@@ -2,6 +2,7 @@
 // (services with CPV codes and search words, exclusions, locations with postal code areas), the admin
 // confirms or edits it. Saved in suchprofile (firm level); the daily alarm reads it from there.
 import { arbeitsAuswahl, arbeitAusName, MAX_ARBEITEN } from "./arbeitsauswahl.ts";
+import { sucheLaeuft } from "./suchstatus.ts";
 import { firmenInfos } from "./firmeninfos.ts";
 import { rechercheProfil } from "./firmenrecherche.ts";
 export { FIRMEN_WEB_SUCHTOOL } from "./firmenrecherche.ts";
@@ -23,9 +24,7 @@ export type WebQuelle = { titel: string; url: string };
 export type Vorschlag = { beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; laender?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string };
 
 export function suchlaufLaeuft(start: string | null | undefined, fertig: string | null | undefined, jetzt = Date.now()): boolean {
-  const begonnen = start ? Date.parse(start) : NaN;
-  const abgeschlossen = fertig ? Date.parse(fertig) : NaN;
-  return Number.isFinite(begonnen) && jetzt - begonnen < 20 * 60_000 && (!Number.isFinite(abgeschlossen) || abgeschlossen < begonnen);
+  return sucheLaeuft({ erstlauf: start, fertig }, jetzt);
 }
 
 type EinrichtungDienste = { recherche: typeof rechercheProfil; website: typeof websiteKontext };
@@ -369,7 +368,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
     einstellungen: { recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
   };
-  const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig&limit=1`);
+  const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.
   const zuletzt = alt.ok && alt.daten[0]?.erstlauf ? Date.parse(alt.daten[0].erstlauf) : 0;
   const fertig = alt.ok ? alt.daten[0]?.fertig : null;
@@ -377,6 +376,8 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   const einstellungen: Record<string, unknown> = zeile.einstellungen;
   if (zuletzt) einstellungen.erstlauf = new Date(zuletzt).toISOString();
   if (fertig) einstellungen.erstlauf_fertig = fertig;
+  if (alt.ok && alt.daten[0]?.ergebnis) einstellungen.suchlauf_ergebnis = alt.daten[0].ergebnis;
+  if (alt.ok && alt.daten[0]?.fehler !== undefined) einstellungen.suchlauf_fehler = alt.daten[0].fehler;
   const r = alt.ok && alt.daten[0]
     ? await db(s, env, `suchprofile?id=eq.${alt.daten[0].id}`, { method: "PATCH", body: JSON.stringify(zeile) })
     : await db(s, env, "suchprofile", { method: "POST", body: JSON.stringify(zeile) });

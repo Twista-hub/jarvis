@@ -63,7 +63,10 @@ def _reservieren(kwargs):
     body = json.dumps(kwargs, ensure_ascii=False)
     worst = (len(body.encode()) * 5 + kwargs.get("max_tokens", 32000) * 20) / 1e6
     try:
-        return katalog.reservieren(round(worst + 0.0001, 4), "alarm")
+        reservierung = katalog.reservieren(round(worst + 0.0001, 4), "alarm")
+        if not reservierung:
+            print("KI-Budget reicht für diese Anfrage nicht; keine API-Anfrage. Nur eindeutige Wort-/Leistungstreffer bleiben sichtbar.")
+        return reservierung
     except Exception as e:
         print(f"Zentrales KI-Budget nicht prüfbar ({type(e).__name__}); API-Anfrage übersprungen.")
         return None
@@ -88,11 +91,16 @@ def score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
     system = (
         "Du bewertest öffentliche Ausschreibungen für einen Kunden. Antworte auf Deutsch. "
         "punkte: 1–10, wie gut die Ausschreibung zum Kunden passt (10 = Kerngeschäft, realistisch gewinnbar; "
-        "1 = passt nicht). kurz: ein Satz, was gesucht wird. grund: ein Satz, warum es passt oder nicht."
+        "1 = passt nicht). Entscheidend ist die tatsächlich ausgeschriebene Hauptleistung bzw. das Los, "
+        "nicht ein beiläufig genanntes Wort, der Gebäudetyp oder ein Ortsname. "
+        "Die gesuchten Arbeiten begrenzen den Bedarf des Kunden; Partnerleistungen sind keine eigenen Leistungen. "
+        "Ein Fliesenbetrieb passt nicht zu Heizung, Lüftung oder Innenputz, nur weil ein Bad saniert wird. "
+        "Unter 6 Punkten bei lediglich entferntem oder unklarem Leistungsbezug. "
+        "kurz: ein Satz, was gesucht wird. grund: ein Satz, warum es passt oder nicht."
     )
     user = f"Kunde:\n{beschreibung}\n\nAusschreibungen:\n" + json.dumps(items, ensure_ascii=False)
     response = _create(
-        max_tokens=16000,
+        max_tokens=min(16000, max(1024, len(items) * 280 + 256)),
         system=system,
         output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCORE_SCHEMA}},
         messages=[{"role": "user", "content": user}],

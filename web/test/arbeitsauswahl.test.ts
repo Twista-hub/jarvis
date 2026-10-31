@@ -23,8 +23,10 @@ function auswahl(leistungen: Leistung[], js = true) {
     const o = [...dropdown.querySelectorAll("option")].find((o) => o.dataset.arbeitName === name || o.value === name)!;
     assert.ok(o, `Auswahl fehlt: ${name}`);
     assert.equal(Boolean(o.disabled), false);
-    dropdown.value = o.value;
-    dropdown.dispatchEvent(new window.Event("change", { bubbles: true }));
+    const button = root.querySelector<HTMLButtonElement>(`[data-arbeit-waehlen="${o.value}"]`)!;
+    assert.ok(button, `Sichtbare Auswahl fehlt: ${name}`);
+    assert.equal(Boolean(button.disabled), false);
+    klick(button);
   };
   const entfernen = (name: string) => klick(root.querySelector(`[aria-label="${name} entfernen"]`)!);
   const formulardaten = () => {
@@ -48,6 +50,24 @@ test("Dropdown ergänzt Kästchen; Entfernen und Wiederhinzufügen bewahren Such
   assert.equal(a.chips().length, 3);
   assert.deepEqual(a.formulardaten().find((l) => l.name === "Fliesenarbeiten"), fliesen);
   assert.ok(a.formulardaten().find((l) => l.name === "Natursteinarbeiten")!.woerter.includes("naturstein"));
+});
+
+test("Arbeitenliste filtert linksbündige Textknöpfe und schließt nach Auswahl", () => {
+  const a = auswahl([fliesen]);
+  const menue = a.root.querySelector<HTMLDetailsElement>("[data-arbeit-menue]")!;
+  const filter = a.root.querySelector<HTMLInputElement>("[data-arbeit-filter]")!;
+  const liste = a.root.querySelector("[data-arbeit-liste]")!;
+  assert.equal(a.dropdown.hidden, true, "das native Menü mit unterschiedlich eingerückten Gruppen wird ersetzt");
+  menue.open = true;
+  filter.value = "naturstein";
+  filter.dispatchEvent(new a.window.Event("input"));
+  assert.equal(liste.querySelectorAll("h3").length, 1);
+  assert.equal(liste.querySelectorAll("button").length, 2, "nur ein Treffer plus eigene Arbeit");
+  a.waehlen("Natursteinarbeiten");
+  assert.equal(menue.open, false);
+  assert.equal(filter.value, "");
+  assert.equal(a.chips().length, 2);
+  assert.ok([...liste.querySelectorAll("button")].some((b) => b.textContent === "Malerarbeiten"));
 });
 
 test("eigene Arbeiten werden speicherbar ergänzt und doppelte Namen verhindert", () => {

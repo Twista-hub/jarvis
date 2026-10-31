@@ -28,6 +28,7 @@ UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger
 PORTALE: set[str] = set()
 MAX_STECKBRIEFE = int(os.environ.get("MAX_STECKBRIEFE", "2"))
 STECKBRIEF_AB = 7
+MIN_PASSUNG = 6
 FIRMA = os.environ.get("FIRMA", "") if re.fullmatch(r"[0-9a-f-]{36}", os.environ.get("FIRMA", "")) else ""
 
 
@@ -69,6 +70,21 @@ def score(profile: dict, text: str, codes: list[str]) -> tuple[int, str]:
     points = (2 if by_cpv else 0) + (1 if word else 0) + (2 if re.search(profile["strong"], text) else 0)
     reason = ", ".join(filter(None, [f"CPV {by_cpv[0]}" if by_cpv else "", f"„{word.group(0)}“" if word else ""]))
     return points, reason
+
+
+def ohne_ki_passend(profile: dict, rel: dict) -> bool:
+    """Without a fresh AI rating require concrete evidence of the requested trade."""
+    t = rel.get("tender") or {}
+    titel = (t.get("title") or "").lower()
+    text = f"{titel} {t.get('description') or ''}".lower()
+    stark = profile.get("strong") or r"(?!x)x"
+    return bool(re.search(stark, titel) or (
+        any(c.startswith(tuple(profile.get("cpv") or [])) for c in cpv_codes(t))
+        and re.search(stark, text)))
+
+
+def quelle_id(rel: dict) -> str:
+    return str(rel.get("ocid") or rel.get("id") or link(rel))
 
 
 def frist(tender: dict) -> str | None:
@@ -219,6 +235,7 @@ def run(days: list[str]) -> str:
         if not profiles:
             sys.exit(f"Kein Suchprofil für Firma {FIRMA}")
     hits = {k: [] for k in profiles}
+    abgelehnt = {k: set() for k in profiles}
     seen, total, licence = set(), 0, ""
     gemeinsam = katalog.bestand()
     inputs = gemeinsam if gemeinsam is not None else [(day, rel) for day in sorted(days, reverse=True) for _, rel in releases(fetch(day))]
@@ -241,6 +258,8 @@ def run(days: list[str]) -> str:
         if gemeinsam is None and not any(str(tag).startswith("tender") for tag in rel.get("tag") or []):
             continue
         if not katalog.offen(rel):
+            for name in profiles:
+                abgelehnt[name].add(quelle_id(rel))
             continue
         total += 1
         t = rel.get("tender") or {}
@@ -249,13 +268,17 @@ def run(days: list[str]) -> str:
         land = rel.get("_land") or "DEU"
         for name, profile in profiles.items():
             if land not in profile.get("laender", ["DEU"]):
+                abgelehnt[name].add(quelle_id(rel))
                 continue
             if not im_suchgebiet(profile, rel):
+                abgelehnt[name].add(quelle_id(rel))
                 continue
             points, reason = score(profile, text, codes)
             beobachtet = rel.get("_auftraggeber_id") in profile.get("beobachtete_auftraggeber", [])
             if points or beobachtet:
                 hits[name].append((max(points, 1), day, dict(rel, _beobachtet=beobachtet), "Beobachteter Auftraggeber" if beobachtet else reason))
+            else:
+                abgelehnt[name].add(quelle_id(rel))
     ki = None
     if os.environ.get("ANTHROPIC_API_KEY"):
         import ki
@@ -267,22 +290,29 @@ def run(days: list[str]) -> str:
         alle = sorted(hits[name], key=lambda h: -h[0])
         cache = katalog.bewertungen(profile)
         neu = [r for r in alle if katalog.schluessel(r[2]) not in cache][:40]
-        neue_bewertung = ki.score(profile["beschreibung"], [item(i, r[2]) for i, r in enumerate(neu)]) if ki and neu else {}
-        for i, ergebnis in neue_bewertung.items():
-            if 0 <= i < len(neu):
-                rel = neu[i][2]
-                katalog.bewertung_speichern(profile, rel, ergebnis)
-                cache[katalog.schluessel(rel)] = ergebnis
+        # Small batches fit within the remaining budget more often than a reservation
+        # for 40 notices and 16,000 output tokens. The global hard limits still apply.
+        if ki:
+            for anfang in range(0, len(neu), 8):
+                stapel = neu[anfang:anfang + 8]
+                neue_bewertung = ki.score(profile["beschreibung"], [item(i, r[2]) for i, r in enumerate(stapel)])
+                if not neue_bewertung:
+                    break
+                for i, ergebnis in neue_bewertung.items():
+                    if 0 <= i < len(stapel):
+                        rel = stapel[i][2]
+                        katalog.bewertung_speichern(profile, rel, ergebnis)
+                        cache[katalog.schluessel(rel)] = ergebnis
         # Include cached hits as well as new deterministic matches; no daily re-scoring of unchanged texts.
         rows = alle[:200]
         bewertung = {i: cache[katalog.schluessel(r[2])] for i, r in enumerate(rows) if katalog.schluessel(r[2]) in cache}
-        if bewertung:
-            rows = [(bewertung.get(i, {}), *r) for i, r in enumerate(rows)]
-            rows.sort(key=lambda r: (-r[0].get("punkte", 0), -r[1]))
-            weg = [r for r in rows if r[0] and r[0].get("punkte", 0) < 4 and not r[3].get("_beobachtet")]
-            rows = [r for r in rows if not r[0] or r[0].get("punkte", 0) >= 4 or r[3].get("_beobachtet")]
-        else:
-            rows, weg = [({}, *r) for r in rows], []
+        rows = [(bewertung.get(i, {}), *r) for i, r in enumerate(rows)]
+        rows.sort(key=lambda r: (-r[0].get("punkte", 0), -r[1]))
+        def passend(r):
+            return r[3].get("_beobachtet") or (r[0].get("punkte", 0) >= MIN_PASSUNG if r[0] else ohne_ki_passend(profile, r[3]))
+        weg = [r for r in rows if not passend(r)]
+        rows = [r for r in rows if passend(r)]
+        abgelehnt[name].update(quelle_id(r[3]) for r in weg)
         lines += [f"## {profile['name']}: {len(rows)} Treffer", ""]
         for b, points, day, rel, reason in rows:
             t = rel.get("tender") or {}
@@ -296,9 +326,9 @@ def run(days: list[str]) -> str:
             lines += [head, f"{(rel.get('buyer') or {}).get('name', '')} · {place(rel)} · veröffentlicht {day} · {reason}",
                       "", desc, ""]
             links = f"[Zur Ausschreibung]({url}) · [⬆️ Unterlagen prüfen lassen]({UPLOAD}?titel={urllib.parse.quote(t.get('title', '').strip()[:200])})"
-            cache = steckbrief_datei(name, day, rel)
-            pfad = cache if cache.exists() else None
-            if not pfad and b.get("punkte", 0) >= STECKBRIEF_AB and briefe < MAX_STECKBRIEFE:
+            datei = steckbrief_datei(name, day, rel)
+            pfad = datei if datei.exists() else None
+            if ki and not pfad and b.get("punkte", 0) >= STECKBRIEF_AB and briefe < MAX_STECKBRIEFE:
                 pfad = steckbrief_fuer(ki, name, profile, day, rel, url)
                 if pfad:
                     briefe += 1
@@ -312,11 +342,14 @@ def run(days: list[str]) -> str:
                                            + (pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day))),
                             "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version")})
         if weg:
-            lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
+            lines += [f"_{len(weg)} weitere Kandidaten aussortiert: unter {MIN_PASSUNG}/10 oder ohne eindeutigen Leistungsbezug._", ""]
         if not rows:
             lines += ["Heute nichts Passendes.", ""]
-    kompletter_katalog = gemeinsam is not None and len(gemeinsam) < 10000
-    (ROOT / "treffer.json").write_text(json.dumps({"katalog_vollstaendig": kompletter_katalog, "treffer": treffer}, ensure_ascii=False), encoding="utf-8")
+    kompletter_katalog = gemeinsam is not None and len(gemeinsam) < 10000 and not ausland and all(len(h) <= 200 for h in hits.values())
+    (ROOT / "treffer.json").write_text(json.dumps({
+        "katalog_vollstaendig": kompletter_katalog, "treffer": treffer,
+        "profile": {name: {"version": katalog.profil_version(p), "abgelehnt": sorted(abgelehnt[name])} for name, p in profiles.items()},
+    }, ensure_ascii=False), encoding="utf-8")
     import foerder
     lines += foerder.abschnitt(profiles, ki, days)
     if ki:

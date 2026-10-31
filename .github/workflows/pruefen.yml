@@ -15,9 +15,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install -q cryptography
+      - run: pip install -q cryptography "psycopg[binary]"
       - run: python -m py_compile alarm/*.py
-      - run: python -m unittest alarm.test_mail alarm.test_kurzbrief alarm.test_katalog alarm.test_ted
+      - run: python -m unittest alarm.test_mail alarm.test_kurzbrief alarm.test_katalog alarm.test_ted alarm.test_suchgebiet alarm.test_suchqualitaet
 
   web:
     runs-on: ubuntu-latest
