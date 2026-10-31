@@ -2,7 +2,7 @@ name: Zentralen Vergabekatalog ausrollen
 on:
   push:
     branches: [main]
-    paths: ["web/src/katalog-*.ts", "web/wrangler-katalog.toml", ".github/workflows/katalog.yml"]
+    paths: ["web/src/katalog-*.ts", "web/wrangler-katalog.toml", "web/scripts/hyperdrive.py", ".github/workflows/katalog.yml"]
   workflow_run:
     workflows: [Datenbank]
     types: [completed]
@@ -43,12 +43,16 @@ jobs:
             fi
           done
           echo "Schema noch nicht bereit; erfolgreicher Datenbank-Workflow startet diesen Rollout erneut."
+      - name: Datenbankzugang über Hyperdrive
+        if: steps.schema.outputs.bereit == '1'
+        run: |
+          id=$(python3 scripts/hyperdrive.py)
+          printf '\n[[hyperdrive]]\nbinding = "HYPERDRIVE"\nid = "%s"\n' "$id" >> wrangler-katalog.toml
       - name: Worker zunächst pausiert bereitstellen
         if: steps.schema.outputs.bereit == '1'
-        run: npx wrangler deploy --config wrangler-katalog.toml
-      - name: Bestehenden Jarvis-Datenbankzugang hinterlegen
-        if: steps.schema.outputs.bereit == '1'
-        run: printf '%s' "$SUPABASE_DB_PASSWORD" | npx wrangler secret put SUPABASE_DB_PASSWORD --config wrangler-katalog.toml
+        run: |
+          npx wrangler deploy --config wrangler-katalog.toml
+          npx wrangler secret delete SUPABASE_DB_PASSWORD --config wrangler-katalog.toml --force 2>/dev/null || true
       - name: Stündliche Sammlung aktivieren
         if: steps.schema.outputs.bereit == '1'
         run: npx wrangler deploy --config wrangler-katalog.toml --var AKTIV:1

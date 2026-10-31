@@ -2,12 +2,12 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { unzipSync, strFromU8 } from "fflate";
 import { normalisieren, hash } from "./katalog-daten.ts";
 
-type Env = { SUPABASE_DB_PASSWORD: string; AKTIV: string; SAMMLER: Workflow };
+type Env = DbEnv & { AKTIV: string; SAMMLER: Workflow };
 const UA = "Jarvis-Katalog/1.0 (public procurement index)";
-import { katalogDb } from "./katalog-db.ts";
+import { katalogDb, type DbEnv } from "./katalog-db.ts";
 export class KatalogSammler extends WorkflowEntrypoint<Env> {
   async run(_event: WorkflowEvent<unknown>, step: WorkflowStep) {
-    const tage = await step.do("Aufträge vorbereiten", async () => katalogDb(this.env.SUPABASE_DB_PASSWORD, async (sql) => {
+    const tage = await step.do("Aufträge vorbereiten", async () => katalogDb(this.env, async (sql) => {
       const [quelle] = await sql`select erlaubt from public.katalog_quellen where id='bks'`;
       if (!quelle?.erlaubt) throw new Error("Quelle nicht freigegeben");
       // Never evade a source's robots restrictions. A changed policy pauses collection.
@@ -31,7 +31,7 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
     for (const tag of tage) {
       await step.do(`Export ${tag}`, { retries: { limit: 2, delay: "30 seconds", backoff: "exponential" }, timeout: "5 minutes" }, async () => {
         try {
-          return await katalogDb(this.env.SUPABASE_DB_PASSWORD, async (sql) => {
+          return await katalogDb(this.env, async (sql) => {
             const [alt] = await sql`select * from jarvis_katalog.exporte where quelle='bks' and tag=${tag}`;
             if (alt?.naechster_versuch && new Date(alt.naechster_versuch).getTime() > Date.now()) return;
             const headers: Record<string, string> = { "User-Agent": UA };
@@ -74,7 +74,7 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
             await sql`update public.katalog_quellen set letzter_erfolg=now(),fehler=null,bestand_ab=(select min(tag) from jarvis_katalog.exporte where quelle='bks' and fertig),bestand_bis=(select max(tag) from jarvis_katalog.exporte where quelle='bks' and fertig),rueckstand_tage=(select count(*) from generate_series(current_date-60,current_date-1,interval '1 day') d where not exists(select 1 from jarvis_katalog.exporte e where e.quelle='bks' and e.tag=d::date and e.fertig)) where id='bks'`;
           });
         } catch {
-          await katalogDb(this.env.SUPABASE_DB_PASSWORD, async (sql) => {
+          await katalogDb(this.env, async (sql) => {
             await sql`insert into jarvis_katalog.exporte(quelle,tag,versuche,naechster_versuch) values('bks',${tag},1,now()+interval '1 hour') on conflict(quelle,tag) do update set versuche=jarvis_katalog.exporte.versuche+1,naechster_versuch=now()+least(interval '24 hours',interval '1 hour'*power(2,least(jarvis_katalog.exporte.versuche,4)))`;
             await sql`update public.katalog_quellen set fehler='Ein Export konnte nicht verarbeitet werden. Wiederholung ist eingeplant.' where id='bks'`;
           });

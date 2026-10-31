@@ -10,7 +10,7 @@ const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 
 
 export interface EinrichtungEnv extends KontoEnv {
   ANTHROPIC_API_KEY: string;
-  SUPABASE_DB_PASSWORD?: string;
+  HYPERDRIVE?: { connectionString: string };
   ACTIONS_TOKEN?: string; // GitHub token (Actions: write on Twista-hub/jarvis) to start the first run right away
 }
 
