@@ -31,6 +31,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031130000_geruestbau_mindestlohn.sql
 \ir ../migrations/20261031140000_weitere_branchenmindestentgelte.sql
 \ir ../migrations/20261030224121_kaufverantwortung.sql
+\ir ../migrations/20261031150000_kontoloeschung_inhaber.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -408,4 +409,11 @@ exception when raise_exception then
  if sqlerrm = 'FEHLER: Gesperrter Mitarbeiter wurde zugewiesen' then raise; end if;
  raise notice 'ok: kaufmännische Zuweisung verlangt ein aktives Mitglied';
 end $$;
+-- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.
+reset role;
+select id as neufirma2 from public.firmen where name='Neu GmbH' \gset
+delete from auth.users where id='00000000-0000-0000-0000-0000000000d1';
+select pruefe(not exists (select 1 from public.firmen where id=:'neufirma2'), 'Kontolöschung entfernt Firma ohne weitere Mitglieder');
+delete from auth.users where id='00000000-0000-0000-0000-00000000000a';
+select pruefe(exists (select 1 from public.firmen where id=:'firma') and not exists (select 1 from public.mitglieder where user_id='00000000-0000-0000-0000-00000000000a'), 'Kontolöschung des letzten Inhabers klappt, Firma mit Team bleibt');
 \echo ALLE TESTS OK
