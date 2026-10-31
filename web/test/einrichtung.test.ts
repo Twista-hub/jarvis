@@ -42,6 +42,20 @@ test("KI-Fallback behält konkrete Suchwörter aus der Firmenwebsite bei", () =>
   assert.equal(woerter[0], "fliesen");
 });
 
+test("eigene und auf der Website gefundene Beschreibung bleiben getrennt", () => {
+  const original = "Wir verlegen Fliesen in Baesweiler und Umgebung.";
+  const website = "Team Effertz bietet Badplanung, Fliesen und Natursteinarbeiten an.";
+  const v = vorschlagOderFallback({
+    beschreibung: "Von der KI verfasste Beschreibung.", website_beschreibung: website,
+    leistungen: [{ name: "Fliesenarbeiten", cpv: [], woerter: ["fliesen", "naturstein"] }],
+  }, original, "Baesweiler");
+  assert.equal(v.beschreibung, original);
+  assert.equal(v.website_beschreibung, website);
+  const html = profilFormular("firma", v, "");
+  assert.match(html, /name="beschreibung"[^>]*>[\s\S]*Wir verlegen Fliesen in Baesweiler/);
+  assert.match(html, /name="website_beschreibung"[^>]*>[\s\S]*Team Effertz bietet Badplanung/);
+});
+
 test("leerer oder unbrauchbarer KI-Vorschlag wird durch ein speicherbares Profil ersetzt", () => {
   const text = "Wir vermitteln Elektriker und Schweißer für Industrie und Wartung.";
   const leer = vorschlagOderFallback({ beschreibung: text, leistungen: [], standorte: [] }, text, "Essen");
@@ -83,11 +97,13 @@ test("form round trip keeps checked services and locations only", () => {
   const form = new FormData();
   for (const [, k, v] of html.matchAll(/name="([^"]+)"[^>]*value="([^"]*)"/g)) if (!/_an$/.test(k)) form.set(k, v);
   form.set("beschreibung", "Wir stellen Servicepersonal für Messen.");
+  form.set("website_beschreibung", "Auf der Website: Messepersonal und Veranstaltungsschutz.");
   form.set("l0_an", "1");
   form.set("l1_an", "1"); // the empty extra row is dropped
   const v = ausFormular(form);
   assert.deepEqual(v.leistungen, [{ name: "Messepersonal", cpv: ["79620"], woerter: ["messepersonal", "hostess"] }]);
   assert.deepEqual(v.standorte, []); // location not ticked
+  assert.equal(v.website_beschreibung, "Auf der Website: Messepersonal und Veranstaltungsschutz.");
 });
 
 test("Länder im Suchprofil: Deutschland als Standard, nur bekannte Länder, Auswahl im Formular", async () => {

@@ -16,7 +16,7 @@ export interface EinrichtungEnv extends KontoEnv {
 
 export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
-export type Vorschlag = { beschreibung: string; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; laender?: string[] };
+export type Vorschlag = { beschreibung: string; website_beschreibung: string; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; laender?: string[] };
 
 export function suchlaufLaeuft(start: string | null | undefined, fertig: string | null | undefined, jetzt = Date.now()): boolean {
   const begonnen = start ? Date.parse(start) : NaN;
@@ -34,6 +34,7 @@ const SCHEMA = {
   type: "object",
   properties: {
     beschreibung: { type: "string" },
+    website_beschreibung: { type: "string" },
     leistungen: {
       type: "array",
       items: {
@@ -55,19 +56,20 @@ const SCHEMA = {
       },
     },
   },
-  required: ["beschreibung", "leistungen", "ausschluss", "ausschluss_cpv", "standorte"],
+  required: ["beschreibung", "website_beschreibung", "leistungen", "ausschluss", "ausschluss_cpv", "standorte"],
   additionalProperties: false,
 };
 
 const ANLEITUNG = `Du richtest für eine Firma die tägliche Suche nach öffentlichen Ausschreibungen in Deutschland ein.
-Aus der Beschreibung der Firma erstellst du ein Suchprofil:
-- beschreibung: 3 bis 5 sachliche Sätze: was die Firma anbietet, für welche Auftraggeber, welche Auftragsgrößen realistisch sind, was sie NICHT macht. Diese Beschreibung nutzt später eine KI, um jede Ausschreibung zu bewerten.
+Erstelle ein Suchprofil aus zwei getrennten Informationsquellen:
+- beschreibung: fasse nur die vom Nutzer selbst beschriebenen Angaben sachlich zusammen. Keine Website-Informationen in dieses Feld mischen.
+- website_beschreibung: fasse getrennt zusammen, was die gelesene Firmenwebsite ausdrücklich über die Firma und ihre Leistungen sagt. Ohne lesbare Website-Angaben bleibt dieses Feld leer. Keine Vermutungen und keine persönlichen Daten über Einzelpersonen.
 - leistungen: 2 bis 8 Leistungen der Firma. Je Leistung passende CPV-Codes als Präfix (2 bis 8 Ziffern, ohne Prüfziffer; je kürzer, desto breiter; lieber genau als zu breit) und 3 bis 12 Suchwörter auf Deutsch, klein geschrieben, so wie sie in Titeln von Ausschreibungen stehen (Wortstämme sind erlaubt, z. B. "servicekr" findet "Servicekräfte"). Keine allgemeinen Wörter wie "dienstleistung" oder "service".
 - ausschluss: Wörter für Ausschreibungen, die ähnlich klingen, aber nicht passen (z. B. Bau, Software, Lieferungen), klein geschrieben.
 - ausschluss_cpv: CPV-Hauptgruppen (2 Ziffern), die sicher nicht passen und sonst oft fälschlich auftauchen, z. B. 45 Bau, 71 Architektur und Ingenieure, 34 Fahrzeuge. Nie eine Gruppe, die eine der Leistungen enthält.
 - standorte: jeder genannte Standort mit den zweistelligen Postleitzahl-Bereichen im Umkreis von etwa 50 km. Ohne Standorte: leere Liste (dann sucht Jarvis bundesweit).
 - Nutze die angegebene Firmenwebsite als Quelle für konkrete Leistungen und Suchwörter. Jarvis liest die Startseite und höchstens vier passende Unterseiten derselben Website, sofern robots.txt den Abruf erlaubt. Übernimm konkrete Begriffe von dort in leistungen und Suchwörter; leite keine bloß vermuteten Leistungen ab.
-Erfinde keine Leistungen, die weder die Firma beschreibt noch die gelesenen Seiten nennen.`;
+Erfinde keine Leistungen, die weder die Firma beschreibt noch die gelesenen Seiten nennen. Lasse beim Schreiben der zwei Beschreibungen klar erkennen, aus welcher Quelle die jeweilige Information stammt.`;
 
 /** vorlage: description of a firm whose profile was set up by hand (alarm/profile.json), else "". */
 export async function einrichtung(request: Request, env: EinrichtungEnv, vorlage: (firma: string) => string): Promise<Response | null> {
@@ -153,7 +155,8 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
       messages: [{ role: "user", content: `Firma: ${name}\nWebsite: ${website || "keine angegeben"}\n\nVom Nutzer beschriebene Leistungen:\n${beschreibung}\n\nStandorte:\n${orte || "keine angegeben"}\n\nLesbare Angaben von der angegebenen Website (nur als Ergänzung, keine weiteren Leistungen erfinden):\n${websiteDaten.text || "keine Website-Informationen verfügbar"}` }],
     }, { timeout: 38_000 }));
     if (message.stop_reason === "refusal") throw new Error("abgelehnt");
-    vorschlag = vorschlagOderFallback(JSON.parse(message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("")), beschreibung, orte);
+    const erkannt = JSON.parse(message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("")) as Partial<Vorschlag>;
+    vorschlag = vorschlagOderFallback({ ...erkannt, beschreibung, website_beschreibung: erkannt.website_beschreibung || websiteDaten.text.slice(0, 1200) }, beschreibung, orte, websiteDaten.text);
     if (!vorschlag.leistungen.length) throw new Error("leerer Vorschlag");
   } catch (e) {
     console.warn(`Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
@@ -177,19 +180,19 @@ export function beschreibungFallback(beschreibung: string, orte: string, website
   const woerter = [...new Set([...extrahieren(websiteText), ...extrahieren(beschreibung)])].slice(0, 20);
   const ersterSatz = beschreibung.split(/[.!?\n]+/).map((s) => s.trim()).find(Boolean) ?? beschreibung;
   const standorte = orte.split(/[\n,;]+/).map((s) => s.trim()).filter(Boolean).slice(0, 20).map((name) => ({ name, plz_praefixe: [] }));
-  return bereinigen({ beschreibung, leistungen: [{ name: ersterSatz.slice(0, 120) || "Leistung aus Firmenbeschreibung", cpv: [], woerter: woerter.length ? woerter : ["ausschreibung"] }], standorte });
+  return bereinigen({ beschreibung, website_beschreibung: websiteText.slice(0, 1200), leistungen: [{ name: ersterSatz.slice(0, 120) || "Leistung aus Firmenbeschreibung", cpv: [], woerter: woerter.length ? woerter : ["ausschreibung"] }], standorte });
 }
 
 /** A syntactically valid model answer can still contain no usable service; never show an unsaveable profile. */
-export function vorschlagOderFallback(v: Partial<Vorschlag>, beschreibung: string, orte: string): Vorschlag {
-  const bereinigt = bereinigen(v);
+export function vorschlagOderFallback(v: Partial<Vorschlag>, beschreibung: string, orte: string, websiteText = ""): Vorschlag {
+  const bereinigt = bereinigen({ ...v, beschreibung, website_beschreibung: v.website_beschreibung || websiteText.slice(0, 1200) });
   return bereinigt.beschreibung.length >= 20 && bereinigt.leistungen.length
     ? bereinigt
-    : beschreibungFallback(beschreibung, orte);
+    : beschreibungFallback(beschreibung, orte, websiteText);
 }
 
 function leer(): Vorschlag {
-  return { beschreibung: "", leistungen: [], ausschluss: [], ausschluss_cpv: [], standorte: [] };
+  return { beschreibung: "", website_beschreibung: "", leistungen: [], ausschluss: [], ausschluss_cpv: [], standorte: [] };
 }
 
 const liste = (x: string[] | undefined) => escape((x ?? []).join(", "));
@@ -216,8 +219,11 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
 <form method="post" action="/konto/einrichtung/speichern">
   <input type="hidden" name="firma" value="${firma}">
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" value="${escape(website)}"></label>
-  <label>Was macht eure Firma?
+  <label>Deine Beschreibung der Firma
     <textarea name="beschreibung" required minlength="20" maxlength="3000">${escape(v.beschreibung)}</textarea></label>
+  <label>Das hat Jarvis auf der Website gefunden
+    <textarea name="website_beschreibung" maxlength="1500" placeholder="Keine Website-Informationen gefunden">${escape(v.website_beschreibung)}</textarea>
+    <span class="klein">Getrennt von deiner Beschreibung gespeichert. Du kannst den Text ändern oder löschen.</span></label>
   <h2>Welche Arbeiten soll Jarvis finden?</h2>
   ${leistungen}
   <details><summary>Unpassende Arbeiten ausschließen (optional)</summary>
@@ -254,6 +260,7 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
   const ziffern = (x: unknown, min: number, max: number) => [...new Set((Array.isArray(x) ? x : []).map((c) => String(c).replace(/\D/g, "")).filter((c) => c.length >= min && c.length <= max))].slice(0, 40);
   return {
     beschreibung: String(v.beschreibung ?? "").trim().slice(0, 3000),
+    website_beschreibung: String(v.website_beschreibung ?? "").trim().slice(0, 1500),
     leistungen: (v.leistungen ?? []).map((l) => ({ name: String(l.name ?? "").trim().slice(0, 120), cpv: ziffern(l.cpv, 2, 8), woerter: woerter(l.woerter) })).filter((l) => l.name && (l.cpv.length || l.woerter.length)).slice(0, 12),
     ausschluss: woerter(v.ausschluss),
     ausschluss_cpv: ziffern(v.ausschluss_cpv, 2, 8),
@@ -270,7 +277,7 @@ export function ausFormular(form: FormData): Vorschlag {
     if (form.get(`l${i}_an`)) leistungen.push({ name: String(form.get(`l${i}_name`) ?? ""), cpv: teile(`l${i}_cpv`), woerter: teile(`l${i}_woerter`) });
     if (form.get(`o${i}_an`)) standorte.push({ name: String(form.get(`o${i}_name`) ?? ""), plz_praefixe: teile(`o${i}_plz`), bereich_id: String(form.get(`o${i}_bereich`) ?? "") || undefined });
   }
-  return bereinigen({ beschreibung: String(form.get("beschreibung") ?? ""), leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
+  return bereinigen({ beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
 }
 
 async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, alteWebsite: string, rolle: string, form: FormData): Promise<Response> {
@@ -308,7 +315,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     woerter: [...new Set(v.leistungen.flatMap((l) => l.woerter))].join(", "),
     ausschluss: v.ausschluss.join(", "),
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
-    einstellungen: { leistungen: v.leistungen, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
+    einstellungen: { leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
   };
   const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.

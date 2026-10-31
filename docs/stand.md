@@ -4,7 +4,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (31.10.2026)
 - **Mindestentgelt-Katalog (31.10.):** sechs neue Branchen-/gesetzliche Einträge samt Flughafenberufen eingespielt. GitHub-Rechteprüfung, Migration und Gesamtprüfung erfolgreich; Web-Check und 20 Testdateien grün. Alle zehn Bereiche der BMAS-Übersicht zu bundesweiten Branchenmindestentgelten sind im Katalog vertreten. Destatis-Tarifdatenbank als neue manuelle Recherchequelle identifiziert; Nutzungsbedingungen des separaten PDF-Exports und Verfügbarkeit noch ungeklärt.
-- **Suchprofil (31.10.):** KI-Leerantworten werden durch einen speicherbaren Vorschlag ersetzt; Speicherfehler werden verständlicher angezeigt. Der Vorschlagknopf zeigt Fortschritt, und die Sucheinrichtung ist für Nicht-Fachleute vereinfacht: Arbeit und Ort zuerst, Fachdetails standardmäßig eingeklappt. Lokale und GitHub-Prüfungen grün; App live.
+- **Suchprofil (31.10.):** Eigene Firmenbeschreibung und Website-Auswertung werden getrennt gespeichert und angezeigt. Die Suche und Trefferbewertung erhalten beide Angaben; die Originalbeschreibung bleibt erhalten. KI-Leerantworten werden durch einen speicherbaren Vorschlag ersetzt, und die Sucheinrichtung bleibt für Nicht-Fachleute vereinfacht.
 - **Web-KI-Verbindung (31.10.):** Nur-Lese-Prüfung des Budgets: 0,1023/20 USD im Monat und 0,102/3 USD heute; Budgetlimit nicht erreicht. Hyperdrive und Budgetfunktion sind im App-Worker per schreibfreiem Rollout-Test bestätigt. Echter KI-Vorschlag nach diesem Rollout noch nicht bestätigt.
 - **Standortfilter Ausschreibungen (31.10.):** App-Suchprofile filtern Bekanntmachungen anhand des Einsatzorts. PLZ-Anfänge werden räumlich angewendet; wenn sie beim einfachen Vorschlag fehlen, verwendet ein einzelner Suchort ersatzweise den PLZ-Bereich des Firmensitzes statt nur des Ortsnamens. Das ist eine grobe Gebietsnäherung, kein exakter Radius. Beim vollständigen Katalogabgleich wandern alte, unbearbeitete und nicht mehr aktuelle Treffer ins Archiv, auch wenn ältere Treffer keine Katalog-ID haben; bearbeitete Vorgänge bleiben unangetastet.
 - **Trefferbegründung (31.10.):** KI-Bewertung, „was gesucht wird“ und „warum es passt“ werden gemeinsam am Vorgang gespeichert. Die kurze Erklärung erscheint direkt auf der Trefferkarte; lange Steckbriefe bleiben nur auf der Detailseite.
@@ -39,7 +39,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (Benjamin) Für neue Team-Effertz-Treffer nach dem Rollout unter `/konto/suchprofil` einmal „Suche jetzt starten“ wählen; andernfalls läuft die nächste tägliche Suche automatisch. Website-Begriffe werden über „Website auswerten und Suchbegriffe ergänzen“ neu vorgeschlagen und müssen im Profil gespeichert werden.
+- (Benjamin) Beim nächsten Profilabgleich prüfen, dass die eigene Beschreibung getrennt von „Auf der Website gefunden“ erscheint; danach einmal „Speichern und Suche starten“. Wenn nicht manuell gestartet, läuft die nächste tägliche Suche automatisch.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -64,6 +64,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Eigene Beschreibung und Website-Fund trennen)
+- Das Profilformular speichert jetzt die eigene Firmenbeschreibung und Jarvis’ Website-Auswertung in zwei getrennten Feldern. Die Übersichtsseite zeigt beide getrennt; beim erneuten Vorschlag bleibt die eigene Eingabe erhalten.
+- Die KI erstellt Leistungen aus beiden Quellen, die Trefferbewertung erhält beide Texte. Ohne KI-Antwort bleibt der Website-Auszug separat sichtbar und editierbar. Website-Fund ist optional und kann geändert oder gelöscht werden.
+- `cd web && npm run check && npm test` (20 Dateien), 25 Python-Tests und Syntaxprüfung grün. Änderungen lokal noch nicht gepusht; danach Rollout und einmaliges Profil-/Suchlauf-Verhalten prüfen.
 
 ### 31.10.2026 – ChatGPT (Treffergebiet und Website-Fallback nach Benjamins Test)
 - Screenshot geprüft: Der Suchbereich hatte keine PLZ-Bereiche, daher ließ der Alarm nur den genauen Ortsnamen durch. Ein einzelner Eintrag ohne KI-PLZ-Bereiche erhält künftig ersatzweise den zweistelligen PLZ-Bereich vom Firmensitz; das ist eine grobe Gebietsnäherung. Mehrere explizite Suchorte oder vorhandene PLZ-Bereiche bleiben unverändert.

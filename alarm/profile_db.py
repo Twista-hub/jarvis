@@ -73,6 +73,7 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
     firmen_prefix = firmen_plz[:2] if re.fullmatch(r"\d{5}", str(firmen_plz or "")) else ""
     def plz_bereiche(o: dict) -> list[str]:
         return o.get("plz_praefixe") or ([firmen_prefix] if firmen_prefix and len(standorte) == 1 else [])
+    bewertungstext = "\n\n".join(filter(None, [beschreibung.strip(), str(e.get("website_beschreibung") or "").strip()]))
     return {
         "name": name,
         "cpv": sorted({c for l in leistungen for c in l.get("cpv", [])}),
@@ -80,7 +81,8 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         "strong": woerter,
         "exclude": muster(e.get("ausschluss") or []),
         "exclude_cpv": e.get("ausschluss_cpv") or [],
-        "beschreibung": beschreibung,
+        # Preserve the user's description in the app; give scoring both sources explicitly.
+        "beschreibung": bewertungstext,
         "firma_id": firma_id,
         # These locations constrain which notices enter this firm's hit list.
         # If the simple fallback could not derive a postal area, use the firm's postal area
