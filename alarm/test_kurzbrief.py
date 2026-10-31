@@ -3,7 +3,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from alarm.alarm import kurzbrief
+from alarm.alarm import bewertungsabschnitt, kurzbrief
 
 
 class KurzbriefTest(unittest.TestCase):
@@ -18,6 +18,12 @@ class KurzbriefTest(unittest.TestCase):
 
     def test_missing_facts_are_not_invented(self):
         self.assertIn("nicht angegeben", kurzbrief({}, "2026-10-30"))
+
+    def test_ai_match_reason_is_saved_with_the_brief(self):
+        text = bewertungsabschnitt({"kurz": "Fliesenarbeiten in öffentlichen Gebäuden", "grund": "Die Leistung passt zum Angebot der Firma."})
+        self.assertIn("Gesucht:", text)
+        self.assertIn("Warum passend:", text)
+        self.assertIn("passt zum Angebot", text)
 
 
 if __name__ == "__main__":

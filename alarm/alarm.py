@@ -166,6 +166,12 @@ def kurzbrief(rel: dict, day: str) -> str:
             "Die Vergabeunterlagen wurden nicht geprüft. Für die ausführliche Analyse bitte die Unterlagen hochladen._")
 
 
+def bewertungsabschnitt(bewertung: dict) -> str:
+    """Short, user-facing explanation returned by the AI relevance scoring."""
+    kurz, grund = bewertung.get("kurz"), bewertung.get("grund")
+    return f"## Jarvis-Bewertung\n\n**Gesucht:** {kurz}\n\n**Warum passend:** {grund}\n\n" if kurz and grund else ""
+
+
 def steckbrief_datei(name: str, day: str, rel: dict) -> Path:
     t = rel.get("tender") or {}
     slug = re.sub(r"[^a-z0-9]+", "-", t.get("title", "").lower())[:50].strip("-")
@@ -301,7 +307,10 @@ def run(days: list[str]) -> str:
             lines += [links, ""]
             treffer.append({"profil": name, "quelle_id": rel.get("ocid") or rel.get("id") or url, "titel": t.get("title", "").strip(),
                             "link": url, "frist": frist(t),
-                            "punkte": b.get("punkte") or None, "plz": plz(rel), "steckbrief": pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day), "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version")})
+                            "punkte": b.get("punkte") or None, "plz": plz(rel),
+                            "steckbrief": (bewertungsabschnitt(b)
+                                           + (pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day))),
+                            "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version")})
         if weg:
             lines += [f"_{len(weg)} weitere Treffer passen laut KI nicht (unter 4/10)._", ""]
         if not rows:
