@@ -75,7 +75,8 @@ def brief_aktualisieren(alt: str | None, t: dict) -> str | None:
     bewertung, inhalt = teilen(neu)
     _, bisher = teilen(alt)
     # Keep uploaded/detailed analyses; replace only the old relevance explanation.
-    return bewertung + (bisher if t.get("steckbrief_kurz") and bisher.strip() else inhalt) if neu else alt
+    behalten = bisher.strip() and (t.get("steckbrief_kurz") or not bisher.startswith("## Kurzüberblick"))
+    return bewertung + (bisher if behalten else inhalt) if neu else alt
 
 
 def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict) -> int:
@@ -89,11 +90,14 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
                on conflict (firma_id, quelle_id) do update set
                  punkte = excluded.punkte,
                  frist = coalesce(excluded.frist, vorgaenge.frist),
-                 steckbrief = excluded.steckbrief,
+                 steckbrief = case
+                   when vorgaenge.steckbrief is distinct from %s and nullif(trim(vorgaenge.steckbrief),'') is not null
+                     then vorgaenge.steckbrief
+                   else excluded.steckbrief end,
                  link = excluded.link, katalog_id=coalesce(excluded.katalog_id,vorgaenge.katalog_id),katalog_version=coalesce(excluded.katalog_version,vorgaenge.katalog_version),
                  bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id)
                returning (xmax = 0)""",
-            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version")),
+            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"), bisher[0] if bisher else None),
         ).fetchone()
         neu += bool(row and row[0])
     return neu

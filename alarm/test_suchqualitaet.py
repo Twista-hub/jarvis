@@ -99,6 +99,19 @@ class SuchqualitaetTest(unittest.TestCase):
         unbewertet = speichern.brief_aktualisieren(alt, {"steckbrief": "## Kurzüberblick", "steckbrief_kurz": True})
         self.assertNotIn("Jarvis-Bewertung", unbewertet)
         self.assertIn("Wichtige Kundendaten", unbewertet)
+        aus_bekanntmachung = speichern.brief_aktualisieren(alt, {"steckbrief": neu, "steckbrief_kurz": False})
+        self.assertIn("Wichtige Kundendaten", aus_bekanntmachung)
+        self.assertNotIn("Veraltet", aus_bekanntmachung)
+        upgrade = speichern.brief_aktualisieren("## Kurzüberblick\n\nAlt", {"steckbrief": "## Ausführliche Analyse\n\nNeu", "steckbrief_kurz": False})
+        self.assertIn("Ausführliche Analyse", upgrade)
+
+    def test_concurrent_upload_brief_is_preserved_by_upsert(self):
+        con = MagicMock()
+        con.execute.return_value.fetchone.side_effect = [None, (False,)]
+        speichern.speichern(con, "a", [{"quelle_id": "q", "titel": "Fliesen", "link": "https://example.test", "steckbrief": "## Kurzüberblick", "steckbrief_kurz": True}], {})
+        sql, params = con.execute.call_args.args
+        self.assertIn("vorgaenge.steckbrief is distinct from %s", sql)
+        self.assertIsNone(params[-1], "ein zwischenzeitlich angelegter Brief darf nicht überschrieben werden")
 
     def test_saver_limits_cleanup_to_evaluated_profile_even_with_partial_catalog(self):
         p = profil()
