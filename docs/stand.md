@@ -18,7 +18,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Ausschreibungen als Handy-Karten mit Punkten, Frist, Stand und Bereichsfilter; Treffer-Seite mit Steckbrief, Knopf „Hier runterladen“
     (zum Portal) und Upload, Jarvis schreibt daraus den ausführlichen Steckbrief (ergänzt den aus der Bekanntmachung) und die Kalkulation.
   - Einrichtungs-Assistent: Firma beschreiben → KI schlägt Suchprofil vor → speichern → Alarm sucht sofort die letzten 7 Tage.
-  - Registrierung und Einrichtungs-Assistent nehmen optional die Firmenwebsite an. Jarvis liest ausschließlich die angegebene Startseite und beachtet robots.txt; bei KI-Ausfall werden Beschreibung und Standorte in einen bearbeitbaren Profilvorschlag übernommen. Scheitert der Sofortstart, bleibt das Profil gespeichert und ein direkter Wiederholungsstart wird angeboten.
+  - Registrierung und Einrichtungs-Assistent nehmen optional die Firmenwebsite an. Jarvis liest die Startseite und bis zu vier passende Unterseiten derselben Domain, prüft robots.txt und beachtet Zeit- und Größenlimits; bei KI-Ausfall werden Beschreibung, Website-Begriffe und Standorte in einen bearbeitbaren Profilvorschlag übernommen. Scheitert der Sofortstart, bleibt das Profil gespeichert und ein direkter Wiederholungsstart wird angeboten.
   - Tägliche Nachricht pro Person: Uhrzeit 7–20 Uhr, per Mail, Handy oder beides; Fristen-Erinnerung 7 und 2 Tage vorher.
   - Handy-Nachrichten (Web-Push) und als App installierbar.
   - Profil-Icon oben rechts (/konto/profil), Firmenwechsel im Profil; Suchprofil als eigener Bereich (/konto/suchprofil). Keine E-Mail-Zeile oder Einrichtung auf der Übersicht.
@@ -64,6 +64,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Firmenwebsite für Suchbegriffe gründlicher lesen)
+- Die bisherige Begrenzung auf die Startseite war bei Firmen mit wenigen Informationen im Einstieg zu knapp. Jarvis findet jetzt auf der Startseite höchstens vier passende Links derselben Website (z. B. Leistungen, Branchen oder Referenzen) und liest die erlaubten HTML-Seiten.
+- Jede Unterseite wird gegen `robots.txt` geprüft. Externe Domains, Weiterleitungen und gesperrte Pfade werden nicht gelesen; Anzahl, Zeit und Textumfang bleiben begrenzt. Die KI darf nur genannte Leistungen übernehmen und keine erfinden.
+- `npm run check` und alle 20 Web-Testdateien grün; neue Tests bestätigen Unterseiten-Auswahl, robots.txt sowie Ausschluss externer Links. Noch nicht gepusht; nach Deployment offen: echten Vorschlag mit einer Website testen, deren Leistungsinfos auf Unterseiten stehen.
 
 ### 31.10.2026 – ChatGPT (Suchprofil-Navigation, Website-Wörter und veraltete Treffer)
 - Letzten Suchlauf geprüft: Bericht 41198686741 enthält für „Team Effertz gmbh“ einen aktuellen Treffer in Baesweiler. Die 26 weit entfernten Karten blieben, weil die alte Bereinigung nur Vorgänge mit `katalog_id` prüfte; ältere Erstlauf-Treffer ohne diese ID wurden übergangen.

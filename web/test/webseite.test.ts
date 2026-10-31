@@ -2,18 +2,22 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { websiteKontext, websiteNormalisieren } from "../src/webseite.ts";
 
-test("liest nur eine vom Nutzer angegebene Seite und ergänzt Titel/Beschreibung", async () => {
+test("liest Firmenstartseite und passende Leistungs-Unterseite derselben Website", async () => {
   const abfragen: string[] = [];
   const result = await websiteKontext("https://firma.example", async (input) => {
     const url = String(input);
     abfragen.push(url);
     if (url.endsWith("/robots.txt")) return new Response("User-agent: *\nDisallow: /intern", { status: 200 });
-    return new Response("<html><head><title>Elektro Muster</title><meta name=\"description\" content=\"Elektroinstallation und Wartung\"></head><body><h1>Elektrofachbetrieb</h1></body></html>", { headers: { "content-type": "text/html" } });
+    if (url.endsWith("/leistungen/fliesen")) return new Response("<html><body><h1>Fliesen und Badsanierung</h1></body></html>", { headers: { "content-type": "text/html" } });
+    return new Response("<html><head><title>Elektro Muster</title><meta name=\"description\" content=\"Elektroinstallation und Wartung\"></head><body><h1>Elektrofachbetrieb</h1><a href=\"/leistungen/fliesen\">Leistungen</a><a href=\"/intern/jobs\">Intern</a><a href=\"https://fremd.example/leistungen\">Fremdseite</a></body></html>", { headers: { "content-type": "text/html" } });
   });
-  assert.equal(abfragen.length, 2);
+  assert.equal(abfragen.length, 3);
   assert.match(result.text, /Elektro Muster/);
   assert.match(result.text, /Elektroinstallation und Wartung/);
-  assert.match(result.hinweis, /Startseite gelesen/);
+  assert.match(result.text, /Fliesen und Badsanierung/);
+  assert.ok(!abfragen.some((url) => url.includes("/intern/")));
+  assert.ok(!abfragen.some((url) => url.includes("fremd.example")));
+  assert.match(result.hinweis, /passende Unterseiten gelesen/);
 });
 
 test("respektiert robots.txt und liest dann keine gesperrte Website", async () => {
