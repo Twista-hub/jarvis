@@ -1,6 +1,22 @@
 // Browser feedback shared by company research, profile saving and tender search.
 export const SUCH_AKTION_JS = `// Every search action reports work immediately, including secondary buttons with their own form action.
 document.querySelectorAll("form[data-suchaktion]").forEach(function (form) {
+  var idleButtons = Array.from(form.querySelectorAll("button")).map(function (b) { return { button: b, text: b.textContent, disabled: b.disabled }; });
+  var idleStatus = form.querySelector("[data-einrichtung-status]");
+  var idleText = idleStatus ? idleStatus.textContent : "";
+  var idleClass = idleStatus ? idleStatus.className : "";
+  var busyStatus = null;
+  window.addEventListener("pageshow", function (event) {
+    if (!event.persisted) return;
+    delete form.dataset.beschaeftigt;
+    form.removeAttribute("aria-busy");
+    idleButtons.forEach(function (b) { b.button.disabled = b.disabled; b.button.textContent = b.text; });
+    if (busyStatus) {
+      if (idleStatus) { busyStatus.textContent = idleText; busyStatus.className = idleClass; }
+      else busyStatus.remove();
+      busyStatus = null;
+    }
+  });
   form.addEventListener("submit", function (event) {
     if (form.dataset.beschaeftigt === "1") { event.preventDefault(); return; }
     form.dataset.beschaeftigt = "1";
@@ -17,6 +33,7 @@ document.querySelectorAll("form[data-suchaktion]").forEach(function (form) {
       if (button) button.insertAdjacentElement("afterend", status); else form.appendChild(status);
     }
     status.className = "laedt";
+    busyStatus = status;
     status.textContent = recherche ? "Jarvis recherchiert deine Firma. Das kann bis zu zwei Minuten dauern. Danach erscheint das Ergebnis automatisch." : "Jarvis startet die Suche nach Ausschreibungen. Bitte warte kurz …";
     var spinner = document.createElement("span");
     spinner.className = "kreisel";
