@@ -32,7 +32,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Rechtsnormen für Pflege/Reinigung in den Tarifkatalog aufnehmen; Datenbank-Rechteprüfung ausstehend.
+- Zurzeit nichts.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -60,9 +60,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ### 31.10.2026 – ChatGPT (Tarifliche Mindestentgelte aus Bundesrecht)
 - Bundesrechtliche Mindestentgelte geprüft: Dachdecker 14,96/16,60 €/Std. ab 2026, gelernt 17,10 €/Std. ab 2027 und 17,60 €/Std. ab 2028; Pflege drei Qualifikationsstufen mit je einem Satz 2026 und 2027; Gebäudereinigung LG 1 15,00 €/Std. und LG 6 18,40 €/Std. ab 2026. Beim Malerhandwerk die bisherige Verbandsquelle durch die Rechtsnorm ersetzt und Geltungsbereich/Ablauf ergänzt.
-- Migration `20261031110000_dachdecker_mindestlohn.sql` samt Rechte-Test erfolgreich geprüft und am 31.10. eingespielt: https://github.com/Twista-hub/jarvis/actions/runs/41149680138. Neue Migration `20261031120000_tarifliche_mindestentgelte_pflege_reinigung.sql` ergänzt Pflege- und Gebäudereinigungswerte, aktualisiert Maler-Nachweis und gibt alle Einträge als Firmenauswahl frei. Der geänderte Datenbank-/Rechte-Test für diese Migration läuft noch; Einspielen erst nach grünem Workflow.
+- Migration `20261031110000_dachdecker_mindestlohn.sql` samt Rechte-Test erfolgreich geprüft und am 31.10. eingespielt: https://github.com/Twista-hub/jarvis/actions/runs/41149680138. Die Migration `20261031120000_tarifliche_mindestentgelte_pflege_reinigung.sql` ergänzt Pflege- und Gebäudereinigungswerte, aktualisiert den Maler-Nachweis und gibt alle Einträge als Firmenauswahl frei. Rechte-Test und Produktionsmigration erfolgreich: https://github.com/Twista-hub/jarvis/actions/runs/41150138672.
 - Der Katalog hat dann 14 gruppierte Auswahl-Einträge. Die Rechtsnormen sind Mindestuntergrenzen, keine vollständigen Tarifverträge und keine automatische Kalkulation; Geltungsbereich sowie Ablaufwarnungen sind je Eintrag dokumentiert. Quelle und Grenzen: `alarm/quellen.md` und `docs/personalkatalog.md`.
-- `cd web && npm run check && npm test`: grün, 20 Testdateien (Web-Code seitdem nicht verändert). Der SQL-Test für die nächste Migration muss im vorgeschriebenen GitHub-Workflow laufen, da Docker lokal gesperrt ist.
+- `cd web && npm run check && npm test`: grün, 20 Testdateien. PostgreSQL-Rechte-/Migrationstests für beide Migrationen grün. Lokaler Docker-Dienst in der Entwicklungsumgebung bleibt gesperrt, daher SQL-Test ausschließlich im vorgesehenen GitHub-Workflow.
 - Offen: aktuelle Sätze nach Ablauf der Gebäude-Arbeitsbedingungenverordnung am 31.12.2026 prüfen; weitere Tarifwerke/Regionen aus zulässigen Originalquellen belegen. Bundesweite Vollständigkeit ist nicht erreichbar. Benjamin muss nichts einrichten.
 
 ### 30.10.2026 – ChatGPT (Kontolöschung in Supabase)
