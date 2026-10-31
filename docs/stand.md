@@ -27,19 +27,19 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - PerLease-Filter zeigt alle 4 Regionen und 16 Standorte; live bestätigt.
   - Neue Konto-Übersicht mit Kacheln, Status-Reitern, Fristen, Unterlagen-Upload ohne Treffer, Firmen-Kalkulationswerten, Team und Einstellungen; Handy-Leiste und Zurück-Pfeil.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
-- **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 15 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt (inklusive Gerüstbau-Mindestlohn ab 2026/2027, Migration noch ausstehend). 30 GVP-Entgeltwerte über drei Stichtage, Maler, vier Dachdecker-, sechs Pflege-, zwei Gerüstbau- und zwei Gebäudereinigungs-Mindestlohnwerte sind quellengebunden vorgesehen/gespeichert. Das bleibt ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmale und Löhnen. Für Bayern/BW gefundene Originaltabellen erfordern vor Weiterverwendung die Zustimmung der Rechteinhaber.
+- **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 15 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. 30 GVP-Entgeltwerte über drei Stichtage, Maler, vier Dachdecker-, sechs Pflege-, zwei Gerüstbau- und zwei Gebäudereinigungs-Mindestlohnwerte sind quellengebunden gespeichert. Das bleibt ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmale und Löhnen. Für Bayern/BW gefundene Originaltabellen erfordern vor Weiterverwendung die Zustimmung der Rechteinhaber.
 - **Zentraler Vergabekatalog (Code bereitgestellt):** eigener stündlicher Worker, gemeinsame offene Bekanntmachungen und neue Markt-/Teilnahmefunktionen. Aktivierung und Live-Datenstand über die Ausrollläufe prüfen; der Erstbestand wird schrittweise aufgebaut.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Gerüstbau-Mindestlohn aus amtlicher Rechtsquelle ergänzen und Migration prüfen/ausrollen.
+- Zurzeit nichts.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
 2. ~~**Kalkulationsvorlagen pro Standort**~~: Auf `/konto/kalkulation` nach Firma oder Standort auswählen und Vorlagen speichern. Beim Rechnen gelten in Reihenfolge Standort → Region → Firma; eigene Angebotswerte behalten Vorrang. Keine Migration nötig, vorhandene Bereichs-/Finanzrechte bleiben maßgeblich.
 3. ~~Mitarbeiter sperren/austreten lassen~~ (firmenbezogen umgesetzt).
 4. ~~Kaufmännisch Verantwortlichen pro Ausschreibung zuweisen~~ (umgesetzt; Rechte und Finanzsicht bleiben rollenabhängig).
-5. Tarifdatenbank ist mit einem quellengebundenen Startbestand ausgebaut. Weitere Tarifbereiche samt aktuellen Originalgruppen, Tätigkeitsmerkmalen und Entgelten schrittweise ergänzen; keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`, `alarm/quellen.md`). Dachdecker-Mindestlohn ergänzt; das ist kein vollständiger Tarifvertrag.
+5. Tarifdatenbank ist mit einem quellengebundenen Startbestand ausgebaut. Weitere Tarifbereiche samt aktuellen Originalgruppen, Tätigkeitsmerkmalen und Entgelten schrittweise ergänzen; keine bundesweite Vollständigkeit behaupten (`docs/personalkatalog.md`, `alarm/quellen.md`). Dachdecker- und Gerüstbauer-Mindestlöhne ergänzt; das sind keine vollständigen Tarifverträge.
 6. Tarifregister Bayern und Baden-Württemberg sowie TV-L-/IG-Metall-Originalquellen geprüft. Drei konkrete Nutzungsanfragen sind versandt; Antwort abwarten. Tabellen erst nach schriftlicher Freigabe übernehmen, sonst ausdrücklich offen lizenzierte Quellen suchen. Danach Plan-/Stripe-Entscheidungen von Benjamin und ein Jarvis-eigener Telegram-Bot mit getrenntem Secret; niemals RestockHero-Zugangsdaten verwenden.
 - Benjamin testet noch: Anmeldung auf https://app.wpdigitalranger.com, Weiterleitung der alten Adresse, App am Handy neu installieren und Benachrichtigungen neu einschalten.
 
@@ -57,6 +57,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Gerüstbau-Mindestlohn)
+- Als weiteren tarifbezogenen Datensatz den gesetzlichen Gerüstbau-Mindestlohn aus `§ 2 TVMindestlohn Gerüstb 9` ergänzt: 14,35 €/Std. ab 01.01.2026 und 14,90 €/Std. ab 01.01.2027. `9. GerüstbauerArbbV` erstreckt die Rechtsnormen für den gesetzlichen betrieblichen/persönlichen Geltungsbereich vom 01.01.2026 bis 31.12.2027. Der Eintrag ist ausdrücklich eine sektorale Untergrenze, kein vollständiger Tarifvertrag und keine automatische Kalkulationsgrundlage.
+- `robots.txt` der amtlichen Rechtsquelle geprüft (keine Sperre), Quelle und Anwendungsgrenzen in `alarm/quellen.md` und `docs/personalkatalog.md` festgehalten. Neue Firmen erhalten den Eintrag; bestehende Firmen bekommen ihn über Migration `20261031130000_geruestbau_mindestlohn.sql`.
+- PostgreSQL-Rechte-/Migrationstest und Produktionsmigration erfolgreich: https://github.com/Twista-hub/jarvis/actions/runs/41159313189. Web-Typprüfung und alle 20 Testdateien erfolgreich: https://github.com/Twista-hub/jarvis/actions/runs/41159313567. `In Arbeit` ist geleert. Offen bleiben drei Nutzungsantworten zu TV-L und IG Metall sowie weitere rechtlich und lizenzrechtlich belegbare Tarifwerke. Benjamin muss nichts tun.
 
 ### 31.10.2026 – ChatGPT (Telegram-Plan projektgetrennt)
 - `PLAN.md` enthielt die Anweisung, das Telegram-Bot-Token in RestockHero zu speichern. Das widerspricht AGENTS.md, das Projektkonten, Schlüssel und Domains strikt trennt.
