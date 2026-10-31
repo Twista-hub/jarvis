@@ -20,11 +20,14 @@ ALLGEMEIN = {"bad", "bäder", "baeder", "boden", "böden", "boeden", "bau", "arb
 def verbinden():
     import psycopg
     pw = urllib.parse.quote(os.environ["SUPABASE_DB_PASSWORD"], safe="")
-    for host in ("aws-1-eu-central-1", "aws-0-eu-central-1"):
-        try:
-            return psycopg.connect(f"postgresql://postgres.{REF}:{pw}@{host}.pooler.supabase.com:5432/postgres", connect_timeout=10)
-        except psycopg.OperationalError:
-            continue
+    # Short GitHub jobs use transaction pooling, leaving session slots for Hyperdrive.
+    # Cursors and SET LOCAL stay inside their existing explicit transactions.
+    for port in (6543, 5432):
+        for host in ("aws-1-eu-central-1", "aws-0-eu-central-1"):
+            try:
+                return psycopg.connect(f"postgresql://postgres.{REF}:{pw}@{host}.pooler.supabase.com:{port}/postgres", connect_timeout=10, prepare_threshold=None)
+            except psycopg.OperationalError:
+                continue
     sys.exit("Keine Verbindung zur Datenbank")
 
 

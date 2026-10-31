@@ -13,6 +13,14 @@ from alarm.alarm import frist
 
 
 class KatalogTest(unittest.TestCase):
+    def test_jobs_prefer_transaction_pooling_without_prepared_statements(self):
+        import profile_db
+        import psycopg
+        with patch.dict(os.environ, {"SUPABASE_DB_PASSWORD": "test"}), patch.object(psycopg, "connect") as connect:
+            self.assertIs(profile_db.verbinden(), connect.return_value)
+            self.assertIn(":6543/postgres", connect.call_args.args[0])
+            self.assertIsNone(connect.call_args.kwargs["prepare_threshold"])
+
     def test_cursor_reads_beyond_ten_thousand_without_materialising_whole_catalog(self):
         cursor = MagicMock()
         def batches():
