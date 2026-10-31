@@ -1,4 +1,4 @@
-/** One user-supplied company homepage; no search engine or site-wide crawl. */
+/** User-supplied company site; read only its homepage and a few relevant same-site pages. */
 export function websiteNormalisieren(roh: string): string {
   const wert = roh.trim();
   if (!wert) return "";
@@ -65,13 +65,32 @@ function entity(text: string): string {
     .replace(/&#39;|&apos;/gi, "'").replace(/&lt;/gi, "<").replace(/&gt;/gi, ">");
 }
 
-function seitenText(html: string): string {
+function seitenText(html: string, limit = 3500): string {
   const metadaten = [...html.matchAll(/<meta\b[^>]*(?:name|property)=["'](?:description|og:title|og:description)["'][^>]*>/gi)]
     .map(([tag]) => tag.match(/content=["']([^"']*)["']/i)?.[1] ?? "");
   const title = html.match(/<title\b[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "";
   const text = html.replace(/<(script|style|svg|noscript)\b[^>]*>[\s\S]*?<\/\1>/gi, " ")
     .replace(/<[^>]+>/g, " ").replace(/&(?:nbsp|amp|quot|lt|gt|apos);|&#39;/gi, " ").replace(/\s+/g, " ").trim();
-  return [...new Set([entity(title), ...metadaten.map(entity), text].map((x) => x.trim()).filter(Boolean))].join(" · ").slice(0, 3500);
+  return [...new Set([entity(title), ...metadaten.map(entity), text].map((x) => x.trim()).filter(Boolean))].join(" · ").slice(0, limit);
+}
+
+const RELEVANTE_PFADE = /leistung|angebot|branche|referenz|handwerk|service|qualifikation|gewerk|portfolio|unternehmen|ueber-uns|über-uns|taetig|tätig|arbeitsbereich|spektrum|produkt/i;
+
+function passendeUnterseiten(html: string, start: URL): URL[] {
+  const kandidaten = new Map<string, URL>();
+  for (const [, , roh] of html.matchAll(/\bhref\s*=\s*(["'])(.*?)\1/gi)) {
+    try {
+      const url = new URL(entity(roh), start);
+      if (url.origin !== start.origin || url.protocol !== "https:" || url.username || url.password || url.search || url.hash) continue;
+      if (!RELEVANTE_PFADE.test(decodeURIComponent(url.pathname))) continue;
+      if (/\.(?:pdf|jpe?g|png|gif|svg|zip|docx?|xlsx?|pptx?)$/i.test(url.pathname)) continue;
+      if (/login|logout|anmeld|registr|warenkorb|checkout|kontaktformular/i.test(url.pathname)) continue;
+      url.pathname = url.pathname.replace(/\/{2,}/g, "/");
+      const schluessel = url.pathname.replace(/\/$/, "");
+      if (schluessel && schluessel !== start.pathname.replace(/\/$/, "")) kandidaten.set(schluessel, url);
+    } catch { /* Invalid or malformed links are ignored. */ }
+  }
+  return [...kandidaten.values()].slice(0, 4);
 }
 
 export async function websiteKontext(raw: string, abrufen: typeof fetch = fetch): Promise<{ text: string; hinweis: string }> {
@@ -79,21 +98,31 @@ export async function websiteKontext(raw: string, abrufen: typeof fetch = fetch)
   if (!normal) return { text: "", hinweis: "" };
   const url = new URL(normal);
   if (!isPublicWebsite(url)) return { text: "", hinweis: "Die Website-Adresse ist nicht für einen sicheren öffentlichen Abruf geeignet. Du kannst mit deiner Beschreibung fortfahren." };
-  const options: RequestInit = { redirect: "manual", signal: AbortSignal.timeout(5000), headers: { "user-agent": "Jarvis/1.0 (Firmenprofil; kontakt@wpdigitalranger.com)", accept: "text/plain,text/html" } };
+  const optionen = (): RequestInit => ({ redirect: "manual", signal: AbortSignal.timeout(5000), headers: { "user-agent": "Jarvis/1.0 (Firmenprofil; kontakt@wpdigitalranger.com)", accept: "text/plain,text/html" } });
   try {
-    const robots = await abrufen(new URL("/robots.txt", url.origin), options);
+    const robots = await abrufen(new URL("/robots.txt", url.origin), optionen());
+    let regeln = "";
     if (robots.status !== 404 && robots.status !== 410) {
       if (!robots.ok) return { text: "", hinweis: "Die Website erlaubt gerade keinen Abruf ihrer Regeln. Du kannst mit deiner Beschreibung fortfahren." };
-      const regeln = await begrenztLesen(robots, 16_000);
+      regeln = await begrenztLesen(robots, 16_000);
       if (!robotsErlaubt(regeln, `${url.pathname}${url.search}`)) return { text: "", hinweis: "Die Website untersagt automatisches Lesen. Du kannst ihre Leistungen unten selbst beschreiben." };
     }
-    const seite = await abrufen(url, options);
+    const seite = await abrufen(url, optionen());
     if (!seite.ok || (seite.headers.get("content-type") ?? "").toLowerCase().includes("text/html") === false) {
       return { text: "", hinweis: "Die Website ließ sich nicht als öffentliche HTML-Seite lesen. Du kannst mit deiner Beschreibung fortfahren." };
     }
-    const text = seitenText(await begrenztLesen(seite, 100_000));
+    const homepage = await begrenztLesen(seite, 100_000);
+    const haupttext = seitenText(homepage, 3500);
+    const unterseiten = await Promise.all(passendeUnterseiten(homepage, url).filter((ziel) => robotsErlaubt(regeln, `${ziel.pathname}${ziel.search}`)).map(async (ziel) => {
+      try {
+        const antwort = await abrufen(ziel, optionen());
+        if (!antwort.ok || !(antwort.headers.get("content-type") ?? "").toLowerCase().includes("text/html")) return "";
+        return seitenText(await begrenztLesen(antwort, 100_000), 1800);
+      } catch { return ""; }
+    }));
+    const text = [haupttext, ...unterseiten].filter(Boolean).join("\n\n").slice(0, 9500);
     return text
-      ? { text, hinweis: "Jarvis hat die Startseite gelesen; bitte prüfe die daraus abgeleiteten Leistungen." }
+      ? { text, hinweis: "Jarvis hat die Startseite und bis zu vier passende Unterseiten gelesen; bitte prüfe die daraus abgeleiteten Leistungen." }
       : { text: "", hinweis: "Die Website enthält keine lesbare Leistungsbeschreibung. Du kannst mit deiner Beschreibung fortfahren." };
   } catch {
     return { text: "", hinweis: "Die Website war gerade nicht erreichbar. Du kannst mit deiner Beschreibung fortfahren." };
