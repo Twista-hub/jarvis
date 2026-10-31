@@ -15,12 +15,21 @@ test("Suchstand unterscheidet laufend, abgeschlossen, Zeitüberschreitung und Fe
   assert.equal(sucheLaeuft({ ...p, fertig: "2026-10-31T15:00:00Z" }, jetzt), false);
   const html = suchmeldung({ ...p, fertig: "2026-10-31T15:00:00Z", ergebnis: { neu: 0, treffer: 12, ungeprueft: 2 } }, firma, jetzt);
   assert.match(html, /0 neu hinzugekommen · 12 passende Treffer/);
-  assert.match(html, /2 davon bisher nur anhand/);
+  assert.match(html, /2 angezeigte Treffer bisher nur anhand/);
   assert.doesNotMatch(html, /data-suchlauf=/);
   assert.match(suchmeldung({ erstlauf: "2026-10-31T14:00:00Z" }, firma, jetzt), /länger als erwartet/);
   assert.match(suchmeldung({ ...p, fertig: "2026-10-31T15:00:00Z", fehler: true }, firma, jetzt), /nicht abgeschlossen/);
   assert.equal(sucheLaeuft({ erstlauf: "ungültig" }, jetzt), false);
   assert.equal(sucheLaeuft({ erstlauf: "2099-01-01" }, jetzt), false);
+});
+
+test("Offene Bewertungen und Quellenlücken werden als Zwischenstand angezeigt", () => {
+  const html = suchmeldung({ fertig: "2026-10-31T15:00:00Z", ergebnis: { neu: 4, treffer: 4, kandidaten: 148, bewertet: 80, ausstehend: 68, katalog_geprueft: 11685, importtage_offen: 40 } }, firma, jetzt);
+  assert.match(html, /Zwischenstand/);
+  assert.match(html, /80 von 148/);
+  assert.match(html, /68 Bewertungen stehen noch aus/);
+  assert.match(html, /40 Tage/);
+  assert.doesNotMatch(html, /Letzte Suche abgeschlossen/);
 });
 
 test("Statusroute braucht Sitzung, nutzt deren RLS-Token und meldet fehlende Profile nicht als fertig", async (t) => {

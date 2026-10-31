@@ -58,4 +58,17 @@ jobs:
         run: npx wrangler deploy --config wrangler-katalog.toml --var AKTIV:1
       - name: Ersten Sammellauf starten
         if: steps.schema.outputs.bereit == '1'
-        run: npx wrangler workflows trigger jarvis-katalog-sammeln '{}' --config wrangler-katalog.toml
+        run: |
+          npx wrangler workflows trigger jarvis-katalog-sammeln '{"nachholen":true}' --id "nachholen-${{ github.run_id }}" --json --config wrangler-katalog.toml
+      - name: Nachholung verfolgen
+        if: steps.schema.outputs.bereit == '1'
+        run: |
+          for versuch in $(seq 1 60); do
+            npx wrangler workflows instances describe jarvis-katalog-sammeln "nachholen-${{ github.run_id }}" --json --config wrangler-katalog.toml > importstand.json
+            status=$(python3 -c 'import json; r=json.load(open("importstand.json")); print(r.get("status",r.get("result",{}).get("status","unbekannt")))')
+            if [ "$status" = complete ]; then cat importstand.json; exit 0; fi
+            if [ "$status" = errored ] || [ "$status" = terminated ]; then cat importstand.json; exit 1; fi
+            sleep 10
+          done
+          cat importstand.json
+          echo "::warning::Nachholung läuft weiter; aktueller Quellenstand ist in der App sichtbar."

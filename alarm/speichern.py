@@ -139,7 +139,7 @@ def main() -> None:
             nicht_aktuell = nicht_mehr_aktuell_verwerfen(con, firma_id, eigene, kompletter_katalog)
             neu = speichern(con, firma_id, eigene, profil.get("regionen", {}))
             ergebnis = {"treffer": len(eigene), "neu": neu, "ungeprueft": sum(t.get("punkte") is None for t in eigene),
-                        "archiviert": unpassend + verworfen + nicht_aktuell}
+                        "archiviert": unpassend + verworfen + nicht_aktuell, **bericht.get("suchstand", {})}
             suchgebiet = {"standorte": profil["standorte"], "suchgebiet_modus": "firmenstandorte"} if profil.get("suchgebiet_modus") == "firmenstandorte" else {}
             con.execute("""update public.suchprofile set einstellungen = einstellungen ||
                 jsonb_build_object('erstlauf_fertig', now(), 'suchlauf_ergebnis', %s::jsonb, 'suchlauf_fehler', false) || %s::jsonb

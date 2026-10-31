@@ -60,7 +60,8 @@ class SuchqualitaetTest(unittest.TestCase):
         self.assertEqual([t["quelle_id"] for t in data["treffer"]], ["gut"])
         self.assertIsNone(data["treffer"][0]["punkte"], "no invented AI score")
         self.assertEqual(set(data["profile"]), {"a"})
-        self.assertEqual(data["profile"]["a"]["abgelehnt"], ["fremd", "schlecht"])
+        self.assertEqual(data["profile"]["a"]["abgelehnt"], ["fremd"], "unbewertete Kandidaten sind noch nicht fachlich abgelehnt")
+        self.assertEqual(data["profile"]["a"]["suchstand"]["ausstehend"], 2)
 
     def test_rejection_update_cannot_touch_started_work_or_other_firms(self):
         con = MagicMock()
@@ -95,6 +96,27 @@ class SuchqualitaetTest(unittest.TestCase):
         p = aus_db("a", "Fliesen", "Fliesen in Baesweiler", {"standorte": [{"name": "Baesweiler"}],
             "leistungen": [{"name": "Fliesen", "woerter": ["fliesen", "baesweiler"], "cpv": []}]})
         self.assertFalse(alarm.ohne_ki_passend(p, bekanntmachung("x", "Elektroarbeiten in Baesweiler")))
+
+    def test_more_than_forty_candidates_are_evaluated_and_budget_stop_preserves_pending(self):
+        for stop in [False, True]:
+            p = profil()
+            rels = [bekanntmachung(str(i), "Fliesenarbeiten") for i in range(56)]
+            ki = MagicMock(); ki.kosten.return_value = 0.0
+            anfragen = []
+            def bewerten(beschreibung, items):
+                anfragen.append(len(items))
+                return {} if stop and len(anfragen)>1 else {i: {"punkte": 2,"kurz":"Nicht passend","grund":"Falsches Los"} for i in range(len(items))}
+            ki.score.side_effect = bewerten
+            with tempfile.TemporaryDirectory() as tmp, patch.object(alarm,"ROOT",Path(tmp)), patch.object(alarm,"FIRMA","firma-a"), \
+                 patch("profile_db.laden",return_value={"a":p}), patch.object(katalog,"bestand",return_value=[("2026-10-31",r) for r in rels]), \
+                 patch.object(katalog,"bewertungen",return_value={}), patch.object(katalog,"bewertung_speichern"), \
+                 patch("foerder.abschnitt",return_value=[]),patch.dict("os.environ",{"ANTHROPIC_API_KEY":"vorhanden"}),patch.dict(sys.modules,{"ki":ki}):
+                alarm.run(["2026-10-31"])
+                data=json.loads((Path(tmp)/"treffer.json").read_text())
+            stand=data["profile"]["a"]["suchstand"]
+            self.assertEqual(stand["bewertet"],8 if stop else 56)
+            self.assertEqual(stand["ausstehend"],48 if stop else 0)
+            self.assertEqual(len(data["profile"]["a"]["abgelehnt"]),8 if stop else 56)
 
     def test_new_rating_replaces_old_reason_but_preserves_uploaded_analysis(self):
         alt = alarm.bewertungsabschnitt({"kurz": "Alt", "grund": "Veraltet"}) + "## Analyse aus Unterlagen\n\nWichtige Kundendaten."

@@ -45,6 +45,6 @@ jobs:
             'standorte':p['suchorte'],'laender':p['laender'],'suchgebiet_modus':e.get('suchgebiet_modus'),
             'ausschluss':e.get('ausschluss',[]),'ausschluss_cpv':e.get('ausschluss_cpv',[]),
             'letzter_lauf':e.get('suchlauf_ergebnis'),'offene_katalogeintraege':anzahl,
-            'auswertungsgrenze':10000,'neue_ki_pruefungen_pro_lauf':40,'bewertete_cacheeintraege':cache[0],
+            'auswertungsgrenze':None,'neue_ki_pruefungen_pro_lauf':'bis zur Budgetgrenze','bewertete_cacheeintraege':cache[0],
             'cache_ab_6_punkten':cache[1],'quellenstand':quelle},ensure_ascii=False,default=str,indent=2))
           PY

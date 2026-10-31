@@ -8,6 +8,7 @@ With ANTHROPIC_API_KEY set, Claude scores the hits and writes Steckbriefe for th
 (alarm/steckbriefe/), at most MAX_STECKBRIEFE per run.
 """
 import io
+import itertools
 import json
 import os
 import re
@@ -243,19 +244,19 @@ def run(days: list[str]) -> str:
     abgelehnt = {k: set() for k in profiles}
     seen, total, licence = set(), 0, ""
     gemeinsam = katalog.bestand()
-    inputs = gemeinsam if gemeinsam is not None else [(day, rel) for day in sorted(days, reverse=True) for _, rel in releases(fetch(day))]
+    inputs = gemeinsam if gemeinsam is not None else ((day, rel) for day in sorted(days, reverse=True) for _, rel in releases(fetch(day)))
     # Other European countries via TED, only for profiles that chose them (Germany comes from the Bekanntmachungsservice).
     ausland = sorted({l for p in profiles.values() for l in p.get("laender", ["DEU"]) if l != "DEU"})
     if ausland:
         import ted
-        inputs = list(inputs) + [(day, rel) for day in days for rel in ted.releases(day, [l for l in ausland if l not in ("GBR", "USA")])]
+        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in ted.releases(day, [l for l in ausland if l not in ("GBR", "USA")])))
     if "GBR" in ausland:  # not in TED since Brexit
         import uk
-        inputs = list(inputs) + [(day, rel) for day in days for rel in uk.releases(day)]
+        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in uk.releases(day)))
     if "USA" in ausland:  # federal agencies via SAM.gov, only with SAM_API_KEY
         import usa
-        inputs = list(inputs) + [(day, rel) for day in days for rel in usa.releases(day)]
-    for day, rel in sorted(inputs, key=lambda r: (r[0], r[1].get("date", "")), reverse=True):
+        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in usa.releases(day)))
+    for day, rel in inputs:
         key = rel.get("ocid") or rel.get("id") or link(rel)
         if key in seen:
             continue
@@ -291,11 +292,12 @@ def run(days: list[str]) -> str:
              f"{total} offene Bekanntmachungen im erfassten Bestand geprüft. Quelle: Bekanntmachungsservice (oeffentlichevergabe.de), Lizenz: {licence or 'siehe Datei'}.", ""]
     briefe = 0
     treffer = []  # for the firms' accounts in the app (alarm/speichern.py)
+    staende = {}
     for name, profile in profiles.items():
         lines += [f"Suchgebiet {profile['name']}: {len(profile.get('suchorte') or [])} Standorte" if profile.get("suchorte") else f"Suchgebiet {profile['name']}: bundesweit", ""]
         alle = sorted(hits[name], key=lambda h: -h[0])
         cache = katalog.bewertungen(profile)
-        neu = [r for r in alle if katalog.schluessel(r[2]) not in cache][:40]
+        neu = [r for r in alle if katalog.schluessel(r[2]) not in cache]
         # Small batches fit within the remaining budget more often than a reservation
         # for 40 notices and 16,000 output tokens. The global hard limits still apply.
         if ki:
@@ -310,15 +312,19 @@ def run(days: list[str]) -> str:
                         katalog.bewertung_speichern(profile, rel, ergebnis)
                         cache[katalog.schluessel(rel)] = ergebnis
         # Include cached hits as well as new deterministic matches; no daily re-scoring of unchanged texts.
-        rows = alle[:200]
+        rows = alle
         bewertung = {i: cache[katalog.schluessel(r[2])] for i, r in enumerate(rows) if katalog.schluessel(r[2]) in cache}
         rows = [(bewertung.get(i, {}), *r) for i, r in enumerate(rows)]
         rows.sort(key=lambda r: (-r[0].get("punkte", 0), -r[1]))
         def passend(r):
             return r[3].get("_beobachtet") or (r[0].get("punkte", 0) >= MIN_PASSUNG if r[0] else ohne_ki_passend(profile, r[3]))
-        weg = [r for r in rows if not passend(r)]
+        offen = [r for r in rows if not r[0]]
+        weg = [r for r in rows if r[0] and not passend(r)]
         rows = [r for r in rows if passend(r)]
         abgelehnt[name].update(quelle_id(r[3]) for r in weg)
+        staende[name] = {"katalog_geprueft": total, "kandidaten": len(alle), "bewertet": len(alle) - len(offen),
+                         "ausstehend": len(offen), "importtage_offen": getattr(gemeinsam, "luecken", None)}
+        lines += [f"Bewertung: {len(alle) - len(offen)} von {len(alle)} Kandidaten geprüft; {len(offen)} noch offen.", ""]
         lines += [f"## {profile['name']}: {len(rows)} Treffer", ""]
         for b, points, day, rel, reason in rows:
             t = rel.get("tender") or {}
@@ -354,11 +360,11 @@ def run(days: list[str]) -> str:
                 lines += [f"- {b.get('punkte', 'ohne KI')}/10 · {(rel.get('tender') or {}).get('title', '')}: {b.get('grund') or grund}"]
             lines += ["", "</details>", ""]
         if not rows:
-            lines += ["Heute nichts Passendes.", ""]
-    kompletter_katalog = gemeinsam is not None and len(gemeinsam) < 10000 and not ausland and all(len(h) <= 200 for h in hits.values())
+            lines += ["Noch keine bestätigten Treffer; Bewertungen stehen noch aus." if offen else "Heute nichts Passendes.", ""]
+    kompletter_katalog = gemeinsam is not None and getattr(gemeinsam, "vollstaendig", True) and not ausland and getattr(gemeinsam, "luecken", 0) == 0 and not any(s["ausstehend"] for s in staende.values())
     (ROOT / "treffer.json").write_text(json.dumps({
         "katalog_vollstaendig": kompletter_katalog, "treffer": treffer,
-        "profile": {name: {"version": katalog.profil_version(p), "abgelehnt": sorted(abgelehnt[name])} for name, p in profiles.items()},
+        "profile": {name: {"version": katalog.profil_version(p), "abgelehnt": sorted(abgelehnt[name]), "suchstand": staende[name]} for name, p in profiles.items()},
     }, ensure_ascii=False), encoding="utf-8")
     import foerder
     lines += foerder.abschnitt(profiles, ki, days)
