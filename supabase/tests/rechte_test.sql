@@ -110,8 +110,13 @@ select pruefe((select betrag=14.60 from public.tarifkatalog_saetze where tarif_i
 select pruefe((select tarifart='Gesetzlicher Mindestlohn' from public.tarifkatalog where id='allgemeiner-mindestlohn-2026'), 'Allgemeiner Mindestlohn ist als gesetzlicher statt als Branchenmindestlohn markiert');
 select pruefe((select count(*)=3 from public.tarifkatalog_saetze where tarif_id='aue-lohnuntergrenze-2026' and einheit='Stunde'), 'AÜ-Lohnuntergrenze enthält alle drei gesetzlichen Stichtage');
 select pruefe((select betrag=15.33 from public.tarifkatalog_saetze where tarif_id='aue-lohnuntergrenze-2026' and gueltig_ab='2026-09-01'), 'AÜ-Lohnuntergrenze September 2026 stimmt mit der 7. Verordnung überein');
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000000f', 'tarif-trigger@perlease.test');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000f');
 select public.firma_anlegen('Tarif-Trigger-Prüfung') as tarif_trigger_firma \gset
 select pruefe((select count(*)=21 from public.firmen_tarifvertraege where firma_id=:'tarif_trigger_firma' and vorgegeben), 'Neu angelegte Firmen erhalten alle 21 geschützten Tarifauswahlen');
+select test_als('00000000-0000-0000-0000-00000000000e');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name='Elektrohandwerk NRW' and 'EG 12'=any(gruppen) and 'Elektriker/in'=any(berufe) and quelle_url like 'https://%'), 'Branchenvertrag hat Gruppen, Beruf und Quelle');
 select pruefe((select cardinality(gruppen) = 38 from public.firmen_tarifvertraege where firma_id=:'firma' and name like 'Garten-, Landschaft%'), 'Tarif mit getrennten Lohn- und Gehaltsgruppen passt vollständig ins Schema');
 select pruefe((select count(*) = 1 from public.firmen_tarifvertraege where firma_id=:'firma' and name like 'Maler-%' and tarifart='Branchenmindestlohn'), 'Branchenmindestlohn ist als solcher gekennzeichnet');
