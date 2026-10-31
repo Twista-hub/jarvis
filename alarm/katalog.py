@@ -64,8 +64,8 @@ def bestand():
 
 
 def profil_version(profil):
-    # The display threshold does not change the scores, so changing it must not trigger a paid re-scoring.
-    inhalt = {k: v for k, v in profil.items() if k != "min_punkte"}
+    # Threshold and radius only filter; the scores stay valid, so changing them must not trigger a paid re-scoring.
+    inhalt = {k: v for k, v in profil.items() if k not in ("min_punkte", "radius_km", "suchpunkte")}
     return hashlib.sha256(json.dumps(inhalt, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 

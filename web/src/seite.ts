@@ -328,6 +328,14 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .heute-wichtig a.dringend strong { color: var(--error); }
   .einstellungs-liste { margin: 0 0 20px; }
   .darstellung { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .suchkarte { margin: 12px 0 18px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .suchkarte svg { display: block; width: 100%; max-width: 360px; height: auto; margin: 0 auto; }
+  .suchkarte .land { fill: var(--bg); stroke: var(--muted); stroke-width: 1.2; }
+  .suchkarte .grenzen { fill: none; stroke: var(--line); stroke-width: .8; }
+  .suchkarte .radius { fill: var(--accent); fill-opacity: .14; stroke: var(--accent); stroke-opacity: .5; stroke-width: 1; }
+  .suchkarte .ort { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
+  .suchkarte figcaption { display: grid; gap: 2px; margin-top: 8px; text-align: center; font-size: 14px; font-weight: 600; }
+  .suchkarte figcaption .klein { font-size: 11px; font-weight: 400; }
   .frist-schalter { margin: 16px 0 6px; font-size: 14px; }
   .aktionsleiste { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0 0 16px; }
   .aktionsleiste a { display: grid; place-items: center; min-height: 52px; padding: 8px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; text-align: center; font-weight: 650; font-size: 14px; line-height: 1.3; }

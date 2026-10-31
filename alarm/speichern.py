@@ -161,11 +161,13 @@ def main() -> None:
             ergebnis = {"treffer": len(eigene), "neu": neu, "ungeprueft": sum(t.get("punkte") is None for t in eigene),
                         "archiviert": unpassend + verworfen + nicht_aktuell, **bericht.get("suchstand", {})}
             suchgebiet = {"standorte": profil["standorte"], "suchgebiet_modus": "firmenstandorte"} if profil.get("suchgebiet_modus") == "firmenstandorte" else {}
+            # Coordinates for the map in the app (the app does not load the postal code table itself).
+            suchgebiet["suchpunkte"] = profil.get("suchpunkte") or []
             con.execute("""update public.suchprofile set einstellungen = einstellungen ||
                 jsonb_build_object('erstlauf_fertig', now(), 'suchlauf_ergebnis', %s::jsonb, 'suchlauf_fehler', false) || %s::jsonb
                 where firma_id=%s and bereich_id is null""", (json.dumps(ergebnis), json.dumps(suchgebiet), firma_id))
             print(f"{profil['name']}: {neu} neue von {len(eigene)} Treffern; {ergebnis['ungeprueft']} ohne KI-Bewertung; {ergebnis['archiviert']} unpassende unbearbeitete Treffer archiviert")
-            if suchgebiet:
+            if suchgebiet.get("standorte"):
                 print(f"{profil['name']}: Suche an allen {len(profil['standorte'])} Firmenstandorten gespeichert")
             if verworfen:
                 print(f"{profil['name']}: {verworfen} alte, unbearbeitete Treffer außerhalb des Suchgebiets ins Archiv verschoben")

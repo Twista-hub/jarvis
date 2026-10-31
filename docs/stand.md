@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Suchradius in km und Karte der Suchgebiete)
+- Radius: `alarm/geo_radius.py` (Entfernung über PLZ-Koordinaten), `profile_db.suchpunkte` (Koordinaten der Firmenstandorte bzw. des Firmensitzes), `im_suchgebiet` prüft bei gesetztem `radius_km` die Entfernung, sobald die Bekanntmachung eine bekannte PLZ nennt; ohne bekannte PLZ gilt die bisherige Logik. Radius und Suchpunkte zählen nicht zur Profilversion (keine Neubewertung). Auswahl 25/50/75/100/150 km im Suchprofil, Vorgabe 50 km beim Speichern.
+- Karte: `web/src/karte.ts` zeichnet Deutschland, Ländergrenzen, Standorte und Umkreis als SVG. Die Koordinaten schreibt der Suchlauf nach `einstellungen.suchpunkte` (die App lädt die PLZ-Tabelle nicht); die Karte erscheint also nach dem ersten Suchlauf mit dieser Version.
+- Quellen in `alarm/quellen.md`. **Offen: Benjamin muss entscheiden**, ob die GeoNames-Datei trotz `robots.txt: Disallow /` genutzt werden darf (einmaliger Download, lizenziert CC BY 4.0, ausdrücklich als Download angeboten). Alternative wäre eine andere Quelle.
+- Tests: Radius Berlin/Potsdam/Hamburg/Frankfurt (Oder) in `alarm/test_suchgebiet.py`; alle Python- und Web-Tests grün.
+
 ### 01.11.2026 – Claude (40 Verbesserungen: Paket 3 Team, Suchprofil, Übersicht, Einstellungen)
 - Firma & Team: Standorte als kompakte Liste (`.standort-liste`), Rechte als Etiketten (Rolle, Finanzen, Bereiche, gesperrt), offene Einladungen mit „Erneut senden“ (neue Einladung ersetzt die alte) und „Zurückziehen“ (`/konto/einladung/zurueckziehen`), Personalsuche nach Beruf/Status über alle Standorte oben, „Nutzer: null“ entfernt, Erklärtexte ins Info-Symbol.
 - Suchprofil: „Treffer je Arbeit (letzte 30 Tage)“, Kostenhinweis vor dem Speichern, einstellbare Mindestpunktzahl 4–8/10 (`einstellungen.min_punkte`, Alarm nutzt `profile["min_punkte"]`; zählt nicht zur Profilversion, also keine Neubewertung). Offen: Karte der Suchgebiete und Radius in km, beides braucht Geodaten (PLZ-Koordinaten, z. B. OpenGeoDB/GeoNames mit Lizenzprüfung) und für eine Karte einen Kartendienst samt Datenschutz-Hinweis.
