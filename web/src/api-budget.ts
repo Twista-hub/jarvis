@@ -1,7 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { katalogDb, type DbEnv } from "./katalog-db.ts";
 
-export type KiEnv = DbEnv & { ANTHROPIC_API_KEY: string };
+export type KiEnv = DbEnv & { ANTHROPIC_API_KEY: string; WARTEN?: (p: Promise<unknown>) => void };
 export function webSuchNutzung(tools: unknown): number {
   return Array.isArray(tools) ? tools.reduce((sum, tool) => {
     if (!tool || typeof tool !== "object" || !String((tool as Record<string, unknown>).type ?? "").startsWith("web_search_")) return sum;
@@ -36,15 +36,21 @@ export function apiClient(env: KiEnv): Anthropic {
     const worst = kiReserve(new TextEncoder().encode(String(init?.body)).length, output, preise[0], preise[1], webSuchNutzung(body.tools));
     const id = await katalogDb(env, async (sql) => (await sql`select jarvis_katalog.ki_reservieren(${worst}::numeric,'web') as id`)[0]?.id);
     if (!id) throw new Error("Das KI-Tages- oder Monatsbudget ist erreicht. Bitte später erneut versuchen.");
-    const response = await fetch(input, init);
-    if (!body.stream || !response.ok) {
-      let kosten: number | null = response.ok ? null : (response.status >= 400 && response.status < 500 ? 0 : null);
-      if (response.ok) {
-        const data: any = await response.clone().json().catch(() => null);
-        if (data?.usage) kosten = kiKosten(data.usage, preise[0], preise[1]);
+    // Settlement runs on its own: when a page stops waiting (time limit), it still records the real cost if the
+    // worker lives long enough. Reservations that stay open are settled later by ki_reservieren (estimate).
+    const abrechnung = (async () => {
+      const response = await fetch(input, init);
+      if (!body.stream || !response.ok) {
+        let kosten: number | null = response.ok ? null : (response.status >= 400 && response.status < 500 ? 0 : null);
+        if (response.ok) {
+          const data: any = await response.clone().json().catch(() => null);
+          if (data?.usage) kosten = kiKosten(data.usage, preise[0], preise[1]);
+        }
+        if (kosten !== null) await katalogDb(env, async (sql) => { await sql`select jarvis_katalog.ki_abschliessen(${id},${kosten}::numeric)`; });
       }
-      if (kosten !== null) await katalogDb(env, async (sql) => { await sql`select jarvis_katalog.ki_abschliessen(${id},${kosten}::numeric)`; });
-    }
-    return response;
+      return response;
+    })();
+    env.WARTEN?.(abrechnung.catch(() => undefined));
+    return abrechnung;
   } });
 }
