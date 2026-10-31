@@ -1,0 +1,113 @@
+// "Fristen": traffic-light deadlines grouped by week, a small month calendar, calendar files and what is still open.
+import { escape } from "./seite.ts";
+
+export type FristVorgang = { id: string; titel: string; frist: string | null; status: string; kaufverantwortlich_id?: string | null };
+
+const BERLIN = "Europe/Berlin";
+const TAG = 86400_000;
+const tagVon = (iso: string) => new Date(iso).toLocaleDateString("sv-SE", { timeZone: BERLIN }); // YYYY-MM-DD
+const OFFEN = ["neu", "pruefen", "angebot"];
+
+/** Whole days until the deadline (Berlin calendar days); negative when it has passed. */
+export function tageBis(frist: string, jetzt = Date.now()): number {
+  return Math.round((Date.parse(tagVon(frist)) - Date.parse(tagVon(new Date(jetzt).toISOString()))) / TAG);
+}
+
+/** Red below 3 days, orange below 7, green later; grey once done or passed. */
+export function ampel(v: FristVorgang, jetzt = Date.now()): "rot" | "gelb" | "gruen" | "grau" {
+  if (!v.frist || !OFFEN.includes(v.status)) return "grau";
+  const t = tageBis(v.frist, jetzt);
+  return t < 0 ? "grau" : t < 3 ? "rot" : t < 7 ? "gelb" : "gruen";
+}
+
+export function abstand(frist: string, jetzt = Date.now()): string {
+  const t = tageBis(frist, jetzt);
+  return t < 0 ? "abgelaufen" : t === 0 ? "heute" : t === 1 ? "morgen" : `in ${t} Tagen`;
+}
+
+/** Week groups the way people plan: this week, next week, later. */
+export function gruppen<T extends FristVorgang>(liste: T[], jetzt = Date.now()): [string, T[]][] {
+  const heute = new Date(tagVon(new Date(jetzt).toISOString()));
+  const wochentag = (heute.getUTCDay() + 6) % 7; // Monday = 0
+  const ende1 = heute.getTime() + (6 - wochentag) * TAG;
+  const ende2 = ende1 + 7 * TAG;
+  const zeit = (v: T) => Date.parse(tagVon(v.frist!));
+  const g: [string, T[]][] = [
+    ["Diese Woche", liste.filter((v) => zeit(v) <= ende1)],
+    ["Nächste Woche", liste.filter((v) => zeit(v) > ende1 && zeit(v) <= ende2)],
+    ["Später", liste.filter((v) => zeit(v) > ende2)],
+  ];
+  return g.filter(([, l]) => l.length);
+}
+
+/** Compact month grid; days with deadlines are marked and link to the list entry. */
+export function monatsKalender(liste: FristVorgang[], monat: string, jetzt = Date.now()): string {
+  const [jahr, mon] = monat.split("-").map(Number);
+  const erster = new Date(Date.UTC(jahr, mon - 1, 1));
+  const tage = new Date(Date.UTC(jahr, mon, 0)).getUTCDate();
+  const versatz = (erster.getUTCDay() + 6) % 7;
+  const heute = tagVon(new Date(jetzt).toISOString());
+  const proTag = new Map<string, FristVorgang[]>();
+  for (const v of liste) if (v.frist) proTag.set(tagVon(v.frist), [...(proTag.get(tagVon(v.frist)) ?? []), v]);
+  const zellen = [...Array(versatz).fill(`<span></span>`)];
+  for (let d = 1; d <= tage; d++) {
+    const key = `${monat}-${String(d).padStart(2, "0")}`;
+    const f = proTag.get(key) ?? [];
+    const farbe = f.length ? ampel(f[0], jetzt) : "";
+    zellen.push(f.length
+      ? `<a href="#frist-${f[0].id}" class="tag mit-frist ${farbe}${key === heute ? " heute" : ""}" title="${escape(f.map((x) => x.titel).join(" · "))}">${d}</a>`
+      : `<span class="tag${key === heute ? " heute" : ""}">${d}</span>`);
+  }
+  const name = erster.toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
+  const nachbar = (delta: number) => { const x = new Date(Date.UTC(jahr, mon - 1 + delta, 1)); return `${x.getUTCFullYear()}-${String(x.getUTCMonth() + 1).padStart(2, "0")}`; };
+  return `<section class="kalender" aria-label="Kalender ${escape(name)}">
+  <div class="kalender-kopf"><a href="/konto/fristen?monat=${nachbar(-1)}" aria-label="Voriger Monat">‹</a><strong>${escape(name)}</strong><a href="/konto/fristen?monat=${nachbar(1)}" aria-label="Nächster Monat">›</a></div>
+  <div class="kalender-raster">${["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((t) => `<span class="wtag">${t}</span>`).join("")}${zellen.join("")}</div>
+</section>`;
+}
+
+/** Calendar file for one deadline, with reminders one day and two hours before. */
+export function ics(v: FristVorgang, link: string, jetzt = new Date()): string {
+  const stempel = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  const start = new Date(v.frist!);
+  const text = (x: string) => x.replace(/\\/g, "\\\\").replace(/[,;]/g, (c) => `\\${c}`).replace(/\r?\n/g, "\\n");
+  return [
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//WP Digital Ranger//Jarvis//DE", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+    `UID:frist-${v.id}@app.wpdigitalranger.com`, `DTSTAMP:${stempel(jetzt)}`, `DTSTART:${stempel(start)}`, `DTEND:${stempel(new Date(start.getTime() + 30 * 60_000))}`,
+    `SUMMARY:${text(`Abgabefrist: ${v.titel}`.slice(0, 200))}`, `DESCRIPTION:${text(`Ausschreibung in Jarvis: ${link}`)}`, `URL:${link}`,
+    "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:Abgabefrist morgen", "END:VALARM",
+    "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:Abgabefrist in 2 Stunden", "END:VALARM",
+    "END:VEVENT", "END:VCALENDAR", "",
+  ].join("\r\n");
+}
+
+/** What is still missing before submission, from the procedure's state. */
+export function offenePunkte(v: FristVorgang, hatKalkulation: boolean): string[] {
+  if (!OFFEN.includes(v.status)) return [];
+  const punkte: string[] = [];
+  if (v.status !== "angebot") punkte.push("Entscheidung offen");
+  if (!hatKalkulation) punkte.push("Kalkulation fehlt");
+  if (!v.kaufverantwortlich_id) punkte.push("Niemand zuständig");
+  return punkte;
+}
+
+export function fristenSeite(liste: FristVorgang[], opts: { erledigte: boolean; monat: string; zustaendig: (id?: string | null) => string; kalkuliert: Set<string>; jetzt?: number }): string {
+  const jetzt = opts.jetzt ?? Date.now();
+  const offen = liste.filter((v) => v.frist && OFFEN.includes(v.status) && tageBis(v.frist, jetzt) >= 0);
+  const erledigt = liste.filter((v) => v.frist && !offen.includes(v));
+  const eintrag = (v: FristVorgang) => {
+    const fehlt = offenePunkte(v, opts.kalkuliert.has(v.id));
+    const wer = opts.zustaendig(v.kaufverantwortlich_id);
+    return `<li id="frist-${v.id}" class="frist ${ampel(v, jetzt)}">
+  <div class="frist-kopf"><time datetime="${escape(v.frist!)}">${new Date(v.frist!).toLocaleDateString("de-DE", { timeZone: BERLIN, weekday: "short", day: "2-digit", month: "2-digit" })}</time><span class="frist-abstand">${abstand(v.frist!, jetzt)}</span></div>
+  <a class="frist-titel" href="/konto/vorgang/${v.id}">${escape(v.titel)}</a>
+  <div class="frist-info">${wer ? `<span>👤 ${escape(wer)}</span>` : ""}${fehlt.map((x) => `<span class="fehlt">${escape(x)}</span>`).join("")}<a class="frist-ics" href="/konto/frist/${v.id}.ics" download>📅 In Kalender</a></div>
+</li>`;
+  };
+  const listen = offen.length
+    ? gruppen(offen, jetzt).map(([titel, l]) => `<h2 class="frist-gruppe">${titel}</h2><ul class="fristen-liste">${l.map(eintrag).join("")}</ul>`).join("")
+    : `<p class="treffer-leer">Aktuell stehen keine offenen Fristen an.</p>`;
+  const schalter = `<p class="frist-schalter"><a href="/konto/fristen${opts.erledigte ? "" : "?erledigte=1"}">${opts.erledigte ? "Erledigte ausblenden" : `Erledigte zeigen${erledigt.length ? ` (${erledigt.length})` : ""}`}</a></p>`;
+  const alte = opts.erledigte && erledigt.length ? `<h2 class="frist-gruppe">Erledigt oder abgelaufen</h2><ul class="fristen-liste">${erledigt.map(eintrag).join("")}</ul>` : "";
+  return `${monatsKalender(offen, opts.monat, jetzt)}${listen}${alte}${schalter}<p class="klein">Jarvis erinnert dich zusätzlich 7 und 2 Tage vorher per täglicher Nachricht.</p>`;
+}
