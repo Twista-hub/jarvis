@@ -2,6 +2,13 @@ import { escape } from "./seite.ts";
 
 export type Firmenstandort = { name: string; plz: string; quelle: string; bereich_id?: string };
 
+export function standortSchluessel(name: string): string {
+  return name.normalize("NFKC").toLocaleLowerCase("de")
+    .replace(/\((?:zentrale|hauptsitz|hauptniederlassung|niederlassung|standort)\)/g, "")
+    .replace(/^(?:standort|niederlassung|geschäftsstelle)\s*[:–-]?\s+/g, "")
+    .replace(/\s+/g, " ").trim();
+}
+
 export function standorteBereinigen(werte: unknown): Firmenstandort[] {
   const gesehen = new Set<string>();
   return (Array.isArray(werte) ? werte : []).flatMap((o) => {
@@ -9,7 +16,7 @@ export function standorteBereinigen(werte: unknown): Firmenstandort[] {
     const name = String(o.name || "").replace(/\s+/g, " ").trim().slice(0, 120);
     let quelle = "";
     try { const u = new URL(String(o.quelle)); if (u.protocol === "https:" && !u.username && !u.password) quelle = u.toString().slice(0, 500); } catch { /* Only safe source links. */ }
-    const key = name.toLocaleLowerCase("de");
+    const key = standortSchluessel(name);
     if (!name || !quelle || gesehen.has(key)) return [];
     gesehen.add(key);
     return [{ name, plz: /^\d{5}$/.test(String(o.plz)) ? String(o.plz) : "", quelle,

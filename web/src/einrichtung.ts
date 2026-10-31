@@ -6,7 +6,7 @@ import { sucheLaeuft } from "./suchstatus.ts";
 import { firmenInfos } from "./firmeninfos.ts";
 import { rechercheProfil } from "./firmenrecherche.ts";
 import { kiFehlerart, kiFehlermeldung, type KiFehlerart } from "./ki-fehler.ts";
-import { standorteBereinigen, type Firmenstandort } from "./firmenstandorte.ts";
+import { standorteBereinigen, standortSchluessel, type Firmenstandort } from "./firmenstandorte.ts";
 export { FIRMEN_WEB_SUCHTOOL } from "./firmenrecherche.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
@@ -380,7 +380,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   const bereiche = vorhanden.ok ? vorhanden.daten : [];
   for (const o of [...(v.firmenstandorte ?? []), ...v.standorte]) {
     if (o.bereich_id && bereiche.some((b) => b.id === o.bereich_id && b.art === "standort")) continue;
-    const gleich = bereiche.find((b) => b.art === "standort" && b.name.trim().toLocaleLowerCase("de") === o.name.trim().toLocaleLowerCase("de"));
+    const gleich = bereiche.find((b) => b.art === "standort" && standortSchluessel(b.name) === standortSchluessel(o.name));
     if (gleich) {
       o.bereich_id = gleich.id;
       continue;
