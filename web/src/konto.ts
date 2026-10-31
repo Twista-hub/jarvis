@@ -17,6 +17,8 @@ import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { teilnahmeTeil } from "./markt.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
+import { fristenSeite, ics } from "./fristen.ts";
+import { bewertung, daumen, eckdaten, filterLeiste, sortieren, SORTIERUNGEN, suchbegriff } from "./treffer.ts";
 
 export interface KontoEnv {
   SUPABASE_URL: string;
@@ -68,6 +70,12 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (a) return a;
   if (p === "/abmelden" && post) return abmelden(request, env);
   if (p === "/konto/suchstatus" && request.method === "GET") return suchstatus(request, env);
+  const fristDatei = p.match(/^\/konto\/frist\/([0-9a-f-]{36})\.ics$/);
+  if (fristDatei && request.method === "GET") {
+    const z = await vorgangZugriff(request, env, fristDatei[1]);
+    if (!z || !z.v.frist) return html(seite("Nicht gefunden", "<p>Für diese Ausschreibung ist keine Frist bekannt.</p>"), 404);
+    return new Response(ics(z.v, `${new URL(request.url).origin}/konto/vorgang/${z.v.id}`), { headers: { "content-type": "text/calendar; charset=utf-8", "content-disposition": `attachment; filename="frist-${z.v.id.slice(0, 8)}.ics"`, "cache-control": "private, no-store" } });
+  }
   if (!post && ["/konto/ausschreibungen", "/konto/firma-team"].includes(p)) return weiterleiten(p === "/konto/ausschreibungen" ? "/konto/treffer" : "/konto/team");
   if (p === "/konto/kalkulation" && post) return mitSitzung(request, env, vorlageSpeichern);
   if (p === "/konto/verantwortlich" && post) return mitSitzung(request, env, kaufverantwortlichSpeichern);
@@ -189,7 +197,10 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const alle = url.searchParams.get("alle") === "1";
   const reiter = ["neu", "arbeit", "abgegeben", "archiv"].includes(url.searchParams.get("stand") ?? "") ? url.searchParams.get("stand")! : alle ? "archiv" : "neu";
   const gruppen: Record<string, string[]> = { neu: ["neu", "pruefen"], arbeit: ["angebot"], abgegeben: ["abgegeben"], archiv: ["gewonnen", "verloren", "verworfen"] };
-  const statusFilter = unterseite === "treffer" ? `&status=in.(${gruppen[reiter].join(",")})` : unterseite === "fristen" ? "&status=in.(neu,pruefen,angebot)&frist=not.is.null" : "";
+  const statusFilter = unterseite === "treffer" ? `&status=in.(${gruppen[reiter].join(",")})` : unterseite === "fristen" ? (url.searchParams.get("erledigte") === "1" ? "&frist=not.is.null" : "&status=in.(neu,pruefen,angebot)&frist=not.is.null") : "";
+  const q = suchbegriff(url.searchParams.get("q"));
+  const sortierung = SORTIERUNGEN[url.searchParams.get("sortierung") ?? ""] ? url.searchParams.get("sortierung")! : "punkte";
+  const titelFilter = unterseite === "treffer" && q ? `&titel=ilike.${encodeURIComponent(`*${q}*`)}` : "";
   const fristFilter = unterseite === "treffer" && ["neu", "arbeit"].includes(reiter)
     ? `&or=(frist.is.null,frist.gt.${new Date().toISOString()})` : "";
   const bereiche = await db<Bereich[]>(s, env, `bereiche?firma_id=eq.${m.firma_id}&select=id,name,art,parent_id&order=name`);
@@ -199,7 +210,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const unter = (id: string): string[] => [id, ...b.filter((x) => x.parent_id === id).flatMap((x) => unter(x.id))];
   const bereichFilter = filter ? `&bereich_id=in.(${unter(filter.id).join(",")})` : "";
   const [vorgaenge, mitglieder, einladungen, anzahl] = await Promise.all([
-    db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${bereichFilter}${statusFilter}${fristFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id,steckbrief&order=${unterseite === "fristen" ? "frist.asc" : "punkte.desc.nullslast,erstellt.desc"}&limit=100`),
+    db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${bereichFilter}${statusFilter}${fristFilter}${titelFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief&order=${unterseite === "fristen" ? "frist.asc" : "punkte.desc.nullslast,erstellt.desc"}&limit=100`),
     db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&select=firma_id,rolle,aktiv,erstellt,user_id,anzeigename,funktion,finanzen,alle_bereiche&order=erstellt`),
     admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date().toISOString()}&select=id,email,rolle,gueltig_bis,angenommen&order=erstellt.desc`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
@@ -221,8 +232,8 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     ? `<h2>Firma wechseln</h2><form class="profil-firmenwechsel" method="get" action="/konto/profil"><label>Aktive Firma<select name="firma">${meine.daten.map((x) => `<option value="${x.firma_id}"${x.firma_id === m.firma_id ? " selected" : ""}>${escape(x.firmen.name)}</option>`).join("")}</select></label><button>Wechseln</button></form>`
     : "";
 
-  const link = (stand: string, bereich = filter?.id ?? "") => `/konto/treffer?stand=${stand}${bereich ? `&bereich=${bereich}` : ""}`;
-  const bereichWahl = b.length ? `<form class="treffer-filter" method="get" action="/konto/treffer"><input type="hidden" name="stand" value="${reiter}"><label>Bereich / Standort<select name="bereich"><option value="">Alle Bereiche</option>${optionenFuerBereiche(b, filter?.id)}</select></label><button>Anzeigen</button></form>` : "";
+  const link = (stand: string, bereich = filter?.id ?? "") => `/konto/treffer?stand=${stand}${bereich ? `&bereich=${bereich}` : ""}${sortierung !== "punkte" ? `&sortierung=${sortierung}` : ""}${q ? `&q=${encodeURIComponent(q)}` : ""}`;
+  const bereichWahl = filterLeiste(reiter, q, sortierung, b.length ? optionenFuerBereiche(b, filter?.id) : "");
   const liste = vorgaenge.ok ? vorgaenge.daten : [];
   const heute = new Date().toISOString().slice(0, 10);
   const in7Tagen = new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10);
@@ -248,10 +259,20 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   if (!unterseite) {
     inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat.</p>${kacheln}`) : rahmen(`${meldungen}<h2>Was möchtest du tun?</h2><p>${neu} offene Treffer · ${bald} Fristen diese Woche</p>${kacheln}${admin && finanzrecht ? `<p><a href="/konto/angebotsfreigaben">Angebote zur Chef-Freigabe prüfen →</a></p>` : ""}`);
   } else if (unterseite === "treffer") {
+    const fb = await db<{ vorgang_id: string; grund: string }[]>(s, env, `treffer_feedback?firma_id=eq.${m.firma_id}&select=vorgang_id,grund`);
+    const rueckmeldungen = new Map((fb.ok ? fb.daten : []).map((x) => [x.vorgang_id, x.grund]));
     const tabs = `<nav class="reiter" aria-label="Stand der Ausschreibungen">${[["neu", "Neu"], ["arbeit", "In Arbeit"], ["abgegeben", "Abgegeben"], ["archiv", "Archiv"]].map(([key, label]) => `<a href="${link(key)}"${key === reiter ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
-    inhalt = rahmen(`${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${trefferListe(liste.filter((v) => gruppen[reiter].includes(v.status)), name, bereichWahl, link(reiter))}`);
+    inhalt = rahmen(`${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q)}`);
   } else if (unterseite === "fristen") {
-    inhalt = rahmen(`<h2>Nächste Fristen</h2>${fristen.length ? `<ul class="fristen-liste">${fristen.map((v) => `<li${v.frist!.slice(0, 10) <= in7Tagen ? ' class="frist-bald"' : ""}><time datetime="${escape(v.frist!)}">${datum(v.frist!)}</time><a href="/konto/vorgang/${v.id}">${escape(v.titel)}</a></li>`).join("")}</ul>` : `<p>Aktuell stehen keine offenen Fristen an.</p>`}<p class="klein">Jarvis erinnert dich zusätzlich 7 und 2 Tage vorher per täglicher Nachricht.</p>`);
+    const mitFrist = liste.filter((v) => v.frist);
+    const kalk = mitFrist.length ? await db<{ vorgang_id: string }[]>(s, env, `kalkulationen?firma_id=eq.${m.firma_id}&vorgang_id=in.(${mitFrist.map((v) => v.id).join(",")})&select=vorgang_id`) : { ok: true as const, daten: [] };
+    const personen = mitglieder.ok ? mitglieder.daten : [];
+    const monat = /^\d{4}-\d{2}$/.test(url.searchParams.get("monat") ?? "") ? url.searchParams.get("monat")! : new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }).slice(0, 7);
+    inhalt = rahmen(fristenSeite(mitFrist, {
+      erledigte: url.searchParams.get("erledigte") === "1", monat,
+      zustaendig: (id) => personen.find((p) => p.user_id === id)?.anzeigename || "",
+      kalkuliert: new Set(kalk.ok ? kalk.daten.map((k) => k.vorgang_id) : []),
+    }));
   } else if (unterseite === "unterlagen") {
     const unterlagen = await unterlagenListe(liste, env);
     inhalt = rahmen(`${finanzrecht ? `<p><a class="knopf" href="/konto/firmenunterlagen?firma=${m.firma_id}">Firmenunterlagen & Angebotsvorlagen</a></p>` : ""}<p>Lade Vergabeunterlagen auch ohne vorhandenen Treffer hoch. Jarvis erstellt daraus einen Steckbrief und eine Kalkulation.</p>${hilfe("Was passiert mit den Dateien?", "Jarvis liest sie nur, um die Ausschreibung zu prüfen und den Steckbrief zu erstellen. Vergabeunterlagen werden nach 30 Tagen gelöscht. Firmen-Nachweise und Angebotsvorlagen verwaltest du separat unter Firmenunterlagen.")}${["inhaber","admin","bearbeiter"].includes(m.rolle) ? `<form method="post" action="/konto/unterlagen" enctype="multipart/form-data"><input type="hidden" name="firma" value="${m.firma_id}">${auswahlFeld(liste)}<div data-neu><label>Titel oder Link der neuen Ausschreibung<input name="titel" maxlength="300"></label>${b.length ? `<label>Bereich<select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label>` : ""}</div><label>Unterlagen<input name="dateien" type="file" multiple required accept=".pdf,.docx,.xlsx,.xls,.odt,.ods,.csv,.txt,.zip"></label><button>Hochladen und prüfen</button></form>` : `<p class="klein">Als Leser kannst du vorhandene Steckbriefe ansehen.</p>`}<h2>Bisherige Steckbriefe aus Unterlagen</h2>${unterlagen || `<p>Noch keine Unterlagen geprüft.</p>`}<p><a href="/konto/treffer">Unterlagen bei einem Treffer nachreichen →</a></p>`);
@@ -475,20 +496,28 @@ export function bewertungsErklaerung(steckbrief?: string | null): string {
   return inhalt?.replace(/\*\*/g, "").replace(/\s+/g, " ").trim().slice(0, 420) ?? "";
 }
 
-function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefined) => string, bereichWahl: string, weiter: string): string {
-  if (!liste.length) return `${bereichWahl}<div class="treffer-leer"><h2>Noch keine Ausschreibungen</h2><p>In diesem Bereich gibt es aktuell keine Treffer. Wähle einen anderen Stand oder Bereich.</p></div>`;
+function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefined) => string, bereichWahl: string, weiter: string, rueckmeldungen = new Map<string, string>(), q = ""): string {
+  if (!liste.length) return `${bereichWahl}<div class="treffer-leer"><h2>${q ? "Nichts gefunden" : "Noch keine Ausschreibungen"}</h2><p>${q ? `Kein Treffer enthält „${escape(q)}“ im Titel.` : "In diesem Bereich gibt es aktuell keine Treffer. Wähle einen anderen Stand oder Bereich."}</p></div>`;
   const optionen = (aktuell: string) => Object.entries(STATUS).map(([k, t]) => `<option value="${k}"${k === aktuell ? " selected" : ""}>${t}</option>`).join("");
-  const karten = liste.map((v) => `<li><article class="treffer-karte">
+  const karten = liste.map((v) => {
+    const { gesucht, warum } = bewertung(v.steckbrief);
+    const fakten = eckdaten(v.steckbrief);
+    return `<li><article class="treffer-karte">
   <div class="treffer-meta"><span class="treffer-punkte">${v.punkte !== null ? `${v.punkte}/10 Punkte` : "Noch ohne KI-Bewertung"}</span><span class="treffer-status">${escape(STATUS[v.status] ?? v.status)}</span></div>
   <h2><a href="/konto/vorgang/${v.id}"><span>${escape(v.titel)}</span><span aria-hidden="true">›</span></a></h2>
-  ${bewertungsErklaerung(v.steckbrief) ? `<p class="treffer-bewertung">${escape(bewertungsErklaerung(v.steckbrief))}</p>` : ""}
-  ${v.bereich_id ? `<p class="treffer-bereich">${escape(bereichName(v.bereich_id))}</p>` : ""}
-  <p class="treffer-frist"><span>Abgabefrist</span>${v.frist ? `<time datetime="${escape(v.frist)}">${datum(v.frist)}</time>` : `<strong>Noch nicht bekannt</strong>`}</p>
+  ${fakten.length ? `<ul class="treffer-fakten">${fakten.map((f) => `<li>${f.label ? `<span>${escape(f.label)}</span>` : ""}${escape(f.wert)}</li>`).join("")}</ul>` : ""}
+  ${gesucht ? `<p class="treffer-gesucht">${escape(gesucht)}</p>` : !warum && bewertungsErklaerung(v.steckbrief) ? `<p class="treffer-gesucht">${escape(bewertungsErklaerung(v.steckbrief))}</p>` : ""}
+  ${warum ? `<p class="treffer-warum">${escape(warum)}</p>` : ""}
+  <div class="treffer-unten">
+    <p class="treffer-frist"><span>Abgabefrist</span>${v.frist ? `<time datetime="${escape(v.frist)}">${datum(v.frist)}</time>` : `<strong>Noch nicht bekannt</strong>`}${v.bereich_id ? `<small>${escape(bereichName(v.bereich_id))}</small>` : ""}</p>
+    ${daumen(v.id, rueckmeldungen.get(v.id), weiter)}
+  </div>
   <details class="treffer-stand"><summary>Stand ändern</summary><form method="post" action="/konto/status">
     <input type="hidden" name="weiter" value="${escape(weiter)}"><input type="hidden" name="id" value="${v.id}">
     <label>Bearbeitungsstand<select name="status">${optionen(v.status)}</select></label><button>Speichern</button>
   </form></details>
-</article></li>`).join("");
+</article></li>`;
+  }).join("");
   return `${bereichWahl}<ol class="treffer-liste" aria-label="Ausschreibungen">${karten}</ol>`;
 }
 

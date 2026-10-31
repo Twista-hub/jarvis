@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (40 Verbesserungen: Paket 1 Ausschreibungen und Fristen)
+- Benjamin hat 40 Vorschläge freigegeben (je 5 für Ausschreibungen, Fristen, Unterlagen, Kalkulation, Firma & Team, Suchprofil, Übersicht/Einstellungen), „sauber, aufgeräumt, einfach“. Umsetzung paketweise, jeweils mit Handy-Screenshots geprüft.
+- Ausschreibungen (`web/src/treffer.ts`): Eckdaten als Etiketten (Lose, Wert, Laufzeit, Ort aus dem Kurzüberblick), „Gesucht“ und „Warum“ getrennt, Daumen hoch/runter auf der Karte (schreibt `treffer_feedback`, zurück zur Liste), Sortierung (Punkte, Frist, Auftragswert, Neueste), Titelsuche und Bereich ohne „Anzeigen“-Knopf. Entfernung zum Standort ist mangels Koordinaten noch nicht sortierbar.
+- Fristen (`web/src/fristen.ts`): Monatskalender mit Ampelfarben, Gruppen „Diese Woche / Nächste Woche / Später“, Ampelrand und „in N Tagen“, offene Punkte (Entscheidung, Kalkulation, Zuständigkeit), „📅 In Kalender“ als ICS mit Erinnerung 1 Tag und 2 Stunden vorher (`/konto/frist/<id>.ics`), Schalter „Erledigte zeigen“. Fragefristen fehlen noch in den Katalogdaten (eigener Ausbau).
+- Tests `web/test/treffer-fristen.test.ts`; 171 Web-Tests grün.
+
 ### 01.11.2026 – Claude (Aufklapper und Auswahlfelder vereinheitlicht)
 - Benjamin: Dropdowns auf allen Seiten kleiner und aufgeräumter, andere Seiten so schön wie das Suchprofil.
 - `web/src/seite.ts`: Alle einfachen Aufklapper (`<details>` ohne eigene Gestaltung) sind jetzt kompakte Kästen wie beim Suchprofil: Rahmen, runde Ecken, kleiner Akzent-Titel, Pfeil statt schwarzem Dreieck; Formulare darin ohne zweiten Rahmen. Auswahlfelder (`<select>`) kompakter mit eigenem Pfeil, lange Texte werden abgeschnitten. Ausgenommen: Info-Symbole, Nachweis-Warnungen und die bereits eigens gestalteten Auswahlen.

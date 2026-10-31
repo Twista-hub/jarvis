@@ -214,10 +214,22 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .reiter a { display: grid; place-items: center; min-height: 44px; padding: 10px 6px; border-radius: 11px; text-decoration: none; color: var(--muted); font-size: 14px; font-weight: 600; text-align: center; }
   .reiter a[aria-current="page"] { background: var(--accent); color: var(--bg) !important; box-shadow: 0 2px 5px #00000012; }
   [aria-current="page"] { font-weight: 750; color: var(--accent) !important; }
-  .treffer-filter { grid-template-columns: minmax(0, 1fr) auto; align-items: end; margin-bottom: 18px; padding: 0; border: 0; background: none; }
-  .treffer-filter label { min-width: 0; font-size: 14px; color: var(--muted); }
-  .treffer-filter select { min-width: 0; background: var(--card); color: var(--text); }
-  .treffer-filter button { min-height: 46px; font-size: 14px; }
+  .treffer-filter { gap: 8px; margin-bottom: 18px; padding: 0; border: 0; background: none; }
+  .treffer-filter-zeile { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .treffer-filter input, .treffer-filter select { background-color: var(--card); color: var(--text); }
+  .unsichtbar { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .treffer-fakten { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 12px; padding: 0; }
+  .treffer-fakten li { display: inline-flex; align-items: baseline; gap: 5px; padding: 4px 9px; border-radius: 8px; background: var(--bg); font-size: 13px; font-weight: 600; }
+  .treffer-fakten li span { color: var(--muted); font-weight: 500; font-size: 12px; }
+  .treffer-gesucht { margin: 0 0 4px; font-weight: 600; }
+  .treffer-warum { margin: 0; color: var(--muted); font-size: 14px; }
+  .treffer-unten { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 16px 0 4px; }
+  .treffer-unten .treffer-frist { margin: 0; }
+  .treffer-frist small { color: var(--muted); font-size: 12px; }
+  .daumen-leiste { display: flex; gap: 6px; }
+  .daumen-form { display: block; padding: 0; border: 0; background: none; }
+  button.daumen { width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); font-size: 18px; filter: grayscale(1); opacity: .7; }
+  button.daumen.gewaehlt { border-color: var(--accent); background: var(--bg); filter: none; opacity: 1; }
   .treffer-liste { display: grid; gap: 16px; list-style: none; padding: 0; margin: 0 0 28px; }
   .treffer-liste > li { min-width: 0; }
   .treffer-karte { min-width: 0; padding: 20px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); box-shadow: 0 3px 12px #00000005; overflow-wrap: anywhere; }
@@ -241,6 +253,26 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .treffer-leer { padding: 28px 20px; border: 1px dashed var(--line); border-radius: 18px; text-align: center; color: var(--muted); }
   .treffer-leer h2 { margin-top: 0; color: var(--text); }
   .frist-bald { color: var(--error); }
+  .kalender { margin: 8px 0 18px; padding: 8px 12px 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .kalender-kopf { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+  .kalender-kopf a { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; text-decoration: none; font-size: 1.4rem; }
+  .kalender-raster { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 3px; text-align: center; font-size: 13px; }
+  .kalender-raster .wtag { color: var(--muted); font-size: 11px; padding-bottom: 2px; }
+  .kalender-raster .tag { display: grid; place-items: center; width: 32px; height: 32px; margin: 0 auto; border-radius: 50%; color: var(--text); text-decoration: none; }
+  .kalender-raster .heute { outline: 2px solid var(--accent); outline-offset: -2px; font-weight: 700; }
+  .kalender-raster .mit-frist { color: #fff; font-weight: 700; }
+  .mit-frist.rot { background: #c0392b; } .mit-frist.gelb { background: #d68910; } .mit-frist.gruen { background: #2e8b57; } .mit-frist.grau { background: var(--muted); }
+  .frist-gruppe { margin: 22px 0 6px; font-size: .95rem; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .fristen-liste li.frist { gap: 6px; margin-bottom: 8px; padding: 12px 14px; border: 1px solid var(--line); border-left: 5px solid var(--muted); border-radius: 12px; background: var(--card); }
+  .fristen-liste li.frist.rot { border-left-color: #c0392b; } .fristen-liste li.frist.gelb { border-left-color: #d68910; } .fristen-liste li.frist.gruen { border-left-color: #2e8b57; }
+  .frist-kopf { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+  .frist-abstand { color: var(--muted); font-weight: 600; }
+  .frist.rot .frist-abstand { color: #c0392b; }
+  .frist-titel { color: var(--text); font-weight: 600; text-decoration: none; }
+  .frist-info { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted); }
+  .frist-info .fehlt { padding: 2px 8px; border-radius: 7px; background: var(--bg); color: var(--error); font-weight: 600; }
+  .frist-ics { margin-left: auto; font-weight: 600; text-decoration: none; }
+  .frist-schalter { margin: 16px 0 6px; font-size: 14px; }
   .aktionsleiste { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0 0 16px; }
   .aktionsleiste a { display: grid; place-items: center; min-height: 52px; padding: 8px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; text-align: center; font-weight: 650; font-size: 14px; line-height: 1.3; }
   .aktionsleiste a.zweit { background: var(--card); color: var(--accent); border: 1px solid var(--line); }

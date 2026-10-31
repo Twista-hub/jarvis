@@ -84,6 +84,9 @@ export async function markt(request: Request, env: KontoEnv): Promise<Response |
       table = "bedarf_bestaetigungen"; daten.schluessel = key; daten.bestaetigt = f.get("bestaetigt") === "1"; daten.quelle_version = n?.version ?? await hash(z.v.steckbrief ?? "");
     } else { daten.grund = text(f, "grund", 30); daten.notiz = text(f, "notiz", 500); if (!GRUENDE[daten.grund]) return html(seite("Ungültige Auswahl", "<p>Bitte einen Rückmeldungsgrund wählen.</p>"), 400); }
     const r = await db(z.s, env, `${table}?on_conflict=${table === "bedarf_bestaetigungen" ? "firma_id,vorgang_id,schluessel" : "firma_id,vorgang_id"}`, { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(daten) });
+    // Thumbs on the hit list send the user back to the list they came from.
+    const zurueck = String(f.get("weiter") ?? "");
+    if (r.ok && /^\/konto\/treffer(\?|$)/.test(zurueck) && !/[\r\n]/.test(zurueck)) return weiterleiten(zurueck, z.s.cookies);
     return weiterleiten(`/konto/vorgang/${z.v.id}${r.ok ? "" : "?fehler=Speichern%20fehlgeschlagen"}`, z.s.cookies);
   }
   if (!url.pathname.startsWith("/konto/markt")) return null;
