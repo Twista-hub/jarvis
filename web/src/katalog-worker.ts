@@ -53,7 +53,7 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
             try { while (true) { const { done, value } = await reader.read(); if (done) break; total += value.length; if (total > 24_000_000) throw new Error("Export zu groß"); chunks.push(value); } } finally { await reader.cancel(); }
             const zip = new Uint8Array(total); let offset = 0; for (const c of chunks) { zip.set(c, offset); offset += c.length; }
             const checksum = Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256", zip))).map((x) => x.toString(16).padStart(2, "0")).join("");
-            if (checksum !== alt?.checksum) {
+            if (!alt?.fertig || checksum !== alt.checksum) {
               let expanded = 0;
               const files = unzipSync(zip, { filter: (file) => { expanded += file.originalSize; if (expanded > 24_000_000) throw new Error("Entpackgrenze erreicht"); return file.name.endsWith(".json"); } });
               const zuGross: string[] = [];
