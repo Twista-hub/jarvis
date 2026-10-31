@@ -19,7 +19,9 @@ test("erlaubt eine neue Suche nach Abschluss des vorherigen Laufs", () => {
   const jetzt = Date.parse("2026-10-31T06:00:00Z");
   assert.equal(suchlaufLaeuft("2026-10-31T05:30:00Z", "2026-10-31T05:35:00Z", jetzt), false);
   assert.equal(suchlaufLaeuft("2026-10-31T05:59:00Z", "2026-10-31T05:58:00Z", jetzt), true);
-  assert.equal(suchlaufLaeuft("2026-10-31T05:30:00Z", null, jetzt), false);
+  // A full catalog run takes longer than 20 minutes; only after an hour does it count as stuck.
+  assert.equal(suchlaufLaeuft("2026-10-31T05:30:00Z", null, jetzt), true);
+  assert.equal(suchlaufLaeuft("2026-10-31T04:50:00Z", null, jetzt), false);
 });
 
 test("cleans the proposal: digits only, lower-case words, no empty services", () => {

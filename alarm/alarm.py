@@ -18,7 +18,7 @@ import urllib.parse
 import urllib.request
 import xml.etree.ElementTree as ET
 import zipfile
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).parent
@@ -232,6 +232,36 @@ def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str)
     return out
 
 
+def treffer_eintrag(name: str, b: dict, day: str, rel: dict, pfad: Path | None = None) -> dict:
+    t = rel.get("tender") or {}
+    url = link(rel)
+    return {"profil": name, "quelle_id": rel.get("ocid") or rel.get("id") or url, "titel": t.get("title", "").strip(),
+            "link": url, "frist": frist(t),
+            "punkte": b.get("punkte") or None, "plz": plz(rel),
+            "steckbrief": (bewertungsabschnitt(b)
+                           + (pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day))),
+            "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version")}
+
+
+def zwischenstand(name: str, profile: dict, alle: list, cache: dict, gespeichert: set) -> None:
+    """Puts confirmed hits into the app while the run continues, so the first ones can be read right away."""
+    import katalog
+    import speichern
+    neue = []
+    for points, day, rel, _ in alle:
+        b = cache.get(katalog.schluessel(rel))
+        if not (rel.get("_beobachtet") or (b and b.get("punkte", 0) >= MIN_PASSUNG)):
+            continue
+        eintrag = treffer_eintrag(name, b or {}, day, rel, steckbrief_datei(name, day, rel) if steckbrief_datei(name, day, rel).exists() else None)
+        if eintrag["quelle_id"] not in gespeichert:
+            neue.append(eintrag)
+    bewertet = sum(katalog.schluessel(r[2]) in cache for r in alle)
+    passend = len(gespeichert) + len(neue)
+    stand = {"zeit": datetime.now(timezone.utc).isoformat(), "treffer": passend, "bewertet": bewertet, "kandidaten": len(alle)}
+    if speichern.zwischenspeichern(profile, neue, stand):
+        gespeichert.update(e["quelle_id"] for e in neue)
+
+
 def run(days: list[str]) -> str:
     from profile_db import im_suchgebiet, laden
     import katalog
@@ -298,6 +328,8 @@ def run(days: list[str]) -> str:
         alle = sorted(hits[name], key=lambda h: -h[0])
         cache = katalog.bewertungen(profile)
         neu = [r for r in alle if katalog.schluessel(r[2]) not in cache]
+        gespeichert: set = set()
+        zwischenstand(name, profile, alle, cache, gespeichert)
         # Small batches fit within the remaining budget more often than a reservation
         # for 40 notices and 16,000 output tokens. The global hard limits still apply.
         if ki:
@@ -311,6 +343,7 @@ def run(days: list[str]) -> str:
                         rel = stapel[i][2]
                         katalog.bewertung_speichern(profile, rel, ergebnis)
                         cache[katalog.schluessel(rel)] = ergebnis
+                zwischenstand(name, profile, alle, cache, gespeichert)
         # Include cached hits as well as new deterministic matches; no daily re-scoring of unchanged texts.
         rows = alle
         bewertung = {i: cache[katalog.schluessel(r[2])] for i, r in enumerate(rows) if katalog.schluessel(r[2]) in cache}
@@ -347,12 +380,7 @@ def run(days: list[str]) -> str:
             if pfad:
                 links += f" · [📄 Steckbrief](../steckbriefe/{pfad.name})"
             lines += [links, ""]
-            treffer.append({"profil": name, "quelle_id": rel.get("ocid") or rel.get("id") or url, "titel": t.get("title", "").strip(),
-                            "link": url, "frist": frist(t),
-                            "punkte": b.get("punkte") or None, "plz": plz(rel),
-                            "steckbrief": (bewertungsabschnitt(b)
-                                           + (pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day))),
-                            "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version")})
+            treffer.append(treffer_eintrag(name, b, day, rel, pfad))
         if weg:
             lines += [f"_{len(weg)} weitere Kandidaten aussortiert: unter {MIN_PASSUNG}/10 oder ohne eindeutigen Leistungsbezug._", ""]
             lines += ["<details><summary>Aussortierte Kandidaten und Gründe</summary>", ""]

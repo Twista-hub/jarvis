@@ -5,6 +5,7 @@ create a firm with any name) or the firm of a profile saved in the app (profile_
 Usage: SUPABASE_DB_PASSWORD=... python3 alarm/speichern.py
 """
 import json
+import os
 from pathlib import Path
 
 import psycopg
@@ -101,6 +102,24 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
         ).fetchone()
         neu += bool(row and row[0])
     return neu
+
+
+def zwischenspeichern(profil: dict, treffer: list[dict], stand: dict) -> bool:
+    """During a run: upsert confirmed hits right away and record the progress. Never stops the run."""
+    firma_id = profil.get("firma_id")
+    if not firma_id or not os.environ.get("SUPABASE_DB_PASSWORD"):
+        return False
+    try:
+        with verbinden() as con:
+            if treffer:
+                speichern(con, firma_id, treffer, profil.get("regionen", {}))
+            con.execute("""update public.suchprofile set einstellungen = einstellungen ||
+                jsonb_build_object('suchlauf_zwischenstand', %s::jsonb) where firma_id=%s and bereich_id is null""",
+                        (json.dumps(stand), firma_id))
+        return True
+    except (Exception, SystemExit) as e:  # verbinden() exits when the database is unreachable
+        print(f"Zwischenstand nicht gespeichert ({type(e).__name__}); Ergebnis folgt am Ende.")
+        return False
 
 
 def main() -> None:

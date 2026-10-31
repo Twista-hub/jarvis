@@ -16,7 +16,7 @@ import { einsaetzeLaden, einsatzTeil, personalTeil, qualifikationenBlock, stando
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { teilnahmeTeil } from "./markt.ts";
 import { kurzberichte } from "./kurzberichte.ts";
-import { sucheLaeuft, suchmeldung, type Suchstand } from "./suchstatus.ts";
+import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
 
 export interface KontoEnv {
   SUPABASE_URL: string;
@@ -153,9 +153,9 @@ async function suchstatus(request: Request, env: KontoEnv): Promise<Response> {
   if (!s) return Response.json({ fehler: true }, { status: 401, headers });
   for (const c of s.cookies) headers.append("set-cookie", c);
   if (!/^[0-9a-f-]{36}$/.test(firma)) return Response.json({ fehler: true }, { status: 400, headers });
-  const r = await db<Suchstand[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig&limit=1`);
+  const r = await db<Suchstand[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,zwischenstand:einstellungen->suchlauf_zwischenstand&limit=1`);
   if (!r.ok || !r.daten[0]) return Response.json({ fehler: true }, { status: r.ok ? 404 : 503, headers });
-  return Response.json({ laeuft: sucheLaeuft(r.daten[0]) }, { headers });
+  return Response.json({ laeuft: sucheLaeuft(r.daten[0]), treffer: zwischenstand(r.daten[0])?.treffer ?? 0 }, { headers });
 }
 
 async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unterseite = "", dateiProfil: (firma: string) => { beschreibung: string } | undefined = () => undefined): Promise<Response> {
@@ -205,7 +205,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
   const [profil, mail] = await Promise.all([
-    db<(Suchstand & { id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; websuche_quellen?: { titel: string; url: string }[]; website_hinweis?: string })[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,websuche_quellen:einstellungen->websuche_quellen,firmenstandorte:einstellungen->firmenstandorte,suchgebiet_modus:einstellungen->>suchgebiet_modus,website_hinweis:einstellungen->>website_hinweis,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler&limit=1`),
+    db<(Suchstand & { id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; websuche_quellen?: { titel: string; url: string }[]; website_hinweis?: string })[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,websuche_quellen:einstellungen->websuche_quellen,firmenstandorte:einstellungen->firmenstandorte,suchgebiet_modus:einstellungen->>suchgebiet_modus,website_hinweis:einstellungen->>website_hinweis,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zwischenstand:einstellungen->suchlauf_zwischenstand&limit=1`),
     db<{ stunde: number | null; kanal: string }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde,kanal`),
   ]);
   const hinterlegt = dateiProfil(m.firma_id);
