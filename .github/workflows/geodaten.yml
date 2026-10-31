@@ -1,0 +1,26 @@
+# One-off: postal code coordinates for the search radius and the map. Source GeoNames (CC BY 4.0, attribution required).
+name: Geodaten holen
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  plz:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Nutzungsregeln prüfen
+        run: |
+          curl -fsS https://download.geonames.org/robots.txt || echo "(kein robots.txt)"
+          curl -fsS https://download.geonames.org/export/zip/readme.txt | head -40
+      - name: Postleitzahlen Deutschland laden
+        run: |
+          curl -fsS -A "Jarvis/1.0 (kontakt@wpdigitalranger.com)" -o DE.zip https://download.geonames.org/export/zip/DE.zip
+          unzip -o DE.zip DE.txt
+          python3 alarm/geo/plz_bauen.py DE.txt
+      - name: Speichern
+        run: |
+          git config user.name "Jarvis"; git config user.email "noreply@github.com"
+          git add alarm/geo/plz.json
+          git diff --cached --quiet || git commit -m "Geodaten: Postleitzahl-Koordinaten (GeoNames, CC BY 4.0)"
+          git pull -q --rebase; git push
