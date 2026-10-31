@@ -7,6 +7,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Suchprofil (31.10.):** KI-Leerantworten werden durch einen speicherbaren Vorschlag ersetzt; Speicherfehler werden verständlicher angezeigt. Der Vorschlagknopf zeigt Fortschritt, und die Sucheinrichtung ist für Nicht-Fachleute vereinfacht: Arbeit und Ort zuerst, Fachdetails standardmäßig eingeklappt. Lokale und GitHub-Prüfungen grün; App live.
 - **Web-KI-Verbindung (31.10.):** Nur-Lese-Prüfung des Budgets: 0,1023/20 USD im Monat und 0,102/3 USD heute; Budgetlimit nicht erreicht. Hyperdrive und Budgetfunktion sind im App-Worker per schreibfreiem Rollout-Test bestätigt. Echter KI-Vorschlag nach diesem Rollout noch nicht bestätigt.
 - **Standortfilter Ausschreibungen (31.10.):** App-Suchprofile filtern Bekanntmachungen anhand des Einsatzorts. PLZ-Anfänge werden räumlich angewendet; fehlen sie, gilt der genaue Ortsname. Beim nächsten Alarm wandern alte, unbearbeitete Katalogtreffer außerhalb des Suchgebiets ins Archiv; bearbeitete Vorgänge bleiben unangetastet.
+- **Trefferbegründung (31.10.):** KI-Bewertung, „was gesucht wird“ und „warum es passt“ werden gemeinsam am Vorgang gespeichert. Die kurze Erklärung erscheint direkt auf der Trefferkarte; lange Steckbriefe bleiben nur auf der Detailseite.
 - **Automationsprüfung 30.10., 18:26 Berlin (lesend):** jüngste CI-, Web- und Datenbankläufe erfolgreich; geplanter Alarm erfolgreich protokolliert. Automatische tägliche Mail separat nachweisen; Details und Prüfgrenzen im neuesten Protokolleintrag.
 - **App online:** https://app.wpdigitalranger.com (seit 30.10.2026; die alte workers.dev-Adresse leitet weiter)
 - **Logo in der Konto-Kopfzeile:** Kompasssymbol mit Jarvis und WP Digital Ranger. SVG-Wortmarke, helle/dunkle Vorschau sowie PNG unter `docs/design/`; Farblegende aus der Vorschau entfernt, Unterzeile „Digitale Lösungen“.
@@ -36,7 +37,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
 
 ## In Arbeit
-- (ChatGPT) Standortfilter ausrollen und den nächsten Suchlauf mit lokalen Treffern prüfen; danach echten KI-Vorschlag nach dem bestätigten Hyperdrive-Rollout prüfen.
+- (ChatGPT) Trefferbegründung ausrollen und verifizieren. Beim nächsten Alarm den Standortfilter und das Archivieren alter, unbearbeiteter Ferntreffer prüfen. Das Fallback-Suchprofil hat keine PLZ-Anfänge und begrenzt deshalb zunächst auf den genauen Ortsnamen statt auf 50 km. Danach echten Web-KI-Vorschlag verifizieren.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
@@ -61,6 +62,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 31.10.2026 – ChatGPT (Erklärung der KI-Bewertung sichtbar machen)
+- Ursache: Die KI erzeugte `kurz` (was ausgeschrieben ist) und `grund` (warum es zur Firma passt), aber `alarm/speichern.py` übernahm nur die Punktzahl und den allgemeinen Bekanntmachungstext. Die Trefferkarte las weder diese Felder noch einen Kurztext.
+- Die Erklärung wird jetzt zusammen mit dem bestehenden Kurz-Steckbrief gespeichert und beim nächsten Alarm auch an bereits vorhandene Treffer ergänzt, ohne ausführliche Steckbriefe zu überschreiben. Die Trefferliste zeigt die Erklärung direkt unter dem Titel/Punktwert; sie lädt dafür das bereits verwendete Steckbrief-Feld.
+- Web-Typprüfung und alle 20 Web-Testdateien grün; Python-Suite (22 Tests) und Syntaxprüfung grün. Noch nicht auf `main`; nach Push CI und Web-Rollout prüfen. Der nächste Alarm erneuert die Begründung der bestehenden Treffer.
 
 ### 31.10.2026 – ChatGPT (Ortsfilter für Ausschreibungen)
 - Ursache: Die Einsatzorte eines App-Suchprofils wurden nur zur späteren Bereichszuordnung benutzt; der Alarm filterte die Treffer nicht nach dem Ort der Leistung. Daher konnten die 96 Treffer aus ganz Deutschland stammen.

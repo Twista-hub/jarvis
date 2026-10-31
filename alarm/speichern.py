@@ -50,8 +50,12 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
                on conflict (firma_id, quelle_id) do update set
                  punkte = coalesce(excluded.punkte, vorgaenge.punkte),
                  frist = coalesce(excluded.frist, vorgaenge.frist),
-                 steckbrief = case when %s and nullif(trim(vorgaenge.steckbrief),'') is not null
-                   then vorgaenge.steckbrief else coalesce(excluded.steckbrief, vorgaenge.steckbrief) end,
+                 steckbrief = case
+                   when position('## Jarvis-Bewertung' in excluded.steckbrief)>0 and nullif(trim(vorgaenge.steckbrief),'') is not null
+                     then case when position('## Jarvis-Bewertung' in vorgaenge.steckbrief)>0 then vorgaenge.steckbrief
+                       else excluded.steckbrief||E'\\n\\n'||vorgaenge.steckbrief end
+                   when %s and nullif(trim(vorgaenge.steckbrief),'') is not null then vorgaenge.steckbrief
+                   else coalesce(excluded.steckbrief, vorgaenge.steckbrief) end,
                  link = excluded.link, katalog_id=coalesce(excluded.katalog_id,vorgaenge.katalog_id),katalog_version=coalesce(excluded.katalog_version,vorgaenge.katalog_version),
                  bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id)
                returning (xmax = 0)""",

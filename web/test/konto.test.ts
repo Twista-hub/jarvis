@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { cookie, jwt, sicherWeiter, sitzung } from "../src/konto.ts";
+import { bewertungsErklaerung, cookie, jwt, sicherWeiter, sitzung } from "../src/konto.ts";
+
+test("shows the AI match reason on the tender card", () => {
+  assert.equal(bewertungsErklaerung("## Jarvis-Bewertung\n\n**Gesucht:** Fliesenarbeiten.\n\n**Warum passend:** Passt zur Firmenleistung.\n\n## Kurzüberblick"), "Gesucht: Fliesenarbeiten. Warum passend: Passt zur Firmenleistung.");
+  assert.equal(bewertungsErklaerung("## Kurzüberblick\n\nNur Bekanntmachungsdaten."), "");
+});
 
 test("only local paths as redirect target", () => {
   assert.equal(sicherWeiter("/einladung?token=abc_DEF-123"), "/einladung?token=abc_DEF-123");
