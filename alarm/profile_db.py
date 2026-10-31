@@ -36,6 +36,30 @@ def muster(woerter: list[str]) -> str:
     return "|".join(teile) or NIE
 
 
+def im_suchgebiet(profile: dict, rel: dict) -> bool:
+    """Limit app profiles to tender delivery locations; profiles without places stay nationwide."""
+    suchorte = profile.get("suchorte") or []
+    if not suchorte:
+        return True
+    items = (rel.get("tender") or {}).get("items") or []
+    if not items:
+        return False
+    for ort in suchorte:
+        name = re.sub(r"\s+", " ", str(ort.get("name", ""))).strip().casefold()
+        praefixe = [str(p) for p in ort.get("plz_praefixe", []) if re.fullmatch(r"\d{2}", str(p))]
+        for item in items:
+            adresse = item.get("deliveryAddress") or {}
+            beschreibung = (item.get("deliveryLocation") or {}).get("description") or ""
+            ortstext = " ".join(str(adresse.get(k, "")) for k in ("postalCode", "locality", "streetAddress")) + " " + str(beschreibung)
+            if praefixe:
+                postleitzahl = re.search(r"\b(\d{5})\b", ortstext)
+                if postleitzahl and postleitzahl.group(1)[:2] in praefixe:
+                    return True
+            elif name and re.search(rf"(?<![\w]){re.escape(name)}(?![\w])", ortstext, re.IGNORECASE):
+                return True
+    return False
+
+
 def aus_db(firma_id: str, name: str, beschreibung: str, e: dict) -> dict:
     """Converts a saved profile into the format of profile.json."""
     leistungen = e.get("leistungen") or []
@@ -49,6 +73,9 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict) -> dict:
         "exclude_cpv": e.get("ausschluss_cpv") or [],
         "beschreibung": beschreibung,
         "firma_id": firma_id,
+        # These locations constrain which notices enter this firm's hit list.
+        "suchorte": [{"name": o.get("name", ""), "plz_praefixe": o.get("plz_praefixe", [])}
+                     for o in e.get("standorte") or [] if o.get("name")],
         "regionen": {o["bereich_id"]: o.get("plz_praefixe", []) for o in e.get("standorte") or [] if o.get("bereich_id")},
         # Countries to search (ISO3). Germany = Bekanntmachungsservice, others = TED. Default: Germany only.
         "laender": [l for l in e.get("laender") or ["DEU"] if isinstance(l, str) and len(l) == 3] or ["DEU"],

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import psycopg
 
-from profile_db import laden, verbinden
+from profile_db import im_suchgebiet, laden, verbinden
 
 ROOT = Path(__file__).parent
 
@@ -17,6 +17,28 @@ ROOT = Path(__file__).parent
 def bereich(regionen: dict, plz: str) -> str | None:
     """Area of the firm for a postal code (profile.json "regionen": area id -> two-digit prefixes)."""
     return next((b for b, praefixe in regionen.items() if plz[:2] in praefixe), None) if plz else None
+
+
+def ausserhalb_gebiet_verwerfen(con: psycopg.Connection, firma_id: str, suchorte: list[dict]) -> int:
+    """Archive stale, untouched search hits after a firm narrows its search area."""
+    if not suchorte:
+        return 0  # Empty means nationwide; do not change existing work.
+    rows = con.execute(
+        """select v.id, k.ort, k.plz from public.vorgaenge v
+           join public.vergabekatalog k on k.id=v.katalog_id
+           where v.firma_id=%s and v.status='neu'""",
+        (firma_id,),
+    ).fetchall()
+    ausserhalb = []
+    for vorgang_id, ort, plz_werte in rows:
+        items = [{"deliveryLocation": {"description": ort or ""},
+                  "deliveryAddress": {"postalCode": p}}
+                 for p in (plz_werte or [""])]
+        if not im_suchgebiet({"suchorte": suchorte}, {"tender": {"items": items}}):
+            ausserhalb.append(vorgang_id)
+    if ausserhalb:
+        con.execute("update public.vorgaenge set status='verworfen' where id = any(%s)", (ausserhalb,))
+    return len(ausserhalb)
 
 
 def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict) -> int:
@@ -52,7 +74,10 @@ def main() -> None:
             if not firma_id:
                 continue
             eigene = [t for t in treffer if t["profil"] == name]
+            verworfen = ausserhalb_gebiet_verwerfen(con, firma_id, profil.get("suchorte") or [])
             print(f"{profil['name']}: {speichern(con, firma_id, eigene, profil.get('regionen', {}))} neue von {len(eigene)} Treffern")
+            if verworfen:
+                print(f"{profil['name']}: {verworfen} alte, unbearbeitete Treffer außerhalb des Suchgebiets ins Archiv verschoben")
 
 
 if __name__ == "__main__":
