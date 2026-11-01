@@ -5,7 +5,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { escape } from "./seite.ts";
 import { absatz, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
 
-export type Akte = { eintritt?: string | null; beschaeftigung?: string; wochenstunden?: number | string | null; fuehrerschein?: string[]; sprachen?: string[]; wohn_plz?: string; probezeit_bis?: string | null; befristet_bis?: string | null; aufenthalt_bis?: string | null; firmenwagen?: boolean };
+export type Akte = { eintritt?: string | null; beschaeftigung?: string; wochenstunden?: number | string | null; fuehrerschein?: string[]; sprachen?: string[]; wohn_plz?: string; probezeit_bis?: string | null; befristet_bis?: string | null; aufenthalt_bis?: string | null; firmenwagen?: boolean; personalnummer?: string; geburtstag?: string | null };
 export type Nachweis = { id: string; personal_id: string; bezeichnung: string; erworben: string | null; gueltig_bis: string | null; datei_name: string | null; datei_mime: string | null };
 export const BESCHAEFTIGUNG: Record<string, string> = { vollzeit: "Vollzeit", teilzeit: "Teilzeit", minijob: "Minijob", aushilfe: "Aushilfe", azubi: "Auszubildende/r" };
 export const FUEHRERSCHEINE = ["B", "BE", "C1", "C1E", "C", "CE", "D1", "D", "T", "L", "Stapler"];
@@ -29,7 +29,9 @@ export function dabeiSeit(eintritt: string | null | undefined, heute: string): s
 
 export function akteFelder(k: Akte & { id?: string }): string {
   const fs = k.fuehrerschein ?? [];
-  return `<details class="akte-felder"${k.eintritt || k.beschaeftigung || fs.length || (k.sprachen ?? []).length || k.wohn_plz || k.probezeit_bis || k.befristet_bis || k.aufenthalt_bis ? " open" : ""}><summary>📁 Personalakte</summary>
+  return `<details class="akte-felder"${k.eintritt || k.personalnummer || k.geburtstag || k.beschaeftigung || fs.length || (k.sprachen ?? []).length || k.wohn_plz || k.probezeit_bis || k.befristet_bis || k.aufenthalt_bis ? " open" : ""}><summary>📁 Personalakte</summary>
+<div class="zwei"><label>Personalnummer<input name="personalnummer" maxlength="20" value="${escape(k.personalnummer ?? "")}" placeholder="für die Lohnliste"></label>
+<label>Geburtstag<input name="geburtstag" type="date" value="${escape(k.geburtstag ?? "")}"></label></div>
 <div class="zwei"><label>Eintritt<input name="eintritt" type="date" value="${escape(k.eintritt ?? "")}"></label>
 <label>Beschäftigung<select name="beschaeftigung"><option value="">–</option>${Object.entries(BESCHAEFTIGUNG).map(([w, t]) => `<option value="${w}"${k.beschaeftigung === w ? " selected" : ""}>${t}</option>`).join("")}</select></label></div>
 <div class="zwei"><label>Wochenstunden<input name="wochenstunden" inputmode="decimal" maxlength="5" value="${k.wochenstunden ?? ""}"></label>
@@ -46,7 +48,7 @@ export function akteFelder(k: Akte & { id?: string }): string {
 export function akteAusFormular(f: FormData): Required<Akte> {
   const t = (k: string, max: number) => String(f.get(k) ?? "").replace(/\s+/g, " ").trim().slice(0, max);
   const e = t("eintritt", 10), plz = t("wohn_plz", 5), b = t("beschaeftigung", 20);
-  const tag = (k: string) => { const v = t(k, 10); return /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) ? v : null; };
+  const tag = (k: string) => { const v = t(k, 10); return /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(`${v}T12:00:00Z`).toISOString().slice(0, 10) === v ? v : null; };
   const h = Number(t("wochenstunden", 6).replace(",", "."));
   return {
     eintritt: /^\d{4}-\d{2}-\d{2}$/.test(e) && Number.isFinite(Date.parse(e)) ? e : null,
@@ -57,6 +59,8 @@ export function akteAusFormular(f: FormData): Required<Akte> {
     wohn_plz: /^\d{5}$/.test(plz) ? plz : "",
     probezeit_bis: tag("probezeit_bis"), befristet_bis: tag("befristet_bis"), aufenthalt_bis: tag("aufenthalt_bis"),
     firmenwagen: f.get("firmenwagen") === "on",
+    personalnummer: t("personalnummer", 20),
+    geburtstag: tag("geburtstag"),
   };
 }
 

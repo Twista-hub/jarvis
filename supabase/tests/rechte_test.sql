@@ -54,6 +54,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101170000_stunden_schichten_brett_fristen.sql
 \ir ../migrations/20261101180000_kunden_leistungsnachweis_ausfall.sql
 \ir ../migrations/20261101190000_psa_bewerber_checklisten_urlaub_bewertung.sql
+\ir ../migrations/20261101200000_abrechnung_lohn_stempel_selbstbedienung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1032,6 +1033,83 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.psa_ausgaben) and (select count(*) = 0 from public.bewerber) and (select count(*) = 0 from public.urlaubskonten) and (select count(*) = 0 from public.einsatz_bewertungen), 'Fremde Firma sieht nichts davon');
 reset role;
 update public.mitglieder set aktiv = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
+select set_config('test.uid', '', false);
+
+-- T34–T45: invoices, expenses, time account, signatures, customer link, time clock, link invitations, open shifts.
+reset role;
+update public.mitglieder set aktiv = true, rolle = 'bearbeiter', finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-0000000000e1';
+delete from public.push_warteschlange;
+delete from public.personal_abwesenheiten where personal_id = :'p_berlin';
+update public.personal set berufe = '{Servicekraft}', status = 'verfuegbar' where id = :'p_berlin';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+do $$ begin
+  insert into public.rechnungen (firma_id, nummer, monat, datum) values (current_setting('test.firma')::uuid, 'RE-1', '2026-11', current_date);
+  raise exception 'FEHLER: Rechnung ohne Finanzfreigabe';
+exception when insufficient_privilege then null; end $$;
+insert into public.schichten (firma_id, bereich_id, datum, beginn, ende, ort, beruf) values (:'firma', :'berlin', current_date + 5, '06:00', '14:00', 'Offen Berlin', 'Servicekraft') returning id as offen_ok \gset
+insert into public.schichten (firma_id, bereich_id, datum, beginn, ende, ort, beruf) values (:'firma', :'berlin', current_date + 5, '06:00', '14:00', 'Nur Köche', 'Koch') returning id as offen_koch \gset
+select set_config('test.offen_koch', :'offen_koch', false);
+reset role;
+select pruefe((select count(*) = 1 from public.push_warteschlange where user_id = '00000000-0000-0000-0000-0000000000e1' and titel like '🔓 Offene Schicht%'), 'Offene Schicht wird nur passenden Einsatzkräften gemeldet');
+update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.rechnungen (firma_id, nummer, monat, datum, netto) values (:'firma', 'RE-2026-0001', '2026-11', current_date, 100);
+do $$ begin
+  insert into public.rechnungen (firma_id, nummer, monat, datum) values (current_setting('test.firma')::uuid, 'RE-2026-0001', '2026-11', current_date);
+  raise exception 'FEHLER: doppelte Rechnungsnummer';
+exception when unique_violation then null; end $$;
+insert into public.nachweis_freigaben (firma_id, monat, titel, inhalt, token_hash) values (:'firma', '2026-11', 'Messe Berlin', '{"zeilen":[]}', encode(sha256(convert_to('geheim-123', 'UTF8')), 'hex'));
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 1 and min(ort) = 'Offen Berlin' from public.schichten where personal_id is null), 'Einsatzkraft sieht nur passende offene Schichten');
+select pruefe(public.schicht_uebernehmen(current_setting('test.offen_koch')::uuid) = 'nicht_passend', 'Unpassende Schicht ist für die Einsatzkraft nicht übernehmbar');
+select pruefe(public.schicht_uebernehmen(:'offen_ok') = 'ok', 'Einsatzkraft übernimmt offene Schicht');
+select pruefe(public.schicht_uebernehmen(:'offen_ok') = 'vergeben', 'Zweites Übernehmen geht nicht');
+insert into public.spesen (firma_id, personal_id, datum, art, betrag) values (:'firma', :'p_berlin', current_date, 'parken', 4.5);
+do $$ begin
+  insert into public.spesen (firma_id, personal_id, datum, betrag, status) values (current_setting('test.firma')::uuid, (select id from public.personal limit 1), current_date, 10, 'freigegeben');
+  raise exception 'FEHLER: Einsatzkraft gibt eigene Spesen frei';
+exception when insufficient_privilege then null; end $$;
+insert into public.stempel (firma_id, personal_id, art) values (:'firma', :'p_berlin', 'kommen');
+do $$ begin
+  insert into public.stempel (firma_id, personal_id, art, zeit) values (current_setting('test.firma')::uuid, (select id from public.personal limit 1), 'gehen', now() - interval '3 hours');
+  raise exception 'FEHLER: Stempelzeit zurückdatiert';
+exception when insufficient_privilege then null; end $$;
+insert into public.unterschriften (firma_id, personal_id, art, bezug) values (:'firma', :'p_berlin', 'psa', '2026-11');
+select pruefe((select count(*) = 0 from public.rechnungen) and (select count(*) = 0 from public.nachweis_freigaben), 'Einsatzkraft sieht keine Rechnungen und keine Kundenlinks');
+reset role;
+set role anon;
+select pruefe((select count(*) = 1 from public.nachweis_abrufen('geheim-123')) and (select count(*) = 0 from public.nachweis_abrufen('falsch')), 'Kundenlink funktioniert nur mit dem richtigen Schlüssel');
+select pruefe(public.nachweis_bestaetigen('geheim-123', 'Frau Meier', '', false, false) is not null, 'Kunde bestätigt ohne Anmeldung');
+select pruefe(public.nachweis_bestaetigen('geheim-123', 'Noch mal', '', false, false) is null, 'Zweite Bestätigung geht nicht');
+do $$ begin
+  perform 1 from public.nachweis_freigaben;
+  raise exception 'FEHLER: anonym lesbar';
+exception when insufficient_privilege then null; end $$;
+reset role;
+-- Link invitation without e-mail links the personnel record.
+update public.personal set user_id = null where id = :'p_hamburg';
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e2', 'neu.kraft@perlease.test');
+insert into public.einladungen (firma_id, email, rolle, token_hash, personal_id) values (:'firma', '', 'mitarbeiter', encode(sha256(convert_to('link-abc', 'UTF8')), 'hex'), :'p_hamburg');
+insert into public.einladungen (firma_id, email, rolle, token_hash) values (:'firma', '', 'bearbeiter', encode(sha256(convert_to('link-boese', 'UTF8')), 'hex'));
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000e2');
+do $$ begin
+  perform public.einladung_annehmen('link-boese');
+  raise exception 'FEHLER: Link-Einladung ohne Personalakte als Bearbeiter';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select pruefe(public.einladung_annehmen('link-abc') = current_setting('test.firma')::uuid, 'Link-Einladung angenommen');
+select pruefe((select count(*) = 1 and min(vorname) = 'Protokoll' from public.personal), 'Neue Einsatzkraft ist mit ihrer Personalakte verknüpft');
+reset role;
+select pruefe((select rolle = 'mitarbeiter' from public.mitglieder where user_id = '00000000-0000-0000-0000-0000000000e2'), 'Link-Einladung gibt nur die Rolle Einsatzkraft');
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-0000000000e2';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.rechnungen) and (select count(*) = 0 from public.spesen) and (select count(*) = 0 from public.stempel) and (select count(*) = 0 from public.nachweis_freigaben), 'Fremde Firma sieht nichts davon');
+reset role;
+update public.mitglieder set aktiv = false, finanzen = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

@@ -147,6 +147,37 @@ document.querySelectorAll('input[type="file"]').forEach(function (i) {
 document.querySelectorAll("[data-sofort-wahl]").forEach(function (w) {
   w.addEventListener("change", function () { w.form.submit(); });
 });
+// T39/T40: signature with finger or mouse; the drawing goes into a hidden field as PNG when the form is sent.
+document.querySelectorAll("canvas[data-unterschrift]").forEach(function (c) {
+  var feld = c.form ? c.form.querySelector('input[name="' + c.getAttribute("data-unterschrift") + '"]') : null;
+  if (!feld) return;
+  var ctx = c.getContext("2d"), malt = false, gemalt = false;
+  ctx.lineWidth = 3; ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.strokeStyle = "#102a43";
+  function punkt(e) { var r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * c.width / r.width, y: (e.clientY - r.top) * c.height / r.height }; }
+  c.addEventListener("pointerdown", function (e) { malt = true; var p = punkt(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); c.setPointerCapture(e.pointerId); e.preventDefault(); });
+  c.addEventListener("pointermove", function (e) { if (!malt) return; var p = punkt(e); ctx.lineTo(p.x, p.y); ctx.stroke(); gemalt = true; e.preventDefault(); });
+  ["pointerup", "pointercancel"].forEach(function (n) { c.addEventListener(n, function () { malt = false; }); });
+  var leeren = c.parentNode.querySelector("[data-unterschrift-leeren]");
+  if (leeren) leeren.addEventListener("click", function () { ctx.clearRect(0, 0, c.width, c.height); gemalt = false; feld.value = ""; });
+  c.form.addEventListener("submit", function (e) {
+    if (gemalt) feld.value = c.toDataURL("image/png");
+    else if (c.hasAttribute("data-pflicht") && !(e.submitter && e.submitter.hasAttribute("data-ohne-unterschrift"))) { e.preventDefault(); alert("Bitte zuerst unterschreiben."); }
+  });
+});
+// T41: time clock buttons ask for the position once (only to check "at the site"; the coordinates are not stored).
+document.querySelectorAll("form[data-standort]").forEach(function (f) {
+  f.addEventListener("submit", function (e) {
+    if (f.dataset.fertig || !navigator.geolocation) return;
+    e.preventDefault();
+    var knopf = e.submitter;
+    function weiter() { f.dataset.fertig = "1"; if (knopf && knopf.name) { var h = document.createElement("input"); h.type = "hidden"; h.name = knopf.name; h.value = knopf.value; f.appendChild(h); } f.submit(); }
+    navigator.geolocation.getCurrentPosition(function (p) {
+      f.querySelector('input[name="lat"]').value = p.coords.latitude.toFixed(4);
+      f.querySelector('input[name="lon"]').value = p.coords.longitude.toFixed(4);
+      weiter();
+    }, weiter, { timeout: 6000, maximumAge: 120000 });
+  });
+});
 // Direct links from the employee form open the tariff manager on "Firma & Team".
 // The same for any folded section named in the address (e.g. back to an edited worker: #bearbeiten-<id>).
 if (/^#[A-Za-z0-9_-]{1,80}$/.test(location.hash)) {

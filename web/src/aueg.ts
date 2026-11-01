@@ -59,6 +59,19 @@ export function fristen(liste: Ueberlassung[], heute: string): Frist[] {
 const datum = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("de-DE", { timeZone: "UTC" });
 const tageBis = (d: string, heute: string) => Math.round((tag(d) - tag(heute)) / 86400_000);
 
+// T38: sector surcharge steps (TV BZ): after 6 weeks, 3, 5, 7 and 9 months of uninterrupted assignment at the hirer.
+export function bzStufe(f: Pick<Frist, "beginn" | "unterbrechungTage">, heute: string, prozente: number[]): { stufe: number; prozent: number; seit: string | null; naechste: { datum: string; prozent: number } | null } | null {
+  if (!prozente.length || !prozente.some((x) => x > 0)) return null;
+  const grenzen = [plusTage(f.beginn, 42), plusMonate(f.beginn, 3), plusMonate(f.beginn, 5), plusMonate(f.beginn, 7), plusMonate(f.beginn, 9)].map((d) => plusTage(d, f.unterbrechungTage));
+  const stufe = grenzen.filter((d) => d <= heute).length;
+  return { stufe, prozent: stufe ? prozente[stufe - 1] ?? 0 : 0, seit: stufe ? grenzen[stufe - 1] : null, naechste: stufe < 5 ? { datum: grenzen[stufe], prozent: prozente[stufe] ?? 0 } : null };
+}
+export function bzText(b: ReturnType<typeof bzStufe>): string {
+  if (!b) return "";
+  const z = (n: number) => `${String(n).replace(".", ",")} %`;
+  return `💶 Branchenzuschlag ${b.stufe ? `${z(b.prozent)} seit ${datum(b.seit!)}` : "noch keiner"}${b.naechste ? ` · ${z(b.naechste.prozent)} ab ${datum(b.naechste.datum)}` : " (höchste Stufe)"}`;
+}
+
 /** Short status of one chain: what comes next and how urgent it is. */
 export function fristStatus(f: Frist, heute: string): { stufe: "rot" | "gelb" | "gruen" | "grau"; text: string } {
   const ep = tageBis(f.equalPay, heute), hd = tageBis(f.hoechst, heute);
@@ -79,7 +92,7 @@ export function personHinweise(liste: Frist[], heute: string): Record<string, st
   return r;
 }
 
-export function auegSeite(liste: Frist[], personal: { id: string; vorname: string; nachname: string }[], o: { heute: string; darfAendern: boolean; entleiher: string[] }): string {
+export function auegSeite(liste: Frist[], personal: { id: string; vorname: string; nachname: string }[], o: { heute: string; darfAendern: boolean; entleiher: string[]; bz?: Record<string, number[]> }): string {
   const name = (id: string) => { const p = personal.find((x) => x.id === id); return p ? `${p.vorname} ${p.nachname}`.trim() : "Unbekannt"; };
   const dringend = liste.filter((f) => ["rot", "gelb"].includes(fristStatus(f, o.heute).stufe));
   const karte = (f: Frist) => {
@@ -88,7 +101,7 @@ export function auegSeite(liste: Frist[], personal: { id: string; vorname: strin
     const anteil = Math.min(100, Math.round((tageImEinsatz / Math.max(1, Math.round((tag(f.hoechst) - tag(f.beginn)) / 86400_000) + 1 - f.unterbrechungTage)) * 100));
     const marke = Math.round((Math.max(1, Math.round((tag(f.equalPay) - tag(f.beginn)) / 86400_000) - f.unterbrechungTage) / Math.max(1, Math.round((tag(f.hoechst) - tag(f.beginn)) / 86400_000) + 1 - f.unterbrechungTage)) * 100);
     return `<li class="aueg-karte stufe-${s.stufe}">${avatar(name(f.personal_id), f.personal_id, undefined, "person-avatar klein-avatar")}<div class="aueg-text"><strong>${escape(name(f.personal_id))}</strong><span class="klein">bei ${escape(f.entleiher)} · seit ${datum(f.beginn)}${f.aktiv ? "" : " · zurzeit nicht im Einsatz"}${f.unterbrechungTage ? ` · ${f.unterbrechungTage} Tage Unterbrechung` : ""}</span>
-<div class="aueg-leiste" aria-hidden="true"><span style="width:${anteil}%"></span><i style="left:${marke}%" title="Equal Pay"></i></div><span class="aueg-status">${escape(s.text)}</span>
+<div class="aueg-leiste" aria-hidden="true"><span style="width:${anteil}%"></span><i style="left:${marke}%" title="Equal Pay"></i></div><span class="aueg-status">${escape(s.text)}</span>${f.aktiv && o.bz?.[entleiherSchluessel(f.entleiher)] ? `<span class="klein aueg-bz">${escape(bzText(bzStufe(f, o.heute, o.bz[entleiherSchluessel(f.entleiher)])))}</span>` : ""}
 <details class="aueg-einsaetze"><summary>${f.einsaetze.length} ${f.einsaetze.length === 1 ? "Einsatz" : "Einsätze"}</summary><ul>${f.einsaetze.map((u) => `<li><span>${datum(u.von)} – ${u.bis ? datum(u.bis) : "laufend"}${u.notiz ? ` · ${escape(u.notiz)}` : ""}</span>${o.darfAendern ? `<span class="aueg-aktionen">${!u.bis ? `<form method="post" action="/konto/aueg"><input type="hidden" name="beenden" value="${u.id}"><input type="date" name="bis" value="${o.heute}" aria-label="Ende des Einsatzes"><button class="zweit">Beenden</button></form>` : ""}<form method="post" action="/konto/aueg"><input type="hidden" name="loeschen" value="${u.id}"><button class="zweit" aria-label="Einsatz löschen">✕</button></form></span>` : ""}</li>`).join("")}</ul></details></div></li>`;
   };
   const formular = o.darfAendern && personal.length ? `<details class="upload-neu"${liste.length ? "" : " open"}><summary>➕ Einsatz beim Kunden eintragen</summary><form method="post" action="/konto/aueg" class="aueg-form">
@@ -140,11 +153,12 @@ export async function aueg(request: Request, env: KontoEnv): Promise<Response | 
     }
     return weiterleiten(`/konto/aueg?hinweis=${encodeURIComponent(hinweis)}`, f.s.cookies);
   }
-  const [liste, personal] = await Promise.all([
+  const [liste, personal, kunden] = await Promise.all([
     auegLaden(f.s, env, f.m.firma_id),
     db<{ id: string; vorname: string; nachname: string }[]>(f.s, env, `personal?firma_id=eq.${f.m.firma_id}&select=id,vorname,nachname&order=vorname&limit=2000`),
+    db<{ name: string; bz_prozente: (number | string)[] }[]>(f.s, env, `kunden?firma_id=eq.${f.m.firma_id}&select=name,bz_prozente&limit=1000`),
   ]);
   const entleiher = [...new Map(liste.map((u) => [entleiherSchluessel(u.entleiher), u.entleiher])).values()].sort((a, b) => a.localeCompare(b, "de"));
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${auegSeite(fristen(liste, heute), personal.ok ? personal.daten : [], { heute, darfAendern, entleiher })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${auegSeite(fristen(liste, heute), personal.ok ? personal.daten : [], { heute, darfAendern, entleiher, bz: Object.fromEntries((kunden.ok ? kunden.daten : []).filter((k) => (k.bz_prozente ?? []).length).map((k) => [entleiherSchluessel(k.name), k.bz_prozente.map(Number)])) })}`);
 }
