@@ -475,6 +475,22 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .treffer-kompakt .kp { flex: 0 0 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--bg); color: var(--accent); font-size: 13px; font-weight: 800; }
   .treffer-kompakt a { display: grid; flex: 1; min-width: 0; color: var(--text); text-decoration: none; }
   .treffer-kompakt a strong { font-size: .92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .kopf-chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: -4px 0 10px; padding: 0; }
+  .kopf-chips li { padding: 4px 10px; border-radius: 8px; background: var(--card); border: 1px solid var(--line); font-size: 13px; font-weight: 600; }
+  .kopf-chips li.punkte { color: var(--accent); }
+  .kopf-chips li.frist.rot { border-color: #c0392b; color: #c0392b; } .kopf-chips li.frist.gelb { border-color: #d68910; color: #b9770e; } .kopf-chips li.frist.gruen { border-color: #2e8b57; color: #2e8b57; }
+  .portal-knopf { margin: 0 0 10px; }
+  .sprungleiste { position: sticky; top: 0; z-index: 4; display: flex; gap: 6px; margin: 0 -16px 10px; padding: 8px 16px; overflow-x: auto; background: var(--bg); border-bottom: 1px solid var(--line); scrollbar-width: none; }
+  .sprungleiste a { flex: 0 0 auto; padding: 5px 11px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); color: var(--accent); font-size: 13px; font-weight: 600; text-decoration: none; }
+  :target { scroll-margin-top: 60px; }
+  h2[id], section[id] { scroll-margin-top: 60px; }
+  .notiz-form textarea { min-height: 3.5em; }
+  .notizen { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 8px; }
+  .notizen li { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .notizen li p { margin: 0 0 4px; }
+  .notizen li form { display: inline; padding: 0; border: 0; background: none; }
+  .notizen li button { min-height: 28px; padding: 2px 8px; margin-left: 8px; font-size: 12px; }
+  details.zustaendigkeit { margin-top: 18px; }
   /* Short fields side by side: invitation form, calculation numbers, new location. */
   .kalk-gruppe label { margin-top: 6px; }
   .kalk-gruppe label .klein { font-weight: 400; }

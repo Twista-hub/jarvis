@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Ausschreibungsseite C1–C5)
+- C1: Sprungleiste unter dem Kopf (Steckbrief · Nachweise · Kalkulation · Personal · Unterlagen · Notizen), bleibt beim Scrollen oben, nur vorhandene Abschnitte.
+- C2: „Kaufmännische Zuständigkeit“ als Aufklapper ganz unten („👤 Kaufmännisch zuständig: Name / nicht zugewiesen“).
+- C3: Kopf als Etiketten: Punkte, Frist mit Ampel und „in N Tagen“, Stand, Entfernung.
+- C4: Knopf „🌐 Zum Vergabeportal“ direkt unter dem Kopf.
+- C5: Notizen fürs Team: neue Tabelle `vorgang_notizen` (Migration `20261101020000_vorgang_notizen.sql`, RLS: lesen wer die Ausschreibung sieht, schreiben alle außer reinen Freigabe-Mitarbeitern, löschen Autor/Admin), Formular und Liste mit Name und Zeit, Route `/konto/vorgang/<id>/notiz`. Rechte-Test ergänzt.
+- Mit Screenshot geprüft; Rechte-Test und 173 Web-Tests grün.
+
 ### 01.11.2026 – Claude (Ausschreibungsliste B1–B5)
 - B1: Umschalter „▦ Karten / ☰ Liste“, kompakte Liste mit Punkten, Titel, Frist und Entfernung (Cookie `jv_ansicht`).
 - B2: Punkt vor dem Titel für Treffer, die seit dem letzten Besuch dazukamen (Cookie `jv_gesehen`, wird erst nach einer Stunde erneuert, damit Neuladen die Markierung nicht löscht).

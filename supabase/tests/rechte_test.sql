@@ -36,6 +36,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031180000_ki_tageslimit_10_euro.sql
 \ir ../migrations/20261101000000_ki_offene_reservierungen.sql
 \ir ../migrations/20261101010000_vorgaenge_entfernung_fragefrist.sql
+\ir ../migrations/20261101020000_vorgang_notizen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -420,6 +421,21 @@ exception when raise_exception then
  if sqlerrm = 'FEHLER: Gesperrter Mitarbeiter wurde zugewiesen' then raise; end if;
  raise notice 'ok: kaufmännische Zuweisung verlangt ein aktives Mitglied';
 end $$;
+-- Team notes: visible to people who see the tender, invisible to other firms.
+reset role;
+select id as notiz_vorgang from public.vorgaenge where firma_id=:'firma' limit 1 \gset
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.vorgang_notizen (firma_id, vorgang_id, text) values (:'firma', :'notiz_vorgang', 'Kunde angerufen');
+select pruefe((select count(*)=1 from public.vorgang_notizen where vorgang_id=:'notiz_vorgang'), 'Notiz zur Ausschreibung gespeichert');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*)=0 from public.vorgang_notizen), 'Fremde Firma sieht keine Notizen');
+do $$ begin
+  insert into public.vorgang_notizen (firma_id, vorgang_id, text) select firma_id, id, 'fremd' from public.vorgaenge limit 1;
+  if found then raise exception 'FEHLER: Fremde Notiz angelegt'; end if;
+exception when insufficient_privilege or check_violation then null; end $$;
+reset role;
+
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.
 reset role;
 select id as neufirma2 from public.firmen where name='Neu GmbH' \gset
