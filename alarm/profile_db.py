@@ -135,6 +135,26 @@ def nicht_mehr_aktuelle_treffer(vorgaenge: list[tuple[str, str]], aktuelle_ids: 
     return [vorgang_id for vorgang_id, quelle_id in vorgaenge if quelle_id not in aktuelle_ids]
 
 
+def namen_norm(text: str) -> str:
+    """Buyer names compared without case, umlauts and punctuation ("Stadt Köln" = "stadt koeln")."""
+    t = str(text or "").lower()
+    for a, b in (("ä", "ae"), ("ö", "oe"), ("ü", "ue"), ("ß", "ss")):
+        t = t.replace(a, b)
+    return re.sub(r"[^a-z0-9]+", " ", t).strip()
+
+
+def namen_liste(werte) -> list[str]:
+    return [n for n in (namen_norm(w) for w in (werte if isinstance(werte, list) else [])[:30]) if len(n) >= 3]
+
+
+def betrag_oder_none(wert):
+    try:
+        n = float(wert)
+    except (TypeError, ValueError):
+        return None
+    return n if 0 < n <= 1e10 else None
+
+
 def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str = "") -> dict:
     """Converts a saved profile into the format of profile.json."""
     leistungen = e.get("leistungen") or []
@@ -173,9 +193,37 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         "suchpunkte": suchpunkte(e, firmen_plz),
         # Lowest score shown as a hit (set in the app, default 6/10).
         "min_punkte": min(9, max(3, int(e.get("min_punkte") or 6))) if str(e.get("min_punkte") or "6").isdigit() else 6,
+        # Filters that only decide what is shown (H2, H4, H5); they are not part of the profile version, so changing
+        # them never triggers a paid re-scoring (katalog.profil_version).
+        "exclude_schnell": muster(e.get("ausschluss_schnell") or []),
+        "auftraggeber_bevorzugt": namen_liste(e.get("auftraggeber_bevorzugt")),
+        "auftraggeber_aus": namen_liste(e.get("auftraggeber_aus")),
+        "wert_min": betrag_oder_none(e.get("wert_min")),
+        "wert_max": betrag_oder_none(e.get("wert_max")),
+        "wert_unbekannt": e.get("wert_unbekannt", True) is not False,
         **({"standorte": standorte, "suchgebiet_modus": "firmenstandorte"}
            if e.get("firmenstandorte") and e.get("suchgebiet_modus") != "manuell" else {}),
     }
+
+
+def zusatz_profile(key: str, firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str = "") -> dict:
+    """Further search profiles of a firm (H3, e.g. one per business area): same search area and filters as the main
+    profile, own search words, exclusions, minimum score and optionally an area that receives the hits."""
+    result = {}
+    for z in (e.get("zusatzprofile") or [])[:3]:
+        if not isinstance(z, dict) or not re.fullmatch(r"[0-9a-f-]{8,36}", str(z.get("id", ""))):
+            continue
+        woerter = [str(w) for w in z.get("woerter") or [] if 3 <= len(str(w).strip()) <= 60][:30]
+        if not str(z.get("name", "")).strip() or not woerter:
+            continue
+        teil = dict(e, leistungen=[{"name": str(z["name"])[:60], "cpv": [], "woerter": woerter}],
+                    ausschluss=list(e.get("ausschluss") or []) + [str(w) for w in z.get("ausschluss") or []][:30],
+                    min_punkte=z.get("min_punkte") or e.get("min_punkte"), zusatzprofile=[])
+        p = aus_db(firma_id, f"{name} · {str(z['name'])[:60]}", "\n\n".join(filter(None, [str(z.get("beschreibung") or "")[:500], beschreibung])), teil, firmen_plz)
+        bereich = str(z.get("bereich_id") or "")
+        p.update(zusatz=True, haupt_id=key, **({"bereich_id": bereich} if re.fullmatch(r"[0-9a-f-]{36}", bereich) else {}))
+        result[f"{key}#{str(z['id'])[:8]}"] = p
+    return result
 
 
 def laden() -> dict:
@@ -193,13 +241,15 @@ def laden() -> dict:
     for firma_id, name, beschreibung, e, plz in rows:
         if not (e or {}).get("leistungen"):
             continue
-        key = next((k for k, p in profile.items() if p.get("firma_id") == firma_id), f"firma-{firma_id}")
+        key = next((k for k, p in profile.items() if p.get("firma_id") == firma_id and not p.get("zusatz")), f"firma-{firma_id}")
         profile[key] = aus_db(firma_id, name, beschreibung, e, plz)
+        profile.update(zusatz_profile(key, firma_id, name, beschreibung, e, plz))
     try:
         with verbinden() as con:
             abos = con.execute("select firma_id::text,auftraggeber_id from public.auftraggeber_abos").fetchall() if con.execute("select to_regclass('public.auftraggeber_abos')").fetchone()[0] else []
         for p in profile.values():
-            p["beobachtete_auftraggeber"] = [buyer for f, buyer in abos if f == p.get("firma_id")]
+            # Watched buyers only in the main profile, so their notices are not listed twice.
+            p["beobachtete_auftraggeber"] = [] if p.get("zusatz") else [buyer for f, buyer in abos if f == p.get("firma_id")]
     except Exception:
         print("Auftraggeber-Beobachtungen vorübergehend nicht geladen", file=sys.stderr)
     print(f"Suchprofile: {len(profile)} ({len(rows)} aus der App)", file=sys.stderr)

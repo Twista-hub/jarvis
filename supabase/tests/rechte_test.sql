@@ -42,6 +42,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101050000_kalkulationsprofile_zuschlagvergleich.sql
 \ir ../migrations/20261101060000_zuschlag_vergleich_robust.sql
 \ir ../migrations/20261101070000_team_abwesenheit_kontakt_protokoll.sql
+\ir ../migrations/20261101080000_suchprofil_filter_vorschau.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -523,6 +524,39 @@ select test_als('00000000-0000-0000-0000-00000000000a');
 select pruefe((select count(*) >= 1 from public.aenderungsprotokoll where bereich = 'personal_abwesenheiten' and datensatz = 'Protokoll Berlin'), 'Inhaber sieht den eingetragenen Urlaub im Protokoll');
 reset role;
 select pruefe((select count(*) = 0 from public.aenderungsprotokoll where user_id is null), 'Hintergrundänderungen ohne Person werden nicht protokolliert');
+select set_config('test.uid', '', false);
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
+
+-- Search profile (H1–H3): only owners/administration change exclusions and further profiles; preview for them only.
+reset role;
+select set_config('test.uid', '', false);
+insert into public.suchprofile (firma_id, name, einstellungen) values (:'firma', 'Perlease', '{"leistungen": [{"name": "Reinigung", "cpv": [], "woerter": ["reinigung"]}]}')
+  on conflict do nothing;
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-00000000000b';
+insert into public.vergabekatalog (id,quelle,quelle_id,version,quell_datum,titel,beschreibung,link,auftraggeber,auftraggeber_id,cpv,plz,status,roh) values
+('test:v1','bks','v1','1',now() - interval '2 days','Unterhaltsreinigung Rathaus','Reinigung der Büros','https://example.org/v1','Stadt A','a',array['90910000'],array['10115'],'offen','{"tender": {"value": {"amount": 120000}}}'),
+('test:v2','bks','v2','1',now() - interval '3 days','Glasreinigung Schule','Fenster','https://example.org/v2','Stadt B','b',array['90911300'],array['20095'],'offen','{"tender": {"value": {"amount": 20000}}}'),
+('test:v3','bks','v3','1',now() - interval '30 days','Reinigung alt','x','https://example.org/v3','Stadt C','c',array['90910000'],array['10115'],'offen','{}');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+select pruefe(public.suchprofil_ausschluss(:'firma', 'Fenster') = '["fenster"]'::jsonb, 'Ausschlusswort per Daumen gespeichert');
+select pruefe(public.suchprofil_ausschluss(:'firma', 'fenster', true) = '[]'::jsonb, 'Ausschlusswort wieder entfernt');
+select public.suchprofil_zusatz(:'firma', '[{"id": "a1b2c3d4-0000-4000-8000-000000000001", "name": "Winterdienst", "woerter": ["winterdienst"]}]');
+select pruefe((select einstellungen->'zusatzprofile'->0->>'name' = 'Winterdienst' and einstellungen->'leistungen' is not null from public.suchprofile where firma_id = :'firma' and bereich_id is null), 'Weiteres Suchprofil gespeichert, Hauptprofil bleibt');
+do $$ begin
+  perform public.suchprofil_zusatz(current_setting('test.firma')::uuid, '[{},{},{},{}]');
+  raise exception 'FEHLER: mehr als 3 weitere Suchprofile';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select pruefe((select count(*) = 2 from public.suchprofil_vorschau(:'firma', '(?<!\w)reinigung')), 'Vorschau findet die Reinigungen der letzten 7 Tage');
+select pruefe((select array_agg(id) = array['test:v1'] from public.suchprofil_vorschau(:'firma', '(?<!\w)reinigung', 'fenster', '{}', array['10'])), 'Vorschau beachtet Ausschluss und Gebiet');
+select pruefe((select array_agg(id) = array['test:v1'] from public.suchprofil_vorschau(:'firma', '(?!x)x', '', array['9091'], '{}', 50000, null, false)), 'Vorschau beachtet Kennziffern und Mindestwert (ohne Wertangabe ausgeblendet)');
+select test_als('00000000-0000-0000-0000-00000000000b');
+do $$ begin
+  perform public.suchprofil_ausschluss(current_setting('test.firma')::uuid, 'test');
+  raise exception 'FEHLER: Bearbeiter ändert das Suchprofil';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select pruefe((select count(*) = 0 from public.suchprofil_vorschau(:'firma', '(?<!\w)reinigung')), 'Bearbeiter bekommt keine Vorschau');
+reset role;
 select set_config('test.uid', '', false);
 update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 

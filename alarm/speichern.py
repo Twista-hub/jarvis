@@ -88,7 +88,24 @@ def brief_aktualisieren(alt: str | None, t: dict) -> str | None:
     return bewertung + (bisher if behalten else inhalt) if neu else alt
 
 
-def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict) -> int:
+def firmen_ergebnis(namen: list[str], treffer: list[dict], ausgewertet: dict) -> tuple[list[dict], list[str]]:
+    """All hits of a firm's search profiles (H3) as one list, each notice once with its best score, and the
+    rejections that every profile agrees on (a notice one profile wants is never archived because another does not)."""
+    beste: dict = {}
+    for t in treffer:
+        if t["profil"] not in namen:
+            continue
+        alt = beste.get(t["quelle_id"])
+        if alt is None or (t.get("punkte") or 0) > (alt.get("punkte") or 0):
+            beste[t["quelle_id"]] = t
+    abgelehnt = None
+    for n in namen:
+        menge = set((ausgewertet.get(n) or {}).get("abgelehnt", []))
+        abgelehnt = menge if abgelehnt is None else abgelehnt & menge
+    return list(beste.values()), sorted((abgelehnt or set()) - set(beste))
+
+
+def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict, bereich_je_profil: dict | None = None) -> int:
     neu = 0
     for t in treffer:
         bisher = con.execute("select steckbrief from public.vorgaenge where firma_id=%s and quelle_id=%s for update", (firma_id, t["quelle_id"])).fetchone()
@@ -107,7 +124,7 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
                  bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id),
                  entfernung_km = excluded.entfernung_km, fragefrist = coalesce(excluded.fragefrist, vorgaenge.fragefrist)
                returning (xmax = 0)""",
-            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"),t.get("entfernung_km"),t.get("fragefrist"), bisher[0] if bisher else None),
+            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, (bereich_je_profil or {}).get(t.get("profil")) or bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"),t.get("entfernung_km"),t.get("fragefrist"), bisher[0] if bisher else None),
         ).fetchone()
         neu += bool(row and row[0])
     return neu
@@ -121,7 +138,9 @@ def zwischenspeichern(profil: dict, treffer: list[dict], stand: dict) -> bool:
     try:
         with verbinden() as con:
             if treffer:
-                speichern(con, firma_id, treffer, profil.get("regionen", {}))
+                speichern(con, firma_id, treffer, profil.get("regionen", {}), {t["profil"]: profil.get("bereich_id") for t in treffer})
+            if profil.get("zusatz"):
+                return True  # the progress shown in the app belongs to the main profile
             con.execute("""update public.suchprofile set einstellungen = einstellungen ||
                 jsonb_build_object('suchlauf_zwischenstand', %s::jsonb) where firma_id=%s and bereich_id is null""",
                         (json.dumps(stand), firma_id))
@@ -152,20 +171,23 @@ def main() -> None:
     with verbinden() as con:
         for name, profil in profile.items():
             firma_id = profil.get("firma_id")
-            if not firma_id:
-                continue
+            if not firma_id or profil.get("zusatz"):
+                continue  # further profiles are handled together with their firm's main profile
+            # H3: all search profiles of this firm together (the main profile first).
+            namen = [name] + [k for k, p in profile.items() if p.get("zusatz") and p.get("firma_id") == firma_id]
             bericht = (ausgewertet or {}).get(name, {})
-            if bericht and bericht.get("version") != katalog.profil_version(profil):
+            geaendert = [k for k in namen if (ausgewertet or {}).get(k) and (ausgewertet or {})[k].get("version") != katalog.profil_version(profile[k])]
+            if geaendert:
                 print(f"{profil['name']}: Profil wurde während des Laufs geändert; Ergebnis wird nicht übernommen.")
                 con.execute("""update public.suchprofile set einstellungen = einstellungen ||
                     jsonb_build_object('erstlauf_fertig', now(), 'suchlauf_fehler', true)
                     where firma_id=%s and bereich_id is null""", (firma_id,))
                 continue
-            eigene = [t for t in treffer if t["profil"] == name]
-            unpassend = unpassende_verwerfen(con, firma_id, bericht.get("abgelehnt", []))
+            eigene, abgelehnt = firmen_ergebnis(namen, treffer, ausgewertet or {name: bericht})
+            unpassend = unpassende_verwerfen(con, firma_id, abgelehnt)
             verworfen = ausserhalb_gebiet_verwerfen(con, firma_id, profil.get("suchorte") or [])
             nicht_aktuell = nicht_mehr_aktuell_verwerfen(con, firma_id, eigene, kompletter_katalog)
-            neu = speichern(con, firma_id, eigene, profil.get("regionen", {}))
+            neu = speichern(con, firma_id, eigene, profil.get("regionen", {}), {k: profile[k].get("bereich_id") for k in namen})
             abgelaufen = abgelaufene_archivieren(con, firma_id)
             ergebnis = {"treffer": len(eigene), "neu": neu, "ungeprueft": sum(t.get("punkte") is None for t in eigene),
                         "archiviert": unpassend + verworfen + nicht_aktuell, "abgelaufen": abgelaufen, **bericht.get("suchstand", {})}

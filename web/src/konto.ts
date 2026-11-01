@@ -17,6 +17,7 @@ import { abwesenheitenLaden, avatar, einsaetzeLaden, kontaktBlock, einsatzTeil, 
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { mitReferenzen, teilnahmeTeil } from "./markt.ts";
 import { referenzenLaden } from "./referenzen.ts";
+import { ausschlussKarte, filterUebersicht, zusatzBlock, type Zusatzprofil } from "./suchfilter.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
@@ -234,7 +235,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
   const [profil, mail] = await Promise.all([
-    db<(Suchstand & { id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; websuche_quellen?: { titel: string; url: string }[]; website_hinweis?: string; leistungen?: { name: string; woerter: string[] }[]; suchpunkte?: Suchpunkt[]; radius_km?: number | null })[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,websuche_quellen:einstellungen->websuche_quellen,firmenstandorte:einstellungen->firmenstandorte,suchgebiet_modus:einstellungen->>suchgebiet_modus,website_hinweis:einstellungen->>website_hinweis,leistungen:einstellungen->leistungen,suchpunkte:einstellungen->suchpunkte,radius_km:einstellungen->radius_km,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zwischenstand:einstellungen->suchlauf_zwischenstand&limit=1`),
+    db<(Suchstand & { id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; websuche_quellen?: { titel: string; url: string }[]; website_hinweis?: string; leistungen?: { name: string; woerter: string[] }[]; suchpunkte?: Suchpunkt[]; radius_km?: number | null; ausschluss_schnell?: string[]; auftraggeber_bevorzugt?: string[]; auftraggeber_aus?: string[]; wert_min?: number | null; wert_max?: number | null; wert_unbekannt?: boolean; zusatzprofile?: Zusatzprofil[] })[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,websuche_quellen:einstellungen->websuche_quellen,firmenstandorte:einstellungen->firmenstandorte,suchgebiet_modus:einstellungen->>suchgebiet_modus,website_hinweis:einstellungen->>website_hinweis,leistungen:einstellungen->leistungen,suchpunkte:einstellungen->suchpunkte,radius_km:einstellungen->radius_km,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zwischenstand:einstellungen->suchlauf_zwischenstand,ausschluss_schnell:einstellungen->ausschluss_schnell,auftraggeber_bevorzugt:einstellungen->auftraggeber_bevorzugt,auftraggeber_aus:einstellungen->auftraggeber_aus,wert_min:einstellungen->wert_min,wert_max:einstellungen->wert_max,wert_unbekannt:einstellungen->wert_unbekannt,zusatzprofile:einstellungen->zusatzprofile&limit=1`),
     db<{ stunde: number | null; kanal: string }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde,kanal`),
   ]);
   const hinterlegt = dateiProfil(m.firma_id);
@@ -329,7 +330,12 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const massen = darfAendern ? `<form method="post" action="/konto/status/mehrere" id="massen" class="massen-leiste" hidden><input type="hidden" name="weiter" value="${escape(link(reiter))}"><span data-massen-zahl>0 ausgewählt</span><button name="status" value="verworfen">Archivieren</button><button name="status" value="angebot" class="zweit">Merken</button></form>` : "";
     const abgelaufen = reiter === "neu" && (suchstand.ergebnis as { abgelaufen?: number } | undefined)?.abgelaufen ? `<p class="klein">🗄️ ${(suchstand.ergebnis as { abgelaufen?: number }).abgelaufen} abgelaufene Treffer wurden automatisch ins Archiv verschoben.</p>` : "";
     const tabs = `<nav class="reiter" aria-label="Stand der Ausschreibungen">${[["neu", "Neu"], ["arbeit", "In Arbeit"], ["abgegeben", "Abgegeben"], ["archiv", "Archiv"]].map(([key, label]) => `<a href="${link(key)}"${key === reiter ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
-    inhalt = rahmen(`${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${umschalter}${abgelaufen}${massen}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q, { kompakt, seit: gesehen, darfAendern })}`);
+    // H2: after a 👎 the words of that tender can be excluded with one tap.
+    const vorschlagId = url.searchParams.get("vorschlag") ?? "";
+    const vorschlagV = admin && /^[0-9a-f-]{36}$/.test(vorschlagId) ? liste.find((v) => v.id === vorschlagId) : undefined;
+    const aktuellesProfil = profil.ok ? profil.daten[0] : undefined;
+    const karte = vorschlagV ? ausschlussKarte(vorschlagV, m.firma_id, (aktuellesProfil?.leistungen ?? []).flatMap((l) => l.woerter ?? []), aktuellesProfil?.ausschluss_schnell ?? [], link(reiter)) : "";
+    inhalt = rahmen(`${karte}${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${umschalter}${abgelaufen}${massen}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q, { kompakt, seit: gesehen, darfAendern })}`);
   } else if (unterseite === "fristen") {
     const mitFrist = liste.filter((v) => v.frist || v.fragefrist);
     const kalk = mitFrist.length ? await db<{ vorgang_id: string }[]>(s, env, `kalkulationen?firma_id=eq.${m.firma_id}&vorgang_id=in.(${mitFrist.map((v) => v.id).join(",")})&select=vorgang_id`) : { ok: true as const, daten: [] };
@@ -458,6 +464,8 @@ ${sucheEingerichtet ? `<form method="post" data-suchaktion action="/konto/einric
 ${datum ? `<p class="klein" role="status">Firmeninfos zuletzt aktualisiert: ${escape(datum)} Uhr</p>` : ""}
 ${suchgebietKarte(aktuell?.suchpunkte ?? [], aktuell?.radius_km ?? null)}
 ${leistungsTreffer(aktuell?.leistungen ?? [], letzte30.ok ? letzte30.daten : [])}
+${aktuell ? filterUebersicht(aktuell, m.firma_id, admin) : ""}
+${aktuell && sucheEingerichtet ? `<div id="weitere">${zusatzBlock(Array.isArray(aktuell.zusatzprofile) ? aktuell.zusatzprofile : [], m.firma_id, b.map((x) => ({ id: x.id, name: bereichPfad(x, b) })), admin)}</div>` : ""}
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
@@ -797,6 +805,14 @@ export async function vorgangZugriff(request: Request, env: KontoEnv, id: string
   return { s, v, rolle: m.daten[0].rolle, finanzen: darfFinanzen(m.daten[0].rolle, m.daten[0].finanzen) };
 }
 
+/** H2 on the tender page: after a 👎 offer words of this title for exclusion (owners and administration only). */
+async function vorschlagKarte(request: Request, env: KontoEnv, s: Sitzung, v: { id: string; titel: string; firma_id: string }, rolle: string): Promise<string> {
+  if (new URL(request.url).searchParams.get("vorschlag") !== v.id || !["inhaber", "admin"].includes(rolle)) return "";
+  const p = await db<{ leistungen?: { woerter?: string[] }[]; ausschluss_schnell?: string[] }[]>(s, env, `suchprofile?firma_id=eq.${v.firma_id}&bereich_id=is.null&select=leistungen:einstellungen->leistungen,ausschluss_schnell:einstellungen->ausschluss_schnell&limit=1`);
+  const e = p.ok ? p.daten[0] : undefined;
+  return ausschlussKarte(v, v.firma_id, (e?.leistungen ?? []).flatMap((l) => l.woerter ?? []), e?.ausschluss_schnell ?? [], `/konto/vorgang/${v.id}`);
+}
+
 async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promise<Response> {
   const z = await vorgangZugriff(request, env, id);
   if (!z) {
@@ -811,7 +827,8 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
     const archiv = (kurzberichte as Record<string, string>)[`${v.firma_id}|${v.link}`];
     if (archiv) v.steckbrief = `## Kurzüberblick aus dem Morgenbericht\n\n${archiv}\n\n_Dies ist die archivierte Zusammenfassung zur Bekanntmachung. Für eine ausführliche Prüfung bitte die Vergabeunterlagen hochladen._`;
   }
-  const fehler = new URL(request.url).searchParams.get("fehler") ?? new URL(request.url).searchParams.get("hinweis") ?? "";
+  const fehler = new URL(request.url).searchParams.get("fehler") ?? "";
+  const hinweisText = new URL(request.url).searchParams.get("hinweis") ?? "";
   const portal = v.link && /^https?:\/\//.test(v.link) ? v.link : "";
   const aus = await unterlagenSteckbrief(env, id);
   // Actions below the Steckbrief: first read, then act (two per row on the phone). Download and check sit in the upload section.
@@ -845,7 +862,7 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
   const fristKlasse = v.frist ? ampel({ id: v.id, titel: v.titel, frist: v.frist, status: v.status }) : "grau";
   const kopf = `<ul class="kopf-chips">${v.punkte ? `<li class="punkte">${v.punkte}/10</li>` : ""}<li class="frist ${fristKlasse}">⏰ ${v.frist ? `${datum(v.frist)} · ${abstand(v.frist)}` : "Frist unbekannt"}</li><li>${escape(STATUS[v.status] ?? v.status)}</li>${v.entfernung_km != null ? `<li>📍 ${Math.round(v.entfernung_km)} km</li>` : ""}</ul>
 ${portal ? `<a class="knopf portal-knopf" href="${escape(portal)}" rel="noopener" target="_blank">🌐 Zum Vergabeportal</a>` : ""}
-${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
+${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}${hinweisText ? `<p role="status"><strong>${escape(hinweisText)}</strong></p>` : ""}${await vorschlagKarte(request, env, s, v, rolle)}`;
   // Required proofs the firm has not uploaded yet get a ⚠️ with an upload link (only for people with finance access).
   const unterlagen = finanzen ? await Promise.all([db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`), referenzenLaden(s, env, v.firma_id)]).then(([r, refs]) => r.ok ? { ok: true as const, daten: mitReferenzen(r.daten, refs, v.firma_id) } : r) : null;
   const heute = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });

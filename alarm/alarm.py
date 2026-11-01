@@ -64,7 +64,7 @@ def cpv_praefix(code: str) -> str:
 
 def score(profile: dict, text: str, codes: list[str]) -> tuple[int, str]:
     """0 = no match. Higher = better fit. Returns (score, reason)."""
-    if re.search(profile["exclude"], text):
+    if re.search(profile["exclude"], text) or re.search(profile.get("exclude_schnell") or r"(?!x)x", text):
         return 0, ""
     excluded = codes and all(c.startswith(tuple(cpv_praefix(p) for p in profile["exclude_cpv"])) for c in codes)
     by_cpv = [c for c in codes if c.startswith(tuple(cpv_praefix(p) for p in profile["cpv"]))]
@@ -76,6 +76,27 @@ def score(profile: dict, text: str, codes: list[str]) -> tuple[int, str]:
     points = (2 if by_cpv else 0) + (1 if word else 0) + (2 if re.search(profile["strong"], text) else 0)
     reason = ", ".join(filter(None, [f"CPV {by_cpv[0]}" if by_cpv else "", f"„{word.group(0)}“" if word else ""]))
     return points, reason
+
+
+def auftraggeber_in(namen: list[str], rel: dict) -> bool:
+    """Whether the buyer is one of the given names (part of the name is enough: "stadt koeln")."""
+    if not namen:
+        return False
+    from profile_db import namen_norm
+    buyer = f" {namen_norm((rel.get('buyer') or {}).get('name', ''))} "
+    return any(f" {n} " in buyer or (len(n) >= 8 and n in buyer) for n in namen)
+
+
+def wert_erlaubt(profile: dict, rel: dict) -> bool:
+    """Contract value filter (H5). Notices without a value pass unless the firm switched that off."""
+    unten, oben = profile.get("wert_min"), profile.get("wert_max")
+    if not unten and not oben:
+        return True
+    t = rel.get("tender") or {}
+    wert = betrag(t.get("value")) or sum(betrag(l.get("value")) for l in t.get("lots") or [])
+    if not wert:
+        return profile.get("wert_unbekannt", True)
+    return (not unten or wert >= unten) and (not oben or wert <= oben)
 
 
 def ohne_ki_passend(profile: dict, rel: dict) -> bool:
@@ -225,16 +246,29 @@ def eckdaten(t: dict) -> str:
     return "".join(f"{x}\n\n" for x in teile)
 
 
-def steckbriefe_heute(name: str) -> int:
-    """Steckbriefe already written today for this firm (the limit applies per day, not per run)."""
+def steckbriefe_heute(namen) -> int:
+    """Steckbriefe already written today for this firm, over all its search profiles (the limit applies per firm and day)."""
     heute = f"am {date.today().isoformat()} "
-    return sum(heute in f.read_text(encoding="utf-8") for f in (ROOT / "steckbriefe").glob(f"*-{name}-*.md"))
+    return sum(heute in f.read_text(encoding="utf-8") for n in ([namen] if isinstance(namen, str) else namen)
+               for f in (ROOT / "steckbriefe").glob(f"*-{n}-*.md"))
 
 
-def steckbrief_auswahl(name: str, rows: list) -> set:
+def firmen_namen(profiles: dict, name: str) -> list[str]:
+    """All profile keys of the same firm (main profile and further profiles, H3); the main profile first."""
+    firma = profiles[name].get("firma_id")
+    return sorted((k for k, p in profiles.items() if firma and p.get("firma_id") == firma), key=lambda k: (bool(profiles[k].get("zusatz")), k)) or [name]
+
+
+def vorhandener_steckbrief(namen: list[str], day: str, rel: dict) -> Path | None:
+    """A Steckbrief another profile of the same firm already wrote for this notice (no second paid one)."""
+    return next((d for d in (steckbrief_datei(n, day, rel) for n in namen) if d.exists()), None)
+
+
+def steckbrief_auswahl(name: str, rows: list, namen: list[str] | None = None) -> set:
     """Half of the daily Steckbriefe for the best hits, the rest for the hits with the most work."""
-    frei = MAX_STECKBRIEFE - steckbriefe_heute(name)
-    offen = [r for r in rows if r[0] and not steckbrief_datei(name, r[2], r[3]).exists()]
+    namen = namen or [name]
+    frei = MAX_STECKBRIEFE - steckbriefe_heute(namen)
+    offen = [r for r in rows if r[0] and not vorhandener_steckbrief(namen, r[2], r[3])]
     beste = sorted((r for r in offen if r[0].get("punkte", 0) >= STECKBRIEF_AB),
                    key=lambda r: (-r[0].get("punkte", 0), -umfang(r[3].get("tender") or {})))
     gewaehlt = beste[:max(0, (frei + 1) // 2)]
@@ -309,16 +343,17 @@ def entfernung(profile: dict, rel: dict):
     return round(min(entfernung_km([p["lat"], p["lon"]], ziel) for p in punkte), 1) if ziel and punkte else None
 
 
-def zwischenstand(name: str, profile: dict, alle: list, cache: dict, gespeichert: set) -> None:
+def zwischenstand(name: str, profile: dict, alle: list, cache: dict, gespeichert: set, namen: list[str] | None = None) -> None:
     """Puts confirmed hits into the app while the run continues, so the first ones can be read right away."""
     import katalog
     import speichern
     neue = []
     for points, day, rel, _ in alle:
         b = cache.get(katalog.schluessel(rel))
-        if not (rel.get("_beobachtet") or (b and b.get("punkte", 0) >= profile.get("min_punkte", MIN_PASSUNG))):
+        schwelle = profile.get("min_punkte", MIN_PASSUNG) - (2 if auftraggeber_in(profile.get("auftraggeber_bevorzugt") or [], rel) else 0)
+        if not (rel.get("_beobachtet") or (b and b.get("punkte", 0) >= schwelle)):
             continue
-        eintrag = treffer_eintrag(name, b or {}, day, rel, steckbrief_datei(name, day, rel) if steckbrief_datei(name, day, rel).exists() else None) | {"entfernung_km": entfernung(profile, rel)}
+        eintrag = treffer_eintrag(name, b or {}, day, rel, vorhandener_steckbrief(namen or [name], day, rel)) | {"entfernung_km": entfernung(profile, rel)}
         if eintrag["quelle_id"] not in gespeichert:
             neue.append(eintrag)
     bewertet = sum(katalog.schluessel(r[2]) in cache for r in alle)
@@ -375,8 +410,12 @@ def run(days: list[str]) -> str:
             if not im_suchgebiet(profile, rel):
                 abgelehnt[name].add(quelle_id(rel))
                 continue
-            points, reason = score(profile, text, codes)
             beobachtet = rel.get("_auftraggeber_id") in profile.get("beobachtete_auftraggeber", [])
+            # Excluded buyers and contract values outside the range never reach the (paid) rating.
+            if not beobachtet and (auftraggeber_in(profile.get("auftraggeber_aus") or [], rel) or not wert_erlaubt(profile, rel)):
+                abgelehnt[name].add(quelle_id(rel))
+                continue
+            points, reason = score(profile, text, codes)
             if points or beobachtet:
                 hits[name].append((max(points, 1), day, dict(rel, _beobachtet=beobachtet), "Beobachteter Auftraggeber" if beobachtet else reason))
             else:
@@ -395,7 +434,8 @@ def run(days: list[str]) -> str:
         cache = katalog.bewertungen(profile)
         neu = [r for r in alle if katalog.schluessel(r[2]) not in cache]
         gespeichert: set = set()
-        zwischenstand(name, profile, alle, cache, gespeichert)
+        namen = firmen_namen(profiles, name)
+        zwischenstand(name, profile, alle, cache, gespeichert, namen)
         # Small batches fit within the remaining budget more often than a reservation
         # for 40 notices and 16,000 output tokens. The global hard limits still apply.
         if ki:
@@ -409,14 +449,16 @@ def run(days: list[str]) -> str:
                         rel = stapel[i][2]
                         katalog.bewertung_speichern(profile, rel, ergebnis)
                         cache[katalog.schluessel(rel)] = ergebnis
-                zwischenstand(name, profile, alle, cache, gespeichert)
+                zwischenstand(name, profile, alle, cache, gespeichert, namen)
         # Include cached hits as well as new deterministic matches; no daily re-scoring of unchanged texts.
         rows = alle
         bewertung = {i: cache[katalog.schluessel(r[2])] for i, r in enumerate(rows) if katalog.schluessel(r[2]) in cache}
         rows = [(bewertung.get(i, {}), *r) for i, r in enumerate(rows)]
         rows.sort(key=lambda r: (-r[0].get("punkte", 0), -r[1]))
         def passend(r):
-            return r[3].get("_beobachtet") or (r[0].get("punkte", 0) >= profile.get("min_punkte", MIN_PASSUNG) if r[0] else ohne_ki_passend(profile, r[3]))
+            # Preferred buyers (H4) pass with two points less.
+            schwelle = profile.get("min_punkte", MIN_PASSUNG) - (2 if auftraggeber_in(profile.get("auftraggeber_bevorzugt") or [], r[3]) else 0)
+            return r[3].get("_beobachtet") or (r[0].get("punkte", 0) >= schwelle if r[0] else ohne_ki_passend(profile, r[3]))
         offen = [r for r in rows if not r[0]]
         weg = [r for r in rows if r[0] and not passend(r)]
         rows = [r for r in rows if passend(r)]
@@ -425,7 +467,7 @@ def run(days: list[str]) -> str:
                          "ausstehend": len(offen), "importtage_offen": getattr(gemeinsam, "luecken", None)}
         lines += [f"Bewertung: {len(alle) - len(offen)} von {len(alle)} Kandidaten geprüft; {len(offen)} noch offen.", ""]
         lines += [f"## {profile['name']}: {len(rows)} Treffer", ""]
-        auswahl = steckbrief_auswahl(name, rows)
+        auswahl = steckbrief_auswahl(name, rows, namen)
         for b, points, day, rel, reason in rows:
             t = rel.get("tender") or {}
             url = link(rel)
@@ -438,8 +480,7 @@ def run(days: list[str]) -> str:
             lines += [head, f"{(rel.get('buyer') or {}).get('name', '')} · {place(rel)} · veröffentlicht {day} · {reason}",
                       "", desc, ""]
             links = f"[Zur Ausschreibung]({url}) · [⬆️ Unterlagen prüfen lassen]({UPLOAD}?titel={urllib.parse.quote(t.get('title', '').strip()[:200])})"
-            datei = steckbrief_datei(name, day, rel)
-            pfad = datei if datei.exists() else None
+            pfad = vorhandener_steckbrief(namen, day, rel)
             if ki and not pfad and id(rel) in auswahl:
                 pfad = steckbrief_fuer(ki, name, profile, day, rel, url)
                 if pfad:
@@ -462,7 +503,8 @@ def run(days: list[str]) -> str:
         "profile": {name: {"version": katalog.profil_version(p), "abgelehnt": sorted(abgelehnt[name]), "suchstand": staende[name]} for name, p in profiles.items()},
     }, ensure_ascii=False), encoding="utf-8")
     import foerder
-    lines += foerder.abschnitt(profiles, ki, days)
+    # Funding programmes once per firm (main profile), not again for every further search profile.
+    lines += foerder.abschnitt({k: p for k, p in profiles.items() if not p.get("zusatz")}, ki, days)
     if ki:
         lines += [f"_KI-Kosten dieses Laufs: {ki.kosten():.2f} $_", ""]
     return "\n".join(lines)
