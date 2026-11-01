@@ -13,7 +13,7 @@ import { GVP, lohnAm } from "./tarife.ts";
 import { escape, hilfe, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
-import { einsaetzeLaden, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, standortleitungBlock, STATUS as PERSONAL_STATUS, tarifvertraegeBlock, tarifvertraegeLaden, type Kraft } from "./personal.ts";
+import { abwesenheitenLaden, avatar, einsaetzeLaden, kontaktBlock, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, standortleitungBlock, STATUS as PERSONAL_STATUS, tarifvertraegeBlock, tarifvertraegeLaden, type Kraft } from "./personal.ts";
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { mitReferenzen, teilnahmeTeil } from "./markt.ts";
 import { referenzenLaden } from "./referenzen.ts";
@@ -32,7 +32,13 @@ export interface KontoEnv {
 
 export type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
 type Mitglied = { firma_id: string; rolle: string; aktiv?: boolean; erstellt: string; user_id: string; anzeigename?: string; funktion?: string; finanzen?: boolean; alle_bereiche?: boolean };
-export type Bereich = { id: string; name: string; art: string; parent_id: string | null };
+export type Bereich = { id: string; name: string; art: string; parent_id: string | null; ansprechpartner?: string; telefon?: string; email?: string };
+
+/** Areas with the contact person per location (G4); falls back to the old columns until the migration has run. */
+export async function bereicheLaden(s: Sitzung, env: KontoEnv, firma: string) {
+  const r = await db<Bereich[]>(s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id,ansprechpartner,telefon,email&order=name`);
+  return r.ok ? r : db<Bereich[]>(s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id&order=name`);
+}
 type Vorgang = { entfernung_km?: number | null; fragefrist?: string | null; id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; kaufverantwortlich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };
 const STATUS: Record<string, string> = {
   neu: "neu",
@@ -215,7 +221,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const titelFilter = unterseite === "treffer" && q ? `&titel=ilike.${encodeURIComponent(`*${q}*`)}` : "";
   const fristFilter = unterseite === "treffer" && ["neu", "arbeit"].includes(reiter)
     ? `&or=(frist.is.null,frist.gt.${new Date().toISOString()})` : "";
-  const bereiche = await db<Bereich[]>(s, env, `bereiche?firma_id=eq.${m.firma_id}&select=id,name,art,parent_id&order=name`);
+  const bereiche = await bereicheLaden(s, env, m.firma_id);
   const b = bereiche.ok ? bereiche.daten : [];
   // Filter by area, including its sub-areas.
   const filter = b.find((x) => x.id === url.searchParams.get("bereich"));
@@ -380,13 +386,14 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     if (b.length <= 1) {
       // Only one location: the personnel is shown right here, no extra page.
       const ort = b[0]?.id ?? null;
-      const [pool, qualifikationen, einsaetze] = await Promise.all([
+      const [pool, qualifikationen, einsaetze, abw] = await Promise.all([
         db<Kraft[]>(s, env, `personal?firma_id=eq.${m.firma_id}&bereich_id=${ort ? `eq.${ort}` : "is.null"}&select=*&order=status,vorname`),
         db<{ id: string; name: string; bereich_id: string | null }[]>(s, env, `firmen_qualifikationen?firma_id=eq.${m.firma_id}&select=id,name,bereich_id&order=name`),
         einsaetzeLaden(s, env, m.firma_id),
+        abwesenheitenLaden(s, env, m.firma_id),
       ]);
       const qs = qualifikationen.ok ? qualifikationen.daten.filter((q) => q.bereich_id === null || q.bereich_id === ort) : [];
-      team = `<h2>Organisationsbaum · ${b[0] ? escape(b[0].name) : escape(m.firmen.name)}</h2>${ort ? standortleitungBlock(ort, (mitglieder.ok ? mitglieder.daten : []).map((x) => ({ user_id: x.user_id, rolle: x.rolle, anzeigename: x.anzeigename || "", funktion: x.funktion || "" })), zuordnungen.ok ? zuordnungen.daten : [], admin) : ""}<h3>Einsatzpersonal</h3>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, einsaetze, qs.map((q) => q.name), tarife)}${qualifikationenBlock(ort, qs, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle))}`;
+      team = `<h2>Organisationsbaum · ${b[0] ? escape(b[0].name) : escape(m.firmen.name)}</h2>${b[0] ? kontaktBlock(b[0], admin) : ""}${ort ? standortleitungBlock(ort, (mitglieder.ok ? mitglieder.daten : []).map((x) => ({ user_id: x.user_id, rolle: x.rolle, anzeigename: x.anzeigename || "", funktion: x.funktion || "" })), zuordnungen.ok ? zuordnungen.daten : [], admin) : ""}<h3>Einsatzpersonal</h3>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, einsaetze, qs.map((q) => q.name), tarife, abw)}${qualifikationenBlock(ort, qs, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle))}`;
     } else {
       const pool = await db<{ id: string; bereich_id: string | null; status: string; vorname: string; nachname: string; berufe: string[] }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=id,bereich_id,status,vorname,nachname,berufe&order=vorname`);
       // Staff search across all locations, right at the top of the page.
@@ -398,7 +405,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       team = kraefte.length ? `<form method="get" action="/konto/team" class="filter-leiste personal-suche"><label>Beruf<select name="beruf" data-sofort-wahl><option value="">Alle Berufe</option>${berufe.map((x) => `<option${x === beruf ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></label><label>Status<select name="status" data-sofort-wahl><option value="">Alle</option>${Object.entries(PERSONAL_STATUS).map(([w, [i, t]]) => `<option value="${w}"${w === st ? " selected" : ""}>${i} ${t}</option>`).join("")}</select></label><noscript><button>Personal suchen</button></noscript></form>
 ${beruf || st ? `<ul class="standort-liste">${gefunden.map((k) => `<li><a class="standort-zeile" href="/konto/standort/${k.bereich_id ?? "firma"}"><span class="standort-icon" aria-hidden="true">${PERSONAL_STATUS[k.status]?.[0] ?? "⚪"}</span><span class="standort-text"><strong>${escape(`${k.vorname} ${k.nachname}`.trim())}</strong><span class="klein">${escape(k.berufe.slice(0, 3).join(", "))} · ${escape(name(k.bereich_id) || "ohne Standort")}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a></li>`).join("") || `<li class="standort-zeile">Niemand passt zu diesem Filter.</li>`}</ul>` : ""}` : "";
       team += `<h2>Standorte</h2>${hilfe("Organisationsbaum", "Firma → Region → Standort. Die Standortleitung erhält ihre Rechte über genau einen zugeordneten Standort. Einsatzpersonal und App-Zugänge werden getrennt verwaltet.")}`;
-      team += standortKacheln(b, pool.ok ? pool.daten : [], leitungKacheln);
+      team += standortKacheln(b, pool.ok ? pool.daten : [], leitungKacheln, await abwesenheitenLaden(s, env, m.firma_id));
     }
     if (admin) {
     team += `<details><summary>➕ Standort oder Bereich anlegen</summary><form method="post" action="/konto/bereich">
@@ -412,7 +419,7 @@ ${beruf || st ? `<ul class="standort-liste">${gefunden.map((k) => `<li><a class=
       team += `<h2 id="app-zugaenge">App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> ${anzahl.ok && typeof anzahl.daten === "number" ? ` · ${anzahl.daten} ${anzahl.daten === 1 ? "Nutzer" : "Nutzer"}` : ""}</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen. Eine Standortleitung verwaltet Personal und Einsätze nur am zugeordneten Standort; Kalkulation und Firmenunterlagen bleiben für sie gesperrt.")}${tarifvertraegeBlock(tarife, admin)}`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
     team += funktionsListe;
-    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"${x.aktiv === false ? ' style="opacity:.75"' : ""}><h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3><ul class="rechte-chips">${(x.funktion || "Mitarbeiter/in") !== (ROLLEN[x.rolle] ?? x.rolle) ? `<li>${escape(x.funktion || "Mitarbeiter/in")}</li>` : ""}<li class="stark">${escape(ROLLEN[x.rolle] ?? x.rolle)}</li>${x.finanzen || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>💶 Finanzen</li>" : ""}${x.alle_bereiche || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>Ganze Firma</li>" : (zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id) : []).map((z) => `<li>📍 ${escape(name(z.bereich_id))}</li>`).join("")}${x.aktiv === false ? "<li>🔒 gesperrt</li>" : ""}</ul>${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
+    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"${x.aktiv === false ? ' style="opacity:.75"' : ""}><div class="person-kopf mitglied-kopf">${avatar(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"), x.user_id, undefined, "person-avatar klein-avatar")}<h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3></div><ul class="rechte-chips">${(x.funktion || "Mitarbeiter/in") !== (ROLLEN[x.rolle] ?? x.rolle) ? `<li>${escape(x.funktion || "Mitarbeiter/in")}</li>` : ""}<li class="stark">${escape(ROLLEN[x.rolle] ?? x.rolle)}</li>${x.finanzen || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>💶 Finanzen</li>" : ""}${x.alle_bereiche || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>Ganze Firma</li>" : (zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id) : []).map((z) => `<li>📍 ${escape(name(z.bereich_id))}</li>`).join("")}${x.aktiv === false ? "<li>🔒 gesperrt</li>" : ""}</ul>${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
     if (admin) {
     const offen = einladungen.ok ? einladungen.daten : [];
     if (offen.length) {
@@ -454,7 +461,7 @@ ${leistungsTreffer(aktuell?.leistungen ?? [], letzte30.ok ? letzte30.daten : [])
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
-    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>

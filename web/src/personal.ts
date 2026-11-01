@@ -2,13 +2,13 @@
 // as cards (occupations, qualifications, wage group, phone, availability), and a message page that writes
 // a ready text (optionally about a tender) and opens WhatsApp, SMS or e-mail on the phone. Jarvis sends nothing itself.
 import { aktiveFirma } from "./firmenunterlagen.ts";
-import { db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
+import { bereicheLaden, db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
 import { bereichPfad } from "./bereiche.ts";
 import { escape, hilfe, seite } from "./seite.ts";
 import { GVP, lohnAm } from "./tarife.ts";
 import { euro } from "./kalkulation.ts";
 
-export type Kraft = { id: string; firma_id: string; bereich_id: string | null; vorname: string; nachname: string; berufe: string[]; qualifikationen: string[]; tarifvertrag_id: string | null; eg: string; telefon: string; email: string; status: string; notiz: string };
+export type Kraft = { foto?: boolean; id: string; firma_id: string; bereich_id: string | null; vorname: string; nachname: string; berufe: string[]; qualifikationen: string[]; tarifvertrag_id: string | null; eg: string; telefon: string; email: string; status: string; notiz: string };
 export type Tarifvertrag = { id: string; name: string; geltungsbereich?: string; gruppen: string[]; quelle?: string; quelle_url?: string; gueltig_ab?: string | null; gueltig_bis?: string | null; vorgegeben?: boolean; tarifart?: string; gruppenart?: string; berufe?: string[]; datenstand?: string | null; datenstatus?: string; hinweis?: string };
 type AppMitglied = { user_id: string; rolle: string; anzeigename: string; funktion: string };
 
@@ -19,6 +19,14 @@ export function standortleitungBlock(bereich: string, mitglieder: AppMitglied[],
   if (!admin) return `<p class="standort-leitung">${text}</p>`;
   const wahl = mitglieder.filter((m) => ["bearbeiter", "leser", "mitarbeiter", "standortleitung"].includes(m.rolle) && !(m.rolle === "standortleitung" && zuordnungen.some((z) => z.user_id === m.user_id && z.bereich_id !== bereich)));
   return `<details class="leitung-zuordnen"><summary>${text} · ${leitung ? "Ergänzen" : "Zuordnen"}</summary>${wahl.length ? `<form method="post" action="/konto/standort/${bereich}/leitung"><label>Person auswählen<select name="person" required><option value="">Bitte auswählen …</option>${wahl.map((m) => `<option value="${escape(m.user_id)}"${ids.includes(m.user_id) && m.rolle === "standortleitung" ? " selected" : ""}>${escape(m.anzeigename || m.funktion || "Teammitglied")}</option>`).join("")}</select></label><p class="klein">Die Person erhält Personal- und Einsatzrechte für diesen Standort. Ihre bisherige Bereichszuordnung wird ersetzt; Finanzzugriff entfällt.</p><button>Als Standortleitung zuordnen</button></form>` : `<p>Noch kein passender App-Zugang vorhanden.</p>`}<p class="klein"><a href="/konto/team#app-zugaenge">Neue Person einladen oder App-Zugänge verwalten</a></p></details>`;
+}
+
+/** G4: contact person of a location, with call and mail links; the administration edits it right here. */
+export function kontaktBlock(b: Bereich, admin: boolean): string {
+  const da = !!(b.ansprechpartner || b.telefon || b.email);
+  const zeile = da ? `<p class="standort-kontakt"><span>☎️ <strong>${escape(b.ansprechpartner || "Ansprechpartner")}</strong></span>${b.telefon ? `<a class="knopf-klein" href="tel:${escape(b.telefon.replace(/[^\d+]/g, ""))}">📞 ${escape(b.telefon)}</a>` : ""}${b.email ? `<a class="knopf-klein" href="mailto:${escape(b.email)}">📧 E-Mail</a>` : ""}</p>` : "";
+  if (!admin) return zeile;
+  return `${zeile}<details class="kontakt-bearbeiten"><summary>${da ? "✏️ Ansprechpartner ändern" : "☎️ Ansprechpartner für diesen Standort eintragen"}</summary><form method="post" action="/konto/standort/${b.id}/kontakt" class="kontakt-form"><label class="ganz">Name<input name="ansprechpartner" maxlength="120" value="${escape(b.ansprechpartner ?? "")}" placeholder="z. B. Anna Berg, Disposition"></label><label>Telefon<input name="telefon" type="tel" maxlength="40" value="${escape(b.telefon ?? "")}"></label><label>E-Mail<input name="email" type="email" maxlength="200" value="${escape(b.email ?? "")}"></label><button class="ganz">Speichern</button></form></details>`;
 }
 
 import { BERUFE } from "./berufe.ts";
@@ -36,6 +44,61 @@ export const STATUS: Record<string, [string, string]> = { verfuegbar: ["🟢", "
 export const EINSATZ: Record<string, [string, string]> = { geplant: ["📌", "Eingeplant"], angefragt: ["📨", "Angefragt"], zugesagt: ["✅", "Zugesagt"], abgesagt: ["❌", "Abgesagt"] };
 export type Einsatz = { id: string; personal_id: string; vorgang_id: string; status: string; vorgaenge?: { titel: string } | null };
 const ID = /^[0-9a-f-]{36}$/;
+
+// G2: absences with a period. Neutral reasons only (no health data).
+export type Abwesenheit = { id: string; personal_id: string; von: string; bis: string; grund: string; notiz: string };
+export const GRUENDE: Record<string, [string, string]> = { urlaub: ["🌴", "Urlaub"], schulung: ["🎓", "Schulung"], abwesend: ["⏸️", "Nicht verfügbar"] };
+const tagMonat = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
+export const heuteIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
+/** Absence today, if any. */
+export function abwesendAm(abw: Abwesenheit[], personal: string, tag = heuteIso()): Abwesenheit | undefined {
+  return abw.find((a) => a.personal_id === personal && a.von <= tag && a.bis >= tag);
+}
+export function zeitraumText(a: Pick<Abwesenheit, "von" | "bis">): string {
+  return a.von === a.bis ? tagMonat(a.von) : `${tagMonat(a.von)}–${tagMonat(a.bis)}`;
+}
+
+// G3: initials in a colour that stays the same for a person; a photo when one is stored.
+const FARBEN = ["#1f5f8b", "#2e8b57", "#8e44ad", "#c0392b", "#d35400", "#16a085", "#7f6a00", "#34495e"];
+export function avatar(name: string, schluessel: string, foto?: string, klasse = "person-avatar"): string {
+  const teile = name.trim().split(/\s+/).filter(Boolean);
+  const initialen = ((teile[0]?.[0] ?? "?") + (teile.length > 1 ? teile[teile.length - 1][0] : "")).toUpperCase();
+  let h = 0;
+  for (const c of schluessel) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  return foto
+    ? `<img class="${klasse} foto" src="${escape(foto)}" alt="" loading="lazy" width="44" height="44">`
+    : `<span class="${klasse}" style="background:${FARBEN[h % FARBEN.length]}" aria-hidden="true">${escape(initialen)}</span>`;
+}
+
+/** Form → absence; null when the period is missing or invalid. */
+export function abwesenheitAusFormular(f: FormData): { von: string; bis: string; grund: string; notiz: string } | null {
+  const datum = (k: string) => { const v = String(f.get(k) ?? ""); const d = new Date(`${v}T12:00:00Z`); return /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === v ? v : null; };
+  const von = datum("von"), bis = datum("bis") ?? datum("von");
+  const grund = String(f.get("grund") ?? "urlaub");
+  if (!von || !bis || bis < von || (Date.parse(bis) - Date.parse(von)) / 86400_000 > 366) return null;
+  return { von, bis, grund: GRUENDE[grund] ? grund : "urlaub", notiz: String(f.get("notiz") ?? "").trim().slice(0, 200) };
+}
+
+/** Image type by its first bytes (not by the name or the browser's claim). */
+export function bildTyp(b: Uint8Array): string | null {
+  if (b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return "image/jpeg";
+  if (b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return "image/png";
+  if (b[0] === 0x52 && b[1] === 0x49 && b[2] === 0x46 && b[3] === 0x46 && b[8] === 0x57 && b[9] === 0x45 && b[10] === 0x42 && b[11] === 0x50) return "image/webp";
+  return null;
+}
+
+/** Absence list and form inside "Bearbeiten". */
+function abwesenheitTeil(k: Kraft, abw: Abwesenheit[], darfAendern: boolean): string {
+  const eigene = abw.filter((a) => a.personal_id === k.id).sort((a, b) => a.von.localeCompare(b.von));
+  const liste = eigene.length ? `<ul class="abwesenheit-liste">${eigene.map((a) => `<li><span>${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[0]} ${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[1]} ${zeitraumText(a)}${a.notiz ? ` · ${escape(a.notiz)}` : ""}</span>${darfAendern ? `<form method="post" action="/konto/personal/${k.id}/abwesenheit" class="termin-weg"><input type="hidden" name="loeschen" value="${a.id}"><button class="zweit" aria-label="Abwesenheit löschen">✕</button></form>` : ""}</li>`).join("")}</ul>` : "";
+  if (!darfAendern) return liste;
+  return `<div class="abwesenheit-teil"><h4>📅 Abwesenheiten</h4>${liste}<form method="post" action="/konto/personal/${k.id}/abwesenheit" class="abwesenheit-form"><label>Von<input type="date" name="von" required></label><label>Bis<input type="date" name="bis" required></label><label>Grund<select name="grund">${Object.entries(GRUENDE).map(([w, [i, t]]) => `<option value="${w}">${i} ${t}</option>`).join("")}</select></label><button class="zweit">Eintragen</button></form><p class="klein">Bitte keine Gesundheitsangaben: Für Krankheit „Nicht verfügbar“ wählen.</p></div>`;
+}
+
+/** Photo upload inside "Bearbeiten" (JPG/PNG/WebP, max. 1 MB). */
+function fotoTeil(k: Kraft): string {
+  return `<div class="foto-teil"><h4>🖼️ Foto (freiwillig)</h4><form method="post" action="/konto/personal/${k.id}/foto" enctype="multipart/form-data" class="foto-form"><input type="file" name="foto" accept="image/jpeg,image/png,image/webp" required aria-label="Foto auswählen"><button class="zweit">Hochladen</button></form>${k.foto ? `<form method="post" action="/konto/personal/${k.id}/foto" class="termin-weg"><input type="hidden" name="loeschen" value="1"><button class="zweit gefahr">Foto entfernen</button></form>` : ""}<p class="klein">Nur mit Einverständnis der Person. Höchstens 1 MB; sichtbar nur für Mitglieder mit Zugriff auf den Standort.</p></div>`;
+}
 
 /** Phone number for wa.me: digits only, German numbers with country code. */
 export function waNummer(tel: string): string {
@@ -104,29 +167,31 @@ export function ausFormular(f: FormData, qualifikationen: string[] = QUALIFIKATI
   };
 }
 
-export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] = [], qualifikationen: string[] = QUALIFIKATIONEN, tarife: Tarifvertrag[] = []): string {
-  const [icon, text] = STATUS[k.status] ?? STATUS.verfuegbar;
+export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] = [], qualifikationen: string[] = QUALIFIKATIONEN, tarife: Tarifvertrag[] = [], abw: Abwesenheit[] = []): string {
+  const heute = abwesendAm(abw, k.id);
+  const [icon, text] = heute ? [(GRUENDE[heute.grund] ?? GRUENDE.abwesend)[0], `${(GRUENDE[heute.grund] ?? GRUENDE.abwesend)[1]} bis ${tagMonat(heute.bis)}`] : STATUS[k.status] ?? STATUS.verfuegbar;
   const name = `${k.vorname} ${k.nachname}`.trim();
-  const initialen = (k.vorname[0] ?? "") + (k.nachname[0] ?? "");
+  const bald = abw.filter((a) => a.personal_id === k.id && a !== heute && a.von > heuteIso() && a.von <= new Date(Date.now() + 45 * 86400_000).toISOString().slice(0, 10));
   return `<article class="person-karte">
-  <div class="person-kopf"><span class="person-avatar" aria-hidden="true">${escape(initialen.toUpperCase())}</span><div><h3>${escape(name)}</h3><span class="status status-${k.status}">${icon} ${text}</span></div>${darfAendern ? `<a class="stift" href="#bearbeiten-${k.id}" data-oeffne="bearbeiten-${k.id}" aria-label="${escape(name)} bearbeiten" title="Bearbeiten">✏️</a>` : ""}</div>
+  <div class="person-kopf">${avatar(name, k.id, k.foto ? `/konto/personal/${k.id}/foto` : undefined)}<div><h3>${escape(name)}</h3><span class="status status-${heute ? "nicht" : k.status}">${icon} ${text}</span>${bald.length ? `<span class="klein abwesenheit-bald">${bald.map((a) => `${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[0]} ${zeitraumText(a)}`).join(" · ")}</span>` : ""}</div>${darfAendern ? `<a class="stift" href="#bearbeiten-${k.id}" data-oeffne="bearbeiten-${k.id}" aria-label="${escape(name)} bearbeiten" title="Bearbeiten">✏️</a>` : ""}</div>
   ${k.berufe.length ? `<p class="person-berufe">${k.berufe.map((b) => `<span class="marke">${escape(b)}</span>`).join("")}</p>` : ""}
   ${k.qualifikationen.length || k.eg ? `<p class="klein">${[k.eg ? `${escape(tarife.find((t) => t.id === k.tarifvertrag_id)?.name ?? "Tarif")} · ${escape(k.eg)}` : "", ...k.qualifikationen.map(escape)].filter(Boolean).join(" · ")}</p>` : ""}
   ${k.notiz ? `<p class="klein">📝 ${escape(k.notiz)}</p>` : ""}
   ${einsaetze.length ? `<ul class="einsatz-kurz">${einsaetze.map((e) => `<li><a href="/konto/vorgang/${e.vorgang_id}#personal">${(EINSATZ[e.status] ?? EINSATZ.geplant)[0]} ${escape(e.vorgaenge?.titel ?? "Ausschreibung")}</a></li>`).join("")}</ul>` : ""}
   <div class="person-aktionen">${k.telefon ? `<a class="knopf-klein" href="tel:${escape(k.telefon.replace(/[^\d+]/g, ""))}">📞 Anrufen</a>` : ""}<a class="knopf-klein" href="/konto/personal/${k.id}/nachricht">💬 Nachricht</a></div>
-  ${darfAendern ? `<details id="bearbeiten-${k.id}" class="bearbeiten"><summary>✏️ Bearbeiten</summary>${kraftFormular(k, `/konto/personal/${k.id}`, "Änderungen speichern", qualifikationen, tarife)}<form method="post" action="/konto/personal/${k.id}"><input type="hidden" name="aktion" value="loeschen"><button class="knopf-leise">🗑️ Aus der Liste löschen</button></form></details>` : ""}
+  ${darfAendern ? `<details id="bearbeiten-${k.id}" class="bearbeiten"><summary>✏️ Bearbeiten</summary>${kraftFormular(k, `/konto/personal/${k.id}`, "Änderungen speichern", qualifikationen, tarife)}${abwesenheitTeil(k, abw, true)}${fotoTeil(k)}<form method="post" action="/konto/personal/${k.id}"><input type="hidden" name="aktion" value="loeschen"><button class="knopf-leise">🗑️ Aus der Liste löschen</button></form></details>` : ""}
 </article>`;
 }
 
 /** Tiles on "Firma & Team": one per location (grouped by region) with the number of available workers. */
-export function standortKacheln(bereiche: Bereich[], personal: { bereich_id: string | null; status: string }[], leitungen: { user_id: string; name: string; bereich_id: string }[] = []): string {
+export function standortKacheln(bereiche: Bereich[], personal: { id?: string; bereich_id: string | null; status: string }[], leitungen: { user_id: string; name: string; bereich_id: string }[] = [], abw: Abwesenheit[] = []): string {
   const zahl = (id: string | null) => {
     const p = personal.filter((x) => x.bereich_id === id);
-    return `${p.filter((x) => x.status === "verfuegbar").length} verfügbar · ${p.length} gesamt`;
+    const weg = p.filter((x) => x.id && abwesendAm(abw, x.id)).length;
+    return `${p.filter((x) => x.status === "verfuegbar" && !(x.id && abwesendAm(abw, x.id))).length} verfügbar${weg ? ` · ${weg} abwesend` : ""} · ${p.length} gesamt`;
   };
   // Compact rows instead of large tiles: name, staff available and the location head in one line.
-  const kachel = (href: string, icon: string, titel: string, hinweis: string, id?: string) => { const leitung = id ? leitungen.find((x) => x.bereich_id === id) : undefined; return `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${escape(titel)}</strong><span class="klein">${hinweis} · ${leitung ? `👤 Leitung: ${escape(leitung.name)}` : "ohne Leitung"}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`; };
+  const kachel = (href: string, icon: string, titel: string, hinweis: string, id?: string) => { const leitung = id ? leitungen.find((x) => x.bereich_id === id) : undefined; const kontakt = id ? bereiche.find((x) => x.id === id) : undefined; return `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${escape(titel)}</strong><span class="klein">${hinweis} · ${leitung ? `👤 Leitung: ${escape(leitung.name)}` : "ohne Leitung"}${kontakt?.ansprechpartner || kontakt?.telefon ? ` · ☎️ ${escape([kontakt.ansprechpartner, kontakt.telefon].filter(Boolean).join(", "))}` : ""}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`; };
   if (!bereiche.length) return `<div class="standort-liste">${kachel("/konto/standort/firma", "🏢", "Ganze Firma", zahl(null))}</div>`;
   const oben = bereiche.filter((b) => !b.parent_id);
   const einzeln = oben.filter((b) => !bereiche.some((c) => c.parent_id === b.id));
@@ -161,22 +226,28 @@ export async function tarifvertraegeLaden(s: Parameters<typeof db>[0], env: Kont
 }
 
 /** The personnel of one location: numbers, filter, cards and the add form (also shown directly on "Firma & Team"). */
-export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, aktion: string, einsaetze: Einsatz[] = [], eigeneQualifikationen: string[] = [], tarife: Tarifvertrag[] = []): string {
+export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, aktion: string, einsaetze: Einsatz[] = [], eigeneQualifikationen: string[] = [], tarife: Tarifvertrag[] = [], abw: Abwesenheit[] = []): string {
   // Filter by occupation and status (GET form, works without scripts).
   const beruf = url.searchParams.get("beruf") ?? "";
   const st = url.searchParams.get("status") ?? "";
   const qual = url.searchParams.get("qualifikation") ?? "";
-  const gezeigt = alle.filter((k) => (!beruf || k.berufe.includes(beruf)) && (!st || k.status === st) && (!qual || k.qualifikationen.includes(qual)));
+  const gezeigt = alle.filter((k) => (!beruf || k.berufe.includes(beruf)) && (!st || (st === "verfuegbar" ? k.status === st && !abwesendAm(abw, k.id) : k.status === st)) && (!qual || k.qualifikationen.includes(qual)));
   const qualifikationen = [...new Set([...QUALIFIKATIONEN, ...eigeneQualifikationen, ...alle.flatMap((k) => k.qualifikationen)])].sort((a,b)=>a.localeCompare(b,"de"));
   const berufeHier = [...new Set(alle.flatMap((k) => k.berufe))].sort((a, c) => a.localeCompare(c, "de"));
   const filter = alle.length > 3 ? `<form method="get" class="filter-leiste"><label>Beruf<select name="beruf" data-sofort-wahl><option value="">Alle Berufe</option>${berufeHier.map((x) => `<option${x === beruf ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></label><label>Qualifikation<select name="qualifikation" data-sofort-wahl><option value="">Alle Qualifikationen</option>${qualifikationen.map((x) => `<option${x === qual ? " selected" : ""}>${escape(x)}</option>`).join("")}</select></label><label>Status<select name="status" data-sofort-wahl><option value="">Alle</option>${Object.entries(STATUS).map(([v, [i, t]]) => `<option value="${v}"${v === st ? " selected" : ""}>${i} ${t}</option>`).join("")}</select></label><noscript><button>Filtern</button></noscript></form>` : "";
-  return `<p class="klein">${alle.filter((k) => k.status === "verfuegbar").length} verfügbar · ${alle.filter((k) => k.status === "einsatz").length} im Einsatz · ${alle.length} gesamt</p>
-${alle.length ? `<nav class="aktionsleiste">${darfAendern ? `<a href="#neu" data-oeffne="neu">Person hinzufügen <span aria-hidden="true">+</span></a>` : ""}<a class="zweit" href="/konto/rundnachricht">📣 Mehrere anschreiben</a></nav>` : ""}
+  const weg = alle.filter((k) => abwesendAm(abw, k.id)).length;
+  return `<p class="klein">${alle.filter((k) => k.status === "verfuegbar" && !abwesendAm(abw, k.id)).length} verfügbar · ${alle.filter((k) => k.status === "einsatz").length} im Einsatz${weg ? ` · ${weg} abwesend` : ""} · ${alle.length} gesamt</p>
+${alle.length || darfAendern ? `<nav class="aktionsleiste kompakt">${darfAendern ? `<a href="#neu" data-oeffne="neu">＋ Neue Person</a><a class="zweit" href="/konto/personal/import?bereich=${escape(aktion.split("/").pop() ?? "firma")}">📥 Excel-Import</a>` : ""}${alle.length ? `<a class="zweit" href="/konto/rundnachricht">📣 Anschreiben</a>` : ""}</nav>` : ""}
 ${hilfe("Welche Person soll ich eintragen?", "Erfasse nur Personen, die ihr für Einsätze einplant. Berufe helfen Jarvis, passende Kräfte für Ausschreibungen vorzuschlagen. Die Kontaktangaben nutzt dein Team direkt vom eigenen Gerät.")}
 ${filter}
-<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"), qualifikationen, tarife)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
+<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"), qualifikationen, tarife, abw)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
 ${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>Person hinzufügen <span aria-hidden="true">+</span></summary>${kraftFormular({}, aktion, "Person speichern", qualifikationen, tarife)}</details>` : ""}
 <p class="klein">Die Daten sieht nur, wer Zugriff auf diesen Standort hat. Trag nur ein, was für die Einsatzplanung nötig ist, und lösche Personen, die nicht mehr für euch arbeiten.</p>`;
+}
+
+export async function abwesenheitenLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string): Promise<Abwesenheit[]> {
+  const r = await db<Abwesenheit[]>(s, env, `personal_abwesenheiten?firma_id=eq.${firma}&bis=gte.${heuteIso()}&select=id,personal_id,von,bis,grund,notiz&order=von&limit=1000`);
+  return r.ok ? r.daten : [];
 }
 
 export async function einsaetzeLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string): Promise<Einsatz[]> {
@@ -186,24 +257,25 @@ export async function einsaetzeLaden(s: Parameters<typeof db>[0], env: KontoEnv,
 
 /** On a tender: the planned people with their status, and a dropdown to plan someone (matching and available first). */
 export async function einsatzTeil(s: Parameters<typeof db>[0], env: KontoEnv, v: { id: string; firma_id: string; titel: string }, darfAendern: boolean): Promise<string> {
-  const [geplant, pool] = await Promise.all([
+  const [geplant, pool, abw] = await Promise.all([
     db<(Einsatz & { personal: Kraft | null })[]>(s, env, `einsaetze?vorgang_id=eq.${v.id}&select=id,personal_id,vorgang_id,status,personal(*)&order=erstellt`),
     db<Kraft[]>(s, env, `personal?firma_id=eq.${v.firma_id}&select=*&order=vorname`),
+    abwesenheitenLaden(s, env, v.firma_id),
   ]);
   const liste = geplant.ok ? geplant.daten.filter((e) => e.personal) : [];
   const schon = new Set(liste.map((e) => e.personal_id));
   const frei = (pool.ok ? pool.daten : []).filter((k) => !schon.has(k.id))
-    .map((k) => ({ k, rang: (passt(v.titel, k.berufe) ? 0 : 2) + (k.status === "verfuegbar" ? 0 : 1) }))
+    .map((k) => ({ k, rang: (passt(v.titel, k.berufe) ? 0 : 2) + (k.status === "verfuegbar" && !abwesendAm(abw, k.id) ? 0 : 1) + (abwesendAm(abw, k.id) ? 4 : 0) }))
     .sort((a, b) => a.rang - b.rang);
   const zeilen = liste.map((e) => {
     const k = e.personal!;
     const statusWahl = darfAendern
       ? `<form method="post" action="/konto/einsatz/${e.id}" class="einsatz-status"><select name="status" data-sofort-wahl aria-label="Stand für ${escape(k.vorname)}">${Object.entries(EINSATZ).map(([w, [i, t]]) => `<option value="${w}"${w === e.status ? " selected" : ""}>${i} ${t}</option>`).join("")}</select><noscript><button>OK</button></noscript></form>`
       : `<span>${(EINSATZ[e.status] ?? EINSATZ.geplant).join(" ")}</span>`;
-    return `<li class="einsatz-zeile"><div><strong>${escape(`${k.vorname} ${k.nachname}`.trim())}</strong><span class="klein">${escape(k.berufe.slice(0, 3).join(", ") || "ohne Beruf")}</span></div>${statusWahl}<div class="person-aktionen">${k.telefon ? `<a class="knopf-klein" href="tel:${escape(k.telefon.replace(/[^\d+]/g, ""))}">📞</a>` : ""}<a class="knopf-klein" href="/konto/personal/${k.id}/nachricht?vorgang=${v.id}">💬 Nachricht</a>${darfAendern ? `<form method="post" action="/konto/einsatz/${e.id}"><input type="hidden" name="aktion" value="entfernen"><button class="knopf-leise" aria-label="${escape(k.vorname)} austragen">✕</button></form>` : ""}</div></li>`;
+    return `<li class="einsatz-zeile">${avatar(`${k.vorname} ${k.nachname}`, k.id, k.foto ? `/konto/personal/${k.id}/foto` : undefined, "person-avatar klein-avatar")}<div><strong>${escape(`${k.vorname} ${k.nachname}`.trim())}</strong><span class="klein">${escape(k.berufe.slice(0, 3).join(", ") || "ohne Beruf")}${(() => { const a = abwesendAm(abw, k.id); return a ? ` · ${(GRUENDE[a.grund] ?? GRUENDE.abwesend).join(" ")} bis ${tagMonat(a.bis)}` : ""; })()}</span></div>${statusWahl}<div class="person-aktionen">${k.telefon ? `<a class="knopf-klein" href="tel:${escape(k.telefon.replace(/[^\d+]/g, ""))}">📞</a>` : ""}<a class="knopf-klein" href="/konto/personal/${k.id}/nachricht?vorgang=${v.id}">💬 Nachricht</a>${darfAendern ? `<form method="post" action="/konto/einsatz/${e.id}"><input type="hidden" name="aktion" value="entfernen"><button class="knopf-leise" aria-label="${escape(k.vorname)} austragen">✕</button></form>` : ""}</div></li>`;
   }).join("");
   const zugesagt = liste.filter((e) => e.status === "zugesagt").length;
-  const wahl = darfAendern && frei.length ? `<form method="post" action="/konto/vorgang/${v.id}/einsatz" class="einplanen"><label>Person einplanen<select name="personal" required><option value="">Bitte auswählen …</option>${frei.map(({ k }) => `<option value="${k.id}">${k.status === "verfuegbar" ? "🟢 " : ""}${passt(v.titel, k.berufe) ? "⭐ " : ""}${escape(`${k.vorname} ${k.nachname}`.trim())}${k.berufe[0] ? ` · ${escape(k.berufe[0])}` : ""}${k.qualifikationen.length ? ` · ${escape(k.qualifikationen.slice(0, 2).join(", "))}` : ""}${k.status !== "verfuegbar" ? ` (${STATUS[k.status]?.[1] ?? k.status})` : ""}</option>`).join("")}</select></label><button>📌 Einplanen</button></form>` : "";
+  const wahl = darfAendern && frei.length ? `<form method="post" action="/konto/vorgang/${v.id}/einsatz" class="einplanen"><label>Person einplanen<select name="personal" required><option value="">Bitte auswählen …</option>${frei.map(({ k }) => `<option value="${k.id}">${abwesendAm(abw, k.id) ? `${(GRUENDE[abwesendAm(abw, k.id)!.grund] ?? GRUENDE.abwesend)[0]} ` : k.status === "verfuegbar" ? "🟢 " : ""}${passt(v.titel, k.berufe) ? "⭐ " : ""}${escape(`${k.vorname} ${k.nachname}`.trim())}${k.berufe[0] ? ` · ${escape(k.berufe[0])}` : ""}${k.qualifikationen.length ? ` · ${escape(k.qualifikationen.slice(0, 2).join(", "))}` : ""}${k.status !== "verfuegbar" ? ` (${STATUS[k.status]?.[1] ?? k.status})` : ""}</option>`).join("")}</select></label><button>📌 Einplanen</button></form>` : "";
   const leer = pool.ok && !pool.daten.length ? `<p class="klein">Noch kein Personal eingetragen. <a href="/konto/team">Personal unter „Firma & Team“ anlegen →</a></p>` : "";
   return `<h2 id="personal">👷 Personal für diesen Auftrag</h2>${hilfe("Einplanung verstehen", "„Eingeplant“ ist erst eine Vormerkung. Ändere den Stand auf „Angefragt“, wenn du die Person kontaktiert hast, und auf „Zugesagt“, sobald sie den Einsatz bestätigt. ⭐ markiert passende Berufe.")}
 <nav class="aktionsleiste"><a href="/konto/vorgang/${v.id}/einsatzplan">🗓️ Einsatzplan schicken</a><a class="zweit" href="/konto/rundnachricht?vorgang=${v.id}">📣 Mehrere anfragen</a></nav>
@@ -239,6 +311,19 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     }
     const result = await db(f.s, env, "rpc/mitglied_aktualisieren", { method: "POST", body: JSON.stringify({ f: f.m.firma_id, u: uid, n: m.anzeigename || "", funktion_neu: "Standortleitung", rolle_neu: "standortleitung", finanzen_neu: false, alle: false, bereiche: [bid] }) });
     return weiterleiten(`${ziel}?hinweis=${encodeURIComponent(result.ok ? "Standortleitung zugeordnet." : "Zuordnung nicht möglich. Bitte einen einzelnen Standort dieser Firma wählen.")}`, f.s.cookies);
+  }
+  const kontaktSetzen = url.pathname.match(/^\/konto\/standort\/([0-9a-f-]{36})\/kontakt$/);
+  if (kontaktSetzen && request.method === "POST") {
+    const f = await aktiveFirma(request, env);
+    if (!f) return weiterleiten("/konto");
+    const ziel = await heimat(f, env, kontaktSetzen[1]);
+    if (!["inhaber", "admin"].includes(f.m.rolle)) return weiterleiten(`${ziel}?hinweis=${encodeURIComponent("Nur Inhaber und Administration können den Ansprechpartner ändern.")}`, f.s.cookies);
+    const form = await request.formData();
+    const t = (k: string, max: number) => String(form.get(k) ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+    const email = t("email", 200);
+    if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return weiterleiten(`${ziel}?hinweis=${encodeURIComponent("Bitte eine gültige E-Mail-Adresse eintragen.")}`, f.s.cookies);
+    const r = await db(f.s, env, `bereiche?id=eq.${kontaktSetzen[1]}&firma_id=eq.${f.m.firma_id}`, { method: "PATCH", body: JSON.stringify({ ansprechpartner: t("ansprechpartner", 120), telefon: t("telefon", 40), email }) });
+    return weiterleiten(`${ziel}?hinweis=${encodeURIComponent(r.ok ? "Ansprechpartner gespeichert." : "Speichern hat nicht geklappt.")}`, f.s.cookies);
   }
   if (url.pathname === "/konto/tarifvertrag" && request.method === "POST") {
     const f = await aktiveFirma(request, env);
@@ -313,7 +398,7 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     return weiterleiten(`/konto/vorgang/${vid}#personal`, f.s.cookies);
   }
   const standort = url.pathname.match(/^\/konto\/standort\/([0-9a-f-]{36}|firma)$/);
-  const einzeln = url.pathname.match(/^\/konto\/personal\/([0-9a-f-]{36})(\/nachricht)?$/);
+  const einzeln = url.pathname.match(/^\/konto\/personal\/([0-9a-f-]{36})(\/nachricht|\/abwesenheit|\/foto)?$/);
   if (!standort && !einzeln) return null;
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
@@ -335,27 +420,74 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
       return weiterleiten(`${ziel}?hinweis=${encodeURIComponent(r.ok ? `${daten.vorname} ist eingetragen.` : "Das hat nicht geklappt. Hast du Rechte für diesen Standort?")}`, f.s.cookies);
     }
     const [bereiche, liste, qualifikationen, mitglieder, zuordnungen, tarife] = await Promise.all([
-      db<Bereich[]>(f.s, env, `bereiche?firma_id=eq.${f.m.firma_id}&select=id,name,art,parent_id`),
+      bereicheLaden(f.s, env, f.m.firma_id),
       db<Kraft[]>(f.s, env, `personal?firma_id=eq.${f.m.firma_id}&bereich_id=${bid ? `eq.${bid}` : "is.null"}&select=*&order=status,vorname`),
       qualifikationenLaden(f.s, env, f.m.firma_id, bid),
       db<AppMitglied[]>(f.s, env, `mitglieder?firma_id=eq.${f.m.firma_id}&aktiv=eq.true&select=user_id,rolle,anzeigename,funktion`),
       db<{ user_id: string; bereich_id: string }[]>(f.s, env, `mitglied_bereiche?firma_id=eq.${f.m.firma_id}&select=user_id,bereich_id`),
       tarifvertraegeLaden(f.s, env, f.m.firma_id),
     ]);
-    const einsaetze = await einsaetzeLaden(f.s, env, f.m.firma_id);
+    const [einsaetze, abw] = await Promise.all([einsaetzeLaden(f.s, env, f.m.firma_id), abwesenheitenLaden(f.s, env, f.m.firma_id)]);
     const b = bereiche.ok ? bereiche.daten.find((x) => x.id === bid) : undefined;
     if (bid && !b) return antwort("Nicht gefunden", "<p>Diesen Standort gibt es nicht oder du hast keinen Zugriff.</p>", 404);
     const titel = b ? bereichPfad(bereiche.ok ? bereiche.daten : [], b) : "Ganze Firma";
     const alle = liste.ok ? liste.daten : [];
     const hinweis = url.searchParams.get("hinweis");
     const custom = qualifikationen.map((q) => q.name);
-    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${bid ? standortleitungBlock(bid, mitglieder.ok ? mitglieder.daten : [], zuordnungen.ok ? zuordnungen.daten : [], ["inhaber", "admin"].includes(f.m.rolle)) : ""}${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`, einsaetze, custom, tarife)}${qualifikationenBlock(bid, qualifikationen, darfAendern)}`);
+    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${b ? kontaktBlock(b, ["inhaber", "admin"].includes(f.m.rolle)) : ""}${bid ? standortleitungBlock(bid, mitglieder.ok ? mitglieder.daten : [], zuordnungen.ok ? zuordnungen.daten : [], ["inhaber", "admin"].includes(f.m.rolle)) : ""}${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`, einsaetze, custom, tarife, abw)}${qualifikationenBlock(bid, qualifikationen, darfAendern)}`);
   }
 
   const pid = einzeln![1];
   const k = await db<Kraft[]>(f.s, env, `personal?id=eq.${pid}&select=*`);
   const kraft = k.ok ? k.daten[0] : undefined;
   if (!kraft || kraft.firma_id !== f.m.firma_id) return antwort("Nicht gefunden", "<p>Diese Person gibt es nicht oder du hast keinen Zugriff.</p>", 404);
+  // G3: photo, served only after the row check above (RLS decides who sees the worker).
+  if (einzeln![2] === "/foto") {
+    const key = `personal-fotos/${kraft.firma_id}/${kraft.id}`;
+    if (request.method !== "POST") {
+      const obj = kraft.foto ? await env.DATEN?.get(key) : null;
+      if (!obj) return new Response("Kein Foto", { status: 404 });
+      const kopf = new Uint8Array(await obj.arrayBuffer());
+      const headers = new Headers({ "content-type": bildTyp(kopf) ?? "application/octet-stream", "cache-control": "private, max-age=300", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'" });
+      for (const c of f.s.cookies) headers.append("set-cookie", c);
+      return new Response(kopf, { headers });
+    }
+    const zurueck = `${await heimat(f, env, kraft.bereich_id)}`;
+    if (!darfAendern || !env.DATEN) return antwort("Nicht erlaubt", "<p>Nur Bearbeiter und Admins können Fotos ändern.</p>", 403);
+    const form = await request.formData();
+    if (form.get("loeschen")) {
+      await env.DATEN.delete(key);
+      await db(f.s, env, `personal?id=eq.${pid}`, { method: "PATCH", body: JSON.stringify({ foto: false }) });
+      return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent("Foto entfernt.")}#bearbeiten-${pid}`, f.s.cookies);
+    }
+    const datei = form.get("foto");
+    const daten = datei && typeof datei !== "string" && datei.size > 0 && datei.size <= 1024 * 1024 ? new Uint8Array(await datei.arrayBuffer()) : null;
+    if (!daten || !bildTyp(daten)) return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent("Bitte ein Foto als JPG, PNG oder WebP mit höchstens 1 MB wählen.")}#bearbeiten-${pid}`, f.s.cookies);
+    const r = await db(f.s, env, `personal?id=eq.${pid}`, { method: "PATCH", body: JSON.stringify({ foto: true }) });
+    if (r.ok) await env.DATEN.put(key, daten);
+    return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent(r.ok ? "Foto gespeichert." : "Das Foto konnte nicht gespeichert werden.")}#bearbeiten-${pid}`, f.s.cookies);
+  }
+  // G2: absences with a period.
+  if (einzeln![2] === "/abwesenheit" && request.method === "POST") {
+    const zurueck = await heimat(f, env, kraft.bereich_id);
+    if (!darfAendern) return antwort("Nicht erlaubt", "<p>Nur Bearbeiter und Admins können Abwesenheiten eintragen.</p>", 403);
+    const form = await request.formData();
+    const weg = String(form.get("loeschen") ?? "");
+    let hinweis: string;
+    if (ID.test(weg)) {
+      const r = await db(f.s, env, `personal_abwesenheiten?id=eq.${weg}&personal_id=eq.${pid}`, { method: "DELETE" });
+      hinweis = r.ok ? "Abwesenheit gelöscht." : "Löschen hat nicht geklappt.";
+    } else {
+      const a = abwesenheitAusFormular(form);
+      if (!a) hinweis = "Bitte Von und Bis angeben (Bis nicht vor Von, höchstens ein Jahr).";
+      else {
+        const r = await db(f.s, env, "personal_abwesenheiten", { method: "POST", body: JSON.stringify({ ...a, firma_id: f.m.firma_id, personal_id: pid }) });
+        hinweis = r.ok ? `${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[1]} ${zeitraumText(a)} für ${kraft.vorname} eingetragen.` : "Eintragen hat nicht geklappt.";
+      }
+    }
+    return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent(hinweis)}#bearbeiten-${pid}`, f.s.cookies);
+  }
+  if (einzeln![2] === "/abwesenheit") return weiterleiten(await heimat(f, env, kraft.bereich_id));
   if (request.method === "POST" && !einzeln![2]) {
     const zurueck = await heimat(f, env, kraft.bereich_id);
     if (!darfAendern) return antwort("Nicht erlaubt", "<p>Nur Bearbeiter und Admins können Personal ändern.</p>", 403);

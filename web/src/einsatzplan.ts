@@ -1,13 +1,13 @@
 // Messages to several people and the assignment plan of a tender. Jarvis only prepares the texts: the buttons
 // open WhatsApp, SMS or e-mail on the phone (one tap per person, or one SMS / one group message for everyone).
 import { aktiveFirma } from "./firmenunterlagen.ts";
-import { db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
+import { bereicheLaden, db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
 import { bereichOptionen } from "./bereiche.ts";
 import { escape, seite } from "./seite.ts";
 import { EINSATZ, STATUS, passt, waNummer, type Einsatz, type Kraft } from "./personal.ts";
 
 const ID = /^[0-9a-f-]{36}$/;
-type Vorgang = { id: string; titel: string; frist: string | null; firma_id: string };
+type Vorgang = { id: string; titel: string; frist: string | null; firma_id: string; bereich_id?: string | null };
 export type Plan = { ort: string; beginn: string | null; ende: string | null; treffpunkt: string; kleidung: string; ansprechpartner: string; hinweise: string };
 
 const BERLIN = "Europe/Berlin";
@@ -132,7 +132,7 @@ ${gewaehlt && darfAendern ? `<form method="post" action="/konto/rundnachricht"><
 
   // Assignment plan of one tender.
   const vid = plan![1];
-  const v = await db<Vorgang[]>(f.s, env, `vorgaenge?id=eq.${vid}&select=id,titel,frist,firma_id`);
+  const v = await db<Vorgang[]>(f.s, env, `vorgaenge?id=eq.${vid}&select=id,titel,frist,firma_id,bereich_id`);
   const vorgang = v.ok ? v.daten[0] : undefined;
   if (!vorgang || vorgang.firma_id !== f.m.firma_id) return antwort("Nicht gefunden", "/konto/treffer", "<p>Diese Ausschreibung gibt es nicht oder du darfst sie nicht sehen.</p>", 404);
   if (request.method === "POST") {
@@ -148,6 +148,14 @@ ${gewaehlt && darfAendern ? `<form method="post" action="/konto/rundnachricht"><
     db<(Einsatz & { personal: Kraft | null })[]>(f.s, env, `einsaetze?vorgang_id=eq.${vid}&select=id,personal_id,vorgang_id,status,personal(*)&order=erstellt`),
   ]);
   const gespeichert = p.ok ? p.daten[0] ?? null : null;
+  // New plan: the contact person of the tender's location (or its region) is suggested (G4).
+  let kontaktVorschlag = "";
+  if (!gespeichert && vorgang.bereich_id) {
+    const bs = await bereicheLaden(f.s, env, f.m.firma_id);
+    let b = bs.ok ? bs.daten.find((x) => x.id === vorgang.bereich_id) : undefined;
+    for (let i = 0; b && !(b.ansprechpartner || b.telefon) && i < 5; i++) b = bs.ok ? bs.daten.find((x) => x.id === b!.parent_id) : undefined;
+    if (b) kontaktVorschlag = [b.ansprechpartner, b.telefon].filter(Boolean).join(", ");
+  }
   const wer = url.searchParams.get("wer") ?? "zugesagt";
   const eingeplant = (e.ok ? e.daten : []).filter((x) => x.personal && x.status !== "abgesagt");
   const empfaenger = eingeplant.filter((x) => wer === "alle" || x.status === "zugesagt").map((x) => x.personal!);
@@ -161,7 +169,7 @@ ${gewaehlt && darfAendern ? `<form method="post" action="/konto/rundnachricht"><
   <label>Ende<input type="datetime-local" name="ende" value="${isoZuBerlin(gespeichert?.ende ?? null)}"></label></div>
   <label>Treffpunkt<input name="treffpunkt" maxlength="300" placeholder="z. B. 15 Minuten vorher am Personaleingang" value="${escape(gespeichert?.treffpunkt ?? "")}"></label>
   <label>Kleidung<select name="kleidung">${["", "Schwarze Hose, weißes Hemd/Bluse, schwarze Schuhe", "Komplett schwarz", "Sicherheitsschuhe S3 und Arbeitskleidung", "Wird vor Ort gestellt"].concat(gespeichert?.kleidung && !["", "Schwarze Hose, weißes Hemd/Bluse, schwarze Schuhe", "Komplett schwarz", "Sicherheitsschuhe S3 und Arbeitskleidung", "Wird vor Ort gestellt"].includes(gespeichert.kleidung) ? [gespeichert.kleidung] : []).map((k) => `<option value="${escape(k)}"${k === (gespeichert?.kleidung ?? "") ? " selected" : ""}>${k ? escape(k) : "keine Angabe"}</option>`).join("")}</select></label>
-  <label>Ansprechpartner vor Ort<input name="ansprechpartner" maxlength="300" placeholder="z. B. Frau Weber, 0170 1234567" value="${escape(gespeichert?.ansprechpartner ?? "")}"></label>
+  <label>Ansprechpartner vor Ort<input name="ansprechpartner" maxlength="300" placeholder="z. B. Frau Weber, 0170 1234567" value="${escape(gespeichert?.ansprechpartner ?? kontaktVorschlag)}"></label>
   <label>Hinweise<textarea name="hinweise" rows="3" maxlength="2000" placeholder="z. B. Ausweis mitbringen, Parken auf P3">${escape(gespeichert?.hinweise ?? "")}</textarea></label>
   <button>Plan speichern</button>
 </form></details>` : "";

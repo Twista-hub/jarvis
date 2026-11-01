@@ -17,8 +17,8 @@ test("serves the app files with the right types", async () => {
   assert.match(js, /data-auto-einrichtung/);
   assert.match(js, /data-tarifgruppen/);
   assert.match(js, /option\.disabled = !!option\.value/);
-  assert.match(js, /location\.hash === "#tarifvertraege"/);
-  assert.match(js, /tarifverwaltung\.open = true/);
+  assert.match(js, /ziel\.tagName === "DETAILS"/);
+  assert.match(js, /ziel\.open = true/);
   assert.match(js, /data-bereich-einzel/);
   assert.match(js, /istLeitung = rolle\.value === "standortleitung"/);
   assert.equal(statisch("/geheim"), null);

@@ -590,6 +590,36 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .vorlage-speichern-zeile { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
   .vorlage-speichern-zeile label { margin: 0; }
   .vorlage-speichern-zeile button { min-height: 40px; }
+  /* Firma & Team: avatars, absences, photo, location contact, import preview, change log. */
+  .aktionsleiste.kompakt { grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 6px; }
+  .aktionsleiste.kompakt a { min-height: 38px !important; padding: 6px 8px !important; font-size: 13px !important; white-space: nowrap; }
+  .person-avatar { color: #fff; font-size: 15px; letter-spacing: .02em; }
+  .person-avatar.foto { object-fit: cover; background: var(--line); }
+  .klein-avatar { width: 32px; height: 32px; font-size: 12px; }
+  .mitglied-kopf { margin-bottom: 6px; } .mitglied-kopf h3 { margin: 0; }
+  .einsatz-zeile { align-items: center; } .einsatz-zeile > .klein-avatar { flex: none; }
+  .abwesenheit-bald { display: block; margin-top: 2px; }
+  .abwesenheit-teil, .foto-teil { margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line); }
+  .abwesenheit-teil h4, .foto-teil h4 { margin: 0 0 6px; font-size: 14px; }
+  .abwesenheit-liste { list-style: none; margin: 0 0 8px; padding: 0; }
+  .abwesenheit-liste li { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 4px 0; font-size: 14px; border-bottom: 1px solid var(--line); }
+  .abwesenheit-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .abwesenheit-form label { margin: 0; } .abwesenheit-form label:nth-of-type(3) { grid-column: 1; } .abwesenheit-form button { min-height: 40px; }
+  .foto-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 6px; padding: 0; border: 0; background: none; box-shadow: none; }
+  .foto-form input[type=file] { flex: 1 1 180px; min-width: 0; }
+  .standort-kontakt { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 10px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); font-size: 14px; }
+  .standort-kontakt .knopf-klein { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+  .kontakt-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
+  .kontakt-form label { margin: 0; } .kontakt-form .ganz { grid-column: 1 / -1; }
+  .import-liste, .protokoll-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .import-liste li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+  .import-liste li > span:last-child { display: grid; gap: 1px; min-width: 0; }
+  .import-liste li.uebersprungen { opacity: .7; }
+  .import-liste li:last-child, .protokoll-liste li:last-child { border-bottom: 0; }
+  .protokoll-filter { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  .protokoll-liste li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+  .protokoll-liste li p { margin: 0; font-size: 14px; } .protokoll-liste li .klein { margin-top: 2px; overflow-wrap: anywhere; }
+  .protokoll-liste time { font-size: 12px; color: var(--muted); white-space: nowrap; }
 </style>
 </head>
 <body><main>
