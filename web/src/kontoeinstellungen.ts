@@ -72,6 +72,17 @@ const HILFE: [string, [string, string][]][] = [
     ["Wohin mit Nachweisen wie Versicherung oder Handelsregister?", "Unter Unterlagen → Firmenunterlagen. Jarvis liest das Ablaufdatum aus PDF oder Foto, erinnert vor dem Ablauf und legt passende Nachweise jedem Angebot bei."],
     ["Wie entsteht ein Angebot?", "In der Ausschreibung „Angebot vorbereiten“ wählen: Jarvis schreibt den Text mit den Preisen aus der Kalkulation und hakt die passenden Nachweise an. Die Firmenleitung gibt es frei; abgegeben wird im Vergabeportal von euch selbst. Jarvis reicht nichts selbst ein."],
     ["Wie lange bleiben hochgeladene Vergabeunterlagen gespeichert?", "30 Tage. Firmenunterlagen und Vorlagen bleiben, bis die Firmenleitung sie löscht."],
+    ["Was sind Textbausteine?", "Texte, die in vielen Angeboten vorkommen, zum Beispiel Firmenvorstellung, Vertretungsregelung oder Schlussformel. Unter Mehr → Textbausteine anlegen; beim Angebot anhaken, Jarvis hängt sie an und setzt Firma, Auftrag, Auftraggeber und Datum ein."],
+    ["Was mache ich mit einer GAEB-Datei (.X83)?", "In der Ausschreibung „📐 Leistungsverzeichnis (GAEB)“ öffnen und die X83-Datei aus den Vergabeunterlagen einlesen. Dann die Einheitspreise eintragen (für Stundenpositionen und Aufschläge gibt es „Preise auf einmal setzen“) und die Angebotsdatei X84 herunterladen. Sie liegt auch in der Angebotsmappe und wird im Vergabeportal hochgeladen."],
+    ["Wo sehe ich den Stand aller Angebote?", "Unter Mehr → Angebote: in Arbeit, wartet auf Chef, abgegeben, Zuschlag oder Absage, dazu die Gewinnquote. Nach der Entscheidung des Auftraggebers trägst du dort Zuschlag oder Absage ein."],
+  ]],
+  ["🏗️ Aufträge, Markt und Auswertung", [
+    ["Was passiert nach dem Zuschlag?", "Der Auftrag erscheint unter Laufende Aufträge. Dort trägst du Laufzeit, Verlängerung, die Frist für die Entscheidung über die Verlängerung, benötigte Personen und den Ansprechpartner ein. Jarvis warnt rechtzeitig vor Fristen und vor dem Vertragsende."],
+    ["Was zeigt der Neuausschreibungs-Radar?", "Vergebene Aufträge aus eurem Bereich, deren Vertrag bald endet. Auftraggeber schreiben meist einige Monate vorher neu aus. Mit „🔔 Erinnern“ landet ein Termin unter Fristen. Das Vertragsende ist eine Prognose aus den Bekanntmachungen."],
+    ["Was steht auf den Auftraggeber-Seiten?", "Eure Ausschreibungen und Angebote bei diesem Auftraggeber, was dort gerade offen ist, frühere Zuschläge mit Gewinner und Wert, die Kontaktstelle aus der Bekanntmachung und eure eigenen Ansprechpartner."],
+    ["Woher kommen die Förderprogramme?", "Aus der Förderdatenbank des Bundes. Jarvis prüft jeden Morgen die neuen Programme gegen euer Suchprofil und gibt eine Einschätzung von 1 bis 10. Ob ihr antragsberechtigt seid, entscheidet der Fördergeber."],
+    ["Was zeigt die Auswertung?", "Treffer pro Monat, wie viele davon zum Angebot und zum Zuschlag wurden, die Gewinnquote pro Quartal, den Umsatz (mit Finanzfreigabe), häufige Gründe für 👎 und für Inhaber und Admins die KI-Kosten eurer Firma."],
+    ["Was macht der AÜG-Wächter?", "Für Zeitarbeitsfirmen: Pro Leiharbeitskraft und Kunde berechnet er, wann Equal Pay (nach 9 Monaten) gilt und wann die Höchstüberlassungsdauer (18 Monate) endet, mit der 3-Monats-Regel für Unterbrechungen. Ohne Gewähr; Tarifverträge können abweichen."],
   ]],
   ["👥 Team und Konto", [
     ["Wie lade ich Kolleginnen und Kollegen ein?", "Unter Firma & Team → App-Zugänge eine Einladung per Mail schicken und die Rolle wählen. Wer welche Standorte und Finanzen sieht, legt die Firmenleitung fest."],
@@ -80,11 +91,21 @@ const HILFE: [string, [string, string][]][] = [
   ]],
 ];
 
+/** N8: the way through Jarvis in steps, each with a link to the place in the app. */
+export const EINFUEHRUNG = `<details class="hilfe-einfuehrung" open><summary><strong>🧭 So arbeitest du mit Jarvis</strong></summary><ol class="einfuehrung-schritte">${[
+  ["/konto/suchprofil", "Suchprofil einrichten", "Was ihr macht und wo ihr arbeitet. Jarvis sucht danach jeden Tag."],
+  ["/konto/treffer", "Treffer prüfen", "👍 oder 👎, die besten mit ⭐ merken. Fristen stehen im Kalender."],
+  ["/konto/unterlagen", "Unterlagen hochladen", "Vergabeunterlagen für den ausführlichen Steckbrief, Nachweise einmalig unter Firmenunterlagen."],
+  ["/konto/kalkulation", "Kalkulieren", "Stundensatz und Preis je Los; bei GAEB-Dateien die Einheitspreise im Leistungsverzeichnis."],
+  ["/konto/angebote", "Angebot und Freigabe", "Jarvis schreibt das Angebot, der Chef gibt frei, du lädst die Mappe herunter und gibst im Portal ab."],
+  ["/konto/auftraege", "Nach dem Zuschlag", "Laufzeit, Leute und Verlängerung im Blick behalten; die Auswertung zeigt, was sich lohnt."],
+].map(([href, titel, text]) => `<li><a href="${href}"><strong>${titel}</strong></a><span class="klein">${text}</span></li>`).join("")}</ol></details>`;
+
 /** I5: frequent questions with a search field (works without scripts as plain sections) and a contact button. */
 export function hilfeSeite(email: string): string {
   const betreff = encodeURIComponent("Frage zu Jarvis");
   const text = encodeURIComponent(`Hallo,\n\nmeine Frage:\n\n\n---\nKonto: ${email}`);
-  return `<label class="hilfe-suche"><span class="unsichtbar">Hilfe durchsuchen</span><input type="search" placeholder="🔍 Frage suchen, z. B. Handy oder Fristen" data-hilfe-suche></label>
+  return `${EINFUEHRUNG}<label class="hilfe-suche"><span class="unsichtbar">Hilfe durchsuchen</span><input type="search" placeholder="🔍 Frage suchen, z. B. Handy oder Fristen" data-hilfe-suche></label>
 ${HILFE.map(([titel, fragen]) => `<section class="hilfe-gruppe"><h2>${titel}</h2>${fragen.map(([f, a]) => `<details class="hilfe-frage"><summary>${escape(f)}</summary><p>${escape(a)}</p></details>`).join("")}</section>`).join("")}
 <p class="hilfe-leer" data-hilfe-leer hidden>Keine passende Frage gefunden. Schreib uns einfach.</p>
 <section class="hilfe-kontakt"><h2>✉️ Noch Fragen?</h2><p>Schreib uns einfach, am besten mit kurzer Beschreibung, wo es hakt.</p><p><a class="knopf" href="mailto:kontakt@wpdigitalranger.com?subject=${betreff}&body=${text}">Nachricht schreiben</a></p><p class="klein">Öffnet dein Mailprogramm. kontakt@wpdigitalranger.com</p></section>`;
