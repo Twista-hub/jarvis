@@ -100,7 +100,7 @@ export function tarifSchnellwahl(gruppen: { eg: string; lohn: number }[]): strin
 /** The input sections fold up like the rest of the app; the live price stays visible above them. */
 export function felderHtml(werte: Eingaben, nurLesen = false, schnellwahl = ""): string {
   const satz = `<p class="live-satz" data-live-satz>Verrechnungssatz <strong>${euro(verrechnungssatz(werte))}</strong> pro Stunde<span class="klein">mit dem Standardlohn, ohne Unterkunft</span></p>`;
-  return satz + GRUPPEN.map((g, i) => `<details class="kalk-gruppe" data-gruppe="${g}"${i === 0 ? " open" : ""}><summary>${g}<span class="kalk-kurz">${zusammenfassung(werte, g)}</span></summary>${g === "Lohn" ? schnellwahl : ""}${FELDER.filter((f) => f.gruppe === g).map((f) => `<label>${f.label} (${f.einheit})<input name="${f.key}" inputmode="decimal" data-einheit="${f.einheit}" value="${fmt(werte[f.key])}"${nurLesen ? " readonly" : ""}>${f.hilfe ? `<span class="klein">${f.hilfe}</span>` : ""}</label>`).join("")}</details>`).join("");
+  return satz + GRUPPEN.map((g, i) => `<details class="kalk-gruppe" data-gruppe="${g}"${i === 0 ? " open" : ""}><summary>${g}<span class="kalk-kurz">${zusammenfassung(werte, g)}</span></summary>${g === "Lohn" ? schnellwahl : ""}<div class="kalk-felder">${FELDER.filter((f) => f.gruppe === g).map((f) => `<label>${f.label} (${f.einheit})<input name="${f.key}" inputmode="decimal" data-einheit="${f.einheit}" value="${fmt(werte[f.key])}"${nurLesen ? " readonly" : ""}>${f.hilfe ? `<span class="klein">${f.hilfe}</span>` : ""}</label>`).join("")}</div></details>`).join("");
 }
 
 /** Three prices with different profit margins, to choose how close to calculate. */
