@@ -4,8 +4,10 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { xlsxAntwort, xlsxDatei, type Zelle } from "./xlsx.ts";
+import { landAusPlz, LAENDER, summe, zuschlag, zuschlagText } from "./zuschlaege.ts";
+import type { Sitzung } from "./konto.ts";
 
-export type Eintrag = { id: string; personal_id: string; datum: string; beginn: string; ende: string; pause_min: number; einsatz: string; notiz: string; status: string; personal?: { vorname: string; nachname: string } | null };
+export type Eintrag = { id: string; personal_id: string; datum: string; beginn: string; ende: string; pause_min: number; einsatz: string; notiz: string; status: string; kunde_id?: string | null; personal?: { vorname: string; nachname: string } | null };
 export const STATUS: Record<string, [string, string]> = { erfasst: ["⏳", "offen"], freigegeben: ["✅", "freigegeben"], abgelehnt: ["❌", "abgelehnt"] };
 
 const zuMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
@@ -19,6 +21,15 @@ const plusTage = (d: string, n: number) => { const x = new Date(`${d}T12:00:00Z`
 export const naechsterMonat = (m: string) => { const [j, mo] = m.split("-").map(Number); return mo === 12 ? `${j + 1}-01` : `${j}-${String(mo + 1).padStart(2, "0")}`; };
 export const vorMonat = (m: string) => { const [j, mo] = m.split("-").map(Number); return mo === 1 ? `${j - 1}-12` : `${j}-${String(mo - 1).padStart(2, "0")}`; };
 const monatName = (m: string) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
+
+/** Federal state for public holidays: chosen in the company profile, else from the firm's postal code. */
+export async function landDerFirma(sz: Sitzung, env: KontoEnv, firma: string): Promise<string> {
+  const [p, f] = await Promise.all([
+    db<{ bundesland: string }[]>(sz, env, `firmenprofil?firma_id=eq.${firma}&select=bundesland`),
+    db<{ plz: string | null }[]>(sz, env, `firmen?id=eq.${firma}&select=plz`),
+  ]);
+  return (p.ok && p.daten[0]?.bundesland) || landAusPlz(f.ok ? f.daten[0]?.plz : "");
+}
 
 /** Working-time hints (ArbZG): more than 10 hours a day, too short a break after 6 or 9 hours. */
 export function hinweise(liste: Eintrag[]): Map<string, string[]> {
@@ -67,7 +78,7 @@ ${sortiert.length ? `<ul class="kontakt-liste ich-liste stunden-liste">${sortier
 
 type Person = { id: string; vorname: string; nachname: string };
 /** Office page: one month, grouped by person, approve or reject several at once. */
-export function stundenSeite(liste: Eintrag[], personen: Person[], o: { monat: string; heute: string; nurOffen: boolean; darfAendern: boolean }): string {
+export function stundenSeite(liste: Eintrag[], personen: Person[], o: { monat: string; heute: string; nurOffen: boolean; darfAendern: boolean; land?: string }): string {
   const name = (id: string) => { const p = personen.find((x) => x.id === id); return p ? `${p.vorname} ${p.nachname}`.trim() : "?"; };
   const h = hinweise(liste);
   const gezeigt = o.nurOffen ? liste.filter((e) => e.status === "erfasst") : liste;
@@ -77,34 +88,35 @@ export function stundenSeite(liste: Eintrag[], personen: Person[], o: { monat: s
   for (const e of liste.filter((x) => x.status !== "abgelehnt")) proEinsatz.set(e.einsatz || "ohne Angabe", (proEinsatz.get(e.einsatz || "ohne Angabe") ?? 0) + minuten(e));
   const kopf = `<nav class="dispo-nav"><a class="knopf zweit" href="/konto/stunden?monat=${vorMonat(o.monat)}${o.nurOffen ? "" : "&alle=1"}" aria-label="Vormonat">‹</a><strong>${monatName(o.monat)}</strong><a class="knopf zweit" href="/konto/stunden?monat=${naechsterMonat(o.monat)}${o.nurOffen ? "" : "&alle=1"}" aria-label="Nächster Monat">›</a></nav>
 <nav class="ordner-chips" aria-label="Ansicht"><a href="/konto/stunden?monat=${o.monat}"${o.nurOffen ? ' aria-current="page"' : ""}>Offen (${offen})</a><a href="/konto/stunden?monat=${o.monat}&alle=1"${o.nurOffen ? "" : ' aria-current="page"'}>Alle (${liste.length})</a><a href="/konto/stunden.xlsx?monat=${o.monat}" download>📊 Excel</a></nav>`;
-  const zeile = (e: Eintrag) => `<li class="stunden-zeile ${e.status}">${o.darfAendern && e.status === "erfasst" ? `<input type="checkbox" name="id" value="${e.id}" aria-label="Auswählen" checked>` : `<span aria-hidden="true">${STATUS[e.status]?.[0] ?? ""}</span>`}<div><span>${tag(e.datum)} · ${uhr(e.beginn)}–${uhr(e.ende)}${e.pause_min ? ` <span class="klein">−${e.pause_min}′</span>` : ""}</span><span class="klein">${escape(e.einsatz || "ohne Einsatz")}${e.notiz ? ` · ${escape(e.notiz)}` : ""}${(h.get(e.id) ?? []).map((x) => ` · <span class="warnung">⚠️ ${x}</span>`).join("")}</span></div><strong>${stunden(minuten(e))}</strong></li>`;
+  const zeile = (e: Eintrag) => `<li class="stunden-zeile ${e.status}">${o.darfAendern && e.status === "erfasst" ? `<input type="checkbox" name="id" value="${e.id}" aria-label="Auswählen" checked>` : `<span aria-hidden="true">${STATUS[e.status]?.[0] ?? ""}</span>`}<div><span>${tag(e.datum)} · ${uhr(e.beginn)}–${uhr(e.ende)}${e.pause_min ? ` <span class="klein">−${e.pause_min}′</span>` : ""}</span><span class="klein">${escape(e.einsatz || "ohne Einsatz")}${e.notiz ? ` · ${escape(e.notiz)}` : ""}${(h.get(e.id) ?? []).map((x) => ` · <span class="warnung">⚠️ ${x}</span>`).join("")}</span></div><strong>${stunden(minuten(e))}</strong>${zuschlagText(zuschlag(e, o.land ?? "")) ? `<span class="klein zuschlag">${zuschlagText(zuschlag(e, o.land ?? ""))}</span>` : ""}</li>`;
   const karten = gruppen.map((pid) => {
     const l = gezeigt.filter((e) => e.personal_id === pid).sort((a, b) => a.datum.localeCompare(b.datum) || a.beginn.localeCompare(b.beginn));
     const alle = liste.filter((e) => e.personal_id === pid && e.status !== "abgelehnt");
-    return `<section class="stunden-person"><h3>${escape(name(pid))} <span class="klein">${stunden(alle.reduce((s, e) => s + minuten(e), 0))} Std. im Monat</span></h3><ul class="kontakt-liste stunden-buero">${l.map(zeile).join("")}</ul></section>`;
+    return `<section class="stunden-person"><h3>${escape(name(pid))} <span class="klein">${stunden(alle.reduce((s, e) => s + minuten(e), 0))} Std. im Monat${zuschlagText(summe(alle.map((e) => zuschlag(e, o.land ?? "")))) ? ` · ${zuschlagText(summe(alle.map((e) => zuschlag(e, o.land ?? ""))))}` : ""}</span></h3><ul class="kontakt-liste stunden-buero">${l.map(zeile).join("")}</ul></section>`;
   }).join("");
   const knoepfe = o.darfAendern && gezeigt.some((e) => e.status === "erfasst") ? `<div class="stunden-knoepfe"><button name="aktion" value="freigeben">✓ Ausgewählte freigeben</button><button name="aktion" value="ablehnen" class="zweit">✕ Ablehnen</button></div>` : "";
   const neu = o.darfAendern && personen.length ? `<details class="termin-neu"><summary>➕ Stunden für eine Person eintragen</summary><form method="post" action="/konto/stunden"><input type="hidden" name="aktion" value="neu"><input type="hidden" name="monat" value="${o.monat}"><label>Person<select name="person" required>${personen.map((p) => `<option value="${p.id}">${escape(`${p.vorname} ${p.nachname}`.trim())}</option>`).join("")}</select></label>${felder(o.heute, [], false)}<button>Speichern (gleich freigegeben)</button></form></details>` : "";
-  return `${kopf}<p class="klein">Einsatzkräfte tragen ihre Stunden unter „Meine Einsätze &amp; Daten“ ein. Hier gibst du sie frei; die Excel-Datei enthält alle Einträge des Monats mit Summen pro Person und Einsatz.</p>
+  return `${kopf}<p class="klein">Einsatzkräfte tragen ihre Stunden unter „Meine Einsätze &amp; Daten“ ein. Hier gibst du sie frei; die Excel-Datei enthält alle Einträge des Monats mit Summen pro Person und Einsatz. Zuschläge: 🌙 Nacht 23–6 Uhr, ☀️ Sonntag, 🎉 Feiertag (${escape(LAENDER[o.land ?? ""] ?? "nur bundesweite")}${o.land ? "" : " Feiertage"}; Bundesland im Firmenprofil).</p>
 ${gruppen.length ? `<form method="post" action="/konto/stunden" class="stunden-form"><input type="hidden" name="monat" value="${o.monat}">${knoepfe}${karten}${knoepfe}</form>` : `<p class="treffer-leer">${o.nurOffen ? "Nichts wartet auf Freigabe." : "Keine Stunden in diesem Monat."}</p>`}
 ${proEinsatz.size ? `<h2>Summe pro Einsatz</h2><ul class="kontakt-liste">${[...proEinsatz].sort((a, b) => b[1] - a[1]).map(([k, m]) => `<li><span>${escape(k)}</span><strong>${stunden(m)} Std.</strong></li>`).join("")}</ul>` : ""}${neu}`;
 }
 
-export function stundenExcel(liste: Eintrag[], personen: Person[], monat: string): Uint8Array {
+export function stundenExcel(liste: Eintrag[], personen: Person[], monat: string, land = ""): Uint8Array {
   const name = (id: string) => { const p = personen.find((x) => x.id === id); return p ? `${p.vorname} ${p.nachname}`.trim() : "?"; };
   const sortiert = [...liste].sort((a, b) => name(a.personal_id).localeCompare(name(b.personal_id), "de") || a.datum.localeCompare(b.datum) || a.beginn.localeCompare(b.beginn));
   const h = hinweise(liste);
-  const zeilen: Zelle[][] = [["Person", "Datum", "Beginn", "Ende", "Pause (Min.)", "Stunden", "Einsatz / Kunde", "Status", "Notiz", "Hinweis"],
-    ...sortiert.map((e) => [name(e.personal_id), e.datum.split("-").reverse().join("."), uhr(e.beginn), uhr(e.ende), e.pause_min, dezimal(minuten(e)), e.einsatz, STATUS[e.status]?.[1] ?? e.status, e.notiz, (h.get(e.id) ?? []).join("; ")])];
-  const personenSumme: Zelle[][] = [["Person", "Stunden gesamt", "freigegeben", "offen"], ...[...new Set(sortiert.map((e) => e.personal_id))].map((pid) => {
+  const zeilen: Zelle[][] = [["Person", "Datum", "Beginn", "Ende", "Pause (Min.)", "Stunden", "davon Nacht", "davon Sonntag", "davon Feiertag", "Einsatz / Kunde", "Status", "Notiz", "Hinweis"],
+    ...sortiert.map((e) => { const z = zuschlag(e, land); return [name(e.personal_id), e.datum.split("-").reverse().join("."), uhr(e.beginn), uhr(e.ende), e.pause_min, dezimal(minuten(e)), dezimal(z.nacht), dezimal(z.sonntag), dezimal(z.feiertag), e.einsatz, STATUS[e.status]?.[1] ?? e.status, e.notiz, (h.get(e.id) ?? []).join("; ")]; })];
+  const personenSumme: Zelle[][] = [["Person", "Stunden gesamt", "freigegeben", "offen", "Nacht", "Sonntag", "Feiertag"], ...[...new Set(sortiert.map((e) => e.personal_id))].map((pid) => {
     const l = liste.filter((e) => e.personal_id === pid && e.status !== "abgelehnt");
-    return [name(pid), dezimal(l.reduce((s, e) => s + minuten(e), 0)), dezimal(l.filter((e) => e.status === "freigegeben").reduce((s, e) => s + minuten(e), 0)), dezimal(l.filter((e) => e.status === "erfasst").reduce((s, e) => s + minuten(e), 0))];
+    const z = summe(l.map((e) => zuschlag(e, land)));
+    return [name(pid), dezimal(l.reduce((s, e) => s + minuten(e), 0)), dezimal(l.filter((e) => e.status === "freigegeben").reduce((s, e) => s + minuten(e), 0)), dezimal(l.filter((e) => e.status === "erfasst").reduce((s, e) => s + minuten(e), 0)), dezimal(z.nacht), dezimal(z.sonntag), dezimal(z.feiertag)];
   })];
   const einsatz = new Map<string, number>();
   for (const e of liste.filter((x) => x.status !== "abgelehnt")) einsatz.set(e.einsatz || "ohne Angabe", (einsatz.get(e.einsatz || "ohne Angabe") ?? 0) + minuten(e));
   return xlsxDatei([
-    { name: `Stunden ${monat}`, zeilen, breiten: [22, 11, 8, 8, 11, 9, 28, 12, 24, 30] },
-    { name: "Summe Personen", zeilen: personenSumme, breiten: [24, 15, 13, 10] },
+    { name: `Stunden ${monat}`, zeilen, breiten: [22, 11, 8, 8, 11, 9, 11, 12, 12, 28, 12, 24, 30] },
+    { name: "Summe Personen", zeilen: personenSumme, breiten: [24, 15, 13, 10, 10, 10, 10] },
     { name: "Summe Einsätze", zeilen: [["Einsatz / Kunde", "Stunden"], ...[...einsatz].sort((a, b) => b[1] - a[1]).map(([k, m]) => [k, dezimal(m)])], breiten: [32, 12] },
   ]);
 }
@@ -141,12 +153,13 @@ export async function stundenRoute(request: Request, env: KontoEnv): Promise<Res
     return zurueck(n ? `${n} ${n === 1 ? "Eintrag" : "Einträge"} ${aktion === "freigeben" ? "freigegeben" : "abgelehnt"}.` : "Nichts geändert. Hast du Rechte für den Standort dieser Personen?");
   }
   const monat = monatWahl(url.searchParams.get("monat"));
-  const [l, p] = await Promise.all([
+  const [l, p, land] = await Promise.all([
     db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status&order=datum,beginn&limit=10000`),
     db<Person[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname&order=vorname&limit=3000`),
+    landDerFirma(f.s, env, firma),
   ]);
   const liste = l.ok ? l.daten : [], personen = p.ok ? p.daten : [];
-  if (url.pathname.endsWith(".xlsx")) return xlsxAntwort(stundenExcel(liste, personen, monat), `Stunden_${monat}.xlsx`, f.s.cookies);
+  if (url.pathname.endsWith(".xlsx")) return xlsxAntwort(stundenExcel(liste, personen, monat, land), `Stunden_${monat}.xlsx`, f.s.cookies);
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${stundenSeite(liste, personen, { monat, heute, nurOffen: !url.searchParams.has("alle"), darfAendern })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${stundenSeite(liste, personen, { monat, heute, nurOffen: !url.searchParams.has("alle"), darfAendern, land })}`);
 }

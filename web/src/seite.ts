@@ -897,6 +897,26 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   @media (max-width: 480px) { .kontroll-liste li { flex-wrap: wrap; } .kontroll-liste li > div { flex: 1 1 100%; } }
   .unterweisung-ich { flex-wrap: wrap; } .unterweisung-ich > div { flex: 1 1 200px; } .unterweisung-ich details, .unterweisung-inhalt { margin: 4px 0 0; padding: 0; border: 0; background: none; box-shadow: none; } .unterweisung-ich details summary, .unterweisung-inhalt summary { min-height: 0; padding: 0; }
   .unterweisung-ich form button { width: auto; min-height: 32px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
+  /* Firma & Team part 4 (T29–T33). */
+  .stunden-zeile .zuschlag { grid-column: 2 / -1; margin-top: -2px; }
+  .ausfall { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--error); border-radius: 12px; background: color-mix(in srgb, var(--error) 7%, var(--card)); }
+  .ausfall h2 { margin: 0 0 6px; font-size: 17px; } .ausfall-person h3 { margin: 6px 0 2px; font-size: 15px; } .ausfall-person h3 .klein { font-weight: 400; }
+  .ersatz p { margin: 4px 0 2px; font-size: 14px; }
+  .ersatz-wahl { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .ersatz-wahl button { width: auto; min-height: 32px; padding: 2px 10px; font-size: 13px; }
+  .kunde-karte { margin: 10px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .kunde-karte h3 { margin: 0 0 2px; font-size: 16px; } .kunde-karte > p { margin: 0 0 6px; }
+  .kunde-karte details.termin-neu { margin: 6px 0 0; }
+  .ort-liste { list-style: none; margin: 6px 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; }
+  .ort-liste > li { border-bottom: 1px solid var(--line); } .ort-liste > li:last-child { border-bottom: 0; }
+  .ort-liste details { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .ort-liste > li > details > summary { display: grid; grid-template-columns: 1fr auto; gap: 1px 8px; padding: 6px 10px; min-height: 0; font-size: 14px; } .ort-liste > li > details > summary > * { grid-column: 1; } .ort-liste > li > details > summary::after { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+  .ort-liste details[open] { padding-bottom: 8px; } .ort-liste details > div, .ort-liste details > form, .ort-liste .ort-bearbeiten { margin: 0 10px; } .ort-liste .ort-bearbeiten summary { padding: 4px 0; }
+  .ort-info { display: grid; gap: 3px; font-size: 13px; margin: 4px 0; }
+  .ich-liste li:has(> .ort-details) { flex-wrap: wrap; } .ich-liste li > .ort-details { flex: 1 1 100%; }
+  .ort-details { margin: 4px 0 0; padding: 0; border: 0; background: none; box-shadow: none; } .ort-details summary { min-height: 0; padding: 0; }
+  .knopf-zeile { display: flex; gap: 6px; } .knopf-zeile button { flex: 1; }
+  .nachweis-liste li .knopf { width: auto; min-height: 34px; padding: 4px 12px; font-size: 13px; white-space: nowrap; }
+  .ausfall-melden { margin: 0 0 10px; border-color: color-mix(in srgb, var(--error) 50%, var(--line)); } .ausfall-melden summary { color: var(--error); font-weight: 600; }
 </style>
 </head>
 <body><main>

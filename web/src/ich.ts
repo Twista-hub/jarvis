@@ -36,6 +36,7 @@ export function ichSeite(d: { ich: Ich; auftraege: MeinAuftrag[]; ueberlassungen
   const abw = d.abwesenheiten.filter((a) => a.bis >= heute).sort((a, b) => a.von.localeCompare(b.von));
   const unterweisungen = d.unterweisungen.map((u) => ({ ...u, faellig: naechsteUnterweisung(u, heute) })).sort((a, b) => a.faellig.localeCompare(b.faellig));
   return `<div class="ich-kopf"><h2>👋 Hallo ${escape(ich.vorname)}</h2><p class="klein">${escape([ich.berufe.join(", "), ich.qualifikationen.join(", ")].filter(Boolean).join(" · ")) || "Beruf noch nicht eingetragen"}</p></div>
+<details class="ausfall-melden"><summary>🚨 Ich falle kurzfristig aus</summary><form method="post" action="/konto/ich"><input type="hidden" name="aktion" value="ausfall"><div class="aueg-form"><label>Wann?<select name="tag"><option value="${heute}">heute</option><option value="${plusTage(heute, 1)}">morgen</option></select></label><label>Notiz (freiwillig)<input name="notiz" maxlength="200" placeholder="z. B. Kind krank, Auto kaputt"></label></div><button>Ausfall melden</button><p class="klein">Bitte keine Gesundheitsangaben. Deine Schichten an dem Tag werden abgesagt und das Büro wird benachrichtigt. Eine Krankmeldung gibst du wie gewohnt ab.</p></form></details>
 <div class="ich-raster">
 <section><h3>📋 Meine Einsätze</h3>${einsaetze.length ? `<ul class="kontakt-liste ich-liste">${einsaetze.map((e) => `<li class="${laufend(e.von, e.bis) ? "aktiv" : ""}"><div><strong>${escape(e.titel)}</strong><span class="klein">${zeitraum(e.von, e.bis)}${laufend(e.von, e.bis) ? " · läuft" : ""}</span></div></li>`).join("")}</ul>` : `<p class="treffer-leer">Gerade keine Einsätze eingetragen.</p>`}</section>
 ${meineSchichtenTeil(d.schichten ?? [], heute)}${d.stunden ? meineStundenTeil(d.stunden, laufendeTitel, heute) : ""}
@@ -116,6 +117,13 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
       const r = await db<boolean>(f.s, env, "rpc/schicht_antworten", { method: "POST", body: JSON.stringify({ s: t("id", 36), a: t("antwort", 10) }) });
       return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(r.ok && r.daten ? (t("antwort", 10) === "zugesagt" ? "Schicht zugesagt." : "Schicht abgesagt. Das Büro wird benachrichtigt.") : "Das ging nicht (vergangene Schicht?).")}#schichten`, f.s.cookies);
     }
+    if (t("aktion", 20) === "ausfall") {
+      const tag = d("tag");
+      if (!tag || (tag !== heute && tag !== plusTage(heute, 1))) return zurueck("Bitte heute oder morgen wählen.");
+      const r = await db<number>(f.s, env, "rpc/ausfall_melden", { method: "POST", body: JSON.stringify({ tag, notiz: t("notiz", 200) }) });
+      const n = r.ok ? Number(r.daten) : -1;
+      return zurueck(n >= 0 ? `Ausfall für ${tag === heute ? "heute" : "morgen"} gemeldet.${n ? ` ${n} ${n === 1 ? "Schicht ist" : "Schichten sind"} abgesagt.` : ""} Das Büro ist informiert. Gute Besserung, falls du krank bist!` : n === -2 ? "Für diesen Tag bist du schon als abwesend eingetragen." : "Melden hat nicht geklappt. Bitte ruf im Büro an.");
+    }
     if (t("aktion", 20) === "unterweisung" && ID.test(t("id", 36))) {
       const r = await db<boolean>(f.s, env, "rpc/unterweisung_bestaetigen", { method: "POST", body: JSON.stringify({ u: t("id", 36) }) });
       return zurueck(r.ok && r.daten ? "Unterweisung bestätigt. Danke!" : "Bestätigen hat nicht geklappt.");
@@ -130,7 +138,7 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
     db<Nachweis[]>(f.s, env, `personal_nachweise?personal_id=eq.${person.id}&select=id,personal_id,bezeichnung,erworben,gueltig_bis,datei_name,datei_mime&order=bezeichnung&limit=100`),
     db<MeineUnterweisung[]>(f.s, env, "rpc/meine_unterweisungen", { method: "POST", body: JSON.stringify({ f: firma }) }),
     db<Eintrag[]>(f.s, env, `stundenzettel?personal_id=eq.${person.id}&datum=gte.${vor}&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status&order=datum.desc&limit=200`),
-    db<Schicht[]>(f.s, env, `schichten?personal_id=eq.${person.id}&datum=gte.${heute}&select=id,personal_id,bereich_id,datum,beginn,ende,ort,notiz,antwort&order=datum,beginn&limit=60`),
+    db<Schicht[]>(f.s, env, `schichten?personal_id=eq.${person.id}&datum=gte.${heute}&select=id,personal_id,bereich_id,datum,beginn,ende,ort,notiz,antwort,einsatzort_id,einsatzorte(id,kunde_id,name,strasse,plz,ort,ansprechpartner,telefon,treffpunkt,kleidung,hinweise)&order=datum,beginn&limit=60`),
   ]);
   const hinweis = url.searchParams.get("hinweis");
   return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${ichSeite({ ich: person, auftraege: a.ok ? a.daten : [], ueberlassungen: u.ok ? u.daten : [], abwesenheiten: abw.ok ? abw.daten : [], nachweise: n.ok ? n.daten : [], unterweisungen: uw.ok ? uw.daten : [], heute, stunden: st.ok ? st.daten : [], schichten: sch.ok ? sch.daten : [] })}`);
