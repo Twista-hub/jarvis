@@ -17,6 +17,8 @@ PREISE = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0)}  # $
 LIMIT = float(os.environ.get("KI_LIMIT_DOLLAR", "3"))  # hard stop per run
 client = anthropic.Anthropic(max_retries=0)
 _kosten = [0.0]
+# The firm the next requests are for (N6: AI costs per firm in the app); set by alarm.py per search profile.
+FIRMA: list = [None]
 
 
 def kosten() -> float:
@@ -63,7 +65,7 @@ def _reservieren(kwargs):
     body = json.dumps(kwargs, ensure_ascii=False)
     worst = (len(body.encode()) * 5 + kwargs.get("max_tokens", 32000) * 20) / 1e6
     try:
-        reservierung = katalog.reservieren(round(worst + 0.0001, 4), "alarm")
+        reservierung = katalog.reservieren(round(worst + 0.0001, 4), "alarm", FIRMA[0])
         if not reservierung:
             print("KI-Budget reicht für diese Anfrage nicht; keine API-Anfrage. Nur eindeutige Wort-/Leistungstreffer bleiben sichtbar.")
         return reservierung

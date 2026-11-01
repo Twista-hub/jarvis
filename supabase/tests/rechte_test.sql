@@ -46,6 +46,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101090000_einstellungen_konto.sql
 \ir ../migrations/20261101100000_aueg_ueberlassungen.sql
 \ir ../migrations/20261101110000_foerderung_radar.sql
+\ir ../migrations/20261101120000_auftraege_auftraggeber_auswertung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -660,6 +661,42 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.neuausschreibung_radar(:'firma', '(?<!\w)reinigung')), 'Fremde bekommen keinen Radar dieser Firma');
 reset role;
 update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
+select set_config('test.uid', '', false);
+
+-- N4: contract data follows the tender's location rights; N5: buyer contacts per firm; N6: AI costs per firm.
+reset role;
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-00000000000b';
+update public.vorgaenge set status = 'gewonnen' where titel in ('Messe-Catering ITB', 'Hotel Hamburg');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.vertraege (firma_id, vorgang_id, beginn, ende, option_frist, personen_soll)
+  values (:'firma', (select id from public.vorgaenge where titel = 'Messe-Catering ITB'), '2026-01-01', '2027-12-31', '2027-09-30', 6);
+select pruefe((select personen_soll = 6 from public.vertraege), 'Bearbeiter trägt Vertragsdaten im eigenen Bereich ein');
+reset role;
+select id as hamburg_vorgang from public.vorgaenge where titel = 'Hotel Hamburg' \gset
+select set_config('test.hh', :'hamburg_vorgang', false);
+set role authenticated;
+do $$ begin
+  insert into public.vertraege (firma_id, vorgang_id, ende) values (current_setting('test.firma')::uuid, current_setting('test.hh')::uuid, '2027-01-01');
+  raise exception 'FEHLER: Vertrag im fremden Bereich';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  update public.vertraege set beginn = '2028-01-01';
+  raise exception 'FEHLER: Ende vor Beginn';
+exception when check_violation then null; end $$;
+insert into public.auftraggeber_kontakte (firma_id, auftraggeber_schluessel, name, telefon) values (:'firma', 'bks:abc', 'Frau Meier', '030 123');
+select pruefe((select count(*) = 1 from public.auftraggeber_kontakte), 'Kontakt beim Auftraggeber gespeichert');
+select pruefe((select count(*) = 0 from public.ki_kosten_firma(:'firma')), 'Bearbeiter sieht keine KI-Kosten');
+reset role;
+select pruefe(jarvis_katalog.ki_reservieren_fuer(0.01, 'test', :'firma') is not null, 'KI-Buchung mit Firma');
+select pruefe((select count(*) = 1 from jarvis_katalog.ki_kosten where firma_id = :'firma'), 'KI-Buchung ist der Firma zugeordnet');
+update public.mitglieder set rolle = 'admin' where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select pruefe((select kosten >= 0.01 and anfragen = 1 from public.ki_kosten_firma(:'firma') where zweck = 'test'), 'Admin sieht die KI-Kosten der eigenen Firma');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.vertraege) and (select count(*) = 0 from public.auftraggeber_kontakte) and (select count(*) = 0 from public.ki_kosten_firma(:'firma')), 'Fremde Firma sieht keine Verträge, Kontakte oder Kosten');
+reset role;
+update public.mitglieder set rolle = 'bearbeiter', aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

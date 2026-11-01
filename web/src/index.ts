@@ -16,6 +16,9 @@ import { angebotsUebersicht } from "./angebotsuebersicht";
 import { aueg } from "./aueg";
 import { foerderung } from "./foerderung";
 import { radar } from "./radar";
+import { auftraege } from "./auftraege";
+import { auftraggeberSeite } from "./auftraggeber";
+import { auswertung } from "./auswertung";
 import { freigaben } from "./freigaben";
 import { mitarbeiterVerwalten } from "./mitarbeiter";
 import { einrichtung } from "./einrichtung";
@@ -28,7 +31,7 @@ import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./
 import { escape, markdown, seite, stapeln } from "./seite";
 import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
 import { loseLesen } from "./lose";
-import { apiClient } from "./api-budget.ts";
+import { apiClient, firmaVonProfil } from "./api-budget.ts";
 import { datenbankPruefen as hyperdrivePruefen } from "./db-check.ts";
 
 export { Steckbrief } from "./workflow";
@@ -131,6 +134,12 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (fp) return fp;
     const ra = await radar(request, env);
     if (ra) return ra;
+    const lf = await auftraege(request, env);
+    if (lf) return lf;
+    const ag2 = await auftraggeberSeite(request, env);
+    if (ag2) return ag2;
+    const aw = await auswertung(request, env);
+    if (aw) return aw;
     const mv = await mitarbeiterVerwalten(request, env);
     if (mv) return mv;
     const fg = await freigaben(request, env);
@@ -447,7 +456,7 @@ async function arbeitskraefte(id: string, request: Request, env: Env): Promise<R
   if (!(await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true))) return html(seite("Nicht erlaubt","<p>Für die Kalkulation brauchst du eine Finanzfreigabe.</p>"),403);
   const ergebnis = await env.DATEN.get(`auftraege/${id}/ergebnis.md`);
   if (ergebnis) {
-    const { lose } = await loseLesen(apiClient(env), await ergebnis.text());
+    const { lose } = await loseLesen(apiClient(env, firmaVonProfil(job.profil, profile as Record<string, { firma_id?: string }>)), await ergebnis.text());
     if (lose.length) await env.DATEN.put(`auftraege/${id}/lose.json`, JSON.stringify(lose));
   }
   return Response.redirect(new URL(`/auftrag/${id}#kalkulation`, request.url).toString(), 303);

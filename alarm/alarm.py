@@ -429,6 +429,8 @@ def run(days: list[str]) -> str:
     treffer = []  # for the firms' accounts in the app (alarm/speichern.py)
     staende = {}
     for name, profile in profiles.items():
+        if ki:
+            ki.FIRMA[0] = profile.get("firma_id")
         lines += [f"Suchgebiet {profile['name']}: {len(profile.get('suchorte') or [])} Standorte" if profile.get("suchorte") else f"Suchgebiet {profile['name']}: bundesweit", ""]
         alle = sorted(hits[name], key=lambda h: -h[0])
         cache = katalog.bewertungen(profile)

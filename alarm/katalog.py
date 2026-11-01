@@ -98,10 +98,12 @@ def bewertung_speichern(profil, rel, ergebnis):
           (profil["firma_id"], rel["_katalog_id"], rel["_katalog_version"], profil_version(profil), BEWERTUNG_METHODE, json.dumps(ergebnis)))
 
 
-def reservieren(betrag, zweck):
+def reservieren(betrag, zweck, firma=None):
     if not os.environ.get("SUPABASE_DB_PASSWORD"):
         return None  # Budget checks fail closed; no customer API request without a ledger.
     with verbinden() as con:
+        if firma:  # N6: the same budget check, the booking also names the firm
+            return con.execute("select jarvis_katalog.ki_reservieren_fuer(%s::numeric,%s,%s::uuid)", (betrag, zweck, firma)).fetchone()[0]
         return con.execute("select jarvis_katalog.ki_reservieren(%s::numeric,%s)", (betrag, zweck)).fetchone()[0]
 
 
