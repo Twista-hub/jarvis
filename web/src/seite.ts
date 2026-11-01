@@ -945,6 +945,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .zu-tabelle td, .zu-tabelle th { text-align: center; font-size: 13px; padding: 3px 6px; } .zu-tabelle td:first-child, .zu-tabelle th:first-child { text-align: left; }
   .sterne { color: #d68910; letter-spacing: 1px; white-space: nowrap; }
   .urlaub-konto { margin: 0 0 6px; }
+  .unterlagen-hinweis { margin: 10px 0; padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); border-radius: 12px; background: color-mix(in srgb, var(--accent) 7%, var(--card)); font-size: 14px; } .unterlagen-hinweis p { margin: 0 0 8px; } .unterlagen-hinweis .knopf-zeile { display: flex; flex-wrap: wrap; gap: 8px; } .unterlagen-hinweis .knopf { min-height: 36px; padding: 4px 12px; }
   /* T34–T45 */
   .ich-oben { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .ich-oben .konto-zurueck { margin: 0; }
   .sprache-wahl { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; align-items: center; font-size: 13px; }

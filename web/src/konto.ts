@@ -751,6 +751,14 @@ function leistungsTreffer(leistungen: { name: string; woerter: string[] }[], lis
   return `<h3>Treffer je Arbeit (letzte 30 Tage)</h3><ul class="leistung-treffer">${zeilen}</ul><p class="klein">${liste.length} Treffer insgesamt; zugeordnet über die Suchwörter der Arbeit in Titel und Kurzbeschreibung.</p>`;
 }
 
+/** Hint above a Steckbrief from the public notice only: lots, quantities and hours often stand only in the documents. */
+export function unterlagenHinweis(steckbrief: string | null | undefined, portal: string | null | undefined, kannHochladen: boolean): string {
+  const fehlt = (steckbrief?.match(/nicht angegeben/gi) ?? []).length;
+  const ohneLose = !/\|\s*Los\b|\*\*Lose:\*\*/i.test(steckbrief ?? "");
+  return `<aside class="unterlagen-hinweis" role="note"><p><strong>📄 Lose, Mengen und Stunden stehen oft erst in den Vergabeunterlagen.</strong> ${fehlt ? `In dieser Bekanntmachung fehlen ${fehlt === 1 ? "eine Angabe" : `${fehlt} Angaben`} („nicht angegeben“)${ohneLose ? ", auch zu den Losen" : ""}. ` : ohneLose ? "Die Bekanntmachung nennt keine Lose. " : ""}Die Unterlagen (meist PDF oder ZIP) gibt es kostenlos beim Vergabeportal. Lädst du sie hier hoch, liest Jarvis daraus die Lose mit Mengen und Stunden, welches Personal je Los gebraucht wird, Eignungsnachweise, Fristen und das Preisblatt und rechnet die Kalkulation.</p>
+<div class="knopf-zeile">${portal ? `<a class="knopf zweit" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Unterlagen beim Portal holen</a>` : ""}${kannHochladen ? `<a class="knopf" href="#unterlagen">📥 Hier hochladen</a>` : ""}</div></aside>`;
+}
+
 export function bewertungsErklaerung(steckbrief?: string | null): string {
   const inhalt = steckbrief?.match(/## Jarvis-Bewertung\s+([\s\S]*?)(?=\n## |\n---|$)/)?.[1];
   return inhalt?.replace(/\*\*/g, "").replace(/\s+/g, " ").trim().slice(0, 420) ?? "";
@@ -980,7 +988,7 @@ ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summ
     return html(seite(v.titel, `${kopf}${await fortschritt(env, aus.auftrag)}
 ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}${kaufverantwortlich}`, 20, "treffer"), 200, s.cookies);
   } else {
-    teil = `${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
+    teil = `${unterlagenHinweis(v.steckbrief, portal, rolle !== "leser")}${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
   }
   const teilnahme = await teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? "");
   const personalBlock = rolle === "leser" || rolle === "mitarbeiter" ? "" : await einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle));
