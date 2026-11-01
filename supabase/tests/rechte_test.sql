@@ -43,6 +43,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101060000_zuschlag_vergleich_robust.sql
 \ir ../migrations/20261101070000_team_abwesenheit_kontakt_protokoll.sql
 \ir ../migrations/20261101080000_suchprofil_filter_vorschau.sql
+\ir ../migrations/20261101090000_einstellungen_konto.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -559,6 +560,30 @@ select pruefe((select count(*) = 0 from public.suchprofil_vorschau(:'firma', '(?
 reset role;
 select set_config('test.uid', '', false);
 update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
+
+-- Settings and account (I1–I4): own name and function, notification settings, deleting one's own login.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+select public.mein_profil(:'firma', '  Benjamin   Schiffer ', 'Geschäftsführung');
+select pruefe((select anzeigename = 'Benjamin Schiffer' and funktion = 'Geschäftsführung' and rolle = 'inhaber' from public.mitglieder where firma_id = :'firma' and user_id = '00000000-0000-0000-0000-00000000000a'), 'Eigener Name und Funktion geändert, Rolle bleibt');
+insert into public.benachrichtigungen (firma_id, user_id, stunde, kanal, sofort_ab, ruhe_von, ruhe_bis, fristen)
+  values (:'firma', '00000000-0000-0000-0000-00000000000a', 8, 'push', 8, 20, 7, false)
+  on conflict (firma_id, user_id) do update set sofort_ab = 8, ruhe_von = 20, ruhe_bis = 7, fristen = false;
+select pruefe((select sofort_ab = 8 and ruhe_von = 20 and not fristen from public.benachrichtigungen where user_id = '00000000-0000-0000-0000-00000000000a' and firma_id = :'firma'), 'Benachrichtigung fein eingestellt');
+do $$ begin
+  perform public.konto_loeschen();
+  raise exception 'FEHLER: letzter Inhaber mit Team konnte sein Konto löschen';
+exception when raise_exception then if sqlerrm <> 'LETZTER_INHABER' then raise; end if; end $$;
+select test_als('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  perform public.mein_profil(current_setting('test.firma')::uuid, 'Eindringling', 'x');
+  raise exception 'FEHLER: fremder Name gesetzt';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select test_als('00000000-0000-0000-0000-00000000000e');
+select pruefe((select cardinality(public.konto_loeschen()) = 1), 'Allein-Inhaber löscht sein Konto, seine Firma geht mit');
+reset role;
+select pruefe(not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-00000000000e') and not exists (select 1 from public.firmen where id = :'selbst'), 'Konto und eigene Firma sind gelöscht');
+select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.
 reset role;

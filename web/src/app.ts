@@ -183,6 +183,21 @@ document.querySelectorAll("select[data-rolle]").forEach(function (rolle) {
   rolle.addEventListener("change", wechseln);
   wechseln();
 });
+// Help page: typing filters the questions (title and answer); a hint shows when nothing fits.
+var hilfeSuche = document.querySelector("[data-hilfe-suche]");
+if (hilfeSuche) hilfeSuche.addEventListener("input", function () {
+  var q = hilfeSuche.value.trim().toLowerCase();
+  var sichtbar = 0;
+  document.querySelectorAll(".hilfe-frage").forEach(function (d) {
+    var passt = !q || d.textContent.toLowerCase().indexOf(q) >= 0;
+    d.hidden = !passt;
+    if (passt) sichtbar++;
+    if (q && passt) d.open = true;
+  });
+  document.querySelectorAll(".hilfe-gruppe").forEach(function (g) { g.hidden = !g.querySelector(".hilfe-frage:not([hidden])"); });
+  var leer = document.querySelector("[data-hilfe-leer]");
+  if (leer) leer.hidden = sichtbar > 0;
+});
 // Pencil / add buttons open their form and scroll to it.
 document.querySelectorAll("a[data-oeffne]").forEach(function (a) {
   a.addEventListener("click", function (e) {

@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Einstellungen und Profil I1–I5)
+- I1: Unter Einstellungen → Tägliche Nachricht → „Feiner einstellen“: „Sofort aufs Handy bei Top-Treffern ab 7/8/9 von 10“ und Fristen-Erinnerungen an/aus (Spalten `sofort_ab`, `fristen` an `benachrichtigungen`). Der Suchlauf (`speichern.py`) schickt nach dem Speichern neue Top-Treffer sofort aufs Handy (`mail.sofort_nach_speichern`): je Person nur sichtbare Treffer, eigene Verbindung im Autocommit (als_person setzt die Rolle bis Transaktionsende).
+- I2: Ruhezeit von/bis (`ruhe_von`, `ruhe_bis`): keine Handy-Nachrichten in der Ruhezeit; die Fristtag-Nachricht kommt dann zum Ende der Ruhezeit statt um 7 Uhr.
+- I3: Mein Profil → „⬇ Meine Daten herunterladen“ (`/konto/daten.json`: Konto, Firmenzugänge, Benachrichtigungen, Notizen, eigene Termine) und „Konto löschen“ (Funktion `konto_loeschen`): nur mit „LÖSCHEN“ und Anmeldung in den letzten 30 Minuten (Zeit aus dem `amr`-Eintrag des Tokens, „Neu anmelden“ kommt zurück zur Seite); nicht als letzte Inhaberin/letzter Inhaber einer Firma mit weiteren Mitgliedern; Firmen mit nur dieser Person gehen mit, ihre Dateien im Speicher werden entfernt. Datenschutzerklärung ergänzt.
+- I4: Name und Funktion selbst ändern (Funktion `mein_profil`, Rolle/Rechte bleiben).
+- I5: Hilfe `/konto/hilfe` mit 13 häufigen Fragen in 4 Gruppen, Suchfeld (filtert sofort, Hinweis bei keinem Treffer) und „Nachricht schreiben“ (mailto, keine Zusage zur Antwortzeit). Link unter Einstellungen.
+- Geprüft: Rechte-Test (Name ändern, fremde Firma nicht, letzter Inhaber mit Team kann nicht löschen, Allein-Inhaber löscht Konto samt Firma), Python-Tests (Ruhezeit über Mitternacht, Sofort-Nachricht nur ab Punktzahl), Kontolöschung durch den Worker (falsches Wort, alte Anmeldung, Erfolg mit Dateien und Cookies), Screenshots; 199 Web-Tests grün.
+
 ### 01.11.2026 – Claude (Suchprofil H1–H5)
 - H1: Knopf „🔍 Vorschau: Wie viele Treffer letzte Woche?“ im Suchprofil-Formular (`/konto/einrichtung/vorschau`): zählt mit der Datenbankfunktion `suchprofil_vorschau` die Bekanntmachungen der letzten 7 Tage nach Wörtern (gleiches Muster wie die Suche), Kennziffern, PLZ-Gebiet, Auftragswert und ausgeschlossenen Auftraggebern – neu gegen gespeichert, mit Beispielen „neu dabei / fällt weg“. Ohne KI, kostenlos, nichts wird gespeichert. Zeitlimit 8 s, nur Inhaber/Administration.
 - H2: Nach 👎 („passt nicht“) bietet Jarvis Inhabern/Administration Wörter aus dem Titel an (ohne eigene Suchwörter, Allerweltswörter; bei Zusammensetzungen auch der Wortanfang). Ein Tipp speichert das Wort in `einstellungen.ausschluss_schnell` (Funktion `suchprofil_ausschluss`, ändert nur dieses Feld) und schiebt unbearbeitete Treffer mit dem Wort ins Archiv. Liste mit ✕ auf der Suchprofil-Seite unter „🎯 Filter“.

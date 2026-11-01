@@ -11,6 +11,7 @@ import { referenzen } from "./referenzen";
 import { protokoll } from "./protokoll";
 import { personalImport } from "./personalimport";
 import { suchfilter } from "./suchfilter";
+import { kontoEinstellungen } from "./kontoeinstellungen";
 import { freigaben } from "./freigaben";
 import { mitarbeiterVerwalten } from "./mitarbeiter";
 import { einrichtung } from "./einrichtung";
@@ -116,6 +117,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (pi) return pi;
     const sf = await suchfilter(request, env);
     if (sf) return sf;
+    const ke = await kontoEinstellungen(request, env);
+    if (ke) return ke;
     const mv = await mitarbeiterVerwalten(request, env);
     if (mv) return mv;
     const fg = await freigaben(request, env);
