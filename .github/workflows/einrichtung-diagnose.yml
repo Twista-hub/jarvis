@@ -31,4 +31,11 @@ jobs:
               for r in k.fetchall(): print("KI", r)
               k.execute("select f.name, s.einstellungen->>'recherche_fehler', s.einstellungen->>'recherche_website', s.einstellungen->>'recherche_wiederholen_ab', s.einstellungen->>'recherche_fehler_text', f.erstellt from public.suchprofile s join public.firmen f on f.id = s.firma_id where s.einstellungen->>'recherche_status' = 'wartet' order by f.erstellt desc limit 10")
               for r in k.fetchall(): print("WARTET", r)
+              k.execute("""select f.name, f.id, f.erstellt, count(v.id),
+                       count(*) filter (where v.steckbrief like '%# Steckbrief%'),
+                       count(*) filter (where v.steckbrief like '%## Kurzüberblick%'),
+                       round(avg(length(v.steckbrief))), max(v.erstellt)
+                from public.firmen f left join public.vorgaenge v on v.firma_id = f.id
+                group by f.id order by f.erstellt desc limit 8""")
+              for r in k.fetchall(): print("FIRMA", r)
           PY
