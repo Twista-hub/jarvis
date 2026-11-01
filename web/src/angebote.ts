@@ -136,7 +136,10 @@ export async function angebote(request:Request,env:KontoEnv):Promise<Response|nu
   const kalkLink=aus?.text?`/auftrag/${aus.auftrag}#kalkulation`:"/konto/kalkulation";
   const passend=passendeNachweise(`${aus?.text??""}\n${z.v.steckbrief??""}`,docs.daten,stichtag);
   const upload=`/konto/firmenunterlagen?firma=${z.v.firma_id}`;
-  const namen=(ids:string[])=>ids.map((id)=>docs.daten.find((d)=>d.id===id)?.name).filter((n):n is string=>!!n);
+  // References entered as a form count as present: the offer folder adds the reference list (Word).
+  const refListe=passend.fehlen.includes("Referenzen")&&(await referenzenLaden(s,env,z.v.firma_id)).length>0;
+  if(refListe)passend.fehlen=passend.fehlen.filter((n)=>n!=="Referenzen");
+  const namen=(ids:string[])=>[...ids.map((id)=>docs.daten.find((d)=>d.id===id)?.name).filter((n):n is string=>!!n),...(refListe?["Referenzliste"]:[])];
   // Step 1: choose the lots (when there are lots and no draft yet, or on request).
   if(!formular && !leser && p.zeilen.length && (!mappe || url.searchParams.has("neu"))){
     return antwort("Angebot vorbereiten",`<p><strong>${escape(z.v.titel)}</strong></p>${auswahlSeite(z.v.id,p,{namen:namen(passend.ids),fehlen:passend.fehlen},upload,kalkLink)}`);

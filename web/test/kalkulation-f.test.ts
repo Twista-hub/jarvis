@@ -49,3 +49,14 @@ test("F5: Grafik zeigt die Bestandteile mit Anteilen", () => {
   assert.match(html, /Wagnis und Gewinn/);
   assert.doesNotMatch(html, /Selbstkosten/);
 });
+
+test("F1: Jahresstunden werden für den Vergleich auf die Laufzeit hochgerechnet", async () => {
+  const { laufzeitFaktor } = await import("../src/kalkulation.ts");
+  const proJahr = lose.map((l) => ({ ...l, zeitraum: "pro Jahr" }));
+  assert.equal(laufzeitFaktor(proJahr, 24), 2);
+  assert.equal(laufzeitFaktor(lose, 24), 1); // kein Jahresbezug: Stunden gelten für die ganze Laufzeit
+  assert.equal(laufzeitFaktor([], 24), 1);
+  const html = zuschlagVergleich(800000, [{ id: "a", titel: "x", auftraggeber: "y", ort: "", datum: null, wert: 700000, gewinner: "", link: "" }], 750000, "über 24 Monate Laufzeit");
+  assert.match(html, /Euer Angebot über 24 Monate Laufzeit/);
+  assert.match(html, /Selbstkosten ohne Gewinn: 750\.000,00\s€ – über der Mitte der Zuschläge/);
+});

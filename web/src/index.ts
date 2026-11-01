@@ -1,6 +1,6 @@
 // Jarvis upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import kunden from "../kunden.json";
-import { BRANCHEN_VORLAGEN, euro, FELDER, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
+import { BRANCHEN_VORLAGEN, euro, FELDER, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
 import profile from "../../alarm/profile.json";
 import { CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
@@ -256,7 +256,7 @@ async function bodenLaden(s: Sitzung, env: Env, firma: string): Promise<Boden> {
   if (vertraege.daten.some((v) => v.name === GVP.name)) kandidaten.push({ lohn: lohnAm("1", heute, 0), name: "Zeitarbeitstarif (EG 1)" });
   const ids = vertraege.daten.filter((v) => v.tarifart === "Branchenmindestlohn" && v.katalog_id).map((v) => v.katalog_id!);
   if (ids.length) {
-    const saetze = await db<{ tarif_id: string; gruppe: string; betrag: number; gueltig_ab: string }[]>(s, env, `tarifkatalog_saetze?tarif_id=in.(${ids.map(encodeURIComponent).join(",")})&einheit=eq.Stunde&gueltig_ab=lte.${heute}&select=tarif_id,gruppe,betrag,gueltig_ab&order=gueltig_ab.desc`);
+    const saetze = await db<{ tarif_id: string; gruppe: string; betrag: number; gueltig_ab: string }[]>(s, env, `tarifkatalog_saetze?tarif_id=in.(${ids.map(encodeURIComponent).join(",")})&einheit=eq.Stunde&gueltig_ab=lte.${heute}&or=(gueltig_bis.is.null,gueltig_bis.gte.${heute})&select=tarif_id,gruppe,betrag,gueltig_ab&order=gueltig_ab.desc`);
     const aktuell = new Map<string, number>();
     for (const r of saetze.ok ? saetze.daten : []) if (!aktuell.has(`${r.tarif_id}|${r.gruppe}`)) aktuell.set(`${r.tarif_id}|${r.gruppe}`, Number(r.betrag));
     for (const [key, betrag] of aktuell) {
@@ -311,7 +311,7 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   const tarifFelder = `<fieldset><legend>Tarif Zeitarbeit (${GVP.name})</legend>
       <span class="klein">Wähle unten pro Los eine Entgeltgruppe. Jarvis rechnet den Durchschnittslohn über die Laufzeit, mit den bekannten Erhöhungen. Quelle: ${GVP.quelle}.</span>
       <label>Vertragsbeginn<input type="date" name="tarif_beginn" value="${escape(tarif.beginn)}"></label>
-      <label>Laufzeit (Monate)<input name="tarif_monate" inputmode="numeric" value="${tarif.monate}"></label>
+      <label>Vertragslaufzeit (Monate)<input name="tarif_monate" inputmode="numeric" value="${tarif.monate}"></label>
       <label>Erwartete Erhöhung pro Jahr nach der letzten bekannten Tabelle (%)<input name="tarif_steigerung" inputmode="decimal" value="${fmt(tarif.steigerung)}"></label>
       <label class="zeile"><input type="checkbox" name="tarif_erfahrung" value="1"${tarif.erfahrung ? " checked" : ""}> Erfahrungszuschläge einrechnen (1,5 % nach 9, 3 % nach 12 Monaten beim selben Kunden)</label>
     </fieldset>`;
@@ -337,14 +337,16 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
     const r = rechnen(eigene.eingaben, lose, eigene.mengen, proLos, tarif, boden);
     // Award comparison (F1): similar tenders by CPV group or key words of the title.
     const zuschlaege = zugriff ? await db<Zuschlag[]>(zugriff.s, env, "rpc/zuschlag_vergleich", { method: "POST", body: JSON.stringify({ f: zugriff.v.firma_id, worte: vergleichsWorte(zugriff.v.titel), cpv: katalog?.ok ? katalog.daten[0]?.cpv ?? [] : [], ohne: zugriff.v.katalog_id ?? "" }) }) : null;
-    const stundenGesamt = r.lose.reduce((x, z) => x + z.stunden, 0);
+    // Awards are totals over the whole term: lots counted per year are scaled to the contract term.
+    const faktor = laufzeitFaktor(lose, tarif.monate);
+    const selbstkosten = rechnen({ ...eigene.eingaben, gewinn: 0 }, lose, eigene.mengen, proLos, tarif, boden).netto;
     const varianten = szenarien(eigene.eingaben, lose, eigene.mengen, proLos, tarif);
     ergebnis = `<h3>Ergebnis</h3>
       ${r.warnungen.map((w) => `<p class="fehler">⚠️ ${escape(w)}</p>`).join("")}
       <div class="szenarien">${varianten.map((v) => `<div class="szenario${v.name === "Normal" ? " normal" : ""}"><span>${v.name}</span><strong>${euro(v.preis)}</strong><small>pro Std. · Gewinn ${fmt(v.gewinn)} %${v.netto ? `<br>${euro(v.netto)} netto` : ""}</small></div>`).join("")}</div>
       <p class="untergrenze${r.preisProStunde < r.untergrenze ? " fehler" : ""}"><span>🛑 Preisuntergrenze <strong>${euro(r.untergrenze)}</strong> pro Std.</span><span class="klein">${escape(r.boden.name)} ${fmt(r.boden.lohn)} € mit euren Kosten, ohne Gewinn. Darunter verliert ihr mit jeder Stunde Geld.</span></p>
       ${preisGrafik(r.schritte, r.preisProStunde)}
-      ${zuschlaege ? zuschlagVergleich(r.netto, zuschlaege.ok ? zuschlaege.daten.map((z) => ({ ...z, wert: Number(z.wert) })) : [], runden(stundenGesamt * r.untergrenze)) : ""}
+      ${zuschlaege ? zuschlagVergleich(runden(r.netto * faktor), zuschlaege.ok ? zuschlaege.daten.map((z) => ({ ...z, wert: Number(z.wert) })) : [], runden(selbstkosten * faktor), faktor !== 1 ? `über ${tarif.monate} Monate Laufzeit` : "") : ""}
       ${job.vorgang && zugriff && zugriff.rolle !== "leser" && r.lose.length ? `<p class="angebot-uebernehmen"><a class="knopf" href="/konto/vorgang/${job.vorgang}/angebot?neu=1">➡️ Preise pro Los ins Angebot übernehmen</a></p>` : ""}
       <p class="export-leiste"><a class="knopf zweit" href="/auftrag/${job.id}/kalkulation.csv" download>📊 Als Excel (CSV)</a><button type="button" class="zweit" data-drucken>🖨️ Drucken / PDF</button></p>
       <div class="tabelle"><table><tbody>

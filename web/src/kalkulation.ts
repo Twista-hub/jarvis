@@ -203,6 +203,11 @@ export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record
   };
 }
 
+/** Factor from the calculated hours to the whole contract term: lots counted "pro Jahr" times the term in years. */
+export function laufzeitFaktor(lose: Los[], monate: number): number {
+  return lose.length && lose.every((l) => /jahr|jährlich/i.test(l.zeitraum)) && monate > 0 ? monate / 12 : 1;
+}
+
 /** Price per hour at the floor wage with the firm's own costs and no profit: below it every hour loses money. */
 export function untergrenze(e: Eingaben, lohn: number): number {
   return runden(stundenpreis({ ...e, gewinn: 0 }, Math.max(lohn, MINDESTLOHN_2026), false).preis);
@@ -229,7 +234,8 @@ export function preisGrafik(schritte: { name: string; betrag: number }[], preis:
 const esc = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 export type Zuschlag = { id: string; titel: string; auftraggeber: string; ort: string; datum: string | null; wert: number; gewinner: string; link: string };
 /** Own net total next to published award values of similar tenders (F1). Only orientation: scope and term differ. */
-export function zuschlagVergleich(netto: number, liste: Zuschlag[], untergrenzeNetto = 0): string {
+/** netto/selbstkosten: already scaled to the whole term when the lots count hours per year (zeitraum: label for that). */
+export function zuschlagVergleich(netto: number, liste: Zuschlag[], selbstkosten = 0, zeitraum = ""): string {
   if (!liste.length) return `<details class="zuschlag-vergleich"><summary>📊 Vergleich mit früheren Zuschlägen</summary><p class="klein">Für ähnliche Ausschreibungen hat Jarvis noch keine veröffentlichten Zuschlagswerte gefunden. Der Bestand wächst täglich.</p></details>`;
   const werte = liste.map((z) => z.wert).sort((a, b) => a - b);
   const median = werte.length % 2 ? werte[(werte.length - 1) / 2] : (werte[werte.length / 2 - 1] + werte[werte.length / 2]) / 2;
@@ -239,8 +245,8 @@ export function zuschlagVergleich(netto: number, liste: Zuschlag[], untergrenzeN
   const lage = !netto ? "" : netto < min ? "unter allen gefundenen Zuschlägen" : netto > max ? "über allen gefundenen Zuschlägen" : netto <= median ? "in der unteren Hälfte der Zuschläge" : "in der oberen Hälfte der Zuschläge";
   const datum = (d: string | null) => d ? new Date(d).toLocaleDateString("de-DE", { month: "2-digit", year: "numeric", timeZone: "Europe/Berlin" }) : "";
   return `<details class="zuschlag-vergleich" open><summary>📊 Vergleich mit ${liste.length} früheren Zuschlägen</summary>
-<div class="vergleich-skala" aria-hidden="true"><span class="spanne" style="left:${pos(min)}%;width:${(Number(pos(max)) - Number(pos(min))).toFixed(1)}%"></span>${werte.map((w) => `<span class="punkt" style="left:${pos(w)}%"></span>`).join("")}${netto ? `<span class="eigen" style="left:${pos(netto)}%"></span>` : ""}</div>
-<p>${netto ? `Euer Angebot: <strong>${euro(netto)}</strong> netto, ${lage}. ` : ""}Zuschläge: ${euro(min)} bis ${euro(max)}, Mitte ${euro(median)}.${untergrenzeNetto && netto ? ` Eure Untergrenze ohne Gewinn: ${euro(untergrenzeNetto)}.` : ""}</p>
+<div class="vergleich-skala" aria-hidden="true"><span class="spanne" style="left:${pos(min)}%;width:${(Number(pos(max)) - Number(pos(min))).toFixed(1)}%"></span>${werte.map((w) => `<span class="punkt" style="left:${pos(w)}%"></span>`).join("")}${netto ? `<span class="eigen${Number(pos(netto)) > 60 ? " links" : ""}" style="left:${pos(netto)}%"></span>` : ""}</div>
+<p>${netto ? `Euer Angebot${zeitraum ? ` ${zeitraum}` : ""}: <strong>${euro(netto)}</strong> netto, ${lage}. ` : ""}Zuschläge: ${euro(min)} bis ${euro(max)}, Mitte ${euro(median)}.${selbstkosten && netto ? ` Eure Selbstkosten ohne Gewinn: ${euro(selbstkosten)}${selbstkosten > median ? " – über der Mitte der Zuschläge, hier wird es eng" : ""}.` : ""}</p>
 <ul class="vergleich-liste">${liste.slice(0, 6).map((z) => `<li>${/^https:\/\//.test(z.link) ? `<a href="${esc(z.link)}" target="_blank" rel="noopener">${esc(z.titel.slice(0, 90))}</a>` : `<span>${esc(z.titel.slice(0, 90))}</span>`}<span class="klein">${esc(z.auftraggeber.slice(0, 60))}${z.datum ? ` · ${datum(z.datum)}` : ""}${z.gewinner ? ` · ${esc(z.gewinner.slice(0, 60))}` : ""}</span><b>${euro(z.wert)}</b></li>`).join("")}</ul>
 <p class="klein">Veröffentlichte Gesamtwerte aus den Vergabeportalen. Umfang und Laufzeit unterscheiden sich, daher nur zur Orientierung.</p></details>`;
 }

@@ -562,6 +562,8 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   /* Calculation: price floor, price build-up bar, award comparison, templates. */
   .untergrenze { display: grid; gap: 2px; margin: 10px 0; padding: 8px 12px; border: 1px solid var(--line); border-left: 4px solid var(--error); border-radius: 10px; background: var(--card); font-size: 14px; }
   .untergrenze.fehler { background: #fdecea; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .untergrenze.fehler { background: #3a1d19; } :root:not([data-theme="light"]) .vergleich-skala .spanne { background: #2c4a63; } }
+  :root[data-theme="dark"] .untergrenze.fehler { background: #3a1d19; } :root[data-theme="dark"] .vergleich-skala .spanne { background: #2c4a63; }
   .preis-grafik { margin: 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
   .preis-balken { display: flex; height: 22px; overflow: hidden; border-radius: 6px; }
   .preis-balken span { min-width: 2px; }
@@ -577,6 +579,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .vergleich-skala .punkt { position: absolute; bottom: -1px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: #4f8fbf; }
   .vergleich-skala .eigen { position: absolute; bottom: -4px; width: 4px; height: 26px; margin-left: -2px; border-radius: 2px; background: #2e8b57; }
   .vergleich-skala .eigen::after { content: "Ihr Angebot"; position: absolute; top: -4px; left: 7px; white-space: nowrap; font-size: 11px; font-weight: 700; color: #2e8b57; }
+  .vergleich-skala .eigen.links::after { left: auto; right: 7px; }
   .vergleich-liste { list-style: none; margin: 6px 0; padding: 0; }
   .vergleich-liste li { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
   .vergleich-liste li > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
