@@ -5,17 +5,18 @@ import { db, html, weiterleiten, type KontoEnv, type Sitzung } from "./konto.ts"
 import { escape, seite } from "./seite.ts";
 
 export type Baustein = { id: string; titel: string; kategorie: string; text: string; immer: boolean };
-export const PLATZHALTER: [string, string][] = [["{{FIRMA}}", "Name eurer Firma"], ["{{AUFTRAG}}", "Titel der Ausschreibung"], ["{{AUFTRAGGEBER}}", "Auftraggeber"], ["{{DATUM}}", "heutiges Datum"]];
+export const PLATZHALTER: [string, string][] = [["{{FIRMA}}", "Name eurer Firma"], ["{{AUFTRAG}}", "Titel der Ausschreibung"], ["{{AUFTRAGGEBER}}", "Auftraggeber"], ["{{DATUM}}", "heutiges Datum"],
+  ["{{RECHTSFORM}}", "Rechtsform"], ["{{GRUENDUNGSJAHR}}", "Gründungsjahr"], ["{{MITARBEITER}}", "Beschäftigte"], ["{{ANSCHRIFT}}", "Anschrift"], ["{{REGISTER}}", "Handelsregister"], ["{{GESCHAEFTSFUEHRUNG}}", "Geschäftsführung"], ["{{PQ}}", "Präqualifikation"]];
 export const KATEGORIEN = ["Einleitung", "Firmenvorstellung", "Personal und Vertretung", "Qualität", "Konzept", "Schluss", "Allgemein"];
 export const BEISPIELE: Omit<Baustein, "id">[] = [
-  { titel: "Firmenvorstellung", kategorie: "Firmenvorstellung", immer: true, text: "{{FIRMA}} erbringt seit vielen Jahren Leistungen dieser Art für öffentliche und private Auftraggeber. Unsere Mitarbeitenden sind eingearbeitet, zuverlässig und mit den Anforderungen vertraut. [[Gründungsjahr, Mitarbeiterzahl und Schwerpunkte ergänzen]]" },
+  { titel: "Firmenvorstellung", kategorie: "Firmenvorstellung", immer: true, text: "{{FIRMA}} ({{RECHTSFORM}}) erbringt seit {{GRUENDUNGSJAHR}} Leistungen dieser Art für öffentliche und private Auftraggeber. Mit {{MITARBEITER}} Beschäftigten sind wir eingearbeitet, zuverlässig und mit den Anforderungen vertraut. [[Schwerpunkte ergänzen]]" },
   { titel: "Personaleinsatz und Vertretung", kategorie: "Personal und Vertretung", immer: false, text: "Für den Auftrag „{{AUFTRAG}}“ setzen wir festes Stammpersonal ein. Ausfälle durch Urlaub oder Krankheit überbrücken wir mit eingewiesenen Vertretungskräften, sodass die vereinbarte Besetzung jederzeit gewährleistet ist. Eine feste Ansprechperson koordiniert den Einsatz." },
   { titel: "Qualitätssicherung", kategorie: "Qualität", immer: false, text: "Wir sichern die Qualität durch regelmäßige Kontrollen vor Ort, dokumentierte Einweisungen und kurze Wege bei Rückfragen. Mängel beheben wir umgehend und informieren den Auftraggeber über die getroffenen Maßnahmen." },
   { titel: "Schlussformel", kategorie: "Schluss", immer: true, text: "Wir würden uns freuen, den Auftrag für {{AUFTRAGGEBER}} auszuführen, und stehen für Rückfragen jederzeit zur Verfügung.\n\nMit freundlichen Grüßen\n{{FIRMA}}" },
 ];
 
 export function ausfuellen(text: string, werte: Record<string, string>): string {
-  return text.replace(/\{\{(FIRMA|AUFTRAG|AUFTRAGGEBER|DATUM)\}\}/g, (m, k: string) => werte[k] || m);
+  return text.replace(/\{\{(FIRMA|AUFTRAG|AUFTRAGGEBER|DATUM|RECHTSFORM|GRUENDUNGSJAHR|MITARBEITER|ANSCHRIFT|REGISTER|GESCHAEFTSFUEHRUNG|PQ)\}\}/g, (m, k: string) => werte[k] || m);
 }
 
 /** Appends the ticked text modules (in category order) that are not in the text yet. */

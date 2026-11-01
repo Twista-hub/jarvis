@@ -49,6 +49,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101120000_auftraege_auftraggeber_auswertung.sql
 \ir ../migrations/20261101130000_textbausteine_leistungsverzeichnis.sql
 \ir ../migrations/20261101140000_termine_partner_disposition.sql
+\ir ../migrations/20261101150000_firmenprofil_personalakte.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -768,6 +769,51 @@ do $$ begin
   insert into public.partner_anfragen (firma_id, vorgang_id, partner_id) select v.firma_id, v.id, (select id from public.partner limit 1) from public.vorgaenge v limit 1;
   if found then raise exception 'FEHLER: fremde Anfrage'; end if;
 exception when insufficient_privilege or not_null_violation then null; end $$;
+reset role;
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
+select set_config('test.uid', '', false);
+
+-- T1–T6: company profile for admins, key figures only with finance rights, proofs and instructions per location.
+reset role;
+update public.mitglieder set aktiv = true, finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
+select set_config('test.p_hh', :'p_hamburg', false);
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.firmenprofil (firma_id, rechtsform, gruendungsjahr, mitarbeiter) values (:'firma', 'GmbH', 2009, 400);
+insert into public.firmen_kennzahlen (firma_id, jahr, umsatz, beschaeftigte) values (:'firma', 2025, 12500000, 390);
+insert into public.firmen_zertifikate (firma_id, art, bezeichnung, nummer, gueltig_bis) values (:'firma', 'pq_vob', 'Präqualifikation VOB', '010.123456', '2027-06-30');
+insert into public.unterweisungen (firma_id, titel, intervall_monate) values (:'firma', 'Arbeitsschutz', 12);
+select pruefe((select count(*) = 1 from public.firmen_kennzahlen), 'Inhaber pflegt Umsatz und Beschäftigte');
+update public.firmen set strasse = 'Hauptstraße 1' where id = :'firma';
+do $$ begin
+  update public.firmen set paket = 'pro' where id = current_setting('test.firma')::uuid;
+  raise exception 'FEHLER: Inhaber ändert den Plan selbst';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select pruefe((select strasse = 'Hauptstraße 1' and paket <> 'pro' from public.firmen where id = :'firma'), 'Inhaber ändert die Anschrift, aber nicht den Plan');
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select rechtsform = 'GmbH' from public.firmenprofil) and (select count(*) = 1 from public.firmen_zertifikate), 'Bearbeiter sieht Firmenprofil und Zertifikate');
+select pruefe((select count(*) = 0 from public.firmen_kennzahlen), 'Ohne Finanzfreigabe kein Umsatz');
+update public.firmenprofil set rechtsform = 'AG';
+select pruefe((select rechtsform = 'GmbH' from public.firmenprofil), 'Bearbeiter ändert das Firmenprofil nicht');
+update public.personal set beschaeftigung = 'teilzeit', wochenstunden = 20, fuehrerschein = '{B,C1}', sprachen = '{Deutsch,Türkisch}', wohn_plz = '10115' where id = :'p_berlin';
+select pruefe((select beschaeftigung = 'teilzeit' and wohn_plz = '10115' from public.personal where id = :'p_berlin'), 'Personalakte mit neuen Feldern gepflegt');
+insert into public.personal_nachweise (firma_id, personal_id, bezeichnung, gueltig_bis) values (:'firma', :'p_berlin', 'Staplerschein', '2028-01-31');
+insert into public.unterweisung_teilnahmen (firma_id, unterweisung_id, personal_id, datum) values (:'firma', (select id from public.unterweisungen limit 1), :'p_berlin', '2026-10-15');
+select pruefe((select count(*) = 1 from public.personal_nachweise) and (select count(*) = 1 from public.unterweisung_teilnahmen), 'Nachweis und Unterweisung im eigenen Standort');
+do $$ begin
+  insert into public.personal_nachweise (firma_id, personal_id, bezeichnung) values (current_setting('test.firma')::uuid, current_setting('test.p_hh')::uuid, 'Erste Hilfe');
+  raise exception 'FEHLER: Nachweis im fremden Standort';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.unterweisung_teilnahmen (firma_id, unterweisung_id, personal_id, datum) values (current_setting('test.firma')::uuid, (select id from public.unterweisungen limit 1), current_setting('test.p_hh')::uuid, '2026-10-15');
+  raise exception 'FEHLER: Unterweisung im fremden Standort';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  update public.personal set wohn_plz = '1011' where vorname = 'Protokoll' and nachname = 'Berlin';
+  raise exception 'FEHLER: ungültige PLZ';
+exception when check_violation then null; end $$;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.firmenprofil) and (select count(*) = 0 from public.firmen_zertifikate) and (select count(*) = 0 from public.personal_nachweise) and (select count(*) = 0 from public.unterweisungen), 'Fremde Firma sieht weder Profil noch Personalakte');
 reset role;
 update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 select set_config('test.uid', '', false);
