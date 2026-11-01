@@ -440,6 +440,20 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .aktionsleiste a { display: flex !important; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; min-height: 40px !important; padding: 8px 10px !important; font-size: .9rem !important; }
   .neu-person > summary > span[aria-hidden] { display: none; }
   .firmen-erkenntnisse .firmen-fund { border: 0; background: var(--bg); }
+  /* Search status: one muted line, details fold out. */
+  details.suchstand { margin: 0 0 12px; padding: 0; border: 0; background: none; }
+  details.suchstand > summary { min-height: 28px; padding: 2px 0; color: var(--muted); font-size: 13px; font-weight: 600; }
+  details.suchstand[open] > summary { border-bottom: 0; margin-bottom: 0; }
+  p.suchstand { color: var(--muted); font-size: 13px; font-weight: 600; }
+  .einfuehrung { margin: 0 0 16px; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--card); }
+  .einfuehrung h2 { margin: 0 0 8px; font-size: 1rem; }
+  .einfuehrung ol { list-style: none; margin: 0 0 6px; padding: 0; display: grid; gap: 6px; }
+  .einfuehrung li { display: flex; align-items: center; gap: 10px; }
+  .einfuehrung li a { display: grid; color: var(--text); text-decoration: none; }
+  .einfuehrung li a strong { font-size: .92rem; }
+  .schritt-nr { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--bg); font-size: 13px; font-weight: 700; }
+  .einfuehrung li.erledigt .schritt-nr { background: #2e8b57; }
+  .einfuehrung li.erledigt strong { text-decoration: line-through; color: var(--muted); }
   /* Short fields side by side: invitation form, calculation numbers, new location. */
   .kalk-gruppe label { margin-top: 6px; }
   .kalk-gruppe label .klein { font-weight: 400; }
