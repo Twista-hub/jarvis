@@ -5,6 +5,7 @@ import { db, html, weiterleiten, unterlagenSteckbrief, type KontoEnv, type Sitzu
 import { escape, seite } from "./seite.ts";
 import { belegung, montag, wochentage, type Abwesenheit, type EinsatzAuftrag, type Person, type Ueberlassung } from "./disposition.ts";
 import type { Los } from "./kalkulation.ts";
+import { alsEinsatz, type Schicht } from "./schichten.ts";
 
 export const WOCHEN = [0, 4, 8, 12];
 const plusTage = (d: string, n: number) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
@@ -55,16 +56,17 @@ export function reichtTeilHtml(lose: Los[], personen: Person[], freiIds: Set<str
 }
 
 async function belegungDaten(s: Sitzung, env: KontoEnv, firma: string, von: string, bis: string) {
-  const [p, u, a, e, v] = await Promise.all([
+  const [p, u, a, e, v, sch] = await Promise.all([
     db<Person[]>(s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,berufe,bereich_id,status&limit=3000`),
     db<Ueberlassung[]>(s, env, `ueberlassungen?firma_id=eq.${firma}&von=lte.${bis}&or=(bis.is.null,bis.gte.${von})&select=id,personal_id,entleiher,von,bis&limit=5000`),
     db<Abwesenheit[]>(s, env, `personal_abwesenheiten?firma_id=eq.${firma}&von=lte.${bis}&bis=gte.${von}&select=personal_id,von,bis,grund,status&limit=5000`),
     db<{ personal_id: string; vorgang_id: string; vorgaenge: { titel: string; status: string } | null }[]>(s, env, `einsaetze?firma_id=eq.${firma}&status=eq.zugesagt&select=personal_id,vorgang_id,vorgaenge(titel,status)&limit=5000`),
     db<{ vorgang_id: string; beginn: string | null; ende: string | null }[]>(s, env, `vertraege?firma_id=eq.${firma}&select=vorgang_id,beginn,ende`),
+    db<Schicht[]>(s, env, `schichten?firma_id=eq.${firma}&datum=gte.${von}&datum=lte.${bis}&personal_id=not.is.null&select=id,personal_id,datum,beginn,ende,ort,antwort&limit=5000`),
   ]);
   const vertrag = new Map((v.ok ? v.daten : []).map((x) => [x.vorgang_id, x]));
   const auftraege: EinsatzAuftrag[] = (e.ok ? e.daten : []).filter((x) => x.vorgaenge?.status === "gewonnen").map((x) => ({ personal_id: x.personal_id, vorgang_id: x.vorgang_id, titel: x.vorgaenge!.titel, beginn: vertrag.get(x.vorgang_id)?.beginn ?? null, ende: vertrag.get(x.vorgang_id)?.ende ?? null }));
-  return { personen: p.ok ? p.daten : [], ueb: u.ok ? u.daten : [], abw: a.ok ? a.daten : [], auftraege };
+  return { personen: p.ok ? p.daten : [], ueb: [...(u.ok ? u.daten : []), ...alsEinsatz(sch.ok ? sch.daten : [])], abw: a.ok ? a.daten : [], auftraege };
 }
 
 /** Section on the tender page, only when the documents gave lots with a job. */

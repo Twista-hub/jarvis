@@ -806,6 +806,12 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   /* Company profile and personnel file (T1–T8). */
   .team-warnungen { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 10px; padding: 8px 12px; border: 1px solid #e3c27a; border-radius: 12px; background: color-mix(in srgb, #d68910 10%, var(--card)); font-size: 13px; }
   .team-werkzeuge { margin-bottom: 12px; }
+  .konto-kacheln.team-werkzeuge { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin: 8px 0 16px; }
+  @media (min-width: 760px) { .konto-kacheln.team-werkzeuge { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  .team-werkzeuge .konto-kachel { min-height: 0; padding: 10px 6px; gap: 2px; align-items: center; text-align: center; border-radius: 12px; }
+  .team-werkzeuge .konto-kachel strong { font-size: 13px; line-height: 1.25; overflow-wrap: anywhere; hyphens: auto; }
+  .team-werkzeuge .konto-kachel .klein, .team-werkzeuge .konto-pfeil { display: none; }
+  .team-werkzeuge .konto-icon { font-size: 22px; }
   .profil-stand { display: grid; gap: 4px; margin: 0 0 10px; } .profil-balken { height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; } .profil-balken span { display: block; height: 100%; background: #2e8b57; }
   .profil-form table input { width: 100%; min-height: 32px; padding: 2px 6px; } .profil-form td:first-child, .profil-form th:first-child { white-space: nowrap; width: 1%; }
   .logo-teil { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; } .firmenlogo { max-height: 60px; max-width: 200px; border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: #fff; }
@@ -868,6 +874,29 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .abwesenheit-liste li.beantragt { background: color-mix(in srgb, #d68910 10%, transparent); border-radius: 6px; } .abwesenheit-liste button { white-space: nowrap; }
   .zugang-akte { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: end; margin: 6px 0 0; padding: 0; border: 0; background: none; box-shadow: none; }
   .zugang-akte label { flex: 1 1 200px; margin: 0; font-size: 13px; } .zugang-akte button { width: auto; }
+  /* Firma & Team part 3 (T17–T22). */
+  .warnung { color: #b07800; }
+  .stunden-person { margin: 10px 0; } .stunden-person h3 { margin: 0 0 4px; font-size: 15px; } .stunden-person h3 .klein { font-weight: 400; }
+  .stunden-form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; display: block; }
+  .stunden-buero li.stunden-zeile { display: grid; grid-template-columns: 22px 1fr auto; gap: 8px; align-items: center; padding: 6px 10px; }
+  .stunden-zeile > div { display: grid; gap: 1px; min-width: 0; font-size: 14px; } .stunden-zeile > strong { font-size: 15px; white-space: nowrap; }
+  .stunden-zeile input[type=checkbox] { width: 18px; height: 18px; min-height: 0; margin: 0; }
+  .stunden-zeile.abgelehnt { opacity: .55; } .stunden-zeile.abgelehnt > strong { text-decoration: line-through; }
+  .stunden-knoepfe { display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0; } .stunden-knoepfe button { width: auto; flex: 1 1 160px; }
+  .schicht-woche { display: grid; gap: 6px 14px; } @media (min-width: 760px) { .schicht-woche { grid-template-columns: 1fr 1fr; } }
+  .schicht-tag h3 { margin: 8px 0 2px; font-size: 14px; } .schicht-tag.heute h3 { color: var(--accent); } .schicht-tag.leer h3 { font-weight: 500; color: var(--muted); margin: 4px 0; }
+  .schicht-liste li.offen { border-left: 3px solid #d68910; } .schicht-liste li.zugesagt { border-left: 3px solid #2e8b57; } .schicht-liste li.abgesagt { border-left: 3px solid var(--error); opacity: .75; } .schicht-liste li.frei { border-left: 3px dashed var(--line); }
+  .schicht-antwort { display: flex; gap: 4px; } .schicht-antwort button { width: auto; min-height: 32px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
+  .mitteilung { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .mitteilung.neu { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .mitteilung h3 { margin: 0 0 2px; font-size: 16px; } .mitteilung > p { margin: 4px 0; }
+  .mitteilung-fuss { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
+  .mitteilung-fuss form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .mitteilung-fuss button { width: auto; min-height: 32px; padding: 2px 12px; font-size: 13px; }
+  .gelesen-liste { flex: 1 1 200px; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .gelesen-liste summary { min-height: 0; padding: 0; }
+  .kontrolle-form { display: flex; gap: 4px; align-items: center; } .kontrolle-form input[type=date] { width: 140px; min-height: 32px; padding: 2px 6px; font-size: 13px; } .kontrolle-form button { width: auto; min-height: 32px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
+  @media (max-width: 480px) { .kontroll-liste li { flex-wrap: wrap; } .kontroll-liste li > div { flex: 1 1 100%; } }
+  .unterweisung-ich { flex-wrap: wrap; } .unterweisung-ich > div { flex: 1 1 200px; } .unterweisung-ich details, .unterweisung-inhalt { margin: 4px 0 0; padding: 0; border: 0; background: none; box-shadow: none; } .unterweisung-ich details summary, .unterweisung-inhalt summary { min-height: 0; padding: 0; }
+  .unterweisung-ich form button { width: auto; min-height: 32px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
 </style>
 </head>
 <body><main>

@@ -37,6 +37,10 @@ import { aufgaben } from "./aufgaben.ts";
 import { betriebsmittel } from "./betriebsmittel.ts";
 import { kapazitaetSeiteRoute } from "./kapazitaet.ts";
 import { ich } from "./ich.ts";
+import { stundenRoute } from "./stunden.ts";
+import { schichtenRoute } from "./schichten.ts";
+import { brett } from "./brett.ts";
+import { personalfristen } from "./personalfristen.ts";
 import { markt } from "./markt.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
@@ -178,7 +182,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (uw) return uw;
     const ps = await personalsuche(request, env);
     if (ps) return ps;
-    for (const route of [organisation, vertretung, aufgaben, betriebsmittel, kapazitaetSeiteRoute, ich]) {
+    for (const route of [organisation, vertretung, aufgaben, betriebsmittel, kapazitaetSeiteRoute, ich, stundenRoute, schichtenRoute, brett, personalfristen]) {
       const r = await route(request, env);
       if (r) return r;
     }

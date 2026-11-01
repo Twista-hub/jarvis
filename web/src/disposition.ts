@@ -3,6 +3,7 @@
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
+import { alsEinsatz, type Schicht } from "./schichten.ts";
 
 export type Person = { id: string; vorname: string; nachname: string; berufe: string[]; bereich_id: string | null; status: string };
 export type Ueberlassung = { id: string; personal_id: string; entleiher: string; von: string; bis: string | null };
@@ -101,7 +102,7 @@ export async function disposition(request: Request, env: KontoEnv): Promise<Resp
   }
   const mo = montag(datumOk(url.searchParams.get("woche") ?? "") ? url.searchParams.get("woche")! : heute);
   const so = plusTage(mo, 6);
-  const [personen, ueb, abw, eins, vt, bereiche, kunden] = await Promise.all([
+  const [personen, ueb, abw, eins, vt, bereiche, kunden, schichten] = await Promise.all([
     db<Person[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,berufe,bereich_id,status&order=vorname&limit=2000`),
     db<Ueberlassung[]>(f.s, env, `ueberlassungen?firma_id=eq.${firma}&von=lte.${so}&or=(bis.is.null,bis.gte.${mo})&select=id,personal_id,entleiher,von,bis&limit=5000`),
     db<Abwesenheit[]>(f.s, env, `personal_abwesenheiten?firma_id=eq.${firma}&von=lte.${so}&bis=gte.${mo}&select=personal_id,von,bis,grund,status&limit=5000`),
@@ -109,11 +110,13 @@ export async function disposition(request: Request, env: KontoEnv): Promise<Resp
     db<{ vorgang_id: string; beginn: string | null; ende: string | null }[]>(f.s, env, `vertraege?firma_id=eq.${firma}&select=vorgang_id,beginn,ende`),
     db<{ id: string; name: string }[]>(f.s, env, `bereiche?firma_id=eq.${firma}&select=id,name&order=name`),
     db<{ entleiher: string }[]>(f.s, env, `ueberlassungen?firma_id=eq.${firma}&select=entleiher&order=von.desc&limit=300`),
+    db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&datum=gte.${mo}&datum=lte.${so}&personal_id=not.is.null&select=id,personal_id,datum,beginn,ende,ort,antwort&limit=5000`),
   ]);
   if (!personen.ok) return antwort('<p class="fehler">Das Personal konnte nicht geladen werden.</p>', 502);
   const vertrag = new Map((vt.ok ? vt.daten : []).map((x) => [x.vorgang_id, x]));
   const auftraege: EinsatzAuftrag[] = (eins.ok ? eins.daten : []).filter((e) => e.vorgaenge?.status === "gewonnen").map((e) => ({ personal_id: e.personal_id, vorgang_id: e.vorgang_id, titel: e.vorgaenge!.titel, beginn: vertrag.get(e.vorgang_id)?.beginn ?? null, ende: vertrag.get(e.vorgang_id)?.ende ?? null }));
-  const b = belegung(personen.daten, ueb.ok ? ueb.daten : [], abw.ok ? abw.daten : [], auftraege, wochentage(mo));
+  // T18: planned shifts count as work (cancelled ones do not).
+  const b = belegung(personen.daten, [...(ueb.ok ? ueb.daten : []), ...alsEinsatz(schichten.ok ? schichten.daten : [])], abw.ok ? abw.daten : [], auftraege, wochentage(mo));
   const hinweis = url.searchParams.get("hinweis");
   return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${dispositionSeite(personen.daten, b, {
     montag: mo, heute, filter: ["frei", "einsatz"].includes(url.searchParams.get("filter") ?? "") ? url.searchParams.get("filter")! : "",
