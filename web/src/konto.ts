@@ -751,13 +751,27 @@ function leistungsTreffer(leistungen: { name: string; woerter: string[] }[], lis
   return `<h3>Treffer je Arbeit (letzte 30 Tage)</h3><ul class="leistung-treffer">${zeilen}</ul><p class="klein">${liste.length} Treffer insgesamt; zugeordnet über die Suchwörter der Arbeit in Titel und Kurzbeschreibung.</p>`;
 }
 
-/** Hint above a Steckbrief from the public notice only: lots, quantities and hours often stand only in the documents. */
+/** Words in a Steckbrief from the public notice that mark missing or guessed facts. */
+const UNSICHER = /(?<![\p{L}])(nicht angegeben|nicht genannt|nicht bekannt|vermutlich)(?![\p{L}])/giu;
+/** Small "?" after each missing or guessed fact (opens the shared pop-up); only in text, not inside links or buttons. */
+export function frageMarken(html: string): { html: string; anzahl: number } {
+  let anzahl = 0, inLink = 0;
+  const teile = html.split(/(<[^>]+>)/);
+  const out = teile.map((t, i) => {
+    if (i % 2) { if (/^<(a|button)\b/i.test(t)) inLink++; else if (/^<\/(a|button)>/i.test(t)) inLink = Math.max(0, inLink - 1); return t; }
+    if (inLink) return t;
+    return t.replace(UNSICHER, (x) => { anzahl++; return `${x}<button type="button" class="frage-mini" popovertarget="unterlagen-frage" aria-label="Wo steht das?" title="Wo steht das?">?</button>`; });
+  });
+  return { html: out.join(""), anzahl };
+}
+
+/** Pop-up for the "?" marks: lots, quantities and hours often stand only in the tender documents. */
 export function unterlagenHinweis(steckbrief: string | null | undefined, portal: string | null | undefined, kannHochladen: boolean): string {
   const fehlt = (steckbrief?.match(/nicht angegeben/gi) ?? []).length;
   const ohneLose = !/\|\s*Los\b|\*\*Lose:\*\*/i.test(steckbrief ?? "");
-  const text = `${fehlt ? `In dieser Bekanntmachung fehlen ${fehlt === 1 ? "eine Angabe" : `${fehlt} Angaben`} („nicht angegeben“)${ohneLose ? ", auch zu den Losen" : ""}. ` : ohneLose ? "Die Bekanntmachung nennt keine Lose. " : ""}Lose, Mengen und Stunden stehen oft erst in den Vergabeunterlagen (meist PDF oder ZIP), die es kostenlos beim Vergabeportal gibt. Lädst du sie hier hoch, liest Jarvis daraus die Lose mit Mengen und Stunden, welches Personal je Los gebraucht wird, Eignungsnachweise, Fristen und das Preisblatt und rechnet die Kalkulation.`;
+  const text = `${fehlt ? `In dieser Bekanntmachung fehlen ${fehlt === 1 ? "eine Angabe" : `${fehlt} Angaben`}${ohneLose ? ", auch zu den Losen" : ""}. ` : ohneLose ? "Die Bekanntmachung nennt keine Lose. " : ""}Was mit ? markiert ist, steht nicht oder nur ungenau in der öffentlichen Bekanntmachung. Lose, Mengen und Stunden stehen meist erst in den Vergabeunterlagen (PDF oder ZIP), die es kostenlos beim Vergabeportal gibt. Lädst du sie hier hoch, liest Jarvis daraus die Lose mit Mengen und Stunden, welches Personal je Los gebraucht wird, Eignungsnachweise, Fristen und das Preisblatt. Danach verschwinden die Fragezeichen.`;
   const knoepfe = `${portal ? `<a class="knopf zweit" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Unterlagen beim Portal holen</a>` : ""}${kannHochladen ? `<a class="knopf" href="#unterlagen">📥 Hier hochladen</a>` : ""}`;
-  return `<details class="frage-hinweis"><summary aria-label="Warum fehlen Angaben?" title="Warum fehlen Angaben?"><span aria-hidden="true">?</span></summary><div class="frage-text"><p><strong>Warum fehlen Angaben?</strong></p><p>${text}</p>${knoepfe ? `<div class="knopf-zeile">${knoepfe}</div>` : ""}</div></details>`;
+  return `<div id="unterlagen-frage" popover class="frage-popup"><p><strong>Wo steht das?</strong></p><p>${text}</p><div class="knopf-zeile">${knoepfe}<button type="button" class="zweit" popovertarget="unterlagen-frage" popovertargetaction="hide">Schließen</button></div></div>`;
 }
 
 export function bewertungsErklaerung(steckbrief?: string | null): string {
@@ -989,7 +1003,9 @@ ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summ
     return html(seite(v.titel, `${kopf}${await fortschritt(env, aus.auftrag)}
 ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}${kaufverantwortlich}`, 20, "treffer"), 200, s.cookies);
   } else {
-    teil = `<div class="steckbrief-kopf">${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${unterlagenHinweis(v.steckbrief, portal, rolle !== "leser")}</div>${v.steckbrief ? brief(v.steckbrief) : ""}${leiste}${hochladen}`;
+    const marken = frageMarken(v.steckbrief ? brief(v.steckbrief) : "");
+    const frageKnopf = `<button type="button" class="frage-mini gross" popovertarget="unterlagen-frage" aria-label="Warum fehlen Angaben?" title="Warum fehlen Angaben?">?</button>`;
+    teil = `<div class="steckbrief-kopf">${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${marken.anzahl ? "" : frageKnopf}</div>${marken.html}${unterlagenHinweis(v.steckbrief, portal, rolle !== "leser")}${leiste}${hochladen}`;
   }
   const teilnahme = await teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? "");
   const personalBlock = rolle === "leser" || rolle === "mitarbeiter" ? "" : await einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle));
