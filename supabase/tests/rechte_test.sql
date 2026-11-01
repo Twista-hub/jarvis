@@ -45,6 +45,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101080000_suchprofil_filter_vorschau.sql
 \ir ../migrations/20261101090000_einstellungen_konto.sql
 \ir ../migrations/20261101100000_aueg_ueberlassungen.sql
+\ir ../migrations/20261101110000_foerderung_radar.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -605,6 +606,60 @@ select test_als('00000000-0000-0000-0000-00000000000e');
 select pruefe((select cardinality(public.konto_loeschen()) = 1), 'Allein-Inhaber löscht sein Konto, seine Firma geht mit');
 reset role;
 select pruefe(not exists (select 1 from auth.users where id = '00000000-0000-0000-0000-00000000000e') and not exists (select 1 from public.firmen where id = :'selbst'), 'Konto und eigene Firma sind gelöscht');
+select set_config('test.uid', '', false);
+
+-- N2: funding programmes are shared, assessments belong to the firm; staff marks only the column "stand".
+reset role;
+insert into public.foerderprogramme (id, titel, link, veroeffentlicht) values
+  ('https://www.foerderdatenbank.de/p1', 'Digital Jetzt', 'https://www.foerderdatenbank.de/p1', current_date);
+insert into public.foerder_bewertungen (firma_id, programm_id, punkte, grund) values (:'firma', 'https://www.foerderdatenbank.de/p1', 8, 'Passt');
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-00000000000b';
+do $$ begin
+  insert into public.foerderprogramme (id, titel, link) values ('x', 'Fremd', 'https://example.org/x');
+  raise exception 'FEHLER: Förderprogramm mit fremdem Link';
+exception when check_violation then null; end $$;
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+update public.foerder_bewertungen set stand = 'gemerkt' where firma_id = :'firma';
+select pruefe((select stand = 'gemerkt' from public.foerder_bewertungen where firma_id = :'firma'), 'Bearbeiter merkt ein Förderprogramm');
+do $$ begin
+  update public.foerder_bewertungen set punkte = 10;
+  raise exception 'FEHLER: Punkte der KI-Bewertung geändert';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.foerder_bewertungen), 'Fremde Firma sieht keine Förderbewertungen');
+update public.foerder_bewertungen set stand = 'ausgeblendet';
+reset role;
+select pruefe((select stand = 'gemerkt' from public.foerder_bewertungen where firma_id = :'firma'), 'Fremde Firma ändert keine Förderbewertung');
+
+-- N3: contract end from the award notice, the announced period or award date plus duration; radar by profile.
+insert into public.vergabekatalog (id,quelle,quelle_id,version,quell_datum,titel,beschreibung,link,auftraggeber,auftraggeber_id,cpv,plz,status,zuschlaege,vertragsende,roh) values
+('test:r1','bks','r1','1',now() - interval '20 days','Unterhaltsreinigung Kita','Reinigung','https://example.org/r1','Stadt R','r',array['90910000'],array['10115'],'vergeben',
+  '[{"id":"1","datum":"2026-10-01T00:00:00Z","gewinner":["Blitz GmbH"],"wert":240000,"waehrung":"EUR"}]', (current_date + 400), '{}'),
+('test:r2','bks','r2','1',now() - interval '20 days','Glasreinigung Schule','Reinigung der Fenster','https://example.org/r2','Stadt S','s',array['90911300'],array['10117'],'vergeben',
+  '[{"id":"2","datum":"2026-10-15T00:00:00Z","gewinner":["Klar AG"],"wert":null,"waehrung":"EUR"}]', null,
+  '{"tender": {"lots": [{"contractPeriod": {"durationInDays": 365, "maxExtentDate": "2029-10-15"}}, {"contractPeriod": {"durationInDays": "kaputt"}}]}}'),
+('test:r3','bks','r3','1',now() - interval '20 days','Reinigung Hallenbad','Reinigung','https://example.org/r3','Stadt R','r',array['90910000'],array['80331'],'vergeben',
+  '[]', null, '{"tender": {"contractPeriod": {"startDate": "2026-11-01", "endDate": "2030-10-31"}}}'),
+('test:r4','bks','r4','1',now() - interval '20 days','Reinigung offen','Reinigung','https://example.org/r4','Stadt R','r',array['90910000'],array['10115'],'offen',
+  '[]', null, '{"tender": {"contractPeriod": {"durationInDays": 100}}}');
+select pruefe((select laufzeit_art = 'vertrag' and laufzeit_ende = current_date + 400 from public.vergabekatalog where id = 'test:r1'), 'Vertragsende aus dem Vertrag');
+select pruefe((select laufzeit_art = 'geschaetzt' and laufzeit_ende = date '2027-10-15' and verlaengerung_bis = date '2029-10-15' from public.vergabekatalog where id = 'test:r2'), 'Vertragsende aus Zuschlag plus Laufzeit, Verlängerung bis');
+select pruefe((select laufzeit_art = 'bekanntmachung' and laufzeit_ende = date '2030-10-31' from public.vergabekatalog where id = 'test:r3'), 'Vertragsende aus der Bekanntmachung');
+select pruefe((select laufzeit_ende is null from public.vergabekatalog where id = 'test:r4'), 'Ohne Zuschlag keine geschätzte Laufzeit');
+insert into public.vergabekatalog (id,quelle,quelle_id,version,quell_datum,titel,beschreibung,link,auftraggeber,auftraggeber_id,cpv,plz,status) values
+('test:r5','bks','r5','1',now(),'Unterhaltsreinigung Kitas 2027','Reinigung','https://example.org/r5','Stadt R','r',array['90919200'],array['10115'],'offen');
+update public.vergabekatalog set quell_datum = now() - interval '200 days' where id = 'test:r1';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select array_agg(id order by ende) = array['test:r2','test:r1'] from public.neuausschreibung_radar(:'firma', '(?<!\w)reinigung', '', '{}', array['10'], 24)), 'Radar: passende Verträge im Gebiet, nach Ende sortiert');
+select pruefe((select neu_id = 'test:r5' from public.neuausschreibung_radar(:'firma', '(?<!\w)reinigung', '', '{}', array['10'], 24) where id = 'test:r1'), 'Radar erkennt die schon veröffentlichte Neuausschreibung');
+select pruefe((select array_agg(id order by ende) = array['test:r1','test:r3'] from public.neuausschreibung_radar(:'firma', '(?!x)x', 'glas', array['9091'], '{}', 60)), 'Radar mit Kennziffern, Ausschluss und 5 Jahren');
+select pruefe((select wert = 240000 and gewinner = 'Blitz GmbH' from public.neuausschreibung_radar(:'firma', '(?<!\w)kita', '', '{}', '{}', 24)), 'Radar zeigt Gewinner und Wert');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.neuausschreibung_radar(:'firma', '(?<!\w)reinigung')), 'Fremde bekommen keinen Radar dieser Firma');
+reset role;
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

@@ -132,6 +132,20 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
     return neu
 
 
+def foerder_speichern(con, firma_id: str, foerder: dict, name: str) -> int:
+    """N2: funding programmes (shared) and this firm's AI scores. Marks set by the firm (stand) stay."""
+    programme = {p["id"]: p for p in foerder.get("programme") or [] if str(p.get("link", "")).startswith("https://www.foerderdatenbank.de/")}
+    eigene = [b for b in (foerder.get("bewertungen") or {}).get(name) or [] if b.get("id") in programme]
+    for b in eigene:
+        p = programme[b["id"]]
+        con.execute("""insert into public.foerderprogramme (id, titel, link, veroeffentlicht) values (%s, %s, %s, %s)
+            on conflict (id) do update set titel = excluded.titel""", (p["id"][:600], p["titel"][:600], p["link"][:600], p.get("tag")))
+        con.execute("""insert into public.foerder_bewertungen (firma_id, programm_id, punkte, grund) values (%s, %s, %s, %s)
+            on conflict (firma_id, programm_id) do update set punkte = excluded.punkte, grund = excluded.grund, bewertet = now()""",
+                    (firma_id, p["id"][:600], max(1, min(10, int(b["punkte"]))), str(b.get("grund", ""))[:600]))
+    return len(eigene)
+
+
 def zwischenspeichern(profil: dict, treffer: list[dict], stand: dict) -> bool:
     """During a run: upsert confirmed hits right away and record the progress. Never stops the run."""
     firma_id = profil.get("firma_id")
@@ -195,6 +209,9 @@ def main() -> None:
             nicht_aktuell = nicht_mehr_aktuell_verwerfen(con, firma_id, eigene, kompletter_katalog)
             neu = speichern(con, firma_id, eigene, profil.get("regionen", {}), {k: profile[k].get("bereich_id") for k in namen}, neue_je_firma.setdefault(firma_id, []))
             abgelaufen = abgelaufene_archivieren(con, firma_id)
+            foerder = foerder_speichern(con, firma_id, geladen.get("foerder") or {} if isinstance(geladen, dict) else {}, name)
+            if foerder:
+                print(f"{profil['name']}: {foerder} Förderprogramme bewertet")
             ergebnis = {"treffer": len(eigene), "neu": neu, "ungeprueft": sum(t.get("punkte") is None for t in eigene),
                         "archiviert": unpassend + verworfen + nicht_aktuell, "abgelaufen": abgelaufen, **bericht.get("suchstand", {})}
             suchgebiet = {"standorte": profil["standorte"], "suchgebiet_modus": "firmenstandorte"} if profil.get("suchgebiet_modus") == "firmenstandorte" else {}

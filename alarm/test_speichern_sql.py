@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 import psycopg
 
 sys.path.insert(0, str(Path(__file__).parent))
-from alarm.speichern import speichern, unpassende_verwerfen
+from alarm.speichern import foerder_speichern, speichern, unpassende_verwerfen
 
 URL = os.environ.get("JARVIS_TEST_DATABASE_URL", "")
 FIRMA = "11111111-1111-4111-8111-111111111111"
@@ -61,3 +61,19 @@ class SpeicherSqlTest(unittest.TestCase):
         self.assertEqual(unpassende_verwerfen(self.con, FIRMA, ["a", "b", "c"]), 1)
         rows = self.con.execute("select firma_id::text,quelle_id,status from public.vorgaenge order by firma_id,quelle_id").fetchall()
         self.assertEqual(rows, [(FIRMA, "a", "verworfen"), (FIRMA, "b", "pruefen"), (FIRMA, "c", "angebot"), (ANDERE, "a", "neu")])
+
+    def test_funding_scores_keep_the_firms_mark_and_skip_foreign_links(self):
+        self.con.execute("""create table public.foerderprogramme (id text primary key, titel text, link text, veroeffentlicht date)""")
+        self.con.execute("""create table public.foerder_bewertungen (firma_id uuid, programm_id text, punkte int, grund text,
+            bewertet timestamptz default now(), stand text default 'neu', primary key(firma_id, programm_id))""")
+        link = "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/digital-jetzt.html"
+        foerder = {"programme": [{"id": link, "titel": "Digital Jetzt", "link": link, "tag": "2026-10-31"},
+                                 {"id": "https://example.org/x", "titel": "Fremd", "link": "https://example.org/x", "tag": None}],
+                   "bewertungen": {"Firma": [{"id": link, "punkte": 8, "grund": "Passt"}, {"id": "https://example.org/x", "punkte": 9, "grund": "x"}]}}
+        self.assertEqual(foerder_speichern(self.con, FIRMA, foerder, "Firma"), 1)
+        self.con.execute("update public.foerder_bewertungen set stand='gemerkt'")
+        foerder["bewertungen"]["Firma"][0].update(punkte=12, grund="Neu bewertet")
+        self.assertEqual(foerder_speichern(self.con, FIRMA, foerder, "Firma"), 1)
+        self.assertEqual(self.con.execute("select punkte, grund, stand from public.foerder_bewertungen").fetchone(), (10, "Neu bewertet", "gemerkt"))
+        self.assertEqual(foerder_speichern(self.con, ANDERE, foerder, "Andere"), 0)
+        self.assertEqual(self.con.execute("select count(*) from public.foerderprogramme").fetchone()[0], 1)

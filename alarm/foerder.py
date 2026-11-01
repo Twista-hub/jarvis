@@ -46,7 +46,8 @@ def neue(items: list[dict], days: list[str]) -> list[dict]:
     return [i for i in items if i["tag"] in days]
 
 
-def abschnitt(profiles: dict, ki, days: list[str]) -> list[str]:
+def abschnitt(profiles: dict, ki, days: list[str], ergebnis: dict | None = None) -> list[str]:
+    """Report section; with `ergebnis` also the programmes and per-profile scores for the app (N2)."""
     try:
         items = neue(parse(fetch()), days)
     except Exception as e:  # the tender report must not fail because of this feed
@@ -58,8 +59,14 @@ def abschnitt(profiles: dict, ki, days: list[str]) -> list[str]:
         lines += [f"- [{i['titel']}]({i['link']})" for i in items[:30]]
         return lines + ["", f"_{QUELLE}_", ""]
     liste = [{"nr": n, "titel": i["titel"], "beschreibung": i["text"][:1500]} for n, i in enumerate(items[:60])]
+    if ergebnis is not None:
+        ergebnis["programme"] = [{"id": i["link"], "titel": i["titel"], "link": i["link"], "tag": i["tag"] or None} for i in items[:60]]
+        ergebnis["bewertungen"] = {}
     for name, profile in profiles.items():
         bewertung = ki.foerder_score(profile["beschreibung"], liste)
+        if ergebnis is not None:
+            ergebnis["bewertungen"][name] = [{"id": items[b["nr"]]["link"], "punkte": max(1, min(10, int(b.get("punkte", 1)))), "grund": str(b.get("grund", ""))[:600]}
+                                             for b in bewertung.values() if 0 <= b.get("nr", -1) < len(items)]
         passend = sorted((b for b in bewertung.values() if b.get("punkte", 0) >= 6), key=lambda b: -b["punkte"])
         lines += [f"### Für {profile['name']}", ""]
         for b in passend[:5]:
