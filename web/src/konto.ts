@@ -8,7 +8,7 @@ import { funktionsListe, personFormular } from "./mitarbeiter.ts";
 import { darfFinanzen, ZUGRIFFE } from "./rechte.ts";
 import { ABSENDER, einladungsMail, senden } from "./mail.ts";
 import { CSP } from "./app.ts";
-import { FELDER, STANDARD, felderHtml, fmt, tarifSchnellwahl, zahl, type Eingaben } from "./kalkulation.ts";
+import { FELDER, STANDARD, euro, felderHtml, fmt, tarifSchnellwahl, verrechnungssatz, zahl, type Eingaben } from "./kalkulation.ts";
 import { GVP, lohnAm } from "./tarife.ts";
 import { escape, hilfe, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
@@ -359,7 +359,11 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   } else if (unterseite === "kalkulation" && !finanzrecht) {
     inhalt = rahmen(`<p>Für Kalkulationen brauchst du eine Finanzfreigabe. Frage einen Inhaber oder Administrator.</p>`);
   } else if (unterseite === "kalkulation") {
-    const vorlagen = await db<{ bereich_id: string | null; eingaben: Eingaben }[]>(s, env, `kalkulationsvorlagen?firma_id=eq.${m.firma_id}&select=bereich_id,eingaben`);
+    const [vorlagen, profilListe] = await Promise.all([
+      db<{ bereich_id: string | null; eingaben: Eingaben }[]>(s, env, `kalkulationsvorlagen?firma_id=eq.${m.firma_id}&select=bereich_id,eingaben`),
+      db<{ id: string; name: string; eingaben: Partial<Eingaben> }[]>(s, env, `kalkulationsprofile?firma_id=eq.${m.firma_id}&select=id,name,eingaben&order=name`),
+    ]);
+    const profileHtml = profilListe.ok && profilListe.daten.length ? `<h2 id="vorlagen">💾 Eure Kalkulationsvorlagen</h2><ul class="datei-liste">${profilListe.daten.map((p) => { const w = { ...STANDARD, ...p.eingaben }; return `<li class="datei"><span class="datei-symbol" aria-hidden="true">💶</span><span class="datei-text"><strong>${escape(p.name)}</strong><span class="klein">${euro(verrechnungssatz(w))}/Std. bei ${fmt(w.lohn)} € Lohn · Gemeinkosten ${fmt(w.gemeinkosten)} % · Gewinn ${fmt(w.gewinn)} %</span></span>${m.rolle !== "leser" ? `<span class="datei-aktionen"><form method="post" action="/konto/kalkulation" class="termin-weg"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="profil_loeschen" value="${p.id}"><button class="zweit">Löschen</button></form></span>` : ""}</li>`; }).join("")}</ul><p class="klein">Neue Vorlagen speicherst du in der Kalkulation einer Ausschreibung unter „💾 Werte als Vorlage speichern“. Dort lädst du sie auch, zusammen mit Branchen-Startwerten für Gastronomie, Reinigung, Event, Sicherheit und Handwerk.</p>` : `<p class="klein">💾 Tipp: In der Kalkulation einer Ausschreibung kannst du Werte als Vorlage speichern (z. B. „Gastro“, „Reinigung“) und Branchen-Startwerte laden.</p>`;
     const gewaehlt = url.searchParams.get("bereich") ?? "";
     const standorte = b.filter((x) => x.art === "standort");
     const bereich = standorte.find((x) => x.id === gewaehlt);
@@ -367,7 +371,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const lokaldaten = bereich && vorlagen.ok ? vorlagen.daten.find((x) => x.bereich_id === bereich.id)?.eingaben : undefined;
     const werte = { ...STANDARD, ...(lokaldaten ?? firmendaten ?? {}) };
     const ortWahl = `<form method="get" action="/konto/kalkulation"><label>Werte bearbeiten für<select name="bereich"><option value="">Ganze Firma</option>${standorte.map((x) => `<option value="${escape(x.id)}"${x.id === gewaehlt ? " selected" : ""}>${escape(bereichPfad(x, b))}</option>`).join("")}</select></label><button>Werte laden</button></form>`;
-    inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${hilfe("So entsteht der Preis", "Die Kalkulation schätzt eure Selbstkosten je Stunde aus Bruttolohn, Nebenkosten, Ausfallzeit und Einsatzkosten. Gemeinkosten sowie Wagnis und Gewinn ergeben daraus den Angebotspreis. Prüfe die Werte pro Los, bevor du ein Angebot erstellst.")}${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte</h2>${ortWahl}<p>${bereich ? `Diese Werte gelten für ${escape(bereichPfad(bereich, b))}. Fehlen eigene Standortwerte, dienen die Firmenwerte als Ausgangspunkt.` : "Diese Werte gelten für die ganze Firma. Standorte können eigene Werte haben."}</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="bereich" value="${bereich ? escape(bereich.id) : ""}">${felderHtml(werte, m.rolle === "leser", tarifSchnellwahl(GVP.gruppen.map((g) => ({ eg: g, lohn: lohnAm(g, heute, 0) }))))}${m.rolle !== "leser" ? `<button>${bereich ? "Standortwerte" : "Firmenwerte"} speichern</button>` : ""}</form>`}`);
+    inhalt = rahmen(`<h2>Ausschreibung kalkulieren</h2>${hilfe("So entsteht der Preis", "Die Kalkulation schätzt eure Selbstkosten je Stunde aus Bruttolohn, Nebenkosten, Ausfallzeit und Einsatzkosten. Gemeinkosten sowie Wagnis und Gewinn ergeben daraus den Angebotspreis. Prüfe die Werte pro Los, bevor du ein Angebot erstellst.")}${await kalkulationsAuswahl(liste, env)}<h2>Standardwerte</h2>${ortWahl}<p>${bereich ? `Diese Werte gelten für ${escape(bereichPfad(bereich, b))}. Fehlen eigene Standortwerte, dienen die Firmenwerte als Ausgangspunkt.` : "Diese Werte gelten für die ganze Firma. Standorte können eigene Werte haben."}</p>${!vorlagen.ok ? `<p class="fehler">Die gespeicherten Werte konnten nicht geladen werden. Bitte lade die Seite erneut.</p>` : `<form method="post" action="/konto/kalkulation"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="bereich" value="${bereich ? escape(bereich.id) : ""}">${felderHtml(werte, m.rolle === "leser", tarifSchnellwahl(GVP.gruppen.map((g) => ({ eg: g, lohn: lohnAm(g, heute, 0) }))))}${m.rolle !== "leser" ? `<button>${bereich ? "Standortwerte" : "Firmenwerte"} speichern</button>` : ""}</form>`}${profileHtml}`);
   } else if (unterseite === "team") {
     let team: string;
     const tarife = await tarifvertraegeLaden(s, env, m.firma_id);
@@ -490,6 +494,12 @@ async function firmaAnlegen(s: Sitzung, form: FormData, _r: Request, env: KontoE
 
 async function vorlageSpeichern(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
   const firma = String(form.get("firma") ?? "");
+  // Delete a named calculation template (F4).
+  const weg = String(form.get("profil_loeschen") ?? "");
+  if (/^[0-9a-f-]{36}$/.test(weg) && /^[0-9a-f-]{36}$/.test(firma)) {
+    const r = await db(s, env, `kalkulationsprofile?id=eq.${weg}&firma_id=eq.${firma}`, { method: "DELETE" });
+    return weiterleiten(`/konto/kalkulation?firma=${firma}&hinweis=${encodeURIComponent(r.ok ? "Vorlage gelöscht." : "Die Vorlage konnte nicht gelöscht werden.")}#vorlagen`);
+  }
   const bereichId = String(form.get("bereich") ?? "") || null;
   // Missing fields (e.g. an older form) take the standard value; a field filled with nonsense is rejected.
   const eingaben = Object.fromEntries(FELDER.map((f) => {

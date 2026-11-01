@@ -39,6 +39,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101020000_vorgang_notizen.sql
 \ir ../migrations/20261101030000_eigene_termine_kalenderabo.sql
 \ir ../migrations/20261101040000_unterlagen_ordner_referenzen.sql
+\ir ../migrations/20261101050000_kalkulationsprofile_zuschlagvergleich.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -464,6 +465,17 @@ do $$ begin
   insert into public.referenzen (firma_id, auftraggeber, leistung) values (current_setting('test.firma')::uuid, 'x', 'y');
   raise exception 'FEHLER: Fremde Referenz angelegt';
 exception when insufficient_privilege or check_violation then null; end $$;
+reset role;
+
+-- Calculation templates: kept per firm, invisible to others; award comparison runs for members only.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.kalkulationsprofile (firma_id, name, eingaben) values (:'firma', 'Gastro', '{"lohn": 15}');
+select pruefe((select count(*)=1 from public.kalkulationsprofile), 'Kalkulationsvorlage gespeichert');
+select pruefe((select count(*)>=0 from public.zuschlag_vergleich(:'firma', array['Reinigung'], array['90910000'])), 'Zuschlagsvergleich läuft');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*)=0 from public.kalkulationsprofile), 'Fremde Firma sieht keine Kalkulationsvorlagen');
+select pruefe((select count(*)=0 from public.zuschlag_vergleich(:'firma', array['Reinigung'], array['90910000'])), 'Fremde bekommen keinen Zuschlagsvergleich dieser Firma');
 reset role;
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

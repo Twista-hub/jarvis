@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Kalkulation F1–F5)
+- F1: Vergleich mit veröffentlichten Zuschlagswerten ähnlicher Ausschreibungen (Funktion `zuschlag_vergleich`: gleiche CPV-Gruppe oder Stichwörter aus dem Titel), Skala mit eigenem Angebot, Spanne und Mitte, Liste mit Links. Nur Orientierung (Umfang/Laufzeit verschieden).
+- F2: Preisuntergrenze je Stunde (niedrigster Lohn mit euren Kosten, ohne Gewinn). Niedrigster Lohn = gesetzlicher Mindestlohn bzw. der niedrigste gültige Branchenmindestlohn aus den Tarifverträgen der Firma (`tarifkatalog_saetze`) oder Zeitarbeit EG 1. Warnungen: Los-Lohn unter Branchenmindestlohn, Lohnnebenkosten unter 19 %, Ausfallzeiten unter 10 %.
+- F3: Angebotstext mit Spalte „Preis je Stunde netto“ pro Los; Auswahlseite zeigt Stunden × Preis; Knopf „➡️ Preise pro Los ins Angebot übernehmen“ unter dem Ergebnis.
+- F4: Kalkulationsvorlagen: Branchen-Startwerte (Gastronomie, Gebäudereinigung, Event & Messe, Sicherheitsdienst, Bau & Handwerk; Lohn bleibt der eigene) und eigene Vorlagen (Tabelle `kalkulationsprofile`, höchstens 30) zum Laden und Speichern in der Kalkulation, Liste mit Löschen unter /konto/kalkulation. Migration `20261101050000_kalkulationsprofile_zuschlagvergleich.sql`, Rechte-Test ergänzt.
+- F5: Balkengrafik, wie sich der Preis pro Stunde zusammensetzt (Lohn, Nebenkosten, Ausfall, Zuschläge, Gemeinkosten, Einsatzkosten, Gewinn) mit Betrag und Anteil.
+- Mit Screenshot geprüft; 184 Web-Tests und Rechte-Test grün.
+
 ### 01.11.2026 – Claude (Unterlagen E1–E5)
 - E1: Ordner für Firmenunterlagen (Spalte `ordner`; leer = Jarvis sortiert nach Namen: Versicherungen, Register & Gewerbe, Steuern & Sozialversicherung, Erlaubnisse & Zertifikate, Erklärungen, Referenzen & Umsatz, Angebotsvorlagen, Sonstiges). Ordner-Chips zum Filtern, kompakte Dateizeilen mit Ampel, Menü ⋯ zum Ändern von Ordner und Ablaufdatum.
 - E2: Ohne Datum liest Jarvis beim Hochladen das Ablaufdatum aus PDF oder Foto (Haiku, Effort low, über das KI-Budget, ca. 1 Cent, nur bis 5 MB). Spalte `gueltig_erkannt`, Hinweis „Bitte kurz prüfen“, im Menü ⋯ auch nachträglich „Datum von Jarvis lesen lassen“.

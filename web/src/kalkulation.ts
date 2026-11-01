@@ -128,7 +128,14 @@ export type Ergebnis = {
   netto: number;
   brutto: number;
   warnungen: string[];
+  /** Lowest sensible price per hour: the floor wage with your costs, without profit (F2). */
+  untergrenze: number;
+  boden: Boden;
 };
+
+/** Lowest wage allowed: legal minimum wage or the lowest sector minimum wage of the firm's agreements. */
+export type Boden = { lohn: number; name: string };
+export const MINDESTLOHN: Boden = { lohn: MINDESTLOHN_2026, name: "gesetzlicher Mindestlohn" };
 
 const auf = (x: number, p: number) => x * (1 + p / 100);
 
@@ -159,7 +166,7 @@ function stundenpreis(e: Eingaben, lohn: number, auswaerts: boolean) {
 }
 
 /** tarif: contract start and length for lots paid by a collective wage group (eg) instead of an own wage. */
-export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record<string, number>, proLos: LosWerte = {}, tarif?: TarifWahl): Ergebnis {
+export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record<string, number>, proLos: LosWerte = {}, tarif?: TarifWahl, boden: Boden = MINDESTLOHN): Ergebnis {
   const e = { ...STANDARD, ...eingaben }; // values saved before new fields existed
   const basis = stundenpreis(e, e.lohn, false);
   const zeilen = lose.map((los) => {
@@ -172,7 +179,14 @@ export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record
   });
   const netto = runden(zeilen.reduce((s, z) => s + z.netto, 0));
   const warnungen: string[] = [];
-  if ([e.lohn, ...zeilen.map((z) => z.lohn)].some((l) => l < MINDESTLOHN_2026)) warnungen.push(`Ein Stundenlohn liegt unter dem gesetzlichen Mindestlohn (${fmt(MINDESTLOHN_2026)} € ab 1.1.2026).`);
+  if (e.lohn < MINDESTLOHN_2026 || zeilen.some((z) => z.lohn < MINDESTLOHN_2026)) warnungen.push(`Ein Stundenlohn liegt unter dem gesetzlichen Mindestlohn (${fmt(MINDESTLOHN_2026)} € ab 1.1.2026).`);
+  else if (boden.lohn > MINDESTLOHN_2026) {
+    const drunter = zeilen.filter((z) => !z.eg && z.lohn < boden.lohn);
+    if (e.lohn < boden.lohn && !lose.length) warnungen.push(`Der Stundenlohn liegt unter dem ${boden.name} (${fmt(boden.lohn)} €). Gilt er für diesen Auftrag, ist der Preis zu niedrig.`);
+    if (drunter.length) warnungen.push(`${drunter.map((z) => `Los ${z.los.nr}`).join(", ")}: Lohn unter dem ${boden.name} (${fmt(boden.lohn)} €). Gilt er für diesen Auftrag, ist der Preis zu niedrig.`);
+  }
+  if (e.nebenkosten < 19) warnungen.push(`Lohnnebenkosten von ${fmt(e.nebenkosten)} % sind sehr niedrig: Allein der Arbeitgeberanteil zur Sozialversicherung liegt bei rund 20 %.`);
+  if (e.ausfall < 10) warnungen.push(`Ausfallzeiten von ${fmt(e.ausfall)} % decken kaum den gesetzlichen Urlaub (rund 10 %). Krankheit und Feiertage fehlen dann.`);
   if (e.gewinn <= 0) warnungen.push("Ohne Aufschlag für Wagnis und Gewinn arbeitest du zum Selbstkostenpreis.");
   if (e.anteilNacht + e.anteilSonntag + e.anteilFeiertag > 100) warnungen.push("Nacht-, Sonntags- und Feiertagsanteil zusammen über 100 %. Bitte prüfen.");
   if (tarif && zeilen.some((z) => z.eg)) warnungen.push(...tarifHinweise(tarif));
@@ -184,7 +198,51 @@ export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record
     netto,
     brutto: runden(auf(netto, UST)),
     warnungen,
+    untergrenze: untergrenze(e, boden.lohn),
+    boden,
   };
+}
+
+/** Price per hour at the floor wage with the firm's own costs and no profit: below it every hour loses money. */
+export function untergrenze(e: Eingaben, lohn: number): number {
+  return runden(stundenpreis({ ...e, gewinn: 0 }, Math.max(lohn, MINDESTLOHN_2026), false).preis);
+}
+
+/** Sector starting values (experience values, no legal data); the wage stays the firm's own. */
+export const BRANCHEN_VORLAGEN: Record<string, { name: string; werte: Partial<Eingaben> }> = {
+  gastro: { name: "Gastronomie & Catering", werte: { nebenkosten: 22, ausfall: 18, anteilNacht: 10, anteilSonntag: 15, anteilFeiertag: 3, anteilUeber: 0, fahrt: 0, verpflegung: 0, unterkunft: 0, einmalig: 120, stundenKraft: 800, sonstiges: 0, gemeinkosten: 15, gewinn: 8 } },
+  reinigung: { name: "Gebäudereinigung", werte: { nebenkosten: 22, ausfall: 20, anteilNacht: 5, anteilSonntag: 3, anteilFeiertag: 0, anteilUeber: 0, fahrt: 4, verpflegung: 0, unterkunft: 0, einmalig: 80, stundenKraft: 1200, sonstiges: 0.8, gemeinkosten: 12, gewinn: 6 } },
+  event: { name: "Event & Messe", werte: { nebenkosten: 22, ausfall: 12, anteilNacht: 15, anteilSonntag: 25, anteilFeiertag: 5, anteilUeber: 10, fahrt: 10, verpflegung: 14, unterkunft: 0, einmalig: 60, stundenKraft: 300, sonstiges: 0, gemeinkosten: 18, gewinn: 10 } },
+  sicherheit: { name: "Sicherheitsdienst", werte: { nebenkosten: 22, ausfall: 18, anteilNacht: 35, anteilSonntag: 15, anteilFeiertag: 4, anteilUeber: 0, fahrt: 0, verpflegung: 0, unterkunft: 0, einmalig: 150, stundenKraft: 1500, sonstiges: 0, gemeinkosten: 14, gewinn: 7 } },
+  handwerk: { name: "Bau & Handwerk", werte: { nebenkosten: 24, ausfall: 22, anteilNacht: 0, anteilSonntag: 0, anteilFeiertag: 0, anteilUeber: 5, fahrt: 12, verpflegung: 14, unterkunft: 45, einmalig: 250, stundenKraft: 1200, sonstiges: 1.5, gemeinkosten: 18, gewinn: 9 } },
+};
+
+/** Price build-up as one stacked bar (F5): wage, ancillary wage costs, time off, surcharges, overhead, costs, profit. */
+export function preisGrafik(schritte: { name: string; betrag: number }[], preis: number): string {
+  if (preis <= 0) return "";
+  const teile = schritte.filter((s) => !s.name.startsWith("=") && s.betrag > 0);
+  const farben = ["#1f5f8b", "#4f8fbf", "#86b6d8", "#9b7ed1", "#e0a84a", "#d07a4a", "#2e8b57"];
+  const name = (n: string) => n.replace(/^\+ /, "").replace(/ [\d,]+ %$/, "").replace(/ im Schnitt$/, "").replace(" mit Unterkunft", "");
+  return `<figure class="preis-grafik" aria-label="So setzt sich der Preis pro Stunde zusammen"><div class="preis-balken">${teile.map((t, i) => `<span style="flex:${t.betrag.toFixed(2)};background:${farben[i % farben.length]}" title="${name(t.name)}: ${euro(t.betrag)}"></span>`).join("")}</div><figcaption><ul>${teile.map((t, i) => `<li><i style="background:${farben[i % farben.length]}"></i>${name(t.name)}<b>${euro(t.betrag)}</b><small>${Math.round((t.betrag / preis) * 100)} %</small></li>`).join("")}</ul></figcaption></figure>`;
+}
+
+const esc = (x: string) => x.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+export type Zuschlag = { id: string; titel: string; auftraggeber: string; ort: string; datum: string | null; wert: number; gewinner: string; link: string };
+/** Own net total next to published award values of similar tenders (F1). Only orientation: scope and term differ. */
+export function zuschlagVergleich(netto: number, liste: Zuschlag[], untergrenzeNetto = 0): string {
+  if (!liste.length) return `<details class="zuschlag-vergleich"><summary>📊 Vergleich mit früheren Zuschlägen</summary><p class="klein">Für ähnliche Ausschreibungen hat Jarvis noch keine veröffentlichten Zuschlagswerte gefunden. Der Bestand wächst täglich.</p></details>`;
+  const werte = liste.map((z) => z.wert).sort((a, b) => a - b);
+  const median = werte.length % 2 ? werte[(werte.length - 1) / 2] : (werte[werte.length / 2 - 1] + werte[werte.length / 2]) / 2;
+  const min = werte[0], max = werte[werte.length - 1];
+  const spanne = Math.max(max, netto) * 1.05 || 1;
+  const pos = (x: number) => Math.min(100, Math.max(0, (x / spanne) * 100)).toFixed(1);
+  const lage = !netto ? "" : netto < min ? "unter allen gefundenen Zuschlägen" : netto > max ? "über allen gefundenen Zuschlägen" : netto <= median ? "in der unteren Hälfte der Zuschläge" : "in der oberen Hälfte der Zuschläge";
+  const datum = (d: string | null) => d ? new Date(d).toLocaleDateString("de-DE", { month: "2-digit", year: "numeric", timeZone: "Europe/Berlin" }) : "";
+  return `<details class="zuschlag-vergleich" open><summary>📊 Vergleich mit ${liste.length} früheren Zuschlägen</summary>
+<div class="vergleich-skala" aria-hidden="true"><span class="spanne" style="left:${pos(min)}%;width:${(Number(pos(max)) - Number(pos(min))).toFixed(1)}%"></span>${werte.map((w) => `<span class="punkt" style="left:${pos(w)}%"></span>`).join("")}${netto ? `<span class="eigen" style="left:${pos(netto)}%"></span>` : ""}</div>
+<p>${netto ? `Euer Angebot: <strong>${euro(netto)}</strong> netto, ${lage}. ` : ""}Zuschläge: ${euro(min)} bis ${euro(max)}, Mitte ${euro(median)}.${untergrenzeNetto && netto ? ` Eure Untergrenze ohne Gewinn: ${euro(untergrenzeNetto)}.` : ""}</p>
+<ul class="vergleich-liste">${liste.slice(0, 6).map((z) => `<li>${/^https:\/\//.test(z.link) ? `<a href="${esc(z.link)}" target="_blank" rel="noopener">${esc(z.titel.slice(0, 90))}</a>` : `<span>${esc(z.titel.slice(0, 90))}</span>`}<span class="klein">${esc(z.auftraggeber.slice(0, 60))}${z.datum ? ` · ${datum(z.datum)}` : ""}${z.gewinner ? ` · ${esc(z.gewinner.slice(0, 60))}` : ""}</span><b>${euro(z.wert)}</b></li>`).join("")}</ul>
+<p class="klein">Veröffentlichte Gesamtwerte aus den Vergabeportalen. Umfang und Laufzeit unterscheiden sich, daher nur zur Orientierung.</p></details>`;
 }
 
 export function stundenEinheit(einheit: string): boolean {
@@ -211,3 +269,10 @@ export function fmt(x: number): string {
 export function euro(x: number): string {
   return x.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 }
+
+const STOPPWOERTER = new Set(["rahmenvereinbarung", "rahmenvereinbarungen", "rahmenvertrag", "leistungen", "dienstleistungen", "erbringung", "vergabe", "ausschreibung", "deutschen", "deutsche", "für", "durch", "sowie", "stadt", "kreis", "landkreis", "gemeinde", "verwaltung", "bundes", "jahre", "jahr", "losen", "lose"]);
+/** Key words of a tender title for the award comparison (longest, distinctive words first). */
+export function vergleichsWorte(titel: string): string[] {
+  return [...new Set(titel.toLowerCase().split(/[^a-zäöüß]+/).filter((w) => w.length >= 5 && !STOPPWOERTER.has(w)))].sort((a, b) => b.length - a.length).slice(0, 4);
+}
+
