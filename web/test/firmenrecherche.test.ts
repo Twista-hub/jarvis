@@ -75,13 +75,21 @@ test("Websuche ohne direkte Website-Inhalte erfindet keinen Website-Fund", async
   assert.ok(r.profil.websuche_beschreibung);
 });
 
-test("Suchfehler in HTTP-200-Antworten und pausierte Recherchen gelten nicht als Erfolg", async () => {
-  for (const antwort of [
-    { stop_reason: "end_turn", content: [{ type: "web_search_tool_result", content: { type: "web_search_tool_result_error", error_code: "unavailable" } }] },
-    { ...suche, stop_reason: "pause_turn" },
-  ]) {
-    const { client, aufrufe } = fake([antwort]);
-    await assert.rejects(() => rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, client), /keine belegten Ergebnisse|unvollständig/);
-    assert.equal(aufrufe.length, 1);
-  }
+test("Suchfehler in HTTP-200-Antworten gelten nicht als Erfolg; pausierte Recherche wird fortgesetzt", async () => {
+  const { client, aufrufe } = fake([{ stop_reason: "end_turn", content: [{ type: "web_search_tool_result", content: { type: "web_search_tool_result_error", error_code: "unavailable" } }] }]);
+  await assert.rejects(() => rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, client), /keine belegten Ergebnisse/);
+  assert.equal(aufrufe.length, 1);
+  const profil = { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ websuche_beschreibung: "Belegte Leistungen", leistungen: [{ name: "Fliesen", cpv: [], woerter: ["fliesen"] }] }) }] };
+  const p = fake([{ ...suche, stop_reason: "pause_turn" }, { stop_reason: "end_turn", content: [{ type: "text", text: "Weitere Standorte.", citations: [{ type: "web_search_result_location", title: "Standorte", url: "https://firma.example/standorte" }] }] }, profil]);
+  const r = await rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, p.client);
+  assert.equal(p.aufrufe.length, 3);
+  assert.equal(p.aufrufe[1].messages.at(-1).role, "assistant", "Fortsetzung schickt die bisherige Antwort mit");
+  assert.ok(r.profil.leistungen?.length);
+  const m = fake([{ ...suche, stop_reason: "max_tokens" }, profil]);
+  assert.ok((await rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, m.client)).profil.leistungen?.length, "abgeschnittener Text mit Quellen reicht");
+  const ohne = fake([{ stop_reason: "max_tokens", content: [{ type: "text", text: "ohne Quelle" }] }]);
+  await assert.rejects(() => rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, ohne.client), /unvollständig/);
+  const endlos = fake([{ ...suche, stop_reason: "pause_turn" }, { ...suche, stop_reason: "pause_turn" }, { ...suche, stop_reason: "pause_turn" }]);
+  await assert.rejects(() => rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, endlos.client), /unvollständig \(pause_turn\)/);
+  assert.equal(endlos.aufrufe.length, 3);
 });

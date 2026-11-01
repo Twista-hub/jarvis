@@ -79,6 +79,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Firmenprüfung bei der Registrierung repariert)
+- Fehler: Neue Registrierung (Perlease, 16 Standorte) endete mit „Die Firmenprüfung konnte gerade nicht abgeschlossen werden“. Diagnose (`.github/workflows/einrichtung-diagnose.yml`, nur lesend): die erste KI-Anfrage (Websuche) lief und wurde bezahlt, die zweite (Profil) wurde nie gestellt. Die Websuche endete nicht mit `end_turn` (bei vielen Standorten `pause_turn` bzw. abgeschnitten), das galt als Fehler.
+- Behebung `web/src/firmenrecherche.ts`: `pause_turn` wird bis zu zweimal fortgesetzt, Ausgabegrenze 3000 → 5000, ein abgeschnittener Text mit Quellen wird weiterverwendet. Der technische Grund eines Fehlschlags steht jetzt im Suchprofil (`recherche_fehler_text`) und in der Diagnose.
+
 ### 01.11.2026 – Claude (Firma & Team ausgebaut: T34–T45, Abrechnung und Selbstbedienung)
 - T34 Rechnungen `/konto/rechnungen` (Tabelle `rechnungen`, nur Finanzfreigabe): im Leistungsnachweis pro Kunde „🧾 Rechnung“ → Entwurf mit Nummer `RE-JJJJ-0001` (fortlaufend pro Jahr), Stunden × Satz plus Nacht-/Sonntags-/Feiertagszuschlag in % (neu in `kunden_preise`), Word mit Pflichtangaben (§ 14 UStG), Kleinunternehmer-Hinweis, 14 Tage Ziel. Neue Felder im Firmenprofil: Steuernummer, Kleinunternehmer, Zahlungshinweis. Jarvis verschickt nichts.
 - T35 Lohnliste `/konto/lohn.xlsx` und `.csv` (Links auf der Stundenseite): pro Person Personalnummer (neu in der Personalakte), Stunden, Nacht/Sonntag/Feiertag, Urlaubs-/Schulungs-/Abwesenheitstage, Ausfälle, Spesen, Zeitkonto. CSV mit Semikolon, Dezimalkomma, BOM, Formel-Schutz. Stundennachweis pro Person `/konto/stunden/<id>.docx` mit Unterschrift.

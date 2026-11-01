@@ -140,7 +140,7 @@ async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: str
     if (!eingerichtet) {
       const art = kiFehlerart(e);
       const morgen = new Date(); morgen.setUTCHours(24, 0, 0, 0);
-      const einstellungen = { ...basis, recherche_status: "wartet", recherche_website: website, recherche_fehler: art,
+      const einstellungen = { ...basis, recherche_status: "wartet", recherche_website: website, recherche_fehler: art, recherche_fehler_text: (e instanceof Error ? e.message : String(e)).slice(0, 300),
         recherche_wiederholen_ab: art === "budget" ? morgen.toISOString() : new Date(Date.now() + 120000).toISOString() };
       const daten = { firma_id: firma, name, beschreibung: eigeneBeschreibung, einstellungen };
       const gemerkt = await db(s, env, vorhanden ? `suchprofile?id=eq.${vorhanden.id}` : "suchprofile", { method: vorhanden ? "PATCH" : "POST", body: JSON.stringify(daten) });
