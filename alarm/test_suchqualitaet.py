@@ -171,6 +171,30 @@ class SuchqualitaetTest(unittest.TestCase):
         archiv.assert_not_called()
         schreiben.assert_not_called()
 
+    def test_funding_scores_go_into_the_result_file_and_a_funding_error_keeps_the_hits(self):
+        import foerder
+        link = "https://www.foerderdatenbank.de/FDB/Content/DE/Foerderprogramm/a.html"
+        ki = MagicMock()
+        ki.foerder_score.return_value = {0: {"nr": 0, "punkte": 8, "kurz": "x", "grund": "Passt zur Firma"}}
+        ergebnis: dict = {}
+        with patch.object(foerder, "fetch", return_value=b"<rss><channel><item><title>Digital</title><link>" + link.encode()
+                          + b"?nn=1</link><pubDate>Sat, 31 Oct 2026 08:00:00 GMT</pubDate><description>d</description></item></channel></rss>"):
+            zeilen = foerder.abschnitt({"a": {"name": "Firma A", "beschreibung": "x"}}, ki, ["2026-10-31"], ergebnis)
+        self.assertIn("**8/10**", "\n".join(zeilen))
+        self.assertEqual(ergebnis["programme"][0]["link"], link)
+        self.assertEqual(ergebnis["bewertungen"]["a"], [{"id": link, "punkte": 8, "grund": "Passt zur Firma"}])
+        p = profil()
+        rels = [bekanntmachung("gut", "Fliesenarbeiten Schule")]
+        with tempfile.TemporaryDirectory() as tmp, patch.object(alarm, "ROOT", Path(tmp)), patch.object(alarm, "FIRMA", "firma-a"), \
+             patch("profile_db.laden", return_value={"a": p}), patch.object(katalog, "bestand", return_value=[("2026-10-31", r) for r in rels]), \
+             patch.object(katalog, "bewertungen", return_value={}), patch("foerder.abschnitt", side_effect=RuntimeError("kaputt")), \
+             patch.dict("os.environ", {}, clear=True):
+            bericht = alarm.run(["2026-10-31"])
+            data = json.loads((Path(tmp) / "treffer.json").read_text())
+        self.assertEqual([t["quelle_id"] for t in data["treffer"]], ["gut"])
+        self.assertEqual(data["foerder"], {})
+        self.assertIn("Förderprogramme nicht geprüft", bericht)
+
 
 if __name__ == "__main__":
     unittest.main()

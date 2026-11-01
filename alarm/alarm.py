@@ -498,13 +498,19 @@ def run(days: list[str]) -> str:
         if not rows:
             lines += ["Noch keine bestätigten Treffer; Bewertungen stehen noch aus." if offen else "Heute nichts Passendes.", ""]
     kompletter_katalog = gemeinsam is not None and getattr(gemeinsam, "vollstaendig", True) and not ausland and getattr(gemeinsam, "luecken", 0) == 0 and not any(s["ausstehend"] for s in staende.values())
-    (ROOT / "treffer.json").write_text(json.dumps({
-        "katalog_vollstaendig": kompletter_katalog, "treffer": treffer,
-        "profile": {name: {"version": katalog.profil_version(p), "abgelehnt": sorted(abgelehnt[name]), "suchstand": staende[name]} for name, p in profiles.items()},
-    }, ensure_ascii=False), encoding="utf-8")
     import foerder
     # Funding programmes once per firm (main profile), not again for every further search profile.
-    lines += foerder.abschnitt({k: p for k, p in profiles.items() if not p.get("zusatz")}, ki, days)
+    foerderung: dict = {}
+    try:  # the hits must be saved even if the funding part fails
+        lines += foerder.abschnitt({k: p for k, p in profiles.items() if not p.get("zusatz")}, ki, days, foerderung)
+    except Exception as e:  # noqa: BLE001
+        foerderung = {}
+        lines += ["## Förderprogramme", "", f"_Förderprogramme nicht geprüft ({type(e).__name__})._", ""]
+    (ROOT / "treffer.json").write_text(json.dumps({
+        "katalog_vollstaendig": kompletter_katalog, "treffer": treffer,
+        "foerder": foerderung,
+        "profile": {name: {"version": katalog.profil_version(p), "abgelehnt": sorted(abgelehnt[name]), "suchstand": staende[name]} for name, p in profiles.items()},
+    }, ensure_ascii=False), encoding="utf-8")
     if ki:
         lines += [f"_KI-Kosten dieses Laufs: {ki.kosten():.2f} $_", ""]
     return "\n".join(lines)

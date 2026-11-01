@@ -21,6 +21,7 @@ import { ausschlussKarte, filterUebersicht, zusatzBlock, type Zusatzprofil } fro
 import { auegLaden, fristen as fristen_aueg, fristStatus, personHinweise } from "./aueg.ts";
 import { benachrichtigungAusFormular, benachrichtigungFelder, profilTeil, type Benachrichtigung } from "./kontoeinstellungen.ts";
 import { kurzberichte } from "./kurzberichte.ts";
+import { PASSEND_AB } from "./foerderung.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
 import { suchgebietKarte, type Suchpunkt } from "./karte.ts";
@@ -268,7 +269,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const rahmen = (body: string) => `${kopf}${body}`;
   const meldungen = suchmeldung(suchstand, m.firma_id);
   // Real numbers for the remaining overview tiles (only on the overview itself).
-  const [ablaufZahl, freigabeZahl, aboZahl] = !unterseite ? await Promise.all([
+  const [ablaufZahl, freigabeZahl, aboZahl, foerderZahl] = !unterseite ? await Promise.all([
     finanzrecht ? db<{ id: string }[]>(s, env, `firmenunterlagen?firma_id=eq.${m.firma_id}&art=eq.nachweis&gueltig_bis=lte.${new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10)}&select=id`).then((r) => r.ok ? r.daten.length : 0) : Promise.resolve(0),
     db<{ id: string }[]>(s, env, `vorgang_freigaben?empfaenger_id=eq.${s.userId}&firma_id=eq.${m.firma_id}&select=id`).then((r) => r.ok ? r.daten.length : 0),
     // New notices of watched contracting authorities in the last 7 days: only then the market tile appears.
@@ -278,7 +279,9 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       const neu = await db<{ id: string }[]>(s, env, `vergabekatalog?auftraggeber_id=in.(${ids.map((x) => `"${x.replace(/["\\]/g, "")}"`).join(",")})&quell_datum=gte.${new Date(Date.now() - 7 * 86400_000).toISOString()}&select=id&limit=50`);
       return neu.ok ? neu.daten.length : 0;
     }),
-  ]) : [0, 0, 0];
+    // N2: new suitable funding programmes of the last 14 days, not yet marked; only then the tile appears.
+    m.rolle !== "mitarbeiter" ? db<{ programm_id: string }[]>(s, env, `foerder_bewertungen?firma_id=eq.${m.firma_id}&stand=eq.neu&punkte=gte.${PASSEND_AB}&bewertet=gte.${new Date(Date.now() - 14 * 86400_000).toISOString()}&select=programm_id&limit=50`).then((r) => r.ok ? r.daten.length : 0) : Promise.resolve(0),
+  ]) : [0, 0, 0, 0];
   const zugaenge = mitglieder.ok ? mitglieder.daten.filter((x) => x.aktiv !== false).length : 0;
   // N13: AÜG-Wächter tile for firms that record assignments (temporary work), with the deadlines in 60 days.
   const auegFristen = !unterseite && m.rolle !== "mitarbeiter" ? fristen_aueg(await auegLaden(s, env, m.firma_id), heute) : [];
@@ -293,6 +296,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     ["markt", "🌐", "Markt & Chancen", `${aboZahl} ${aboZahl === 1 ? "neue Ausschreibung" : "neue Ausschreibungen"} beobachteter Auftraggeber`],
     ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? (suchstand.ergebnis?.treffer !== undefined ? `Letzte Suche: ${suchstand.ergebnis.treffer} Treffer` : "Suche ansehen und anpassen") : "Passende Ausschreibungen finden"],
   ];
+  if (foerderZahl) cards.push(["foerderung", "🎯", "Förderprogramme", `${foerderZahl} ${foerderZahl === 1 ? "passendes Programm" : "passende Programme"} neu`]);
   if (auegFristen.length) cards.push(["aueg", "⚖️", "AÜG-Wächter", auegDringend ? `⚠️ ${auegDringend} ${auegDringend === 1 ? "Frist" : "Fristen"} in 60 Tagen` : `${auegFristen.length} laufende ${auegFristen.length === 1 ? "Überlassung" : "Überlassungen"}`]);
   cards.push(["freigaben", "📨", "Für mich freigegeben", freigabeZahl ? `${freigabeZahl} ${freigabeZahl === 1 ? "Freigabe" : "Freigaben"} vom Team` : "Noch nichts freigegeben"]);
   // "Markt & Chancen" only when there is something new there; otherwise it is reachable under Einstellungen ("Mehr").
@@ -483,7 +487,7 @@ ${aktuell && sucheEingerichtet ? `<div id="weitere">${zusatzBlock(Array.isArray(
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
-    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${zeile("/konto/angebote", "📝", "Angebote", "Stand aller Angebote")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${zeile("/konto/angebote", "📝", "Angebote", "Stand aller Angebote")}${zeile("/konto/foerderung", "🎯", "Förderprogramme", "Täglich geprüft, passend zu deiner Firma")}${zeile("/konto/radar", "🔮", "Neuausschreibungs-Radar", "Verträge, die bald auslaufen")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>

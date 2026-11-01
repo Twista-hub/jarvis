@@ -695,6 +695,23 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .aueg-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
   .aueg-form label { margin: 0; } .aueg-form .ganz { grid-column: 1 / -1; }
   .aueg-hinweis { margin: 0; font-size: 13px; font-weight: 600; } .aueg-hinweis a { color: #b07800; }
+  /* Funding programmes (N2). */
+  .foerder-liste, .radar-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .foerder-zeile { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; align-items: start; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  .foerder-zeile:last-child, .radar-zeile:last-child { border-bottom: 0; }
+  .foerder-punkte { min-width: 44px; padding: 3px 6px; border-radius: 8px; background: var(--bg); font-weight: 700; font-size: 13px; text-align: center; }
+  .foerder-zeile.stark .foerder-punkte { background: #2e8b57; color: #fff; } .foerder-zeile.schwach { opacity: .8; }
+  .foerder-text, .radar-text { display: grid; gap: 3px; min-width: 0; }
+  .foerder-text a, .radar-text a { color: inherit; } .foerder-text strong, .radar-text strong { font-size: 14px; line-height: 1.3; }
+  .foerder-aktionen, .radar-aktionen { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .foerder-aktionen form, .radar-aktionen form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .foerder-aktionen button, .radar-aktionen button { min-height: 30px; padding: 3px 10px; font-size: 13px; width: auto; }
+  /* Re-tender radar (N3). */
+  .radar-gruppe { margin: 16px 0 4px; font-size: 1rem; } .radar-gruppe .klein { font-weight: 400; }
+  .radar-zeile { display: grid; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--line); border-left: 4px solid transparent; }
+  .radar-zeile.bald { border-left-color: #d68910; } .radar-zeile.neu { border-left-color: #2e8b57; }
+  .radar-ende { font-size: 13px; }
+  .radar-marke { font-size: 12px; color: var(--muted); padding: 3px 6px; border: 1px solid var(--line); border-radius: 8px; }
 </style>
 </head>
 <body><main>
