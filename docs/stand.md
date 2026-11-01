@@ -79,6 +79,16 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Firma & Team ausgebaut: T23–T28)
+- T23 Schutzausrüstung `/konto/psa` (Tabelle `psa_ausgaben`): Ausgabe mit Artikel (Vorschlagsliste), Größe, Menge, Austauschtermin, Rückgabe; Warnung 30 Tage vorher; Ausgabeprotokoll pro Person als Word zum Unterschreiben; Einsatzkraft sieht ihre PSA unter „Meine Einsätze & Daten“.
+- T24 Bewerber `/konto/bewerber` (Tabellen `bewerber`, `bewerber_dateien`, Dateien in R2 `bewerber/…`): nach Status gruppiert, Gesprächstermin, Unterlagen (PDF/PNG/JPG ≤ 10 MB, Signatur geprüft), „➜ Personalakte anlegen“. Nur Bearbeiter/Standortleitung/Admin. Löschdatum per Trigger (Absage + 183 Tage, Einstellung + 30 Tage); gelöscht samt Dateien beim Öffnen von Firma & Team oder der Bewerber-Seite (kein Zeitplan im Worker).
+- T25 Einstieg & Austritt `/konto/checklisten` (Tabelle `checklisten_punkte`, neue Spalte `personal.austritt_am`): Vorlagen mit üblichen Punkten, abhaken, eigene Punkte, Fortschrittsbalken, Links zu App-Zugängen/PSA/Führerscheinkontrolle.
+- T26 Urlaub `/konto/urlaub` (Tabelle `urlaubskonten`): Anspruch und Übertrag pro Jahr, genommene/beantragte Urlaubstage (Mo–Fr ohne Feiertage des Bundeslandes), Rest; Massen-Eintrag für alle ohne Konto. Teamkalender `?ansicht=kalender` als Monatsraster mit Warnung, wenn ein Viertel des Teams (mind. 2) gleichzeitig fehlt. Einsatzkraft sieht ihr Urlaubskonto.
+- T27 Einsatz-Bewertungen `/konto/bewertungen` (Tabelle `einsatz_bewertungen`, nur Büro): Sterne, „gern wieder / nicht wieder“, Notiz; Schnitt pro Person; „nicht wieder“ nimmt die Person bei diesem Kunden aus den Ersatzvorschlägen (T32).
+- T28 Personal-Auswertung `/konto/personalauswertung`: Kennzahlen, Personal nach Standort × Beruf, Beschäftigungsart, Stunden pro Monat (6 Monate), Ein-/Austritte und kurzfristige Ausfälle (12 Monate).
+- Firma & Team: Kacheln in vier Gruppen (Planung, Personal, Abrechnung & Kunden, Firma); Hinweisbox ab 7 Hinweisen eingeklappt, Ausfälle stehen oben. Neue Hinweise: neue Bewerbungen, offene Checklisten, PSA-Austausch.
+- Migration `20261101190000_psa_bewerber_checklisten_urlaub_bewertung.sql`. Datenschutz und Hilfe (5 neue Fragen). Geprüft: Rechte-Test (PSA/Bewerber nur am eigenen Standort, Löschfrist bei Absage und Aufhebung beim Zurücksetzen, Leser sieht keine Bewerber, Einsatzkraft sieht eigene PSA und Urlaubskonto, aber keine Bewertungen, Bewerber oder Checklisten und kann sich keinen Urlaubsanspruch setzen, fremde Firma sieht nichts), 263 Web-Tests, Screenshots aller Seiten.
+
 ### 01.11.2026 – Claude (Firma & Team ausgebaut: T29–T33)
 - T33 Kunden & Einsatzorte `/konto/kunden` (Tabellen `kunden`, `einsatzorte`, `kunden_preise`): Kunde mit Anschrift, Ansprechpartner, Standort; Verrechnungssatz nur mit Finanzfreigabe (eigene Tabelle mit `darf_finanzen`). Einsatzorte mit Adresse, Ansprechpartner vor Ort, Treffpunkt, Kleidung, Hinweisen, aufklappbar mit „✏️ Bearbeiten“.
 - T31 Einsatz-Infoblatt: Beim Schichtplanen Einsatzort wählen (`schichten.einsatzort_id`); die Einsatzkraft sieht in „Meine Schichten“ Adresse mit OpenStreetMap-Link, Ansprechpartner mit Anruf-Link, Treffpunkt, Kleidung, Hinweise (am Einsatztag aufgeklappt). Policy `eigene_einsatzorte`: nur Orte der eigenen Schichten ab gestern.

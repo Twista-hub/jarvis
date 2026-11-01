@@ -53,6 +53,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101160000_team_vertretung_aufgaben_selbstpflege.sql
 \ir ../migrations/20261101170000_stunden_schichten_brett_fristen.sql
 \ir ../migrations/20261101180000_kunden_leistungsnachweis_ausfall.sql
+\ir ../migrations/20261101190000_psa_bewerber_checklisten_urlaub_bewertung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -988,6 +989,49 @@ select pruefe((select count(*) = 0 from public.kunden) and (select count(*) = 0 
 select pruefe(public.ausfall_melden(current_date, '') = -1, 'Ohne eigene Personalakte kein Ausfall');
 reset role;
 update public.mitglieder set aktiv = false, finanzen = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
+select set_config('test.uid', '', false);
+
+-- T23–T27: PSA, applicants, checklists, leave accounts, ratings.
+reset role;
+update public.mitglieder set aktiv = true, rolle = 'bearbeiter' where user_id = '00000000-0000-0000-0000-00000000000b';
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-0000000000e1';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.psa_ausgaben (firma_id, personal_id, artikel, groesse, ausgegeben, austausch) values (:'firma', :'p_berlin', 'Sicherheitsschuhe S3', '43', current_date, current_date + 365);
+do $$ begin
+  insert into public.psa_ausgaben (firma_id, personal_id, artikel, ausgegeben) values (current_setting('test.firma')::uuid, current_setting('test.p_hh')::uuid, 'Helm', current_date);
+  raise exception 'FEHLER: PSA für Person am fremden Standort';
+exception when insufficient_privilege then null; end $$;
+insert into public.bewerber (firma_id, bereich_id, vorname, nachname, beruf) values (:'firma', :'berlin', 'Bea', 'Bewerberin', 'Servicekraft') returning id as bew \gset
+update public.bewerber set status = 'absage' where id = :'bew';
+select pruefe((select loeschen_ab = (now() at time zone 'Europe/Berlin')::date + 183 from public.bewerber where id = :'bew'), 'Absage setzt Löschdatum in 6 Monaten');
+update public.bewerber set status = 'gespraech' where id = :'bew';
+select pruefe((select loeschen_ab is null from public.bewerber where id = :'bew'), 'Zurück ins Gespräch hebt das Löschdatum auf');
+do $$ begin
+  insert into public.bewerber (firma_id, bereich_id, vorname) values (current_setting('test.firma')::uuid, (select id from public.bereiche where name = 'Hamburg' limit 1), 'Fremd');
+  raise exception 'FEHLER: Bewerber am fremden Standort';
+exception when insufficient_privilege then null; end $$;
+insert into public.bewerber_dateien (firma_id, bewerber_id, name, mime, groesse) values (:'firma', :'bew', 'Lebenslauf.pdf', 'application/pdf', 1000);
+insert into public.checklisten_punkte (firma_id, personal_id, art, titel) values (:'firma', :'p_berlin', 'einstieg', 'Arbeitsvertrag unterschrieben');
+insert into public.urlaubskonten (firma_id, personal_id, jahr, anspruch, uebertrag) values (:'firma', :'p_berlin', 2026, 26, 3);
+insert into public.einsatz_bewertungen (firma_id, personal_id, kunde_id, datum, sterne, wieder) values (:'firma', :'p_berlin', (select id from public.kunden limit 1), current_date, 5, 'ja');
+select pruefe((select count(*) = 1 from public.psa_ausgaben) and (select count(*) = 1 from public.bewerber) and (select count(*) = 1 from public.checklisten_punkte) and (select count(*) = 1 from public.urlaubskonten) and (select count(*) = 1 from public.einsatz_bewertungen), 'PSA, Bewerber, Checkliste, Urlaubskonto und Bewertung gespeichert');
+reset role;
+update public.mitglieder set rolle = 'leser' where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select count(*) = 0 from public.bewerber) and (select count(*) = 0 from public.bewerber_dateien), 'Leser sieht keine Bewerber');
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 1 from public.psa_ausgaben) and (select count(*) = 1 and min(anspruch) = 26 from public.urlaubskonten), 'Einsatzkraft sieht eigene PSA und ihr Urlaubskonto');
+select pruefe((select count(*) = 0 from public.einsatz_bewertungen) and (select count(*) = 0 from public.bewerber) and (select count(*) = 0 from public.checklisten_punkte), 'Einsatzkraft sieht keine Bewertungen, Bewerber oder Checklisten');
+do $$ begin
+  insert into public.urlaubskonten (firma_id, personal_id, jahr, anspruch) values (current_setting('test.firma')::uuid, (select id from public.personal limit 1), 2027, 60);
+  raise exception 'FEHLER: Einsatzkraft setzt sich Urlaubsanspruch';
+exception when insufficient_privilege then null; end $$;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.psa_ausgaben) and (select count(*) = 0 from public.bewerber) and (select count(*) = 0 from public.urlaubskonten) and (select count(*) = 0 from public.einsatz_bewertungen), 'Fremde Firma sieht nichts davon');
+reset role;
+update public.mitglieder set aktiv = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.
