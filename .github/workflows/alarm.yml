@@ -98,5 +98,11 @@ jobs:
           git config user.email "noreply@github.com"
           git add alarm/berichte alarm/steckbriefe
           git diff --cached --quiet || git commit -m "Ausschreibungs-Alarm $(date -u +%F)"
-          git pull -q --rebase
-          git push
+          # Two runs for the same firm can write the same files at the same time; the newer run wins (its copy is the
+          # one the app received). A few retries cover pushes that overlap.
+          for versuch in 1 2 3 4; do
+            git pull -q --rebase -X theirs && git push && exit 0
+            git rebase --abort 2>/dev/null || true
+            sleep $((versuch * 5))
+          done
+          exit 1

@@ -55,6 +55,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101180000_kunden_leistungsnachweis_ausfall.sql
 \ir ../migrations/20261101190000_psa_bewerber_checklisten_urlaub_bewertung.sql
 \ir ../migrations/20261101200000_abrechnung_lohn_stempel_selbstbedienung.sql
+\ir ../migrations/20261101210000_betreiber_konto_loeschen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1110,6 +1111,30 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.rechnungen) and (select count(*) = 0 from public.spesen) and (select count(*) = 0 from public.stempel) and (select count(*) = 0 from public.nachweis_freigaben), 'Fremde Firma sieht nichts davon');
 reset role;
 update public.mitglieder set aktiv = false, finanzen = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
+select set_config('test.uid', '', false);
+
+-- Operator: look up and delete a customer login (only the operator; own login and last owner protected).
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000b1', 'benschiffer79@gmail.com'), ('00000000-0000-0000-0000-0000000000b2', 'kunde@weg.test'), ('00000000-0000-0000-0000-0000000000b3', 'kollege@weg.test');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000b2');
+select public.firma_anlegen('Weg GmbH') as wegfirma \gset
+insert into public.vorgaenge (firma_id, titel) values (:'wegfirma', 'Wird gelöscht');
+select public.firma_anlegen('Team Weg GmbH') as teamweg \gset
+reset role;
+insert into public.mitglieder (firma_id, user_id, rolle, anzeigename) values (:'teamweg', '00000000-0000-0000-0000-0000000000b3', 'bearbeiter', 'Kollege');
+set role authenticated;
+do $$ begin perform public.betreiber_konto_suchen('kunde@weg.test'); raise exception 'FEHLER: Nicht-Betreiber darf suchen'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+do $$ begin perform public.betreiber_konto_loeschen('kollege@weg.test', true); raise exception 'FEHLER: Kunde darf andere löschen'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select test_als('00000000-0000-0000-0000-0000000000b1');
+select pruefe(public.ist_betreiber(), 'Betreiber erkannt');
+select pruefe((select count(*) = 2 from public.betreiber_konto_suchen('KUNDE@weg.test')), 'Betreiber findet beide Firmen des Kunden');
+do $$ begin perform public.betreiber_konto_loeschen('benschiffer79@gmail.com', true); raise exception 'FEHLER: eigenes Konto löschbar'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+do $$ begin perform public.betreiber_konto_loeschen('kunde@weg.test', false); raise exception 'FEHLER: letzter Inhaber ohne Firmenlöschung'; exception when others then if sqlerrm not like '%LETZTER_INHABER%' then raise; end if; end $$;
+select public.betreiber_konto_loeschen('kunde@weg.test', true) as erg \gset
+reset role;
+select pruefe(not exists (select 1 from auth.users where email = 'kunde@weg.test') and not exists (select 1 from public.firmen where id in (:'wegfirma', :'teamweg')) and exists (select 1 from auth.users where email = 'kollege@weg.test'), 'Betreiber löscht Kunde samt eigener Firmen, Kollege bleibt');
+select pruefe((:'erg'::jsonb->'vorgaenge') ? '' is false and jsonb_array_length(:'erg'::jsonb->'firmen') = 2 and jsonb_array_length(:'erg'::jsonb->'vorgaenge') = 1, 'Rückgabe nennt Firmen und Ausschreibungen für das Aufräumen der Dateien');
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.
