@@ -5,9 +5,29 @@ export type Eckdatum = { label: string; wert: string };
 
 const ECKDATEN: [string, string][] = [["Lose", ""], ["Geschätzter Auftragswert", "Wert"], ["Laufzeit", "Laufzeit"], ["Ort", "Ort"]];
 
+/** Key facts from the "Auf einen Blick" table of a detailed Steckbrief: lots, hours, value, term. */
+function ausTabelle(steckbrief: string): Eckdatum[] {
+  const zeile = (name: string) => steckbrief.match(new RegExp(`\\|\\s*\\*\\*${name}\\*\\*\\s*\\|\\s*([^|\\n]+)`))?.[1]?.trim() ?? "";
+  const umfang = zeile("Umfang");
+  const fakten: Eckdatum[] = [];
+  const lose = umfang.match(/(\d+)\s+Lose?\b/)?.[1];
+  if (lose) fakten.push({ label: "", wert: `${lose} ${lose === "1" ? "Los" : "Lose"}` });
+  const stunden = umfang.match(/(?:ca\.\s*)?([\d.]+)\s*Stunden/)?.[1];
+  if (stunden) fakten.push({ label: "Stunden", wert: `ca. ${stunden}` });
+  const wert = umfang.match(/Auftragswert[^.;]*?([\d.,]+(?:[–-][\d.,]+)?\s*(?:Mio\.\s*)?€)/)?.[1] ?? umfang.match(/Schätzung:?\*?\*?\s*(?:ca\.\s*)?([\d.,]+(?:[–-][\d.,]+)?\s*(?:Mio\.\s*)?€)/)?.[1];
+  if (wert) fakten.push({ label: "Wert", wert: /Schätzung/.test(umfang) && !/Auftragswert[^.;]*\d/.test(umfang) ? `ca. ${wert}` : wert });
+  const laufzeit = zeile("Laufzeit").split(/[,;(]| je /)[0].trim();
+  if (laufzeit && !/^nicht angegeben/i.test(laufzeit)) fakten.push({ label: "Laufzeit", wert: laufzeit.slice(0, 40) });
+  return fakten;
+}
+
 /** Key facts the short overview writes as "**Label:** value" lines (lots, estimated value, term, place). */
 export function eckdaten(steckbrief?: string | null): Eckdatum[] {
   if (!steckbrief) return [];
+  if (/## Auf einen Blick/.test(steckbrief)) {
+    const fakten = ausTabelle(steckbrief);
+    if (fakten.length) return fakten;
+  }
   return ECKDATEN.flatMap(([quelle, label]) => {
     const wert = steckbrief.match(new RegExp(`\\*\\*${quelle}:\\*\\*\\s*([^\\n]+)`))?.[1]?.trim();
     if (!wert || /^nicht angegeben/i.test(wert)) return [];
@@ -28,14 +48,15 @@ export function bewertung(steckbrief?: string | null): { gesucht: string; warum:
   return { gesucht: teil("Gesucht"), warum: teil("Warum passend") };
 }
 
-export const SORTIERUNGEN: Record<string, string> = { punkte: "Beste zuerst", frist: "Frist zuerst", wert: "Größter Auftrag", neu: "Neueste zuerst" };
+export const SORTIERUNGEN: Record<string, string> = { punkte: "Beste zuerst", frist: "Frist zuerst", wert: "Größter Auftrag", naehe: "Nächste zuerst", neu: "Neueste zuerst" };
 
-type Sortierbar = { punkte: number | null; frist: string | null; erstellt: string; steckbrief?: string | null };
+type Sortierbar = { punkte: number | null; frist: string | null; erstellt: string; steckbrief?: string | null; entfernung_km?: number | null };
 
 export function sortieren<T extends Sortierbar>(liste: T[], sortierung: string): T[] {
   const kopie = [...liste];
   if (sortierung === "frist") return kopie.sort((a, b) => (a.frist ?? "9999").localeCompare(b.frist ?? "9999"));
   if (sortierung === "wert") return kopie.sort((a, b) => auftragswert(b.steckbrief) - auftragswert(a.steckbrief) || (b.punkte ?? 0) - (a.punkte ?? 0));
+  if (sortierung === "naehe") return kopie.sort((a, b) => (a.entfernung_km ?? 99999) - (b.entfernung_km ?? 99999) || (b.punkte ?? 0) - (a.punkte ?? 0));
   if (sortierung === "neu") return kopie.sort((a, b) => b.erstellt.localeCompare(a.erstellt));
   return kopie.sort((a, b) => (b.punkte ?? -1) - (a.punkte ?? -1) || b.erstellt.localeCompare(a.erstellt));
 }

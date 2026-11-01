@@ -276,7 +276,7 @@ export function profilFormular(firma: string, v: Vorschlag, hinweis: string, web
 </fieldset>`).join("");
   return `${hinweis ? `<p role="status">${escape(hinweis)}</p>` : ""}
 ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Einsatzorte stimmen. Die zusätzlichen Suchdetails brauchst du nur, wenn du die Suche gezielt verfeinern möchtest.")}
-<form method="post" data-suchaktion action="/konto/einrichtung/speichern">
+<form method="post" data-suchaktion data-kosten-warnung action="/konto/einrichtung/speichern">
   <input type="hidden" name="firma" value="${firma}">
   <input type="hidden" name="recherche_version" value="${v.recherche_version ?? ""}">
   <input type="hidden" name="website_hinweis" value="${escape(v.website_hinweis ?? "")}">
@@ -311,7 +311,7 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   <label>Treffer anzeigen und melden ab<select name="min_punkte">${[4, 5, 6, 7, 8].map((n) => `<option value="${n}"${n === (v.min_punkte ?? 6) ? " selected" : ""}>${n}/10${n === 6 ? " (empfohlen)" : n < 6 ? " – mehr, auch unsichere Treffer" : " – nur sehr passende"}</option>`).join("")}</select></label>
   <span class="klein">Ändert nur, welche bewerteten Treffer erscheinen. Kostet nichts extra.</span>
   </details>
-  <p class="kosten-hinweis">💡 Wenn du Arbeiten, Suchwörter oder Orte änderst, bewertet Jarvis beim nächsten Suchlauf alle passenden Ausschreibungen neu. Das kostet einmalig etwa 0,50–1 € KI-Guthaben.</p>
+  <p class="kosten-hinweis" data-kosten-hinweis hidden>💡 Du hast Arbeiten, Suchwörter, Ausschlüsse oder Orte geändert. Beim nächsten Suchlauf bewertet Jarvis deshalb alle passenden Ausschreibungen neu. Das kostet einmalig etwa 0,50–1 € KI-Guthaben.</p>
   <button type="submit">Speichern und Ausschreibungen suchen</button>
   <button type="submit" class="zweit" name="aktion" value="recherche" formaction="/konto/einrichtung/automatisch" formnovalidate>Firmeninfos neu recherchieren</button>
   <p class="klein">Liest die Website und öffentliche Quellen neu und aktualisiert dein Firmenprofil.</p>

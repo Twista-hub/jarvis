@@ -87,8 +87,8 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
         bisher = con.execute("select steckbrief from public.vorgaenge where firma_id=%s and quelle_id=%s for update", (firma_id, t["quelle_id"])).fetchone()
         brief = brief_aktualisieren(bisher[0] if bisher else None, t)
         row = con.execute(
-            """insert into public.vorgaenge (firma_id, quelle_id, titel, link, frist, punkte, steckbrief, bereich_id,katalog_id,katalog_version)
-               values (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s)
+            """insert into public.vorgaenge (firma_id, quelle_id, titel, link, frist, punkte, steckbrief, bereich_id,katalog_id,katalog_version,entfernung_km,fragefrist)
+               values (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s)
                on conflict (firma_id, quelle_id) do update set
                  punkte = excluded.punkte,
                  frist = coalesce(excluded.frist, vorgaenge.frist),
@@ -97,9 +97,10 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
                      then vorgaenge.steckbrief
                    else excluded.steckbrief end,
                  link = excluded.link, katalog_id=coalesce(excluded.katalog_id,vorgaenge.katalog_id),katalog_version=coalesce(excluded.katalog_version,vorgaenge.katalog_version),
-                 bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id)
+                 bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id),
+                 entfernung_km = excluded.entfernung_km, fragefrist = coalesce(excluded.fragefrist, vorgaenge.fragefrist)
                returning (xmax = 0)""",
-            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"), bisher[0] if bisher else None),
+            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"),t.get("entfernung_km"),t.get("fragefrist"), bisher[0] if bisher else None),
         ).fetchone()
         neu += bool(row and row[0])
     return neu

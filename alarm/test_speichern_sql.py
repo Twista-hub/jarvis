@@ -28,6 +28,7 @@ class SpeicherSqlTest(unittest.TestCase):
             id uuid default gen_random_uuid(), firma_id uuid not null, quelle_id text not null,
             titel text, link text, frist timestamptz, punkte int, steckbrief text,
             bereich_id uuid, katalog_id text, katalog_version text, status text default 'neu',
+            entfernung_km numeric(6,1), fragefrist timestamptz,
             unique(firma_id,quelle_id))""")
 
     def treffer(self, **werte):

@@ -37,7 +37,10 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
       }
       const texts: Text[] = [];
       const ausgelassen: string[] = [];
+      const lesbar = files.filter((f) => wanted(f.name)).length;
+      let nr = 0;
       for (const f of files) {
+        if (wanted(f.name)) await stand(1, `Datei ${++nr} von ${lesbar} wird gelesen: ${baseName(f.name).slice(0, 60)}`);
         if (!wanted(f.name)) {
           if (!f.name.endsWith("/")) ausgelassen.push(baseName(f.name));
           continue;

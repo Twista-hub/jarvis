@@ -35,6 +35,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261031160636_firmenpruefung_testbudget.sql
 \ir ../migrations/20261031180000_ki_tageslimit_10_euro.sql
 \ir ../migrations/20261101000000_ki_offene_reservierungen.sql
+\ir ../migrations/20261101010000_vorgaenge_entfernung_fragefrist.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 

@@ -253,6 +253,18 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
     db<{ bereich_id: string | null; eingaben: Eingaben }[]>(zugriff.s, env, `kalkulationsvorlagen?firma_id=eq.${zugriff.v.firma_id}&select=bereich_id,eingaben`),
     db<{ id: string; parent_id: string | null }[]>(zugriff.s, env, `bereiche?firma_id=eq.${zugriff.v.firma_id}&select=id,parent_id`),
   ]) : [null, null];
+  // Wage group suggestion per lot from the firm's own staff: same occupation, preferably at the same location.
+  const [personal, tarifliste] = zugriff ? await Promise.all([
+    db<{ vorname: string; nachname: string; berufe: string[]; eg: string | null; tarifvertrag_id: string | null; bereich_id: string | null }[]>(zugriff.s, env, `personal?firma_id=eq.${zugriff.v.firma_id}&eg=not.is.null&select=vorname,nachname,berufe,eg,tarifvertrag_id,bereich_id&limit=500`),
+    db<{ id: string; name: string }[]>(zugriff.s, env, `firmen_tarifvertraege?firma_id=eq.${zugriff.v.firma_id}&select=id,name`),
+  ]) : [null, null];
+  const norm = (x: string) => x.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const ausPersonal = (l: Los) => {
+    const woerter = norm(`${l.taetigkeit ?? ""} ${l.name}`).split(/[^a-z]+/).filter((w) => w.length >= 4);
+    const passend = (personal?.ok ? personal.daten : []).filter((k) => k.eg && GVP.gruppen.includes(k.eg) && k.berufe.some((b) => woerter.some((w) => norm(b).includes(w) || w.includes(norm(b).slice(0, 6)))));
+    const k = passend.find((x) => x.bereich_id && x.bereich_id === zugriff?.v.bereich_id) ?? passend[0];
+    return k ? { eg: k.eg!, wer: `${k.vorname} ${k.nachname}`.trim(), beruf: k.berufe[0], tarif: tarifliste?.ok ? tarifliste.daten.find((t) => t.id === k.tarifvertrag_id)?.name : undefined } : null;
+  };
   const vorlagenWerte = firmendaten?.ok ? vorlageFuerBereich(zugriff?.v.bereich_id, bereichsdaten?.ok ? bereichsdaten.daten : [], firmendaten.daten) : undefined;
   const vorlage = { ...STANDARD, ...(vorlagenWerte ?? (await jsonAus<Eingaben>(env, `kunden/${job.profil}/kalkulation.json`)) ?? {}), ...(eigene?.eingaben ?? {}) };
   const mengen = eigene?.mengen ?? {};
@@ -273,10 +285,11 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   // Per lot: hours, own wage (empty = standard) and "away from home" for accommodation costs.
   // Lots: the workforce from the documents and the suggested wage group are filled in until the user changes them.
   const loseFelder = lose.map((l) => {
-    const eg = eigene ? proLos[l.nr]?.eg : (proLos[l.nr]?.eg ?? l.eg) || undefined;
+    const personalVorschlag = ausPersonal(l);
+    const eg = eigene ? proLos[l.nr]?.eg : (proLos[l.nr]?.eg ?? l.eg ?? personalVorschlag?.eg) || undefined;
     const vorschlag = l.eg && GVP.merkmale[l.eg] ? `<p class="klein">📜 Vorschlag laut Tarifvertrag: <strong>EG ${escape(l.eg)}</strong>${l.eg_grund ? ` – ${escape(l.eg_grund)}` : ""}<br>Merkmal EG ${escape(l.eg)}: „${escape(GVP.merkmale[l.eg])}“</p>` : "";
     return `<fieldset data-los="${escape(l.nr)}"><legend>Los ${escape(l.nr)}: ${escape(l.name)}</legend>
-      ${l.taetigkeit ? `<p>👷 <strong>Gebraucht:</strong> ${escape(l.taetigkeit)}</p>` : ""}${vorschlag}
+      ${l.taetigkeit ? `<p>👷 <strong>Gebraucht:</strong> ${escape(l.taetigkeit)}</p>` : ""}${vorschlag}${personalVorschlag ? `<p class="klein">👥 Aus eurem Personal: <strong>EG ${escape(personalVorschlag.eg)}</strong> wie ${escape(personalVorschlag.wer)} (${escape(personalVorschlag.beruf)}${personalVorschlag.tarif ? `, ${escape(personalVorschlag.tarif)}` : ""})</p>` : ""}
       <label>Stunden${l.zeitraum ? ` (${escape(l.zeitraum)})` : ""}<input name="los_${escape(l.nr)}" inputmode="decimal" value="${fmt(mengen[l.nr] ?? (/stunde|std/i.test(l.einheit) ? l.menge : 0))}"></label>
       <label>Entgeltgruppe<select name="eg_${escape(l.nr)}">${egOptionen(eg, l.eg)}</select></label>
       ${eg ? `<p class="klein">Tariflohn EG ${escape(eg)}: heute ${euro(lohnAm(eg, heute, 0))}, im Schnitt über ${tarif.monate} Monate ab ${escape(tarif.beginn)} ${euro(tariflohn(eg, tarif))} pro Stunde.</p>` : ""}
