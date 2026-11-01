@@ -40,6 +40,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101030000_eigene_termine_kalenderabo.sql
 \ir ../migrations/20261101040000_unterlagen_ordner_referenzen.sql
 \ir ../migrations/20261101050000_kalkulationsprofile_zuschlagvergleich.sql
+\ir ../migrations/20261101060000_zuschlag_vergleich_robust.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -472,7 +473,15 @@ set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000a');
 insert into public.kalkulationsprofile (firma_id, name, eingaben) values (:'firma', 'Gastro', '{"lohn": 15}');
 select pruefe((select count(*)=1 from public.kalkulationsprofile), 'Kalkulationsvorlage gespeichert');
-select pruefe((select count(*)>=0 from public.zuschlag_vergleich(:'firma', array['Reinigung'], array['90910000'])), 'Zuschlagsvergleich läuft');
+reset role;
+insert into public.vergabekatalog (id,quelle,quelle_id,version,quell_datum,titel,beschreibung,link,auftraggeber,auftraggeber_id,cpv,status,zuschlaege) values
+('test:z1','bks','z1','1',now(),'Leihpersonal Gastronomie','Servicekräfte','https://example.org/1','Stadt A','a',array['79620000'],'vergeben','[{"id":"1","datum":"2025-05-01T00:00:00.000Z","gewinner":["Muster GmbH"],"wert":420000,"waehrung":"EUR"}]'),
+('test:z2','bks','z2','1',now(),'Unterhaltsreinigung Rathaus','Reinigung','https://example.org/2','Stadt B','b',array['90910000'],'vergeben','[{"id":"2","datum":"kaputt","gewinner":[],"wert":90000,"waehrung":"EUR"},{"id":"3","datum":null,"gewinner":[],"wert":5,"waehrung":"EUR"}]');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+select pruefe((select array_agg(id)=array['test:z1'] from public.zuschlag_vergleich(:'firma', '{}', array['79620000'])), 'Zuschlagsvergleich findet nur die gleiche CPV-Gruppe');
+select pruefe((select array_agg(id)=array['test:z2'] from public.zuschlag_vergleich(:'firma', array['rathaus'], '{}')), 'Zuschlagsvergleich findet per Stichwort, kaputtes Datum und Kleinstwert stören nicht');
+select pruefe((select count(*)=0 from public.zuschlag_vergleich(:'firma', '{}', array['79620000'], 'test:z1')), 'Eigene Bekanntmachung wird nicht mit sich selbst verglichen');
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*)=0 from public.kalkulationsprofile), 'Fremde Firma sieht keine Kalkulationsvorlagen');
 select pruefe((select count(*)=0 from public.zuschlag_vergleich(:'firma', array['Reinigung'], array['90910000'])), 'Fremde bekommen keinen Zuschlagsvergleich dieser Firma');
