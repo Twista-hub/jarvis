@@ -694,6 +694,8 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .aueg-aktionen button { min-height: 30px; padding: 2px 8px; font-size: 12px; width: auto; }
   .aueg-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
   .aueg-form label { margin: 0; } .aueg-form .ganz { grid-column: 1 / -1; }
+  .termin-neu form > .aueg-form, .termin-neu form > .baustein-knoepfe, .termin-neu form > p, .termin-neu form > label.zeile { grid-column: 1 / -1; }
+  .unterweisung-karte summary strong, .unterweisung-karte summary .klein { display: block; }
   .aueg-hinweis { margin: 0; font-size: 13px; font-weight: 600; } .aueg-hinweis a { color: #b07800; }
   /* Funding programmes (N2). */
   .foerder-liste, .radar-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
@@ -801,6 +803,28 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .dispo-zelle.nicht { background: var(--bg); color: var(--muted); }
   .dispo-zelle.wochenende.frei { background: transparent; } .dispo-zelle.heute { outline: 2px solid var(--accent); outline-offset: -2px; }
   .einsatz-punkt { background: color-mix(in srgb, var(--accent) 22%, var(--card)); } .abwesend-punkt { background: color-mix(in srgb, #d68910 22%, var(--card)); margin-left: 8px; } .frei-punkt { background: color-mix(in srgb, #2e8b57 14%, var(--card)); margin-left: 8px; }
+  /* Company profile and personnel file (T1–T8). */
+  .team-warnungen { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 0 0 10px; padding: 8px 12px; border: 1px solid #e3c27a; border-radius: 12px; background: color-mix(in srgb, #d68910 10%, var(--card)); font-size: 13px; }
+  .team-werkzeuge { margin-bottom: 12px; }
+  .profil-stand { display: grid; gap: 4px; margin: 0 0 10px; } .profil-balken { height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; } .profil-balken span { display: block; height: 100%; background: #2e8b57; }
+  .profil-form table input { width: 100%; min-height: 32px; padding: 2px 6px; } .profil-form td:first-child, .profil-form th:first-child { white-space: nowrap; width: 1%; }
+  .logo-teil { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; } .firmenlogo { max-height: 60px; max-width: 200px; border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: #fff; }
+  .zert-liste li.abgelaufen { border-left: 3px solid var(--error); } .zert-liste li.bald { border-left: 3px solid #d68910; }
+  .akte-felder { margin: 8px 0; } .akte-felder .zwei { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 10px; align-items: end; }
+  .akte-zeile { margin: 2px 0; }
+  .nachweis-marken { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0; }
+  .nachweis-marke { padding: 1px 8px; border-radius: 999px; font-size: 12px; border: 1px solid var(--line); background: var(--bg); }
+  .nachweis-marke.rot { border-color: var(--error); color: var(--error); } .nachweis-marke.gelb { border-color: #d68910; color: #b07800; }
+  .nachweis-teil span.rot { color: var(--error); } .nachweis-teil span.gelb { color: #b07800; }
+  .nachweis-form { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 8px; align-items: end; } .nachweis-form .ganz { grid-column: 1 / -1; } .nachweis-form label { margin: 0; }
+  .unterweisung-karte { margin: 8px 0; } .unterweisung-karte summary { display: grid; gap: 2px; }
+  .unterweisung-liste { list-style: none; margin: 6px 0; padding: 0; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .unterweisung-liste li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); font-size: 14px; } .unterweisung-liste li:last-child { border-bottom: 0; }
+  .unterweisung-liste li.rot { border-left: 3px solid var(--error); } .unterweisung-liste li.gelb { border-left: 3px solid #d68910; }
+  .unterweisung-form .zwei { align-items: end; }
+  .such-form { margin: 0 0 8px; } .such-treffer { display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .such-treffer > div:first-child { display: grid; gap: 2px; min-width: 0; font-size: 14px; } .such-werte { display: grid; justify-items: end; gap: 2px; font-size: 13px; white-space: nowrap; }
+  .such-treffer.frei { border-left: 3px solid #2e8b57; } .such-treffer.teils { border-left: 3px solid #d68910; } .such-treffer.belegt { opacity: .75; }
 </style>
 </head>
 <body><main>

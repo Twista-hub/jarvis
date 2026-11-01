@@ -1,6 +1,7 @@
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { anhaengen, bausteineFeld, bausteineLaden } from "./textbausteine.ts";
 import { lvDateien } from "./lv.ts";
+import { eigenerklaerungDocx, profilLaden, profilWerte } from "./firmenprofil.ts";
 import { db, html, sitzung, unterlagenSteckbrief, vorgangZugriff, weiterleiten, type KontoEnv } from "./konto.ts";
 import { aktiveFirma, dateiKey, dateiname, UUID, type FirmenDatei } from "./firmenunterlagen.ts";
 import { escape, markdown, seite } from "./seite.ts";
@@ -93,7 +94,10 @@ export async function angebote(request:Request,env:KontoEnv):Promise<Response|nu
   // N7: text modules and the values for their placeholders (buyer from the catalog when known).
   const bausteine=herunterladen?[]:await bausteineLaden(s,env,z.v.firma_id);
   const ag=z.v.katalog_id?await db<{auftraggeber:string}[]>(s,env,`vergabekatalog?id=eq.${encodeURIComponent(z.v.katalog_id)}&select=auftraggeber&limit=1`):null;
-  const platz={FIRMA:firmenname,AUFTRAG:z.v.titel,AUFTRAGGEBER:ag?.ok?ag.daten[0]?.auftraggeber??"":"",DATUM:new Date().toLocaleDateString("de-DE",{timeZone:"Europe/Berlin"})};
+  // T2: company master data for placeholders, the suitability declaration and the logo in the offer.
+  const profil=await profilLaden(s,env,z.v.firma_id,true);
+  const heuteIso=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Berlin"});
+  const platz={FIRMA:firmenname,AUFTRAG:z.v.titel,AUFTRAGGEBER:ag?.ok?ag.daten[0]?.auftraggeber??"":"",DATUM:new Date().toLocaleDateString("de-DE",{timeZone:"Europe/Berlin"}),...profilWerte(profil.firma,profil.profil,profil.zertifikate,heuteIso)};
   const docs=await db<FirmenDatei[]>(s,env,`firmenunterlagen?firma_id=eq.${z.v.firma_id}&select=*&order=name`);
   if(!docs.ok) return antwort("Angebot vorbereiten",'<p class="fehler">Die Firmenunterlagen konnten nicht geladen werden.</p>',502);
   const heute=new Date().toLocaleDateString("en-CA",{timeZone:"Europe/Berlin"});
@@ -103,8 +107,11 @@ export async function angebote(request:Request,env:KontoEnv):Promise<Response|nu
     const fehler=dokumentePruefen(mappe.unterlagen_ids,mappe.vorlage_id,docs.daten,stichtag);
     if(fehler || /\[\[|\{\{[A-Z_]+\}\}/.test(mappe.text)) return antwort("Mappe noch nicht fertig",`<p class="fehler">${escape(fehler || "Bitte die markierten Platzhalter im Angebotstext ausfüllen.")}</p><p><a href="/konto/vorgang/${z.v.id}/angebot">Entwurf bearbeiten</a></p>`,409);
     const dateien:Record<string,Uint8Array>={};
-    dateien["Angebot.html"]=strToU8(`<!doctype html><html lang="de"><meta charset="utf-8"><title>Angebot</title><style>body{font:16px/1.6 system-ui;max-width:800px;margin:40px auto;padding:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px}@media print{body{margin:0}}</style><h1>${escape(firmenname)}</h1>${markdown(mappe.text)}</html>`);
-    const werte={FIRMA:firmenname,AUFTRAG:z.v.titel,DATUM:new Date().toLocaleDateString("de-DE",{timeZone:"Europe/Berlin"}),ANGEBOTSTEXT:mappe.text};
+    const logoObj=profil.profil?.logo?await env.DATEN.get(`firmenlogo/${z.v.firma_id}`):null;
+    const logo=logoObj?`<img src="data:${profil.profil!.logo};base64,${btoa(Array.from(new Uint8Array(await logoObj.arrayBuffer()),(b)=>String.fromCharCode(b)).join(""))}" alt="" style="max-height:70px;max-width:240px">`:"";
+    const absender=[profil.firma.strasse,[profil.firma.plz,profil.firma.ort].filter(Boolean).join(" "),profil.firma.telefon,profil.profil?.email].filter((x)=>x&&String(x).trim()).map((x)=>escape(String(x))).join(" · ");
+    dateien["Angebot.html"]=strToU8(`<!doctype html><html lang="de"><meta charset="utf-8"><title>Angebot</title><style>body{font:16px/1.6 system-ui;max-width:800px;margin:40px auto;padding:20px}table{border-collapse:collapse;width:100%}td,th{border:1px solid #ccc;padding:6px}header{display:flex;justify-content:space-between;align-items:center;gap:16px;border-bottom:1px solid #ccc;margin-bottom:16px}header p{font-size:13px;color:#555;margin:0}@media print{body{margin:0}}</style><header><div><h1>${escape(firmenname)}</h1>${absender?`<p>${absender}</p>`:""}</div>${logo}</header>${markdown(mappe.text)}</html>`);
+    const werte={...platz,ANGEBOTSTEXT:mappe.text};
     const protokoll=[`Angebotsmappe: ${z.v.titel}`,`Entwurf vom ${mappe.erstellt}`,"Vor der Abgabe Originalanforderungen, Preisblatt, Unterschriften und alle geforderten Nachweise prüfen.","Dieses Paket wurde vorbereitet; es wurde kein Angebot beim Auftraggeber abgegeben.","", "Ausgewählte Unterlagen:"];
     for(const [index,id] of [...mappe.unterlagen_ids,...(mappe.vorlage_id?[mappe.vorlage_id]:[])].entries()){
       const d=docs.daten.find((d)=>d.id===id)!;
@@ -120,6 +127,9 @@ export async function angebote(request:Request,env:KontoEnv):Promise<Response|nu
     }
     // References asked for in the tender: the list from the references form goes along as a Word file.
     if(/referenz/i.test(`${z.v.steckbrief??""}\n${mappe.text}`)){const refs=await referenzenLaden(s,env,z.v.firma_id);if(refs.length){dateien["Referenzliste.docx"]=referenzlisteDocx(firmenname,refs);protokoll.push(`Referenzliste (${refs.length} Referenzen)`);}}
+    // T2: the suitability declaration with company data, revenue, staff and certificates.
+    const refAnzahl=(await referenzenLaden(s,env,z.v.firma_id)).length;
+    dateien["Eigenerklaerung_Eignung.docx"]=eigenerklaerungDocx(firmenname,profil.firma,profil.profil,profil.kennzahlen??[],profil.zertifikate,refAnzahl,heuteIso);protokoll.push("Eigenerklärung zur Eignung (mit dem Formular des Auftraggebers abgleichen)");
     // N9: the bid file (GAEB X84) and the price list, when the tender has a bill of quantities.
     for(const [name,inhalt] of Object.entries(await lvDateien(s,env,z.v.id,z.v.firma_id))){dateien[name]=strToU8(inhalt);protokoll.push(name.endsWith(".X84")?`Angebotsdatei ${name} (im Vergabeportal hochladen)`:`Preisliste ${name}`);}
     dateien["Pruefliste.txt"]=strToU8(protokoll.join("\n"));

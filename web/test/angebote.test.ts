@@ -41,7 +41,7 @@ test("Paket enthält nur die ausgewählten Nachweise und den freigegebenen Angeb
   const r=await angebote(new Request(`https://x/konto/angebotsmappe/${mappe}/herunterladen`,{headers:{cookie:`jv_at=${token}`}}),env);
   assert.equal(r!.status,200);
   const paket=unzipSync(new Uint8Array(await r!.arrayBuffer()));
-  assert.deepEqual(Object.keys(paket).sort(),["01_Versicherung.pdf","Angebot.html","Pruefliste.txt"].sort());
+  assert.deepEqual(Object.keys(paket).sort(),["01_Versicherung.pdf","Angebot.html","Eigenerklaerung_Eignung.docx","Pruefliste.txt"].sort());
   assert.match(strFromU8(paket["Angebot.html"]),/100 € netto/);
   assert.deepEqual(keys,[`bibliothek/${firma}/${datei}`]);
 });
