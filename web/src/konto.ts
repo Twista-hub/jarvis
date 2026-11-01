@@ -755,8 +755,9 @@ function leistungsTreffer(leistungen: { name: string; woerter: string[] }[], lis
 export function unterlagenHinweis(steckbrief: string | null | undefined, portal: string | null | undefined, kannHochladen: boolean): string {
   const fehlt = (steckbrief?.match(/nicht angegeben/gi) ?? []).length;
   const ohneLose = !/\|\s*Los\b|\*\*Lose:\*\*/i.test(steckbrief ?? "");
-  return `<aside class="unterlagen-hinweis" role="note"><p><strong>📄 Lose, Mengen und Stunden stehen oft erst in den Vergabeunterlagen.</strong> ${fehlt ? `In dieser Bekanntmachung fehlen ${fehlt === 1 ? "eine Angabe" : `${fehlt} Angaben`} („nicht angegeben“)${ohneLose ? ", auch zu den Losen" : ""}. ` : ohneLose ? "Die Bekanntmachung nennt keine Lose. " : ""}Die Unterlagen (meist PDF oder ZIP) gibt es kostenlos beim Vergabeportal. Lädst du sie hier hoch, liest Jarvis daraus die Lose mit Mengen und Stunden, welches Personal je Los gebraucht wird, Eignungsnachweise, Fristen und das Preisblatt und rechnet die Kalkulation.</p>
-<div class="knopf-zeile">${portal ? `<a class="knopf zweit" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Unterlagen beim Portal holen</a>` : ""}${kannHochladen ? `<a class="knopf" href="#unterlagen">📥 Hier hochladen</a>` : ""}</div></aside>`;
+  const text = `${fehlt ? `In dieser Bekanntmachung fehlen ${fehlt === 1 ? "eine Angabe" : `${fehlt} Angaben`} („nicht angegeben“)${ohneLose ? ", auch zu den Losen" : ""}. ` : ohneLose ? "Die Bekanntmachung nennt keine Lose. " : ""}Lose, Mengen und Stunden stehen oft erst in den Vergabeunterlagen (meist PDF oder ZIP), die es kostenlos beim Vergabeportal gibt. Lädst du sie hier hoch, liest Jarvis daraus die Lose mit Mengen und Stunden, welches Personal je Los gebraucht wird, Eignungsnachweise, Fristen und das Preisblatt und rechnet die Kalkulation.`;
+  const knoepfe = `${portal ? `<a class="knopf zweit" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Unterlagen beim Portal holen</a>` : ""}${kannHochladen ? `<a class="knopf" href="#unterlagen">📥 Hier hochladen</a>` : ""}`;
+  return `<details class="frage-hinweis"><summary aria-label="Warum fehlen Angaben?" title="Warum fehlen Angaben?"><span aria-hidden="true">?</span></summary><div class="frage-text"><p><strong>Warum fehlen Angaben?</strong></p><p>${text}</p>${knoepfe ? `<div class="knopf-zeile">${knoepfe}</div>` : ""}</div></details>`;
 }
 
 export function bewertungsErklaerung(steckbrief?: string | null): string {
@@ -988,7 +989,7 @@ ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summ
     return html(seite(v.titel, `${kopf}${await fortschritt(env, aus.auftrag)}
 ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}${kaufverantwortlich}`, 20, "treffer"), 200, s.cookies);
   } else {
-    teil = `${unterlagenHinweis(v.steckbrief, portal, rolle !== "leser")}${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
+    teil = `<div class="steckbrief-kopf">${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${unterlagenHinweis(v.steckbrief, portal, rolle !== "leser")}</div>${v.steckbrief ? brief(v.steckbrief) : ""}${leiste}${hochladen}`;
   }
   const teilnahme = await teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? "");
   const personalBlock = rolle === "leser" || rolle === "mitarbeiter" ? "" : await einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle));
