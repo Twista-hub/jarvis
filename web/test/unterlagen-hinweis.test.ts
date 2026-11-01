@@ -9,6 +9,7 @@ test("Hinweis: Lose und Mengen stehen oft erst in den Vergabeunterlagen", () => 
   assert.match(h, /href="https:\/\/portal.example\/a\?b=1"[^>]*>⬇️ Unterlagen beim Portal holen/);
   assert.match(h, /href="#unterlagen">📥 Hier hochladen/);
   const mitLosen = unterlagenHinweis("| Los | Leistung |\n|---|---|\n| 1 | Büro |", null, false);
-  assert.doesNotMatch(mitLosen, /fehlen|keine Lose|Portal holen|Hier hochladen/);
+  assert.doesNotMatch(mitLosen, /fehlen \d|fehlen eine|keine Lose|Portal holen|Hier hochladen/);
+  assert.match(h, /class="frage-hinweis"><summary[^>]*><span aria-hidden="true">\?<\/span>/);
   assert.match(unterlagenHinweis("## Kurzüberblick\n\nReinigung", null, true), /nennt keine Lose/);
 });
