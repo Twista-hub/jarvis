@@ -24,7 +24,9 @@ export function kiKosten(usage: { input_tokens: number; output_tokens: number; c
 /** Reserve the maximum request cost before sending data to the official API.
  * Streaming reservations stay charged conservatively when exact usage cannot be settled.
  */
-export function apiClient(env: KiEnv): Anthropic {
+/** firma: the firm the requests are for; the booking then shows up in that firm's evaluation (N6). */
+export function apiClient(env: KiEnv, firma?: string | null): Anthropic {
+  const fuer = firma && /^[0-9a-f-]{36}$/.test(firma) ? firma : null;
   return new Anthropic({ apiKey: env.ANTHROPIC_API_KEY, maxRetries: 0, fetch: async (input, init) => {
     if (!env.HYPERDRIVE) throw new Error("KI-Budgetprüfung nicht erreichbar. Bitte später erneut versuchen.");
     const body = JSON.parse(String(init?.body ?? "{}"));
@@ -34,7 +36,7 @@ export function apiClient(env: KiEnv): Anthropic {
     const preise = body.fallbacks ? [5, 20] : key.includes("haiku") ? [0.125, 0.5] : key.includes("sonnet") ? [2.5, 10] : [5, 20];
     // A UTF-8 byte is a conservative token bound, including JSON/prompt overhead.
     const worst = kiReserve(new TextEncoder().encode(String(init?.body)).length, output, preise[0], preise[1], webSuchNutzung(body.tools));
-    const id = await katalogDb(env, async (sql) => (await sql`select jarvis_katalog.ki_reservieren(${worst}::numeric,'web') as id`)[0]?.id);
+    const id = await katalogDb(env, async (sql) => (fuer ? await sql`select jarvis_katalog.ki_reservieren_fuer(${worst}::numeric,'web',${fuer}::uuid) as id` : await sql`select jarvis_katalog.ki_reservieren(${worst}::numeric,'web') as id`)[0]?.id);
     if (!id) throw new Error("Das KI-Tages- oder Monatsbudget ist erreicht. Bitte später erneut versuchen.");
     // Settlement runs on its own: when a page stops waiting (time limit), it still records the real cost if the
     // worker lives long enough. Reservations that stay open are settled later by ki_reservieren (estimate).
@@ -53,4 +55,11 @@ export function apiClient(env: KiEnv): Anthropic {
     env.WARTEN?.(abrechnung.catch(() => undefined));
     return abrechnung;
   } });
+}
+
+/** Firm of an upload job: "firma-<id>" or a configured profile with firma_id (N6 cost booking). */
+export function firmaVonProfil(profil: string | undefined, profile: Record<string, { firma_id?: string }> = {}): string | null {
+  if (!profil) return null;
+  const m = profil.match(/^firma-([0-9a-f-]{36})$/);
+  return m ? m[1] : profile[profil]?.firma_id ?? null;
 }

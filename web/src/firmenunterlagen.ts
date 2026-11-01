@@ -55,11 +55,11 @@ export function ablaufDatum(roh: string): string | null {
 export const ablaufLesbar = (name: string, groesse: number) => groesse <= 5 * 1024 * 1024 && /\.(pdf|png|jpe?g)$/i.test(name);
 
 /** Reads the expiry date from a proof (PDF or photo). Haiku, effort low: about one cent per document. */
-export async function ablaufLesen(env: KiEnv, daten: Uint8Array, name: string): Promise<string | null> {
+export async function ablaufLesen(env: KiEnv, daten: Uint8Array, name: string, firma?: string): Promise<string | null> {
   const pdf = /\.pdf$/i.test(name);
   const quelle = { type: "base64" as const, media_type: (pdf ? "application/pdf" : /\.png$/i.test(name) ? "image/png" : "image/jpeg") as never, data: base64(daten) };
   const antwort = await Promise.race([
-    apiClient(env).messages.create({
+    apiClient(env, firma).messages.create({
       model: "claude-haiku-5-5", max_tokens: 300,
       output_config: { effort: "low", format: { type: "json_schema", schema: ABLAUF_SCHEMA } },
       system: "Du liest Nachweise deutscher Firmen (Versicherungsbestätigung, Unbedenklichkeitsbescheinigung, Erlaubnis, Zertifikat, Registerauszug). Gib zurück, bis wann das Dokument gültig ist, als JJJJ-MM-TT: ausdrückliches Gültig-bis- oder Ablaufdatum, Ende des Versicherungszeitraums oder Befristung. Nennt das Dokument nur eine Dauer ab Ausstellung (z. B. „gilt 3 Monate“), rechne vom Ausstellungsdatum. Ist keine Befristung erkennbar, gib einen leeren Text zurück. fundstelle: die kurze Textstelle, auf der das Datum beruht.",
@@ -113,7 +113,7 @@ export async function firmenunterlagen(request: Request, env: KontoEnv & Partial
       if (form.get("aktion") === "erkennen") {
         const obj = await env.DATEN.get(dateiKey(d));
         if (!obj || !ablaufLesbar(d.dateiname, d.groesse) || !env.ANTHROPIC_API_KEY) return zurueck("&erkannt=0");
-        const datum = await ablaufLesen(env as KiEnv, new Uint8Array(await obj.arrayBuffer()), d.dateiname).catch(() => null);
+        const datum = await ablaufLesen(env as KiEnv, new Uint8Array(await obj.arrayBuffer()), d.dateiname, d.firma_id).catch(() => null);
         if (datum) await db(f.s,env,`firmenunterlagen?id=eq.${d.id}&firma_id=eq.${d.firma_id}`,{method:"PATCH",body:JSON.stringify({gueltig_bis:datum,gueltig_erkannt:true})});
         return zurueck(`&erkannt=${datum ?? "0"}`);
       }
@@ -154,7 +154,7 @@ export async function firmenunterlagen(request: Request, env: KontoEnv & Partial
       // No date entered: Jarvis reads it from the document (PDF or photo of a proof).
       let erkannt = "";
       if (art==="nachweis" && !gueltig && ablaufLesbar(file.name, file.size) && env.ANTHROPIC_API_KEY && env.HYPERDRIVE) {
-        const datum = await ablaufLesen(env as KiEnv, bytes, file.name).catch(() => null);
+        const datum = await ablaufLesen(env as KiEnv, bytes, file.name, f.m.firma_id).catch(() => null);
         if (datum) { d.gueltig_bis = datum; d.gueltig_erkannt = true; }
         erkannt = `&erkannt=${datum ?? "0"}`;
       }

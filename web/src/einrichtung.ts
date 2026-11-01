@@ -6,6 +6,7 @@ import { sucheLaeuft } from "./suchstatus.ts";
 import { RADIEN } from "./karte.ts";
 import { firmenInfos } from "./firmeninfos.ts";
 import { rechercheProfil } from "./firmenrecherche.ts";
+import { apiClient } from "./api-budget.ts";
 import { kiFehlerart, kiFehlermeldung, type KiFehlerart } from "./ki-fehler.ts";
 import { standorteBereinigen, standortSchluessel, suchorteAnStandorten, type Firmenstandort, type SuchgebietModus } from "./firmenstandorte.ts";
 export { FIRMEN_WEB_SUCHTOOL } from "./firmenrecherche.ts";
@@ -226,7 +227,7 @@ async function vorschlagen(env: EinrichtungEnv, firma: string, name: string, for
   let vorschlag: Vorschlag;
   try {
     // The shared engine searches with citations before requesting the structured profile.
-    const { profil } = await rechercheProfil(env, { name, website, beschreibung, orte, websiteText: websiteDaten.text });
+    const { profil } = await rechercheProfil(env, { name, website, beschreibung, orte, websiteText: websiteDaten.text }, apiClient(env, firma));
     vorschlag = bereinigen({ ...profil, recherche_version: 2, website_hinweis: websiteDaten.hinweis, recherchiert_am: new Date().toISOString() });
     if (!vorschlag.leistungen.length) throw new Error("leerer Vorschlag");
   } catch (e) {

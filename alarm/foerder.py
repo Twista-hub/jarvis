@@ -63,6 +63,8 @@ def abschnitt(profiles: dict, ki, days: list[str], ergebnis: dict | None = None)
         ergebnis["programme"] = [{"id": i["link"], "titel": i["titel"], "link": i["link"], "tag": i["tag"] or None} for i in items[:60]]
         ergebnis["bewertungen"] = {}
     for name, profile in profiles.items():
+        if hasattr(ki, "FIRMA") and isinstance(ki.FIRMA, list):
+            ki.FIRMA[0] = profile.get("firma_id")
         bewertung = ki.foerder_score(profile["beschreibung"], liste)
         if ergebnis is not None:
             ergebnis["bewertungen"][name] = [{"id": items[b["nr"]]["link"], "punkte": max(1, min(10, int(b.get("punkte", 1)))), "grund": str(b.get("grund", ""))[:600]}

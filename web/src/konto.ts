@@ -22,6 +22,7 @@ import { auegLaden, fristen as fristen_aueg, fristStatus, personHinweise } from 
 import { benachrichtigungAusFormular, benachrichtigungFelder, profilTeil, type Benachrichtigung } from "./kontoeinstellungen.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 import { PASSEND_AB } from "./foerderung.ts";
+import { lage, type Vertrag } from "./auftraege.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
 import { suchgebietKarte, type Suchpunkt } from "./karte.ts";
@@ -296,6 +297,13 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     ["markt", "🌐", "Markt & Chancen", `${aboZahl} ${aboZahl === 1 ? "neue Ausschreibung" : "neue Ausschreibungen"} beobachteter Auftraggeber`],
     ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? (suchstand.ergebnis?.treffer !== undefined ? `Letzte Suche: ${suchstand.ergebnis.treffer} Treffer` : "Suche ansehen und anpassen") : "Passende Ausschreibungen finden"],
   ];
+  // N4: running contracts once there is an award; option deadlines in 30 days or ends in 60 days are flagged.
+  const gewonneneZahl = liste.filter((v) => v.status === "gewonnen").length;
+  if (gewonneneZahl && !unterseite && m.rolle !== "mitarbeiter") {
+    const vt = await db<Vertrag[]>(s, env, `vertraege?firma_id=eq.${m.firma_id}&select=vorgang_id,beginn,ende,verlaengerung_bis,option_frist,personen_soll,ansprechpartner,notiz`);
+    const dringend = (vt.ok ? vt.daten : []).filter((x) => lage(x, Infinity, heute).stufe === "rot").length;
+    cards.push(["auftraege", "🏗️", "Laufende Aufträge", dringend ? `⚠️ ${dringend} ${dringend === 1 ? "Auftrag braucht" : "Aufträge brauchen"} Aufmerksamkeit` : `${gewonneneZahl} ${gewonneneZahl === 1 ? "gewonnener Auftrag" : "gewonnene Aufträge"}`]);
+  }
   if (foerderZahl) cards.push(["foerderung", "🎯", "Förderprogramme", `${foerderZahl} ${foerderZahl === 1 ? "passendes Programm" : "passende Programme"} neu`]);
   if (auegFristen.length) cards.push(["aueg", "⚖️", "AÜG-Wächter", auegDringend ? `⚠️ ${auegDringend} ${auegDringend === 1 ? "Frist" : "Fristen"} in 60 Tagen` : `${auegFristen.length} laufende ${auegFristen.length === 1 ? "Überlassung" : "Überlassungen"}`]);
   cards.push(["freigaben", "📨", "Für mich freigegeben", freigabeZahl ? `${freigabeZahl} ${freigabeZahl === 1 ? "Freigabe" : "Freigaben"} vom Team` : "Noch nichts freigegeben"]);
@@ -487,7 +495,7 @@ ${aktuell && sucheEingerichtet ? `<div id="weitere">${zusatzBlock(Array.isArray(
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
-    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${zeile("/konto/angebote", "📝", "Angebote", "Stand aller Angebote")}${zeile("/konto/foerderung", "🎯", "Förderprogramme", "Täglich geprüft, passend zu deiner Firma")}${zeile("/konto/radar", "🔮", "Neuausschreibungs-Radar", "Verträge, die bald auslaufen")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${zeile("/konto/angebote", "📝", "Angebote", "Stand aller Angebote")}${zeile("/konto/foerderung", "🎯", "Förderprogramme", "Täglich geprüft, passend zu deiner Firma")}${zeile("/konto/radar", "🔮", "Neuausschreibungs-Radar", "Verträge, die bald auslaufen")}${zeile("/konto/auftraege", "🏗️", "Laufende Aufträge", "Laufzeit, Leute, Verlängerung")}${zeile("/konto/auftraggeber", "🏛️", "Auftraggeber", "Frühere Ausschreibungen, Ansprechpartner")}${zeile("/konto/auswertung", "📊", "Auswertung", "Treffer, Gewinnquote, Umsatz, KI-Kosten")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
@@ -877,6 +885,11 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
     finanzen ? `<a class="zweit" href="${kalkulation}">💶 Kalkulation</a>` : "",
   ].filter(Boolean).join("");
   const leiste = knoepfe ? `<h2>Was möchtest du tun?</h2><nav class="aktionsleiste" aria-label="Aktionen">${knoepfe}</nav>` : "";
+  // N5/N4: the contracting authority's page and, after the award, the running contract.
+  const ag = v.katalog_id && rolle !== "mitarbeiter" ? await db<{ auftraggeber: string; auftraggeber_id: string }[]>(s, env, `vergabekatalog?id=eq.${encodeURIComponent(v.katalog_id)}&select=auftraggeber,auftraggeber_id&limit=1`) : null;
+  const agZeile = ag?.ok && ag.daten[0] ? `<a class="standort-zeile" href="/konto/auftraggeber?id=${encodeURIComponent(ag.daten[0].auftraggeber_id)}"><span class="standort-icon" aria-hidden="true">🏛️</span><span class="standort-text"><strong>${escape(ag.daten[0].auftraggeber)}</strong><span class="klein">Frühere Ausschreibungen und Ansprechpartner</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>` : "";
+  const auftragZeile = v.status === "gewonnen" && rolle !== "mitarbeiter" ? `<a class="standort-zeile" href="/konto/auftraege?offen=${v.id}"><span class="standort-icon" aria-hidden="true">🏗️</span><span class="standort-text"><strong>Laufender Auftrag</strong><span class="klein">Laufzeit, Leute und Verlängerung eintragen</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>` : "";
+  const verweise = agZeile || auftragZeile ? `<div class="standort-liste vorgang-verweise">${auftragZeile}${agZeile}</div>` : "";
   // Head: score, deadline with traffic light, state and distance as tags; the portal right below.
   const fristKlasse = v.frist ? ampel({ id: v.id, titel: v.titel, frist: v.frist, status: v.status }) : "grau";
   const kopf = `<ul class="kopf-chips">${v.punkte ? `<li class="punkte">${v.punkte}/10</li>` : ""}<li class="frist ${fristKlasse}">⏰ ${v.frist ? `${datum(v.frist)} · ${abstand(v.frist)}` : "Frist unbekannt"}</li><li>${escape(STATUS[v.status] ?? v.status)}</li>${v.entfernung_km != null ? `<li>📍 ${Math.round(v.entfernung_km)} km</li>` : ""}</ul>
@@ -915,7 +928,7 @@ ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief
   // Jump bar to the sections of this long page; only sections that exist.
   const sprung = [["#steckbrief", "Steckbrief"], teilnahme.includes('id="nachweise"') ? ["#nachweise", "Nachweise"] : null, finanzen ? [kalkulation, "Kalkulation"] : null, personalBlock ? ["#personal", "Personal"] : null, hochladen ? ["#unterlagen", "Unterlagen"] : null, ["#notizen", "Notizen"]].filter((x): x is string[] => !!x);
   const sprungleiste = `<nav class="sprungleiste" aria-label="Abschnitte">${sprung.map(([href, text]) => `<a href="${escape(href)}">${text}</a>`).join("")}</nav>`;
-  return html(seite(v.titel, kopf + sprungleiste + teil + teilnahme + personalBlock + notizBlock + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
+  return html(seite(v.titel, kopf + sprungleiste + verweise + teil + teilnahme + personalBlock + notizBlock + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */

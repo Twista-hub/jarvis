@@ -1,5 +1,5 @@
 // Turns one upload into a Steckbrief: files -> text (Workers AI) -> Claude -> ergebnis.md in R2.
-import { apiClient } from "./api-budget.ts";
+import { apiClient, firmaVonProfil } from "./api-budget.ts";
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
 import ANLEITUNG from "../../alarm/steckbrief-anleitung.txt";
@@ -81,7 +81,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
           "aktueller. Lass den Fußtext des bisherigen Steckbriefs weg."
         : "";
       const kunde = (profile as Record<string, { beschreibung: string }>)[job.profil] ?? { beschreibung: job.kunde || "Keine Firmenbeschreibung hinterlegt." };
-      const message = await this.client().beta.messages
+      const message = await this.client(job.profil).beta.messages
         .stream({
           model: MODEL,
           betas: ["server-side-fallback-2026-07-01"],
@@ -109,7 +109,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
     const lose = ki.text
       ? await step.do("Lose erfassen", { retries: { limit: 2, delay: "10 seconds" } }, async () => {
           await stand(3, "Lose und Mengen für die Kalkulation werden erfasst");
-          const { lose, kosten } = await loseLesen(this.client(), ki.text);
+          const { lose, kosten } = await loseLesen(this.client(job.profil), ki.text);
           await this.env.DATEN.put(`${dir}/lose.json`, JSON.stringify(lose));
           return { anzahl: lose.length, kosten };
         })
@@ -122,8 +122,8 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
     return { ...lesen, kosten: ki.kosten + lose.kosten, lose: lose.anzahl };
   }
 
-  private client() {
-    return apiClient(this.env);
+  private client(profil?: string) {
+    return apiClient(this.env, firmaVonProfil(profil, profile as Record<string, { firma_id?: string }>));
   }
 
   private async speichern(dir: string, markdown: string) {
