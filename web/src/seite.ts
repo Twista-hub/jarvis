@@ -559,6 +559,34 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .referenz .referenz-felder { grid-template-columns: 1fr; }
   .referenz-liste + .klein { margin-top: 10px; }
   .nachweis-zip { margin: 10px 0 4px; } .nachweis-zip .knopf { min-height: 34px; padding: 6px 12px; font-size: 14px; }
+  /* Calculation: price floor, price build-up bar, award comparison, templates. */
+  .untergrenze { display: grid; gap: 2px; margin: 10px 0; padding: 8px 12px; border: 1px solid var(--line); border-left: 4px solid var(--error); border-radius: 10px; background: var(--card); font-size: 14px; }
+  .untergrenze.fehler { background: #fdecea; }
+  .preis-grafik { margin: 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .preis-balken { display: flex; height: 22px; overflow: hidden; border-radius: 6px; }
+  .preis-balken span { min-width: 2px; }
+  .preis-grafik figcaption ul { display: grid; grid-template-columns: 1fr; gap: 3px; list-style: none; margin: 10px 0 0; padding: 0; font-size: 13px; }
+  .preis-grafik li { display: flex; align-items: center; gap: 6px; min-width: 0; }
+  .preis-grafik li i { flex: none; width: 10px; height: 10px; border-radius: 3px; }
+  .preis-grafik li b { margin-left: auto; font-weight: 600; white-space: nowrap; }
+  .preis-grafik li small { width: 38px; text-align: right; color: var(--muted); }
+  @media (min-width: 640px) { .preis-grafik figcaption ul { grid-template-columns: 1fr 1fr; column-gap: 20px; } }
+  .zuschlag-vergleich p { font-size: 14px; }
+  .vergleich-skala { position: relative; height: 26px; margin: 12px 4px 4px; border-bottom: 2px solid var(--line); }
+  .vergleich-skala .spanne { position: absolute; bottom: -2px; height: 8px; border-radius: 4px; background: #c9dceb; }
+  .vergleich-skala .punkt { position: absolute; bottom: -1px; width: 8px; height: 8px; margin-left: -4px; border-radius: 50%; background: #4f8fbf; }
+  .vergleich-skala .eigen { position: absolute; bottom: -4px; width: 4px; height: 26px; margin-left: -2px; border-radius: 2px; background: #2e8b57; }
+  .vergleich-skala .eigen::after { content: "Ihr Angebot"; position: absolute; top: -4px; left: 7px; white-space: nowrap; font-size: 11px; font-weight: 700; color: #2e8b57; }
+  .vergleich-liste { list-style: none; margin: 6px 0; padding: 0; }
+  .vergleich-liste li { display: grid; grid-template-columns: 1fr auto; gap: 0 10px; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+  .vergleich-liste li > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vergleich-liste li .klein { grid-column: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .vergleich-liste li b { grid-column: 2; grid-row: 1 / span 2; align-self: center; white-space: nowrap; }
+  .angebot-uebernehmen { margin: 12px 0; }
+  .vorlage-wahl { margin: 8px 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .vorlage-speichern-zeile { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; }
+  .vorlage-speichern-zeile label { margin: 0; }
+  .vorlage-speichern-zeile button { min-height: 40px; }
 </style>
 </head>
 <body><main>

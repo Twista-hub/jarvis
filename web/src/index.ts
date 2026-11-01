@@ -1,6 +1,6 @@
 // Jarvis upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import kunden from "../kunden.json";
-import { euro, FELDER, felderHtml, fmt, kalkulationCsv, rechnen, STANDARD, szenarien, tarifSchnellwahl, zahl, vorlageFuerBereich, type Eingaben, type Los, type LosWerte } from "./kalkulation";
+import { BRANCHEN_VORLAGEN, euro, FELDER, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
 import profile from "../../alarm/profile.json";
 import { CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
@@ -14,7 +14,7 @@ import { einrichtung } from "./einrichtung";
 import { personal } from "./personal";
 import { markt } from "./markt.ts";
 import { einsatzplan } from "./einsatzplan";
-import { db, konto, sitzung, vorgangZugriff, type KontoEnv } from "./konto";
+import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { escape, markdown, seite, stapeln } from "./seite";
@@ -247,6 +247,27 @@ async function jsonAus<T>(env: Env, key: string): Promise<T | null> {
 
 type Gespeichert = { eingaben: Eingaben; mengen: Record<string, number>; proLos?: LosWerte; tarif?: TarifWahl };
 
+/** Lowest wage for the firm: the lowest current sector minimum wage of its agreements (or temp work EG 1), at least the legal minimum. */
+async function bodenLaden(s: Sitzung, env: Env, firma: string): Promise<Boden> {
+  const vertraege = await db<{ name: string; tarifart: string; katalog_id: string | null; vorgegeben: boolean }[]>(s, env, `firmen_tarifvertraege?firma_id=eq.${firma}&select=name,tarifart,katalog_id,vorgegeben`);
+  if (!vertraege.ok) return MINDESTLOHN;
+  const heute = new Date().toISOString().slice(0, 10);
+  const kandidaten: Boden[] = [];
+  if (vertraege.daten.some((v) => v.name === GVP.name)) kandidaten.push({ lohn: lohnAm("1", heute, 0), name: "Zeitarbeitstarif (EG 1)" });
+  const ids = vertraege.daten.filter((v) => v.tarifart === "Branchenmindestlohn" && v.katalog_id).map((v) => v.katalog_id!);
+  if (ids.length) {
+    const saetze = await db<{ tarif_id: string; gruppe: string; betrag: number; gueltig_ab: string }[]>(s, env, `tarifkatalog_saetze?tarif_id=in.(${ids.map(encodeURIComponent).join(",")})&einheit=eq.Stunde&gueltig_ab=lte.${heute}&select=tarif_id,gruppe,betrag,gueltig_ab&order=gueltig_ab.desc`);
+    const aktuell = new Map<string, number>();
+    for (const r of saetze.ok ? saetze.daten : []) if (!aktuell.has(`${r.tarif_id}|${r.gruppe}`)) aktuell.set(`${r.tarif_id}|${r.gruppe}`, Number(r.betrag));
+    for (const [key, betrag] of aktuell) {
+      const v = vertraege.daten.find((x) => x.katalog_id === key.split("|")[0]);
+      kandidaten.push({ lohn: betrag, name: `Branchenmindestlohn ${(v?.name ?? "").replace(/ – .*$/, "")}`.trim() });
+    }
+  }
+  const boden = kandidaten.filter((k) => k.lohn > MINDESTLOHN.lohn).sort((a, b) => a.lohn - b.lohn)[0];
+  return boden ?? MINDESTLOHN;
+}
+
 /** Calculation form below the Steckbrief; remembers the customer's last inputs. */
 async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<string> {
   const lose = (await jsonAus<Los[]>(env, `auftraege/${job.id}/lose.json`)) ?? [];
@@ -269,7 +290,17 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
     return k ? { eg: k.eg!, wer: `${k.vorname} ${k.nachname}`.trim(), beruf: k.berufe[0], tarif: tarifliste?.ok ? tarifliste.daten.find((t) => t.id === k.tarifvertrag_id)?.name : undefined } : null;
   };
   const vorlagenWerte = firmendaten?.ok ? vorlageFuerBereich(zugriff?.v.bereich_id, bereichsdaten?.ok ? bereichsdaten.daten : [], firmendaten.daten) : undefined;
-  const vorlage = { ...STANDARD, ...(vorlagenWerte ?? (await jsonAus<Eingaben>(env, `kunden/${job.profil}/kalkulation.json`)) ?? {}), ...(eigene?.eingaben ?? {}) };
+  // Templates (F4): sector starting values or the firm's saved templates, loaded with ?vorlage=… until "Berechnen".
+  const [profile_, boden, katalog] = zugriff ? await Promise.all([
+    db<{ id: string; name: string; eingaben: Partial<Eingaben> }[]>(zugriff.s, env, `kalkulationsprofile?firma_id=eq.${zugriff.v.firma_id}&select=id,name,eingaben&order=name`),
+    bodenLaden(zugriff.s, env, zugriff.v.firma_id),
+    zugriff.v.katalog_id ? db<{ cpv: string[] }[]>(zugriff.s, env, `vergabekatalog?id=eq.${encodeURIComponent(zugriff.v.katalog_id)}&select=cpv`) : Promise.resolve(null),
+  ]) : [null, MINDESTLOHN, null];
+  const eigeneVorlagen = profile_?.ok ? profile_.daten : [];
+  const wahl = new URL(request.url).searchParams.get("vorlage") ?? "";
+  const geladen = wahl.startsWith("b:") ? BRANCHEN_VORLAGEN[wahl.slice(2)] ? { name: BRANCHEN_VORLAGEN[wahl.slice(2)].name, werte: BRANCHEN_VORLAGEN[wahl.slice(2)].werte } : null
+    : wahl.startsWith("p:") ? (() => { const p = eigeneVorlagen.find((x) => x.id === wahl.slice(2)); return p ? { name: p.name, werte: p.eingaben } : null; })() : null;
+  const vorlage = { ...STANDARD, ...(vorlagenWerte ?? (await jsonAus<Eingaben>(env, `kunden/${job.profil}/kalkulation.json`)) ?? {}), ...(eigene?.eingaben ?? {}), ...(geladen?.werte ?? {}) };
   const mengen = eigene?.mengen ?? {};
   const proLos = eigene?.proLos ?? {};
   const tarif = eigene?.tarif ?? standardTarif();
@@ -303,11 +334,18 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   const losWahl = lose.length > 1 ? `<label>Los wählen<select data-los-wahl><option value="">Alle Lose</option>${lose.map((l) => `<option value="${escape(l.nr)}">Los ${escape(l.nr)}: ${escape(l.name.length > 60 ? `${l.name.slice(0, 57)}…` : l.name)}</option>`).join("")}</select></label>` : "";
   let ergebnis = "";
   if (eigene) {
-    const r = rechnen(eigene.eingaben, lose, eigene.mengen, proLos, tarif);
+    const r = rechnen(eigene.eingaben, lose, eigene.mengen, proLos, tarif, boden);
+    // Award comparison (F1): similar tenders by CPV group or key words of the title.
+    const zuschlaege = zugriff ? await db<Zuschlag[]>(zugriff.s, env, "rpc/zuschlag_vergleich", { method: "POST", body: JSON.stringify({ f: zugriff.v.firma_id, worte: vergleichsWorte(zugriff.v.titel), cpv: katalog?.ok ? katalog.daten[0]?.cpv ?? [] : [], ohne: zugriff.v.katalog_id ?? "" }) }) : null;
+    const stundenGesamt = r.lose.reduce((x, z) => x + z.stunden, 0);
     const varianten = szenarien(eigene.eingaben, lose, eigene.mengen, proLos, tarif);
     ergebnis = `<h3>Ergebnis</h3>
       ${r.warnungen.map((w) => `<p class="fehler">⚠️ ${escape(w)}</p>`).join("")}
       <div class="szenarien">${varianten.map((v) => `<div class="szenario${v.name === "Normal" ? " normal" : ""}"><span>${v.name}</span><strong>${euro(v.preis)}</strong><small>pro Std. · Gewinn ${fmt(v.gewinn)} %${v.netto ? `<br>${euro(v.netto)} netto` : ""}</small></div>`).join("")}</div>
+      <p class="untergrenze${r.preisProStunde < r.untergrenze ? " fehler" : ""}"><span>🛑 Preisuntergrenze <strong>${euro(r.untergrenze)}</strong> pro Std.</span><span class="klein">${escape(r.boden.name)} ${fmt(r.boden.lohn)} € mit euren Kosten, ohne Gewinn. Darunter verliert ihr mit jeder Stunde Geld.</span></p>
+      ${preisGrafik(r.schritte, r.preisProStunde)}
+      ${zuschlaege ? zuschlagVergleich(r.netto, zuschlaege.ok ? zuschlaege.daten.map((z) => ({ ...z, wert: Number(z.wert) })) : [], runden(stundenGesamt * r.untergrenze)) : ""}
+      ${job.vorgang && zugriff && zugriff.rolle !== "leser" && r.lose.length ? `<p class="angebot-uebernehmen"><a class="knopf" href="/konto/vorgang/${job.vorgang}/angebot?neu=1">➡️ Preise pro Los ins Angebot übernehmen</a></p>` : ""}
       <p class="export-leiste"><a class="knopf zweit" href="/auftrag/${job.id}/kalkulation.csv" download>📊 Als Excel (CSV)</a><button type="button" class="zweit" data-drucken>🖨️ Drucken / PDF</button></p>
       <div class="tabelle"><table><tbody>
         ${r.schritte.map((s) => `<tr><td>${escape(s.name)}</td><td>${euro(s.betrag)}</td></tr>`).join("")}
@@ -320,13 +358,17 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
       </tbody></table>`) : ""}
       <p class="klein">Eine Rechenhilfe, keine Rechtsberatung. Bei Arbeitnehmerüberlassung Tarif bzw. Equal Pay und die Vorgaben im Preisblatt beachten.</p>`;
   }
-  return `<h2 id="kalkulation">💶 Kalkulation</h2>
+  const vorlagenWahl = `<form method="get" action="/auftrag/${job.id}#kalkulation" class="vorlage-wahl"><label>Vorlage laden<select name="vorlage" data-sofort-wahl><option value="">Eigene letzte Werte</option><optgroup label="Branchen-Startwerte">${Object.entries(BRANCHEN_VORLAGEN).map(([k, v]) => `<option value="b:${k}"${wahl === `b:${k}` ? " selected" : ""}>${escape(v.name)}</option>`).join("")}</optgroup>${eigeneVorlagen.length ? `<optgroup label="Eure Vorlagen">${eigeneVorlagen.map((p) => `<option value="p:${p.id}"${wahl === `p:${p.id}` ? " selected" : ""}>${escape(p.name)}</option>`).join("")}</optgroup>` : ""}</select></label><noscript><button>Laden</button></noscript></form>${geladen ? `<p class="hinweis" role="status">Vorlage „${escape(geladen.name)}“ geladen${wahl.startsWith("b:") ? " (Erfahrungswerte, bitte prüfen; der Stundenlohn bleibt eurer)" : ""}. Erst „Berechnen“ übernimmt sie für diese Ausschreibung.</p>` : ""}`;
+  const vorlageSpeichern = zugriff ? `<details class="vorlage-speichern"><summary>💾 Werte als Vorlage speichern</summary><div class="vorlage-speichern-zeile"><label>Name<input name="vorlage_name" maxlength="60" placeholder="z. B. Gastro Frankfurt"></label><button name="aktion" value="vorlage" class="zweit">Speichern</button></div><p class="klein">Speichert Kosten und Aufschläge (nicht die Stunden der Lose). Gleicher Name überschreibt.</p></details>` : "";
+  const gespeichertHinweis = new URL(request.url).searchParams.get("vorlage_gespeichert");
+  return `<h2 id="kalkulation">💶 Kalkulation</h2>${gespeichertHinweis ? `<p class="${gespeichertHinweis === "1" ? "erfolg" : "fehler"}" role="status">${gespeichertHinweis === "1" ? "💾 Vorlage gespeichert. Du findest sie oben unter „Vorlage laden“." : "Die Vorlage konnte nicht gespeichert werden (höchstens 30 je Firma)."}</p>` : ""}
     <p>Trag deine Werte ein. Jarvis rechnet den Preis pro Stunde und pro Los aus und merkt sich deine Werte für die nächste Ausschreibung.</p>
     ${ergebnis}
     ${ohneArbeitskraft ? `<form method="post" action="/auftrag/${job.id}/arbeitskraefte"><p class="klein">Diese Unterlagen wurden vor der Arbeitskräfte-Erkennung geprüft.</p><button>👷 Arbeitskräfte und Entgeltgruppen erkennen</button><span class="klein">Dauert etwa 20 Sekunden.</span></form>` : ""}
-    ${await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true) ? `<form method="post" action="/auftrag/${job.id}/kalkulation">
+    ${await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true) ? `${vorlagenWahl}<form method="post" action="/auftrag/${job.id}/kalkulation">
       ${felder}
       ${loseFelder ? `<h3>Lose, Arbeitskräfte und Löhne</h3>${losWahl}${loseFelder}` : ""}
+      ${vorlageSpeichern}
       <button>Berechnen</button>
     </form>` : `<p>Als Leser kannst du die Kalkulation ansehen, aber nicht ändern.</p>`}`;
 }
@@ -362,6 +404,13 @@ async function kalkulieren(id: string, request: Request, env: Env): Promise<Resp
   };
   await env.DATEN.put(`auftraege/${id}/kalkulation.json`, JSON.stringify({ eingaben, mengen, proLos, tarif }));
   await env.DATEN.put(`kunden/${job.profil}/kalkulation.json`, JSON.stringify(eingaben));
+  // "Als Vorlage speichern" (F4): costs and margins under a name, same name overwrites.
+  const vorlageName = String(form.get("vorlage_name") ?? "").trim().slice(0, 60);
+  if (form.get("aktion") === "vorlage" && vorlageName && job.vorgang) {
+    const z = await vorgangZugriff(request, env, job.vorgang);
+    const r = z ? await db(z.s, env, "kalkulationsprofile?on_conflict=firma_id,name", { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ firma_id: z.v.firma_id, name: vorlageName, eingaben }) }) : null;
+    return Response.redirect(new URL(`/auftrag/${id}?vorlage_gespeichert=${r?.ok ? "1" : "0"}#kalkulation`, request.url).toString(), 303);
+  }
   return Response.redirect(new URL(`/auftrag/${id}#kalkulation`, request.url).toString(), 303);
 }
 

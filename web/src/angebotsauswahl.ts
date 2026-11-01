@@ -6,7 +6,7 @@ import { geforderte, vorhanden } from "./nachweise.ts";
 import { standardTarif, type TarifWahl } from "./tarife.ts";
 import { escape } from "./seite.ts";
 
-export type LosZeile = { nr: string; name: string; stunden: number; netto: number; zeitraum: string };
+export type LosZeile = { nr: string; name: string; stunden: number; netto: number; zeitraum: string; preis?: number };
 export type Preise = { zeilen: LosZeile[]; proStunde: number; kalkuliert: boolean };
 
 /** Prices per lot from the saved calculation of the uploaded documents (or the firm's/standard values). */
@@ -17,7 +17,7 @@ export function preise(lose: Los[], kalk: { eingaben: Eingaben; mengen: Record<s
   const proLos = kalk?.proLos ?? Object.fromEntries(lose.filter((l) => l.eg).map((l) => [l.nr, { eg: l.eg }]));
   const r = rechnen(eingaben, lose, mengen, proLos, kalk ? kalk.tarif : standardTarif());
   return {
-    zeilen: r.lose.map((z) => ({ nr: z.los.nr, name: z.los.name, stunden: z.stunden, netto: z.netto, zeitraum: z.los.zeitraum })),
+    zeilen: r.lose.map((z) => ({ nr: z.los.nr, name: z.los.name, stunden: z.stunden, netto: z.netto, zeitraum: z.los.zeitraum, preis: z.preisProStunde })),
     proStunde: r.preisProStunde,
     kalkuliert: !!kalk,
   };
@@ -39,7 +39,7 @@ export function passendeNachweise(steckbrief: string, dateien: FirmenDatei[], st
 
 export function auswahlSeite(vid: string, p: Preise, nachweise: { namen: string[]; fehlen: string[] }, uploadLink: string, kalkLink: string): string {
   const zeilen = p.zeilen.map((z) => `<label class="zeile"><input type="checkbox" name="lose" value="${escape(z.nr)}" checked>
-    <span>Los ${escape(z.nr)}: ${escape(z.name)}<br><span class="klein">${z.stunden ? `${fmt(z.stunden)} Std. · ` : ""}${euro(z.netto)} netto</span></span></label>`).join("");
+    <span>Los ${escape(z.nr)}: ${escape(z.name)}<br><span class="klein">${z.stunden ? `${fmt(z.stunden)} Std. × ${euro(z.preis ?? p.proStunde)} = ` : ""}<strong>${euro(z.netto)}</strong> netto</span></span></label>`).join("");
   return `<p>Hake an, worauf ihr bieten wollt. Jarvis schreibt daraus das Angebot mit Preisen und legt die passenden Nachweise bei. Danach kannst du alles noch ändern.</p>
 <form method="post" action="/konto/vorgang/${vid}/angebot">
   <input type="hidden" name="aktion" value="vorauswahl">
@@ -55,7 +55,7 @@ ${nachweise.fehlen.length ? `<aside class="nachweis-popup"><strong>⚠️ Noch n
 export function angebotsText(o: { titel: string; firma: string; zeilen: LosZeile[]; proStunde: number; nachweise: string[] }): string {
   const summe = o.zeilen.reduce((s, z) => s + z.netto, 0);
   const tabelle = o.zeilen.length
-    ? `| Los | Leistung | Menge | Preis netto |\n|---|---|---|---|\n${o.zeilen.map((z) => `| ${z.nr} | ${z.name} | ${z.stunden ? `${fmt(z.stunden)} Stunden` : "–"} | ${euro(z.netto)} |`).join("\n")}\n| | **Gesamt netto** | | **${euro(summe)}** |\n`
+    ? `| Los | Leistung | Menge | Preis je Stunde netto | Gesamt netto |\n|---|---|---|---|---|\n${o.zeilen.map((z) => `| ${z.nr} | ${z.name} | ${z.stunden ? `${fmt(z.stunden)} Stunden` : "–"} | ${z.stunden ? euro(z.preis ?? o.proStunde) : "–"} | ${euro(z.netto)} |`).join("\n")}\n| | **Gesamt netto** | | | **${euro(summe)}** |\n`
     : "";
   return [
     `# Angebot: ${o.titel}`,
@@ -65,7 +65,7 @@ export function angebotsText(o: { titel: string; firma: string; zeilen: LosZeile
     o.zeilen.length ? `hiermit bieten wir für die Ausschreibung „${o.titel}“ die folgenden Lose an:` : `hiermit bieten wir für die Ausschreibung „${o.titel}“ an.`,
     "",
     tabelle,
-    `Unser Verrechnungssatz beträgt ${euro(o.proStunde)} netto je Stunde. Alle Preise verstehen sich zuzüglich der gesetzlichen Umsatzsteuer.`,
+    o.zeilen.some((z) => z.preis !== undefined && z.preis !== o.proStunde) ? "Die Preise je Stunde gelten je Los wie oben angegeben. Alle Preise verstehen sich zuzüglich der gesetzlichen Umsatzsteuer." : `Unser Verrechnungssatz beträgt ${euro(o.proStunde)} netto je Stunde. Alle Preise verstehen sich zuzüglich der gesetzlichen Umsatzsteuer.`,
     "",
     "Wir erbringen die Leistung gemäß der Leistungsbeschreibung und den Vertragsbedingungen der Vergabeunterlagen. An unser Angebot halten wir uns bis zum Ablauf der dort genannten Bindefrist gebunden.",
     "",
