@@ -12,6 +12,9 @@ export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, konto
   });
   const info = hinweise.length ? `<details class="seiten-hilfe"><summary aria-label="Hinweise zu ${escape(titel)}" title="Hinweise"><span aria-hidden="true">ℹ️</span></summary><div class="hilfe-inhalt">${hinweise.join("")}</div></details>` : "";
   const titelzeile = (h: string) => `<div class="seiten-titel">${h}${info}</div>`;
+  // A page may bring its own back link (e.g. back to "Firma & Team"); then it replaces the default one.
+  const eigenerZurueck = inhalt.trimStart().match(/^<p class="konto-zurueck">[\s\S]*?<\/p>/)?.[0] ?? "";
+  if (eigenerZurueck) inhalt = inhalt.trimStart().slice(eigenerZurueck.length);
   let kopf = titelzeile(`<h1>${escape(titel)}</h1>`);
   if (inhalt.trimStart().startsWith("<h1")) {
     kopf = "";
@@ -375,6 +378,73 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
     .konto-nav a { display: grid; justify-items: center; gap: 1px; padding: 4px 0; color: var(--text); text-decoration: none; font-size: 1.2rem; }
     .konto-nav span { font-size: 11px; line-height: 1.2; }
   }
+  /* Compact look (Benjamin, 01.11.): smaller type, fields and buttons, less padding, short fields side by side.
+     Inputs keep 16px text so phones do not zoom in while typing. */
+  body { font-size: 15px; line-height: 1.5; }
+  main { padding-top: 16px; }
+  h1 { font-size: 1.38rem; margin-bottom: 12px; }
+  h2 { font-size: 1.06rem; margin: 22px 0 8px; }
+  h3 { font-size: .98rem; margin: 16px 0 6px; }
+  p { margin: 0 0 10px; }
+  form { gap: 10px; padding: 12px 14px; border-radius: 12px; }
+  label { gap: 4px; font-size: .9rem; }
+  input, select, textarea { padding: 7px 10px; font-size: 16px; border-radius: 8px; }
+  select { padding-right: 32px; font-size: 15px; }
+  textarea { min-height: 5em; }
+  button, input, select { min-height: 40px; }
+  input[type=checkbox], input[type=radio] { min-height: 20px; width: 20px; height: 20px; flex-basis: 20px; }
+  button { padding: 9px 14px; font-size: .92rem; border-radius: 9px; }
+  .knopf { padding: 10px 14px; font-size: .95rem; border-radius: 10px; }
+  fieldset { gap: 8px; padding: 10px 12px; border-radius: 10px; }
+  legend { font-size: .9rem; font-weight: 650; padding: 0 4px; }
+  .klein { font-size: 12.5px; }
+  /* Fold-outs: slimmer boxes; inside cards and fieldsets only a light row with arrow, no box in a box. */
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown)) { margin: 8px 0; padding: 0 12px; border-radius: 10px; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown))[open] { padding-bottom: 12px; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown)) > summary { min-height: 38px; padding: 7px 0; font-size: .9rem; }
+  :is(fieldset, article, .treffer-karte, .firmen-fund, form form, details details) > details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown)) { margin: 4px 0 0; padding: 0; border: 0; border-radius: 0; background: none; }
+  :is(fieldset, article, .treffer-karte, .firmen-fund, form form, details details) > details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown))[open] > summary { border-bottom: 0; }
+  /* The research box used the old black triangle: same look as all other fold-outs now. */
+  .firmen-erkenntnisse { padding: 0 12px; background: var(--card); border-radius: 12px; }
+  .firmen-erkenntnisse > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 38px; padding: 7px 0; list-style: none; color: var(--accent); font-size: .9rem; font-weight: 600; }
+  .firmen-erkenntnisse > summary::-webkit-details-marker { display: none; }
+  .firmen-erkenntnisse > summary::after { content: "›"; font-size: 1.35rem; line-height: 1; color: var(--muted); transition: transform .15s; }
+  .firmen-erkenntnisse[open] > summary::after { transform: rotate(90deg); }
+  .firmen-fund { padding: 12px; border-radius: 10px; }
+  .firmen-fund h3 { font-size: .92rem; }
+  /* Pseudo-selects (work and qualification pickers) look like a normal compact select. */
+  .arbeit-dropdown > summary, .qualifikationen-dropdown > summary { min-height: 40px; padding: 7px 10px; font-size: .95rem; }
+  .qualifikationen-dropdown { border: 1px solid var(--line); border-radius: 8px; background: var(--bg); }
+  .qualifikationen-dropdown > summary span { font-size: 1.2rem; color: var(--muted); }
+  .arbeit-optionen button { min-height: 38px; padding: 7px 0; font-size: .95rem; }
+  /* Overview tiles: small rows, two per line. */
+  .konto-kacheln { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 10px 0 24px; }
+  .konto-kachel { min-height: 0; gap: 2px; padding: 12px 26px 12px 12px; border-radius: 12px; }
+  .konto-icon { font-size: 1.35rem; }
+  .konto-kachel strong { font-size: .95rem; line-height: 1.25; }
+  .konto-kachel .klein { line-height: 1.3; }
+  .konto-pfeil { right: 10px; top: 10px; font-size: 1.2rem; }
+  .treffer-karte { padding: 14px; border-radius: 14px; }
+  .treffer-karte h2 { margin: 10px 0 8px; font-size: 1rem; }
+  .treffer-liste { gap: 10px; }
+  .reiter { margin: 14px 0; }
+  .reiter a { min-height: 36px; padding: 7px 6px; font-size: 13px; }
+  .konto-zurueck a, .profil-icon { width: 38px; height: 38px; }
+  .konto-zurueck a { font-size: 20px; }
+  .live-satz strong { font-size: 1.2rem; }
+  button.daumen { width: 38px; height: 38px; font-size: 16px; }
+  /* Search profile editor: works and locations as plain rows instead of boxes inside the form box. */
+  .arbeitsauswahl { padding: 0; border: 0; background: none; }
+  .arbeits-editor fieldset, form[action$="/einrichtung/speichern"] fieldset { padding: 8px 0; border: 0; border-bottom: 1px solid var(--line); border-radius: 0; background: none; }
+  .kalk-felder { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 10px; align-items: start; }
+  .aktionsleiste a { display: flex !important; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px; min-height: 40px !important; padding: 8px 10px !important; font-size: .9rem !important; }
+  .neu-person > summary > span[aria-hidden] { display: none; }
+  .firmen-erkenntnisse .firmen-fund { border: 0; background: var(--bg); }
+  /* Short fields side by side: invitation form, calculation numbers, new location. */
+  .kalk-gruppe label { margin-top: 6px; }
+  .kalk-gruppe label .klein { font-weight: 400; }
+  form[action$="/einladen"]:not(.einladungen-liste form), form[action$="/bereich"] { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 10px; }
+  form[action$="/einladen"] > :not(label), form[action$="/bereich"] > :not(label), form[action$="/einladen"] > label.zeile { grid-column: 1 / -1; }
   @media (max-width: 380px) {
     main { padding-right: 12px; padding-left: 12px; }
     .konto-kacheln { gap: 8px; }
@@ -384,7 +454,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 </head>
 <body><main>
 ${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto"><svg viewBox="0 0 128 128" aria-hidden="true"><rect x="2" y="2" width="124" height="124" rx="30" fill="#15324b"/><circle cx="64" cy="64" r="43" fill="none" stroke="#fff" stroke-opacity=".52" stroke-width="2"/><circle cx="64" cy="64" r="4" fill="#fff"/><path d="M64 18 77 62 64 56 51 62Z" fill="#ff6b35"/><path d="m64 110-13-44 13 6 13-6z" fill="#168aad"/><path d="m18 64 44-13-6 13 6 13zM110 64 66 77l6-13-6-13z" fill="#fff"/></svg><span><strong>Jarvis</strong><small>WP Digital Ranger</small></span></a><div class="konto-aktionen"><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>`}
-${kontoBereich ? `<p class="konto-zurueck"><a href="/konto" aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←</span></a></p>` : ""}
+${eigenerZurueck || (kontoBereich ? `<p class="konto-zurueck"><a href="/konto" aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←</span></a></p>` : "")}
 ${kopf}
 ${inhalt.replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace(/<\/table>/g, "</table></div>")}
 <p class="klein">WP Digital Ranger · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> · <a href="/avv">Auftragsverarbeitung</a></p>

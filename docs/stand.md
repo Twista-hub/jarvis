@@ -79,6 +79,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Alles kompakter, Aufklapper und Auswahlfelder nachgebessert)
+- Benjamin: Dropdowns teils noch groß, generell alles zu groß. Zentraler Block „Compact look“ in `web/src/seite.ts`: Grundschrift 15 px (Eingabefelder bleiben 16 px gegen Handy-Zoom), Felder/Knöpfe 40 px statt 44–52 px, kleinere Überschriften und Abstände.
+- Aufklapper schlanker; innerhalb von Karten, Fieldsets und Formularen nur noch eine leichte Zeile mit Pfeil statt Kasten im Kasten. Recherche-Box „Was Jarvis über die Firma gefunden hat“ nicht mehr mit schwarzem Dreieck. Arbeits- und Qualifikationsauswahl wie normale kompakte Auswahlfelder. Suchprofil-Editor: Arbeiten und Orte als Zeilen statt Kästen.
+- Nebeneinander: Übersichtskacheln zweispaltig und klein, Kalkulationsfelder zu zweit (`.kalk-felder`), Einladungs- und Bereichsformular zweispaltig.
+- Standortseite: doppelter Titel und doppelter Zurück-Pfeil entfernt (`seite()` übernimmt einen eigenen Zurück-Link der Seite), Aktionsknöpfe ohne Umbruch des „+“.
+- Mit Screenshots geprüft: Übersicht, Suchprofil-Editor, Standort, Kalkulation, Ausschreibung. 173 Web-Tests grün.
+
 ### 01.11.2026 – Claude (Suchlauf Perlease nach Mitternacht)
 - Lauf 41255400512 für `98ac7ed5…` erfolgreich: 32.695 offene Bekanntmachungen geprüft, 16 Standorte, 228/228 Kandidaten bewertet, 14 Treffer, 6 mit ausführlichem Steckbrief (davon 4 heute neu, Tagesgrenze erreicht), KI-Kosten 0,31 USD. Suchpunkte für die Karte gespeichert. Der km-Radius greift erst, wenn das Suchprofil einmal gespeichert wird (bis dahin PLZ-Bereiche).
 
