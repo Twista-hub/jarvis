@@ -79,6 +79,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Suchlauf Perlease nach Mitternacht)
+- Lauf 41255400512 für `98ac7ed5…` erfolgreich: 32.695 offene Bekanntmachungen geprüft, 16 Standorte, 228/228 Kandidaten bewertet, 14 Treffer, 6 mit ausführlichem Steckbrief (davon 4 heute neu, Tagesgrenze erreicht), KI-Kosten 0,31 USD. Suchpunkte für die Karte gespeichert. Der km-Radius greift erst, wenn das Suchprofil einmal gespeichert wird (bis dahin PLZ-Bereiche).
+
 ### 01.11.2026 – Claude (Die 9 offenen Punkte der 40 Verbesserungen)
 - Nach Benjamins Nachfrage ehrlich nachgeprüft: 31 voll, 7 teilweise, 2 nicht umgesetzt. Jetzt erledigt:
   - Ausschreibungen: Eckdaten auch aus ausführlichen Steckbriefen („Auf einen Blick“: Lose, Stunden, Wert/Schätzung, Laufzeit); Sortierung „Nächste zuerst“ und Etikett „📍 x km entfernt“ (neue Spalte `vorgaenge.entfernung_km`, vom Alarm über PLZ-Koordinaten berechnet).
