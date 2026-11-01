@@ -79,6 +79,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Löschen sauber, Betreiber-Seite, Suchlauf-Absicherung)
+- Kontolöschung räumt jetzt alle Dateien der gelöschten Firmen in R2 auf: bibliothek, personal-fotos, importe, angebotsabgaben, personal_nachweise, spesen, unterschriften, nachweis, bewerber, firmenlogo, kunden/firma-…, dazu Unterlagenprüfungen der Ausschreibungen (`auftraege/<id>/`). Gemeinsame Funktion `dateienLoeschen` in `web/src/loeschen.ts`.
+- Betreiber-Seite `/konto/betreiber` (nur `jarvis_intern.betreiber`, eingetragen: benschiffer79@gmail.com): Kundenzugang per E-Mail suchen, Firmen mit Rolle und Mitgliederzahl sehen, mit Bestätigung (Adresse erneut eintippen) löschen; optional auch Firmen, deren einziger Inhaber er ist. RPCs `ist_betreiber`, `betreiber_konto_suchen`, `betreiber_konto_loeschen` (Migration `20261101210000_betreiber_konto_loeschen.sql`, Rechte-Test: nur Betreiber, eigenes Konto und letzter Inhaber geschützt, Kollege bleibt).
+- `alarm.yml` „Bericht speichern“: bei gleichzeitigen Läufen gewinnt der neuere (`git pull --rebase -X theirs`), bis zu 4 Versuche.
+
 ### 01.11.2026 – Claude (Rechte sicher vergeben)
 - Auf Wunsch von Benjamin („für den Chef sehr sicher“): Beim Einladen sind Zugriff und Bereich Pflicht und ohne Vorauswahl („– bitte bewusst wählen –“; „Ganze Firma“ ist eine eigene Option am Ende), Finanzen bleiben aus. „?“-Pop-ups erklären Zugriff, Bereich und Finanzen (HTML-Popover, `web/src/zugriff.ts`).
 - Vor dem Einladen und vor dem Ändern von Rechten kommt eine Prüfseite: Tabelle (Zugriff, Bereich, Finanzen), Warnung bei „ganze Firma“ oder Administration, Liste „Kann / Kann nicht“ aus der Rechtetabelle; erst „Ja, so einladen/speichern“ führt es aus. Server prüft dasselbe (ohne bewusste Wahl kein Speichern). „Erneut senden“ übernimmt die alte Einladung unverändert.

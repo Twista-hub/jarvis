@@ -1,5 +1,6 @@
 // Settings and account (I1–I5): finer notifications and quiet hours, own name and function, downloading one's own
 // data (Art. 15/20 GDPR) and deleting the account, and a help page with frequent questions.
+import { dateienLoeschen, eigeneFirmen } from "./loeschen.ts";
 import { COOKIE, db, html, sitzung, weiterleiten, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 
@@ -195,18 +196,11 @@ export async function kontoEinstellungen(request: Request, env: KontoEnv): Promi
   if (String(form.get("bestaetigung") ?? "").trim().toUpperCase() !== "LÖSCHEN") return zurueck("Bitte zur Bestätigung LÖSCHEN eintippen.");
   const angemeldet = letzteAnmeldung(s.token);
   if (angemeldet === null || Date.now() - angemeldet > 30 * 60_000) return zurueck("Bitte melde dich zur Sicherheit neu an und versuche es dann noch einmal.");
+  // Firms that disappear with the account and their tenders, read before deleting (afterwards they are gone).
+  const vorher = await eigeneFirmen(s, env);
   const r = await db<string[]>(s, env, "rpc/konto_loeschen", { method: "POST", body: "{}" });
   if (!r.ok) return zurueck(/LETZTER_INHABER/.test(r.fehler) ? "Du bist die letzte Inhaberin bzw. der letzte Inhaber einer Firma mit weiteren Mitgliedern. Übertrage die Inhaberrolle unter Firma & Team zuerst an jemand anderen." : "Das Konto konnte nicht gelöscht werden. Bitte schreib uns über die Hilfe.");
-  if (env.DATEN && Array.isArray(r.daten)) {
-    for (const firma of r.daten.filter((f) => /^[0-9a-f-]{36}$/.test(f))) {
-      for (const praefix of ["bibliothek", "personal-fotos", "importe", "angebotsabgaben"]) {
-        for (let runde = 0; runde < 20; runde++) {
-          const liste = await env.DATEN.list({ prefix: `${praefix}/${firma}/` });
-          if (!liste.objects.length) break;
-          await env.DATEN.delete(liste.objects.map((o) => o.key));
-        }
-      }
-    }
-  }
+  const geloescht = Array.isArray(r.daten) ? r.daten.filter((f) => typeof f === "string") : [];
+  await dateienLoeschen(env, geloescht, vorher.vorgaenge).catch((e) => console.warn(`Dateien nach Kontolöschung: ${e instanceof Error ? e.message : String(e)}`));
   return html(seite("Konto gelöscht", `<p><strong>Dein Konto ist gelöscht.</strong></p><p>Danke, dass du Jarvis genutzt hast. Du kannst dich jederzeit neu registrieren.</p><p><a href="/">Zur Startseite</a></p>`), 200, [`jv_at=; ${COOKIE}; Max-Age=0`, `jv_rt=; ${COOKIE}; Max-Age=0`, `jv_firma=; ${COOKIE}; Max-Age=0`]);
 }
