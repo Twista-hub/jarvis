@@ -1,7 +1,9 @@
 // "Fristen": traffic-light deadlines grouped by week, a small month calendar, calendar files and what is still open.
 import { escape } from "./seite.ts";
 
-export type FristVorgang = { id: string; titel: string; frist: string | null; status: string; kaufverantwortlich_id?: string | null; fragefrist?: string | null; art?: "fragen" | "eigen"; vorgang_id?: string | null };
+export type FristVorgang = { id: string; titel: string; frist: string | null; status: string; kaufverantwortlich_id?: string | null; fragefrist?: string | null; art?: "fragen" | "eigen"; vorgang_id?: string | null; terminart?: string; ort?: string };
+// N10: icon and label per kind of own appointment.
+const TERMIN_LABEL: Record<string, string> = { besichtigung: "🏗️ Ortsbesichtigung", bieterfragen: "❓ Bieterfragen", submission: "📨 Submission", eroeffnung: "🔓 Eröffnung", gespraech: "🤝 Gespräch", sonstiges: "📌 Eigener Termin" };
 
 const BERLIN = "Europe/Berlin";
 const TAG = 86400_000;
@@ -126,10 +128,10 @@ export function fristenSeite(liste: FristVorgang[], opts: { erledigte: boolean; 
     const rest = Math.max(0, Math.min(30, tageBis(v.frist!, jetzt)));
     const wer = opts.zustaendig(v.kaufverantwortlich_id);
     return `<li id="frist-${v.id}${v.art ? `-${v.art}` : ""}" class="frist ${v.art === "eigen" ? (tageBis(v.frist!, jetzt) < 3 ? "rot" : tageBis(v.frist!, jetzt) < 7 ? "gelb" : "gruen") : ampel(v, jetzt)}">
-  <div class="frist-kopf">${v.art === "fragen" ? `<span class="frist-art">❓ Fragen bis</span>` : v.art === "eigen" ? `<span class="frist-art">📌 Eigener Termin</span>` : ""}<time datetime="${escape(v.frist!)}">${new Date(v.frist!).toLocaleDateString("de-DE", { timeZone: BERLIN, weekday: "short", day: "2-digit", month: "2-digit" })}</time><span class="frist-abstand">${abstand(v.frist!, jetzt)}</span></div>
+  <div class="frist-kopf">${v.art === "fragen" ? `<span class="frist-art">❓ Fragen bis</span>` : v.art === "eigen" ? `<span class="frist-art">${TERMIN_LABEL[v.terminart ?? "sonstiges"] ?? TERMIN_LABEL.sonstiges}</span>` : ""}<time datetime="${escape(v.frist!)}">${new Date(v.frist!).toLocaleDateString("de-DE", { timeZone: BERLIN, weekday: "short", day: "2-digit", month: "2-digit" })}</time><span class="frist-abstand">${abstand(v.frist!, jetzt)}</span></div>
   ${v.art === "eigen" ? (v.vorgang_id ? `<a class="frist-titel" href="/konto/vorgang/${v.vorgang_id}">${escape(v.titel)}</a>` : `<span class="frist-titel">${escape(v.titel)}</span>`) : `<a class="frist-titel" href="/konto/vorgang/${v.id}">${escape(v.titel)}</a>`}
   <div class="zeitleiste" aria-hidden="true"><span style="width:${Math.round((rest / 30) * 100)}%"></span></div>
-  <div class="frist-info">${wer ? `<span>👤 ${escape(wer)}</span>` : ""}${fehlt.map((x) => `<span class="fehlt">${escape(x)}</span>`).join("")}${v.art === "eigen" ? `<form method="post" action="/konto/termin" class="termin-weg"><input type="hidden" name="loeschen" value="${v.id}"><button class="zweit">Löschen</button></form>` : v.art === "fragen" ? "" : `<a class="frist-ics" href="/konto/frist/${v.id}.ics" download>📅 In Kalender</a>`}</div>
+  <div class="frist-info">${v.ort ? `<span>📍 ${escape(v.ort)}</span>` : ""}${wer ? `<span>👤 ${escape(wer)}</span>` : ""}${fehlt.map((x) => `<span class="fehlt">${escape(x)}</span>`).join("")}${v.art === "eigen" ? `<form method="post" action="/konto/termin" class="termin-weg"><input type="hidden" name="loeschen" value="${v.id}"><button class="zweit">Löschen</button></form>` : v.art === "fragen" ? "" : `<a class="frist-ics" href="/konto/frist/${v.id}.ics" download>📅 In Kalender</a>`}</div>
 </li>`;
   };
   const listen = offen.length

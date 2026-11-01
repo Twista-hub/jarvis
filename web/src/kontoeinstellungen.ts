@@ -82,6 +82,9 @@ const HILFE: [string, [string, string][]][] = [
     ["Was steht auf den Auftraggeber-Seiten?", "Eure Ausschreibungen und Angebote bei diesem Auftraggeber, was dort gerade offen ist, frühere Zuschläge mit Gewinner und Wert, die Kontaktstelle aus der Bekanntmachung und eure eigenen Ansprechpartner."],
     ["Woher kommen die Förderprogramme?", "Aus der Förderdatenbank des Bundes. Jarvis prüft jeden Morgen die neuen Programme gegen euer Suchprofil und gibt eine Einschätzung von 1 bis 10. Ob ihr antragsberechtigt seid, entscheidet der Fördergeber."],
     ["Was zeigt die Auswertung?", "Treffer pro Monat, wie viele davon zum Angebot und zum Zuschlag wurden, die Gewinnquote pro Quartal, den Umsatz (mit Finanzfreigabe), häufige Gründe für 👎 und für Inhaber und Admins die KI-Kosten eurer Firma."],
+    ["Wo trage ich Ortsbesichtigung und Bieterfragen ein?", "In der Ausschreibung unter „📅 Termine & Bieterfragen“: Termine mit Art und Ort (sie stehen auch unter Fristen und im Kalender-Abo) und Fragen an den Auftraggeber. Offene Fragen gibt es als fertigen Text zum Einfügen ins Vergabeportal."],
+    ["Wie frage ich Nachunternehmer an?", "Partnerbetriebe einmal unter Mehr → Nachunternehmer & Partner anlegen. In der Ausschreibung unter „🤝 Nachunternehmer“ pro Los anfragen, mit „✉️ Mail“ öffnet sich dein Mailprogramm mit einem vorbereiteten Text. Stand und Preis des Partners hältst du dort fest."],
+    ["Wer ist wann wo eingesetzt?", "Die Disposition (Mehr oder Firma & Team) zeigt pro Woche alle Personen mit Einsätzen, Urlaub und Schulungen; Filter „Frei“ zeigt, wer verfügbar ist. Neue Einsätze lassen sich direkt eintragen."],
     ["Was macht der AÜG-Wächter?", "Für Zeitarbeitsfirmen: Pro Leiharbeitskraft und Kunde berechnet er, wann Equal Pay (nach 9 Monaten) gilt und wann die Höchstüberlassungsdauer (18 Monate) endet, mit der 3-Monats-Regel für Unterbrechungen. Ohne Gewähr; Tarifverträge können abweichen."],
   ]],
   ["👥 Team und Konto", [
