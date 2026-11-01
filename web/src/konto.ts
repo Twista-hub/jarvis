@@ -18,7 +18,7 @@ import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { teilnahmeTeil } from "./markt.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
-import { fristenSeite, ics } from "./fristen.ts";
+import { abstand, ampel, fristenSeite, ics } from "./fristen.ts";
 import { suchgebietKarte, type Suchpunkt } from "./karte.ts";
 import { bewertung, daumen, eckdaten, filterLeiste, sortieren, SORTIERUNGEN, suchbegriff } from "./treffer.ts";
 
@@ -96,6 +96,8 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (p === "/konto/push/schluessel") return pushSchluessel(env);
   if (p === "/konto/push/abo" && post) return pushAbo(request, env);
   if (p === "/konto/push/neu") return pushNeu(request, env);
+  const notiz = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/notiz$/);
+  if (notiz && post) return notizSpeichern(notiz[1], request, env);
   const v = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})$/);
   if (v && !post) return vorgangZeigen(v[1], request, env);
   if (p === "/einladung") return post ? mitSitzung(request, env, einladungAnnehmen) : einladungZeigen(url, request, env);
@@ -588,6 +590,31 @@ async function einladungAnnehmen(s: Sitzung, form: FormData, _r: Request, env: K
   return html(seite("Einladung", `<p class="fehler">${grund}</p><p><a href="/konto">Zur Übersicht</a></p>`), 400);
 }
 
+/** Team notes on a tender, newest first, with a short form. */
+async function notizen(s: Sitzung, env: KontoEnv, v: Vorgang & { firma_id: string }, rolle: string): Promise<string> {
+  const [liste, leute] = await Promise.all([
+    db<{ id: string; text: string; erstellt: string; user_id: string }[]>(s, env, `vorgang_notizen?vorgang_id=eq.${v.id}&select=id,text,erstellt,user_id&order=erstellt.desc&limit=50`),
+    db<{ user_id: string; anzeigename: string | null }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&select=user_id,anzeigename`),
+  ]);
+  const name = (id: string) => (leute.ok ? leute.daten.find((x) => x.user_id === id)?.anzeigename : "") || (id === s.userId ? "Du" : "Teammitglied");
+  const eintraege = liste.ok ? liste.daten : [];
+  const zeit = (x: string) => new Date(x).toLocaleString("de-DE", { timeZone: "Europe/Berlin", dateStyle: "short", timeStyle: "short" });
+  const form = rolle === "mitarbeiter" ? "" : `<form method="post" action="/konto/vorgang/${v.id}/notiz" class="notiz-form"><label><span class="unsichtbar">Neue Notiz</span><textarea name="text" maxlength="2000" required placeholder="z. B. Kunde angerufen, Rückruf Freitag"></textarea></label><button>Notiz speichern</button></form>`;
+  return `<h2 id="notizen">🗒️ Notizen fürs Team</h2>${form}${eintraege.length ? `<ul class="notizen">${eintraege.map((n) => `<li><p>${escape(n.text).replace(/\n/g, "<br>")}</p><span class="klein">${escape(name(n.user_id))} · ${zeit(n.erstellt)}</span>${n.user_id === s.userId || ["inhaber", "admin"].includes(rolle) ? `<form method="post" action="/konto/vorgang/${v.id}/notiz"><input type="hidden" name="loeschen" value="${n.id}"><button class="zweit" aria-label="Notiz löschen">Löschen</button></form>` : ""}</li>`).join("")}</ul>` : `<p class="klein">Noch keine Notizen.</p>`}`;
+}
+
+async function notizSpeichern(id: string, request: Request, env: KontoEnv): Promise<Response> {
+  const z = await vorgangZugriff(request, env, id);
+  if (!z) return weiterleiten("/konto");
+  const form = await request.formData();
+  const loeschen = String(form.get("loeschen") ?? "");
+  const text = String(form.get("text") ?? "").trim().slice(0, 2000);
+  const r = /^[0-9a-f-]{36}$/.test(loeschen)
+    ? await db(z.s, env, `vorgang_notizen?id=eq.${loeschen}&vorgang_id=eq.${id}`, { method: "DELETE" })
+    : text ? await db(z.s, env, "vorgang_notizen", { method: "POST", body: JSON.stringify({ firma_id: z.v.firma_id, vorgang_id: id, text }) }) : { ok: false };
+  return weiterleiten(`/konto/vorgang/${id}${r.ok ? "" : `?fehler=${encodeURIComponent("Die Notiz konnte nicht gespeichert werden.")}`}#notizen`, z.s.cookies);
+}
+
 /** IDs from the cookie jv_zuletzt (only well-formed UUIDs). */
 function zuletztAngesehen(request: Request): string[] {
   const roh = /(?:^|;\s*)jv_zuletzt=([0-9a-f,-]{0,120})/.exec(request.headers.get("cookie") ?? "")?.[1] ?? "";
@@ -721,7 +748,8 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
       const aktueller = v.kaufverantwortlich_id ? await db<{ user_id: string; rolle: string; anzeigename: string | null; funktion: string | null; aktiv: boolean }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${v.kaufverantwortlich_id}&select=user_id,rolle,anzeigename,funktion,aktiv`) : null;
       const eingetragen = aktueller?.ok ? aktueller.daten[0] : undefined;
       const alle = eingetragen && !kandidaten.some((x) => x.user_id === eingetragen.user_id) ? [...kandidaten, eingetragen] : kandidaten;
-      kaufverantwortlich = `<h2>Kaufmännische Zuständigkeit</h2>${eingetragen && !eingetragen.aktiv ? `<p class="klein">Bisher: ${escape(eingetragen.anzeigename || eingetragen.funktion || "Mitglied")} (Zugang gesperrt)</p>` : ""}<form method="post" action="/konto/verantwortlich"><input type="hidden" name="vorgang" value="${v.id}"><label>Verantwortliche Person<select name="person"><option value="">Nicht zugewiesen</option>${alle.map((x) => `<option value="${x.user_id}"${x.user_id === v.kaufverantwortlich_id ? " selected" : ""}${!x.aktiv ? " disabled" : ""}>${escape(x.anzeigename || x.funktion || "Mitglied")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}${!x.aktiv ? " (gesperrt)" : ""}</option>`).join("")}</select></label><button>Zuständigkeit speichern</button></form>`;
+      const wer = eingetragen ? escape(eingetragen.anzeigename || eingetragen.funktion || "Mitglied") : "nicht zugewiesen";
+      kaufverantwortlich = `<details class="zustaendigkeit"><summary>👤 Kaufmännisch zuständig: ${wer}</summary>${eingetragen && !eingetragen.aktiv ? `<p class="klein">Bisher: ${escape(eingetragen.anzeigename || eingetragen.funktion || "Mitglied")} (Zugang gesperrt)</p>` : ""}<form method="post" action="/konto/verantwortlich"><input type="hidden" name="vorgang" value="${v.id}"><label>Verantwortliche Person<select name="person"><option value="">Nicht zugewiesen</option>${alle.map((x) => `<option value="${x.user_id}"${x.user_id === v.kaufverantwortlich_id ? " selected" : ""}${!x.aktiv ? " disabled" : ""}>${escape(x.anzeigename || x.funktion || "Mitglied")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}${!x.aktiv ? " (gesperrt)" : ""}</option>`).join("")}</select></label><button>Zuständigkeit speichern</button></form></details>`;
     }
   }
   const knoepfe = [
@@ -730,7 +758,10 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
     finanzen ? `<a class="zweit" href="${kalkulation}">💶 Kalkulation</a>` : "",
   ].filter(Boolean).join("");
   const leiste = knoepfe ? `<h2>Was möchtest du tun?</h2><nav class="aktionsleiste" aria-label="Aktionen">${knoepfe}</nav>` : "";
-  const kopf = `<p>${v.punkte ? `<strong>${v.punkte}/10</strong> · ` : ""}Frist: ${v.frist ? datum(v.frist) : "unbekannt"} · Stand: ${STATUS[v.status] ?? v.status}</p>
+  // Head: score, deadline with traffic light, state and distance as tags; the portal right below.
+  const fristKlasse = v.frist ? ampel({ id: v.id, titel: v.titel, frist: v.frist, status: v.status }) : "grau";
+  const kopf = `<ul class="kopf-chips">${v.punkte ? `<li class="punkte">${v.punkte}/10</li>` : ""}<li class="frist ${fristKlasse}">⏰ ${v.frist ? `${datum(v.frist)} · ${abstand(v.frist)}` : "Frist unbekannt"}</li><li>${escape(STATUS[v.status] ?? v.status)}</li>${v.entfernung_km != null ? `<li>📍 ${Math.round(v.entfernung_km)} km</li>` : ""}</ul>
+${portal ? `<a class="knopf portal-knopf" href="${escape(portal)}" rel="noopener" target="_blank">🌐 Zum Vergabeportal</a>` : ""}
 ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}`;
   // Required proofs the firm has not uploaded yet get a ⚠️ with an upload link (only for people with finance access).
   const unterlagen = finanzen ? await db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`) : null;
@@ -750,18 +781,22 @@ ${portal ? `<nav class="aktionsleiste"><a class="zweit" href="${escape(portal)}"
 <p class="klein">Am Handy liegt die Datei unter „Downloads“. Jarvis schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p></details>`;
   let teil: string;
   if (aus?.text) {
-    teil = `<h2>Steckbrief aus den Vergabeunterlagen</h2>${brief(aus.text)}
+    teil = `<h2 id="steckbrief">Steckbrief aus den Vergabeunterlagen</h2>${brief(aus.text)}
 ${leiste}${hochladen.replace("📥 Vergabeunterlagen", "📥 Dateien nachreichen")}
 ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summary>${brief(v.steckbrief)}</details>` : ""}`;
   } else if (aus) {
-    return html(seite(v.titel, `${kopf}${kaufverantwortlich}${await fortschritt(env, aus.auftrag)}
-${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}`, 20, "treffer"), 200, s.cookies);
+    return html(seite(v.titel, `${kopf}${await fortschritt(env, aus.auftrag)}
+${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}${kaufverantwortlich}`, 20, "treffer"), 200, s.cookies);
   } else {
-    teil = `${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
+    teil = `${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${leiste}${hochladen}`;
   }
   const teilnahme = await teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? "");
   const personalBlock = rolle === "leser" || rolle === "mitarbeiter" ? "" : await einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle));
-  return html(seite(v.titel, kopf + kaufverantwortlich + teil + teilnahme + personalBlock, 0, "treffer"), 200, s.cookies);
+  const notizBlock = await notizen(s, env, v, rolle);
+  // Jump bar to the sections of this long page; only sections that exist.
+  const sprung = [["#steckbrief", "Steckbrief"], teilnahme.includes('id="nachweise"') ? ["#nachweise", "Nachweise"] : null, finanzen ? [kalkulation, "Kalkulation"] : null, personalBlock ? ["#personal", "Personal"] : null, hochladen ? ["#unterlagen", "Unterlagen"] : null, ["#notizen", "Notizen"]].filter((x): x is string[] => !!x);
+  const sprungleiste = `<nav class="sprungleiste" aria-label="Abschnitte">${sprung.map(([href, text]) => `<a href="${escape(href)}">${text}</a>`).join("")}</nav>`;
+  return html(seite(v.titel, kopf + sprungleiste + teil + teilnahme + personalBlock + notizBlock + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */
