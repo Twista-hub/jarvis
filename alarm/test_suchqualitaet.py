@@ -158,7 +158,7 @@ class SuchqualitaetTest(unittest.TestCase):
         sql, params = con.execute.call_args.args
         self.assertIn("suchlauf_ergebnis", sql)
         self.assertEqual(params[2], "firma-a")
-        self.assertEqual(json.loads(params[0]), {"treffer": 0, "neu": 0, "ungeprueft": 0, "archiviert": 1})
+        self.assertEqual(json.loads(params[0]), {"treffer": 0, "neu": 0, "ungeprueft": 0, "archiviert": 1, "abgelaufen": 0})
 
     def test_changed_profile_cannot_archive_from_obsolete_results(self):
         data = {"treffer": [], "profile": {"a": {"version": "veraltet", "abgelehnt": ["gut"]}}}

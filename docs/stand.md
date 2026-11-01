@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Ausschreibungsliste B1–B5)
+- B1: Umschalter „▦ Karten / ☰ Liste“, kompakte Liste mit Punkten, Titel, Frist und Entfernung (Cookie `jv_ansicht`).
+- B2: Punkt vor dem Titel für Treffer, die seit dem letzten Besuch dazukamen (Cookie `jv_gesehen`, wird erst nach einer Stunde erneuert, damit Neuladen die Markierung nicht löscht).
+- B3: Schnellknöpfe „⭐ Merken“ (Stand „Angebot in Arbeit“) und „✕ Weg damit“ (verworfen) auf jeder Karte; „Stand ändern“ bleibt für alle anderen Stände.
+- B4: Häkchen pro Treffer, schwebende Leiste „x ausgewählt · Archivieren · Merken“ (`/konto/status/mehrere`, höchstens 100, RLS entscheidet).
+- B5: `speichern.abgelaufene_archivieren` schiebt beim Suchlauf unbearbeitete Treffer (neu/prüfen) mit Frist älter als 1 Tag ins Archiv; Anzahl als `suchlauf_ergebnis.abgelaufen`, Hinweis in der Liste. Angebote in Arbeit bleiben unberührt.
+- Tests: Python-SQL-Test für das Archivieren, Erwartung in `test_suchqualitaet` angepasst; 173 Web-, 46 Python-Tests grün.
+
 ### 01.11.2026 – Claude (Übersicht A1–A5)
 - A1: Suchstand als eine kurze Zeile („✓ Letzte Suche abgeschlossen: Datum · 14 Treffer, 2 neu“), Zahlen zum Aufklappen (`suchstatus.ts`, `details.suchstand`).
 - A2: „Zuletzt angesehen“ mit den letzten 3 geöffneten Ausschreibungen (Cookie `jv_zuletzt`, gesetzt in `vorgangZeigen`).

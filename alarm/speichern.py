@@ -66,6 +66,13 @@ def unpassende_verwerfen(con, firma_id: str, abgelehnt: list[str]) -> int:
         where firma_id=%s and status='neu' and quelle_id = any(%s)""", (firma_id, abgelehnt)).rowcount
 
 
+def abgelaufene_archivieren(con, firma_id: str) -> int:
+    """Untouched hits (new / to check) whose deadline passed more than a day ago go to the archive."""
+    n = con.execute("""update public.vorgaenge set status='verworfen'
+        where firma_id=%s and status in ('neu','pruefen') and frist < now() - interval '1 day'""", (firma_id,)).rowcount
+    return n if isinstance(n, int) and n > 0 else 0
+
+
 def brief_aktualisieren(alt: str | None, t: dict) -> str | None:
     def teilen(text):
         teile = (text or "").split("\n\n", 3)
@@ -159,8 +166,9 @@ def main() -> None:
             verworfen = ausserhalb_gebiet_verwerfen(con, firma_id, profil.get("suchorte") or [])
             nicht_aktuell = nicht_mehr_aktuell_verwerfen(con, firma_id, eigene, kompletter_katalog)
             neu = speichern(con, firma_id, eigene, profil.get("regionen", {}))
+            abgelaufen = abgelaufene_archivieren(con, firma_id)
             ergebnis = {"treffer": len(eigene), "neu": neu, "ungeprueft": sum(t.get("punkte") is None for t in eigene),
-                        "archiviert": unpassend + verworfen + nicht_aktuell, **bericht.get("suchstand", {})}
+                        "archiviert": unpassend + verworfen + nicht_aktuell, "abgelaufen": abgelaufen, **bericht.get("suchstand", {})}
             suchgebiet = {"standorte": profil["standorte"], "suchgebiet_modus": "firmenstandorte"} if profil.get("suchgebiet_modus") == "firmenstandorte" else {}
             # Coordinates for the map in the app (the app does not load the postal code table itself).
             suchgebiet["suchpunkte"] = profil.get("suchpunkte") or []

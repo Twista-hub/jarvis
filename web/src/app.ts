@@ -117,6 +117,18 @@ document.querySelectorAll("form[data-kosten-warnung]").forEach(function (form) {
   form.addEventListener("change", pruefen);
   form.addEventListener("click", function () { setTimeout(pruefen, 0); });
 });
+// Hit list: the bulk bar appears as soon as hits are ticked.
+(function () {
+  var leiste = document.getElementById("massen");
+  if (!leiste) return;
+  var zahl = leiste.querySelector("[data-massen-zahl]");
+  function zeigen() {
+    var n = document.querySelectorAll("input[data-massen]:checked").length;
+    leiste.hidden = n === 0;
+    if (zahl) zahl.textContent = n + " ausgewählt";
+  }
+  document.querySelectorAll("input[data-massen]").forEach(function (c) { c.addEventListener("change", zeigen); });
+})();
 // Search fields that filter a list on the page as you type.
 document.querySelectorAll("[data-listenfilter]").forEach(function (f) {
   var liste = document.getElementById(f.dataset.listenfilter);
