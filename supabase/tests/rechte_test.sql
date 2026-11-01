@@ -48,6 +48,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101110000_foerderung_radar.sql
 \ir ../migrations/20261101120000_auftraege_auftraggeber_auswertung.sql
 \ir ../migrations/20261101130000_textbausteine_leistungsverzeichnis.sql
+\ir ../migrations/20261101140000_termine_partner_disposition.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -727,6 +728,48 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.textbausteine) and (select count(*) = 0 from public.leistungsverzeichnisse), 'Fremde Firma sieht keine Textbausteine und kein LV');
 reset role;
 update public.mitglieder set finanzen = false, aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
+select set_config('test.uid', '', false);
+
+-- N10: typed appointments and bidder questions; N11: partners, requests, prices only with finance rights.
+reset role;
+update public.mitglieder set aktiv = true, finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.eigene_termine (firma_id, vorgang_id, titel, zeit, art, ort)
+  values (:'firma', (select id from public.vorgaenge where titel = 'Messe-Catering ITB'), 'Besichtigung Halle 7', now() + interval '3 days', 'besichtigung', 'Halle 7, Tor B');
+select pruefe((select art = 'besichtigung' and ort = 'Halle 7, Tor B' from public.eigene_termine where titel = 'Besichtigung Halle 7'), 'Termin mit Art und Ort gespeichert');
+insert into public.bieterfragen (firma_id, vorgang_id, frage) values (:'firma', (select id from public.vorgaenge where titel = 'Messe-Catering ITB'), 'Ist eine Besichtigung Pflicht?');
+update public.bieterfragen set status = 'beantwortet', antwort = 'Nein.' where frage like 'Ist eine%';
+select pruefe((select status = 'beantwortet' from public.bieterfragen), 'Bieterfrage gestellt und Antwort eingetragen');
+do $$ begin
+  insert into public.bieterfragen (firma_id, vorgang_id, frage) values (current_setting('test.firma')::uuid, current_setting('test.hh')::uuid, 'Frage im fremden Standort');
+  raise exception 'FEHLER: Bieterfrage im fremden Standort';
+exception when insufficient_privilege then null; end $$;
+insert into public.partner (firma_id, name, gewerke) values (:'firma', 'Elektro Kaya', array['Elektro']);
+insert into public.partner_anfragen (firma_id, vorgang_id, partner_id, los)
+  values (:'firma', (select id from public.vorgaenge where titel = 'Messe-Catering ITB'), (select id from public.partner where name = 'Elektro Kaya'), 'Los 2');
+select pruefe((select count(*) = 1 from public.partner_anfragen), 'Anfrage an Partner gespeichert');
+do $$ begin
+  insert into public.partner_preise (firma_id, anfrage_id, preis) values (current_setting('test.firma')::uuid, (select id from public.partner_anfragen limit 1), 1000);
+  raise exception 'FEHLER: Partnerpreis ohne Finanzfreigabe';
+exception when insufficient_privilege then null; end $$;
+reset role;
+update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+insert into public.partner_preise (firma_id, anfrage_id, preis) values (:'firma', (select id from public.partner_anfragen limit 1), 12500);
+select pruefe((select preis = 12500 from public.partner_preise), 'Mit Finanzfreigabe: Partnerpreis gespeichert');
+reset role;
+update public.mitglieder set finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select pruefe((select count(*) = 0 from public.partner_preise), 'Ohne Finanzfreigabe kein Partnerpreis sichtbar');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.bieterfragen) and (select count(*) = 0 from public.partner) and (select count(*) = 0 from public.partner_anfragen), 'Fremde Firma sieht keine Bieterfragen, Partner oder Anfragen');
+do $$ begin
+  insert into public.partner_anfragen (firma_id, vorgang_id, partner_id) select v.firma_id, v.id, (select id from public.partner limit 1) from public.vorgaenge v limit 1;
+  if found then raise exception 'FEHLER: fremde Anfrage'; end if;
+exception when insufficient_privilege or not_null_violation then null; end $$;
+reset role;
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

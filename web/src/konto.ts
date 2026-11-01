@@ -23,6 +23,8 @@ import { benachrichtigungAusFormular, benachrichtigungFelder, profilTeil, type B
 import { kurzberichte } from "./kurzberichte.ts";
 import { PASSEND_AB } from "./foerderung.ts";
 import { lage, type Vertrag } from "./auftraege.ts";
+import { bieterfragenSpeichern, istArt, TERMIN_ARTEN, termineTeil } from "./termine.ts";
+import { anfrageSpeichern, partnerTeil } from "./partner.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
 import { suchgebietKarte, type Suchpunkt } from "./karte.ts";
@@ -112,6 +114,10 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (p === "/konto/push/schluessel") return pushSchluessel(env);
   if (p === "/konto/push/abo" && post) return pushAbo(request, env);
   if (p === "/konto/push/neu") return pushNeu(request, env);
+  const fragen = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/bieterfragen$/);
+  if (fragen && post) return bieterfragenSpeichern(fragen[1], request, env);
+  const anfrage = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/partner$/);
+  if (anfrage && post) return anfrageSpeichern(anfrage[1], request, env);
   const notiz = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/notiz$/);
   if (notiz && post) return notizSpeichern(notiz[1], request, env);
   const v = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})$/);
@@ -364,17 +370,17 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const personen = mitglieder.ok ? mitglieder.daten : [];
     const monat = /^\d{4}-\d{2}$/.test(url.searchParams.get("monat") ?? "") ? url.searchParams.get("monat")! : new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }).slice(0, 7);
     const [termine, abo] = await Promise.all([
-      db<{ id: string; titel: string; zeit: string; vorgang_id: string | null }[]>(s, env, `eigene_termine?firma_id=eq.${m.firma_id}&zeit=gte.${new Date(Date.now() - 30 * 86400_000).toISOString()}&select=id,titel,zeit,vorgang_id&order=zeit&limit=200`),
+      db<{ id: string; titel: string; zeit: string; vorgang_id: string | null; art?: string; ort?: string }[]>(s, env, `eigene_termine?firma_id=eq.${m.firma_id}&zeit=gte.${new Date(Date.now() - 30 * 86400_000).toISOString()}&select=id,titel,zeit,vorgang_id,art,ort&order=zeit&limit=200`),
       db<{ token: string }[]>(s, env, `kalender_abos?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=token`),
     ]);
-    const eigene = (termine.ok ? termine.daten : []).map((t) => ({ id: t.id, titel: t.titel, frist: t.zeit, status: "neu", art: "eigen" as const, vorgang_id: t.vorgang_id }));
+    const eigene = (termine.ok ? termine.daten : []).map((t) => ({ id: t.id, titel: t.titel, frist: t.zeit, status: "neu", art: "eigen" as const, vorgang_id: t.vorgang_id, terminart: t.art && istArt(t.art) ? t.art : undefined, ort: t.ort || undefined }));
     const token = abo.ok ? abo.daten[0]?.token : undefined;
     const aboUrl = token ? `${url.origin}/kalender/${token}.ics` : "";
     const aboBlock = `<details class="kalender-abo"><summary>📲 Alle Fristen im Handy-Kalender</summary>${token
       ? `<p class="klein">Ein Tipp richtet das Abo ein. Der Kalender holt neue und geänderte Fristen von selbst (etwa alle paar Stunden).</p><p><a class="knopf" href="${escape(aboUrl.replace(/^https:/, "webcal:"))}">Kalender abonnieren</a></p><p class="klein">Oder diese Adresse im Kalender unter „Abonnement hinzufügen“ einfügen:</p><input readonly value="${escape(aboUrl)}" aria-label="Kalender-Adresse"><form method="post" action="/konto/kalender/abo"><input type="hidden" name="aktion" value="neu"><button class="zweit">Neue Adresse erzeugen (alte wird ungültig)</button></form>`
       : `<p class="klein">Jarvis erzeugt eine private Kalender-Adresse nur für dich. Darin stehen deine Abgabefristen, Fragefristen und eigenen Termine.</p><form method="post" action="/konto/kalender/abo"><button>Kalender-Adresse erzeugen</button></form>`}</details>`;
     const laufend = mitFrist.filter((v) => OFFEN.includes(v.status));
-    const terminForm = ["leser", "mitarbeiter"].includes(m.rolle) ? "" : `<details class="termin-neu"><summary>📌 Eigenen Termin eintragen</summary><form method="post" action="/konto/termin"><label>Was?<input name="titel" maxlength="200" required placeholder="z. B. Ortsbesichtigung"></label><label>Wann?<input name="zeit" type="datetime-local" required></label>${laufend.length ? `<label>Zu Ausschreibung (optional)<select name="vorgang"><option value="">keine</option>${laufend.slice(0, 50).map((v) => `<option value="${v.id}">${escape(v.titel.length > 60 ? `${v.titel.slice(0, 57)}…` : v.titel)}</option>`).join("")}</select></label>` : ""}<button>Termin speichern</button></form></details>`;
+    const terminForm = ["leser", "mitarbeiter"].includes(m.rolle) ? "" : `<details class="termin-neu"><summary>📌 Eigenen Termin eintragen</summary><form method="post" action="/konto/termin"><label>Art<select name="art">${Object.entries(TERMIN_ARTEN).map(([k, [i, t]]) => `<option value="${k}"${k === "sonstiges" ? " selected" : ""}>${i} ${t}</option>`).join("")}</select></label><label>Was?<input name="titel" maxlength="200" placeholder="leer = Art als Titel"></label><label>Wann?<input name="zeit" type="datetime-local" required></label><label>Ort<input name="ort" maxlength="300" placeholder="freiwillig"></label>${laufend.length ? `<label>Zu Ausschreibung (optional)<select name="vorgang"><option value="">keine</option>${laufend.slice(0, 50).map((v) => `<option value="${v.id}">${escape(v.titel.length > 60 ? `${v.titel.slice(0, 57)}…` : v.titel)}</option>`).join("")}</select></label>` : ""}<button>Termin speichern</button></form></details>`;
     inhalt = rahmen(fristenSeite(mitFrist, {
       eigene, abo: aboBlock, terminForm,
       tag: /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get("tag") ?? "") ? url.searchParams.get("tag")! : "",
@@ -446,7 +452,7 @@ ${beruf || st ? `<ul class="standort-liste">${gefunden.map((k) => `<li><a class=
 </form></details>`;
     }
       // N13: temporary work firms reach the AÜG-Wächter from here.
-      if (m.rolle !== "mitarbeiter" && tarife.some((t) => t.name === GVP.name)) team += `<p><a class="knopf zweit" href="/konto/aueg">⚖️ AÜG-Wächter: Equal Pay und Höchstdauer</a></p>`;
+      if (m.rolle !== "mitarbeiter") team += `<nav class="aktionsleiste"><a class="zweit" href="/konto/disposition">🗓️ Disposition: wer ist wann wo</a>${tarife.some((t) => t.name === GVP.name) ? `<a class="zweit" href="/konto/aueg">⚖️ AÜG-Wächter</a>` : ""}</nav>`;
       team += `<h2 id="app-zugaenge">App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> ${anzahl.ok && typeof anzahl.daten === "number" ? ` · ${anzahl.daten} ${anzahl.daten === 1 ? "Nutzer" : "Nutzer"}` : ""}</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen. Eine Standortleitung verwaltet Personal und Einsätze nur am zugeordneten Standort; Kalkulation und Firmenunterlagen bleiben für sie gesperrt.")}${tarifvertraegeBlock(tarife, admin)}`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
     team += funktionsListe;
@@ -495,7 +501,7 @@ ${aktuell && sucheEingerichtet ? `<div id="weitere">${zusatzBlock(Array.isArray(
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
-    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${zeile("/konto/angebote", "📝", "Angebote", "Stand aller Angebote")}${zeile("/konto/foerderung", "🎯", "Förderprogramme", "Täglich geprüft, passend zu deiner Firma")}${zeile("/konto/radar", "🔮", "Neuausschreibungs-Radar", "Verträge, die bald auslaufen")}${zeile("/konto/auftraege", "🏗️", "Laufende Aufträge", "Laufzeit, Leute, Verlängerung")}${zeile("/konto/auftraggeber", "🏛️", "Auftraggeber", "Frühere Ausschreibungen, Ansprechpartner")}${zeile("/konto/auswertung", "📊", "Auswertung", "Treffer, Gewinnquote, Umsatz, KI-Kosten")}${zeile("/konto/textbausteine", "📚", "Textbausteine", "Wiederkehrende Angebotstexte")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${zeile("/konto/angebote", "📝", "Angebote", "Stand aller Angebote")}${zeile("/konto/foerderung", "🎯", "Förderprogramme", "Täglich geprüft, passend zu deiner Firma")}${zeile("/konto/radar", "🔮", "Neuausschreibungs-Radar", "Verträge, die bald auslaufen")}${zeile("/konto/auftraege", "🏗️", "Laufende Aufträge", "Laufzeit, Leute, Verlängerung")}${zeile("/konto/auftraggeber", "🏛️", "Auftraggeber", "Frühere Ausschreibungen, Ansprechpartner")}${zeile("/konto/auswertung", "📊", "Auswertung", "Treffer, Gewinnquote, Umsatz, KI-Kosten")}${zeile("/konto/textbausteine", "📚", "Textbausteine", "Wiederkehrende Angebotstexte")}${zeile("/konto/partner", "🤝", "Nachunternehmer &amp; Partner", "Partnerbetriebe je Gewerk")}${zeile("/konto/disposition", "🗓️", "Disposition", "Wer ist wann wo, wer ist frei")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
@@ -752,20 +758,26 @@ async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoE
 }
 
 async function terminSpeichern(s: Sitzung, form: FormData, request: Request, env: KontoEnv): Promise<Response> {
+  // Back to the tender page when the appointment was entered there (N10), otherwise to the deadlines.
+  const weiterRoh = String(form.get("weiter") ?? "");
+  const weiter = /^\/konto\/vorgang\/[0-9a-f-]{36}#termine$/.test(weiterRoh) ? weiterRoh : "/konto/fristen";
+  const ziel = (h: string) => weiterleiten(weiter.includes("#") ? weiter.replace("#", `?hinweis=${encodeURIComponent(h)}#`) : `${weiter}?hinweis=${encodeURIComponent(h)}`);
   const loeschen = String(form.get("loeschen") ?? "");
   if (/^[0-9a-f-]{36}$/.test(loeschen)) {
     const r = await db(s, env, `eigene_termine?id=eq.${loeschen}`, { method: "DELETE" });
-    return weiterleiten(`/konto/fristen?hinweis=${encodeURIComponent(r.ok ? "Termin gelöscht." : "Der Termin konnte nicht gelöscht werden.")}`);
+    return ziel(r.ok ? "Termin gelöscht." : "Der Termin konnte nicht gelöscht werden.");
   }
   const firma = aktiveFirmaAusCookie(request);
-  const titel = String(form.get("titel") ?? "").trim().slice(0, 200);
+  const artRoh = String(form.get("art") ?? "sonstiges");
+  const art = istArt(artRoh) ? artRoh : "sonstiges";
+  const titel = (String(form.get("titel") ?? "").trim() || (art === "sonstiges" ? "" : TERMIN_ARTEN[art][1])).slice(0, 200);
   const roh = String(form.get("zeit") ?? "");
   const vorgang = String(form.get("vorgang") ?? "");
   // datetime-local has no zone: read it as Berlin time.
   const zeit = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(roh) ? berlinZuUtc(roh) : "";
-  if (!firma || !titel || !zeit) return weiterleiten(`/konto/fristen?hinweis=${encodeURIComponent("Bitte Titel und Zeitpunkt angeben.")}`);
-  const r = await db(s, env, "eigene_termine", { method: "POST", body: JSON.stringify({ firma_id: firma, titel, zeit, vorgang_id: /^[0-9a-f-]{36}$/.test(vorgang) ? vorgang : null }) });
-  return weiterleiten(`/konto/fristen?hinweis=${encodeURIComponent(r.ok ? "Termin gespeichert." : "Der Termin konnte nicht gespeichert werden.")}`);
+  if (!firma || !titel || !zeit) return ziel("Bitte Titel und Zeitpunkt angeben.");
+  const r = await db(s, env, "eigene_termine", { method: "POST", body: JSON.stringify({ firma_id: firma, titel, zeit, art, ort: String(form.get("ort") ?? "").trim().slice(0, 300), notiz: String(form.get("notiz") ?? "").trim().slice(0, 1000), vorgang_id: /^[0-9a-f-]{36}$/.test(vorgang) ? vorgang : null }) });
+  return ziel(r.ok ? "Termin gespeichert." : "Der Termin konnte nicht gespeichert werden.");
 }
 
 /** "2026-11-12T09:30" in Berlin local time as an ISO instant (handles summer and winter time). */
@@ -824,7 +836,7 @@ async function kaufverantwortlichSpeichern(s: Sitzung, form: FormData, _r: Reque
 export async function vorgangZugriff(request: Request, env: KontoEnv, id: string): Promise<{ s: Sitzung; v: Vorgang & { firma_id: string }; rolle: string; finanzen: boolean } | null> {
   const s = await sitzung(request, env);
   if (!s || !/^[0-9a-f-]{36}$/.test(id)) return null;
-  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief,katalog_id,katalog_version`);
+  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,fragefrist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief,katalog_id,katalog_version`);
   const v = r.ok ? r.daten[0] : undefined;
   if (!v) return null;
   const m = await db<{ rolle: string; finanzen?: boolean }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle,finanzen`);
@@ -928,10 +940,13 @@ ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief
   const teilnahme = await teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? "");
   const personalBlock = rolle === "leser" || rolle === "mitarbeiter" ? "" : await einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle));
   const notizBlock = await notizen(s, env, v, rolle);
+  const termineBlock = await termineTeil(s, env, v, rolle);
+  const firmaName = await db<{ name: string }[]>(s, env, `firmen?id=eq.${v.firma_id}&select=name`);
+  const partnerBlock = await partnerTeil(s, env, v, rolle, finanzen, firmaName.ok ? firmaName.daten[0]?.name ?? "" : "");
   // Jump bar to the sections of this long page; only sections that exist.
-  const sprung = [["#steckbrief", "Steckbrief"], teilnahme.includes('id="nachweise"') ? ["#nachweise", "Nachweise"] : null, finanzen ? [kalkulation, "Kalkulation"] : null, personalBlock ? ["#personal", "Personal"] : null, hochladen ? ["#unterlagen", "Unterlagen"] : null, ["#notizen", "Notizen"]].filter((x): x is string[] => !!x);
+  const sprung = [["#steckbrief", "Steckbrief"], teilnahme.includes('id="nachweise"') ? ["#nachweise", "Nachweise"] : null, finanzen ? [kalkulation, "Kalkulation"] : null, personalBlock ? ["#personal", "Personal"] : null, hochladen ? ["#unterlagen", "Unterlagen"] : null, termineBlock ? ["#termine", "Termine"] : null, partnerBlock ? ["#partner", "Partner"] : null, ["#notizen", "Notizen"]].filter((x): x is string[] => !!x);
   const sprungleiste = `<nav class="sprungleiste" aria-label="Abschnitte">${sprung.map(([href, text]) => `<a href="${escape(href)}">${text}</a>`).join("")}</nav>`;
-  return html(seite(v.titel, kopf + sprungleiste + verweise + teil + teilnahme + personalBlock + notizBlock + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
+  return html(seite(v.titel, kopf + sprungleiste + verweise + teil + teilnahme + personalBlock + termineBlock + partnerBlock + notizBlock + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */

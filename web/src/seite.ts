@@ -769,6 +769,38 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .lv-werkzeuge, .lv-ersetzen { margin: 8px 0; }
   .hilfe-einfuehrung { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
   .einfuehrung-schritte { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 6px; } .einfuehrung-schritte li { font-size: 14px; } .einfuehrung-schritte li span { display: block; }
+  /* Appointments & bidder questions, partners, scheduling board (N10–N12). */
+  .termin-liste, .frage-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .termin-zeile { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: start; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .termin-zeile:last-child, .frage-zeile:last-child, .anfrage-zeile:last-child { border-bottom: 0; }
+  .termin-zeile div, .frage-zeile > div:first-child, .anfrage-zeile > div:first-child { display: grid; gap: 2px; min-width: 0; font-size: 14px; }
+  .termin-zeile.bald { border-left: 3px solid #d68910; } .termin-zeile.vorbei { opacity: .6; } .termin-icon { font-size: 18px; }
+  .termin-zeile form, .frage-aktionen form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .termin-zeile button, .frage-aktionen button { width: auto; min-height: 30px; padding: 2px 8px; font-size: 12px; }
+  .frage-zeile, .anfrage-zeile { display: grid; gap: 6px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .frage-zeile p { margin: 0; } .frage-antwort { color: var(--muted); font-size: 13px; }
+  .frage-zeile.status-offen { border-left: 3px solid #d68910; } .frage-zeile.status-beantwortet, .anfrage-zeile.status-zugesagt { border-left: 3px solid #2e8b57; } .anfrage-zeile.status-abgesagt { opacity: .7; }
+  .frage-aktionen { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .frage-aktionen details { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .frage-aktionen details summary { min-height: 30px; padding: 4px 10px; font-size: 12px; }
+  .frage-aktionen details[open] { flex-basis: 100%; } .frage-aktionen details form { display: grid; gap: 6px; margin-top: 6px; }
+  .frage-neu, .anfrage-neu { margin: 8px 0; } .fragen-text { width: 100%; font-size: 13px; }
+  .anfrage-mail { display: inline-flex; align-items: center; min-height: 30px; padding: 2px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none; }
+  .partner-sterne { color: #d68910; font-size: 13px; letter-spacing: 1px; }
+  .dispo-nav { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin: 8px 0; } .dispo-nav .knopf { width: auto; min-height: 34px; padding: 4px 14px; }
+  .dispo-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; padding: 0; border: 0; background: none; box-shadow: none; } .dispo-filter select { flex: 1 1 140px; width: auto; } .dispo-filter button { width: auto; }
+  .dispo-tafel { border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; }
+  .dispo-zeile { display: grid; grid-template-columns: minmax(84px, 1.6fr) repeat(7, minmax(0, 1fr)); border-bottom: 1px solid var(--line); }
+  .dispo-zeile:last-child { border-bottom: 0; }
+  .dispo-kopf span { padding: 4px 2px; font-size: 11px; font-weight: 700; text-align: center; color: var(--muted); line-height: 1.2; } .dispo-kopf span:first-child { text-align: left; padding-left: 8px; }
+  .dispo-kopf .heute { color: var(--accent); }
+  .dispo-name { display: grid; padding: 4px 6px 4px 8px; min-width: 0; } .dispo-name strong { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .dispo-name small { font-size: 10px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .dispo-zelle { margin: 2px 1px; padding: 2px; border-radius: 4px; font-size: 9px; line-height: 1.15; text-align: center; overflow: hidden; white-space: nowrap; display: flex; align-items: center; justify-content: center; min-height: 30px; }
+  .dispo-zelle.einsatz { background: color-mix(in srgb, var(--accent) 22%, var(--card)); color: var(--text); }
+  .dispo-zelle.abwesend { background: color-mix(in srgb, #d68910 22%, var(--card)); }
+  .dispo-zelle.frei { background: color-mix(in srgb, #2e8b57 14%, var(--card)); }
+  .dispo-zelle.nicht { background: var(--bg); color: var(--muted); }
+  .dispo-zelle.wochenende.frei { background: transparent; } .dispo-zelle.heute { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .einsatz-punkt { background: color-mix(in srgb, var(--accent) 22%, var(--card)); } .abwesend-punkt { background: color-mix(in srgb, #d68910 22%, var(--card)); margin-left: 8px; } .frei-punkt { background: color-mix(in srgb, #2e8b57 14%, var(--card)); margin-left: 8px; }
 </style>
 </head>
 <body><main>
