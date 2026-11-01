@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Fristen D1–D5)
+- D1: Tipp auf einen Kalendertag zeigt nur dessen Fristen („Nur Donnerstag, 12. November ✕ Alle zeigen“), gewählter Tag umrandet.
+- D2: Kalender-Abo: private Adresse `/kalender/<token>.ics` (Tabelle `kalender_abos`, Funktion `kalender_fristen` liefert nur, was die Person sehen darf), Knopf „Kalender abonnieren“ (webcal), Adresse neu erzeugen macht die alte ungültig.
+- D3: Eigene Termine (Tabelle `eigene_termine`, optional zu einer laufenden Ausschreibung), Eintragen und Löschen auf der Fristenseite; erscheinen in Liste, Kalender und Abo. Migration `20261101030000_eigene_termine_kalenderabo.sql`, Rechte-Test ergänzt.
+- D4: `alarm/mail.py` schickt um 7 Uhr eine Handy-Nachricht für Fristen des Tages (Abgabe, Fragen, eigene Termine), höchstens einmal am Tag, nur bei Kanal Handy/beides.
+- D5: Zeitleiste je Frist (Balken für die letzten 30 Tage, Farbe nach Ampel). Fragefristen stehen als eigener Eintrag „❓ Fragen bis“ in der Liste.
+- Mit Screenshot geprüft (Liste, Tagesfilter, Terminformular, Abo-Block); 174 Web-Tests, Python-Tests und Rechte-Test grün.
+
 ### 01.11.2026 – Claude (Ausschreibungsseite C1–C5)
 - C1: Sprungleiste unter dem Kopf (Steckbrief · Nachweise · Kalkulation · Personal · Unterlagen · Notizen), bleibt beim Scrollen oben, nur vorhandene Abschnitte.
 - C2: „Kaufmännische Zuständigkeit“ als Aufklapper ganz unten („👤 Kaufmännisch zuständig: Name / nicht zugewiesen“).

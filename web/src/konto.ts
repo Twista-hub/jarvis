@@ -18,7 +18,7 @@ import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { teilnahmeTeil } from "./markt.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
-import { abstand, ampel, fristenSeite, ics } from "./fristen.ts";
+import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
 import { suchgebietKarte, type Suchpunkt } from "./karte.ts";
 import { bewertung, daumen, eckdaten, filterLeiste, sortieren, SORTIERUNGEN, suchbegriff } from "./treffer.ts";
 
@@ -71,6 +71,8 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   const a = await anmeldung(request, env);
   if (a) return a;
   if (p === "/abmelden" && post) return abmelden(request, env);
+  const feed = p.match(/^\/kalender\/([A-Za-z0-9_-]{40,80})\.ics$/);
+  if (feed && request.method === "GET") return kalenderFeed(feed[1], url, env);
   if (p === "/konto/suchstatus" && request.method === "GET") return suchstatus(request, env);
   const fristDatei = p.match(/^\/konto\/frist\/([0-9a-f-]{36})\.ics$/);
   if (fristDatei && request.method === "GET") {
@@ -90,6 +92,8 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (p === "/konto/einladen" && post) return mitSitzung(request, env, einladen);
   if (p === "/konto/einladung/zurueckziehen" && post) return mitSitzung(request, env, einladungZurueckziehen);
   if (p === "/konto/status" && post) return mitSitzung(request, env, statusSetzen);
+  if (p === "/konto/termin" && post) return mitSitzung(request, env, terminSpeichern);
+  if (p === "/konto/kalender/abo" && post) return mitSitzung(request, env, kalenderAbo);
   if (p === "/konto/status/mehrere" && post) return mitSitzung(request, env, statusMehrere);
   if (p === "/konto/mail" && post) return mitSitzung(request, env, mailSetzen);
   if (p === "/konto/mail/test" && post) return mitSitzung(request, env, probeMail);
@@ -324,7 +328,21 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const kalk = mitFrist.length ? await db<{ vorgang_id: string }[]>(s, env, `kalkulationen?firma_id=eq.${m.firma_id}&vorgang_id=in.(${mitFrist.map((v) => v.id).join(",")})&select=vorgang_id`) : { ok: true as const, daten: [] };
     const personen = mitglieder.ok ? mitglieder.daten : [];
     const monat = /^\d{4}-\d{2}$/.test(url.searchParams.get("monat") ?? "") ? url.searchParams.get("monat")! : new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }).slice(0, 7);
+    const [termine, abo] = await Promise.all([
+      db<{ id: string; titel: string; zeit: string; vorgang_id: string | null }[]>(s, env, `eigene_termine?firma_id=eq.${m.firma_id}&zeit=gte.${new Date(Date.now() - 30 * 86400_000).toISOString()}&select=id,titel,zeit,vorgang_id&order=zeit&limit=200`),
+      db<{ token: string }[]>(s, env, `kalender_abos?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=token`),
+    ]);
+    const eigene = (termine.ok ? termine.daten : []).map((t) => ({ id: t.id, titel: t.titel, frist: t.zeit, status: "neu", art: "eigen" as const, vorgang_id: t.vorgang_id }));
+    const token = abo.ok ? abo.daten[0]?.token : undefined;
+    const aboUrl = token ? `${url.origin}/kalender/${token}.ics` : "";
+    const aboBlock = `<details class="kalender-abo"><summary>📲 Alle Fristen im Handy-Kalender</summary>${token
+      ? `<p class="klein">Ein Tipp richtet das Abo ein. Der Kalender holt neue und geänderte Fristen von selbst (etwa alle paar Stunden).</p><p><a class="knopf" href="${escape(aboUrl.replace(/^https:/, "webcal:"))}">Kalender abonnieren</a></p><p class="klein">Oder diese Adresse im Kalender unter „Abonnement hinzufügen“ einfügen:</p><input readonly value="${escape(aboUrl)}" aria-label="Kalender-Adresse"><form method="post" action="/konto/kalender/abo"><input type="hidden" name="aktion" value="neu"><button class="zweit">Neue Adresse erzeugen (alte wird ungültig)</button></form>`
+      : `<p class="klein">Jarvis erzeugt eine private Kalender-Adresse nur für dich. Darin stehen deine Abgabefristen, Fragefristen und eigenen Termine.</p><form method="post" action="/konto/kalender/abo"><button>Kalender-Adresse erzeugen</button></form>`}</details>`;
+    const laufend = mitFrist.filter((v) => OFFEN.includes(v.status));
+    const terminForm = ["leser", "mitarbeiter"].includes(m.rolle) ? "" : `<details class="termin-neu"><summary>📌 Eigenen Termin eintragen</summary><form method="post" action="/konto/termin"><label>Was?<input name="titel" maxlength="200" required placeholder="z. B. Ortsbesichtigung"></label><label>Wann?<input name="zeit" type="datetime-local" required></label>${laufend.length ? `<label>Zu Ausschreibung (optional)<select name="vorgang"><option value="">keine</option>${laufend.slice(0, 50).map((v) => `<option value="${v.id}">${escape(v.titel.length > 60 ? `${v.titel.slice(0, 57)}…` : v.titel)}</option>`).join("")}</select></label>` : ""}<button>Termin speichern</button></form></details>`;
     inhalt = rahmen(fristenSeite(mitFrist, {
+      eigene, abo: aboBlock, terminForm,
+      tag: /^\d{4}-\d{2}-\d{2}$/.test(url.searchParams.get("tag") ?? "") ? url.searchParams.get("tag")! : "",
       erledigte: url.searchParams.get("erledigte") === "1", monat,
       zustaendig: (id) => personen.find((p) => p.user_id === id)?.anzeigename || "",
       kalkuliert: new Set(kalk.ok ? kalk.daten.map((k) => k.vorgang_id) : []),
@@ -678,6 +696,53 @@ async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoE
   const r = await db(s, env, `vorgaenge?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
   const weiter = sicherWeiter(String(form.get("weiter") ?? "/konto/treffer"));
   return weiterleiten(`${weiter}${weiter.includes("?") ? "&" : "?"}hinweis=${encodeURIComponent(r.ok ? `Stand: ${STATUS[status]}` : "Das darfst du für diese Ausschreibung nicht ändern.")}`);
+}
+
+async function terminSpeichern(s: Sitzung, form: FormData, request: Request, env: KontoEnv): Promise<Response> {
+  const loeschen = String(form.get("loeschen") ?? "");
+  if (/^[0-9a-f-]{36}$/.test(loeschen)) {
+    const r = await db(s, env, `eigene_termine?id=eq.${loeschen}`, { method: "DELETE" });
+    return weiterleiten(`/konto/fristen?hinweis=${encodeURIComponent(r.ok ? "Termin gelöscht." : "Der Termin konnte nicht gelöscht werden.")}`);
+  }
+  const firma = aktiveFirmaAusCookie(request);
+  const titel = String(form.get("titel") ?? "").trim().slice(0, 200);
+  const roh = String(form.get("zeit") ?? "");
+  const vorgang = String(form.get("vorgang") ?? "");
+  // datetime-local has no zone: read it as Berlin time.
+  const zeit = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(roh) ? berlinZuUtc(roh) : "";
+  if (!firma || !titel || !zeit) return weiterleiten(`/konto/fristen?hinweis=${encodeURIComponent("Bitte Titel und Zeitpunkt angeben.")}`);
+  const r = await db(s, env, "eigene_termine", { method: "POST", body: JSON.stringify({ firma_id: firma, titel, zeit, vorgang_id: /^[0-9a-f-]{36}$/.test(vorgang) ? vorgang : null }) });
+  return weiterleiten(`/konto/fristen?hinweis=${encodeURIComponent(r.ok ? "Termin gespeichert." : "Der Termin konnte nicht gespeichert werden.")}`);
+}
+
+/** "2026-11-12T09:30" in Berlin local time as an ISO instant (handles summer and winter time). */
+export function berlinZuUtc(lokal: string): string {
+  const alsUtc = Date.parse(`${lokal}:00Z`);
+  const versatz = (d: number) => { const t = new Date(d); const b = new Date(t.toLocaleString("en-US", { timeZone: "Europe/Berlin" })); const u = new Date(t.toLocaleString("en-US", { timeZone: "UTC" })); return b.getTime() - u.getTime(); };
+  return new Date(alsUtc - versatz(alsUtc - versatz(alsUtc))).toISOString();
+}
+
+function aktiveFirmaAusCookie(request: Request): string {
+  return /(?:^|;\s*)jv_firma=([0-9a-f-]{36})/.exec(request.headers.get("cookie") ?? "")?.[1] ?? "";
+}
+
+async function kalenderAbo(s: Sitzung, form: FormData, request: Request, env: KontoEnv): Promise<Response> {
+  const firma = aktiveFirmaAusCookie(request);
+  if (!firma) return weiterleiten("/konto/fristen");
+  if (form.get("aktion") === "neu") await db(s, env, `kalender_abos?firma_id=eq.${firma}&user_id=eq.${s.userId}`, { method: "DELETE" });
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  const token = btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const r = await db(s, env, "kalender_abos", { method: "POST", body: JSON.stringify({ token, firma_id: firma }) });
+  return weiterleiten(`/konto/fristen?hinweis=${encodeURIComponent(r.ok ? "Deine Kalender-Adresse ist bereit." : "Die Kalender-Adresse konnte nicht erzeugt werden.")}#kalender`);
+}
+
+/** Calendar subscription feed: no login, the secret token decides (database function kalender_fristen). */
+async function kalenderFeed(token: string, url: URL, env: KontoEnv): Promise<Response> {
+  const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/kalender_fristen`, { method: "POST", headers: { apikey: env.SUPABASE_KEY, "content-type": "application/json" }, body: JSON.stringify({ t: token }) });
+  const zeilen = r.ok ? (await r.json()) as { id: string; art: string; titel: string; zeit: string }[] : [];
+  const vorsatz: Record<string, string> = { abgabe: "Abgabefrist: ", fragen: "Fragen bis: ", eigen: "" };
+  const eintraege = zeilen.map((z) => ({ uid: `${z.art}-${z.id}`, titel: `${vorsatz[z.art] ?? ""}${z.titel}`, zeit: z.zeit, text: z.art === "eigen" ? "Eigener Termin in Jarvis" : `Ausschreibung in Jarvis: ${url.origin}/konto/vorgang/${z.id}`, url: z.art === "eigen" ? `${url.origin}/konto/fristen` : `${url.origin}/konto/vorgang/${z.id}` }));
+  return new Response(icsKalender(eintraege), { headers: { "content-type": "text/calendar; charset=utf-8", "cache-control": "private, max-age=900", "content-disposition": 'inline; filename="jarvis-fristen.ics"' } });
 }
 
 async function statusMehrere(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {

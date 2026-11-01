@@ -6,7 +6,7 @@ do $$ begin create role authenticated nologin; exception when duplicate_object t
 do $$ begin create role anon nologin; exception when duplicate_object then null; end $$;
 create schema auth;
 create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
-create function auth.uid() returns uuid language sql stable as $$ select nullif(current_setting('test.uid', true), '')::uuid $$;
+create function auth.uid() returns uuid language sql stable as $$ select coalesce(nullif(current_setting('test.uid', true), ''), nullif(current_setting('request.jwt.claim.sub', true), ''))::uuid $$;
 grant usage on schema auth to authenticated;
 \ir ../migrations/20261029120000_firmen_und_rechte.sql
 \ir ../migrations/20261030010000_firmen_freigabe.sql
@@ -37,6 +37,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101000000_ki_offene_reservierungen.sql
 \ir ../migrations/20261101010000_vorgaenge_entfernung_fragefrist.sql
 \ir ../migrations/20261101020000_vorgang_notizen.sql
+\ir ../migrations/20261101030000_eigene_termine_kalenderabo.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -434,6 +435,21 @@ do $$ begin
   insert into public.vorgang_notizen (firma_id, vorgang_id, text) select firma_id, id, 'fremd' from public.vorgaenge limit 1;
   if found then raise exception 'FEHLER: Fremde Notiz angelegt'; end if;
 exception when insufficient_privilege or check_violation then null; end $$;
+reset role;
+
+-- Own deadlines and the calendar feed: the token shows its owner's visible deadlines, nothing for wrong tokens.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.eigene_termine (firma_id, titel, zeit) values (:'firma', 'Ortsbesichtigung', now() + interval '3 days');
+insert into public.kalender_abos (token, firma_id) values (repeat('a', 43), :'firma');
+select pruefe((select count(*)=1 from public.eigene_termine), 'Eigener Termin gespeichert');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*)=0 from public.eigene_termine), 'Fremde sehen keine eigenen Termine');
+reset role;
+select set_config('test.uid', '', false);
+set role anon;
+select pruefe((select count(*)>=1 from public.kalender_fristen(repeat('a', 43)) where art='eigen'), 'Kalender-Abo liefert eigene Termine');
+select pruefe((select count(*)=0 from public.kalender_fristen(repeat('b', 43))), 'Falscher Kalender-Schlüssel liefert nichts');
 reset role;
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

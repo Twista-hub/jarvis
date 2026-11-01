@@ -491,6 +491,19 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .notizen li form { display: inline; padding: 0; border: 0; background: none; }
   .notizen li button { min-height: 28px; padding: 2px 8px; margin-left: 8px; font-size: 12px; }
   details.zustaendigkeit { margin-top: 18px; }
+  .kalender-raster .gewaehlt { outline: 3px solid var(--text); outline-offset: 1px; }
+  .tag-filter { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 8px; font-weight: 600; font-size: 14px; }
+  .tag-filter a { font-weight: 600; text-decoration: none; }
+  .zeitleiste { height: 5px; border-radius: 3px; background: var(--bg); overflow: hidden; }
+  .zeitleiste span { display: block; height: 100%; border-radius: 3px; background: #2e8b57; }
+  .frist.gelb .zeitleiste span { background: #d68910; } .frist.rot .zeitleiste span { background: #c0392b; } .frist.grau .zeitleiste span { background: var(--muted); }
+  .termin-weg { display: inline; margin-left: auto; padding: 0; border: 0; background: none; }
+  .termin-weg button { min-height: 28px; padding: 2px 8px; font-size: 12px; }
+  .kalender-abo input[readonly] { font-size: 13px; }
+  .termin-neu form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
+  .termin-neu form label:nth-of-type(3), .termin-neu form button { grid-column: 1 / -1; }
+  .termin-neu form label { margin: 0; }
+  .kalender-abo form button.zweit { min-height: 32px; padding: 4px 10px; font-size: 13px; width: auto; }
   /* Short fields side by side: invitation form, calculation numbers, new location. */
   .kalk-gruppe label { margin-top: 6px; }
   .kalk-gruppe label .klein { font-weight: 400; }
