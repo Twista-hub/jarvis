@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Übersicht A1–A5)
+- A1: Suchstand als eine kurze Zeile („✓ Letzte Suche abgeschlossen: Datum · 14 Treffer, 2 neu“), Zahlen zum Aufklappen (`suchstatus.ts`, `details.suchstand`).
+- A2: „Zuletzt angesehen“ mit den letzten 3 geöffneten Ausschreibungen (Cookie `jv_zuletzt`, gesetzt in `vorgangZeigen`).
+- A3: Einführung „So startest du mit Jarvis“ in 3 Schritten für Inhaber/Admins, erledigte Schritte abgehakt, „Ausblenden“ setzt Cookie `jv_einfuehrung=aus`; verschwindet, sobald Suchprofil und erster Treffer erledigt sind.
+- A4: Kachel „Markt & Chancen“ nur bei neuen Ausschreibungen beobachteter Auftraggeber (letzte 7 Tage); sonst über Einstellungen erreichbar.
+- A5 war bereits mit der kompakten Oberfläche erledigt (Kacheln zweispaltig, klein).
+- Mit Screenshots geprüft; 173 Web-Tests grün.
+
 ### 01.11.2026 – Claude (Alles kompakter, Aufklapper und Auswahlfelder nachgebessert)
 - Benjamin: Dropdowns teils noch groß, generell alles zu groß. Zentraler Block „Compact look“ in `web/src/seite.ts`: Grundschrift 15 px (Eingabefelder bleiben 16 px gegen Handy-Zoom), Felder/Knöpfe 40 px statt 44–52 px, kleinere Überschriften und Abstände.
 - Aufklapper schlanker; innerhalb von Karten, Fieldsets und Formularen nur noch eine leichte Zeile mit Pfeil statt Kasten im Kasten. Recherche-Box „Was Jarvis über die Firma gefunden hat“ nicht mehr mit schwarzem Dreieck. Arbeits- und Qualifikationsauswahl wie normale kompakte Auswahlfelder. Suchprofil-Editor: Arbeiten und Orte als Zeilen statt Kästen.

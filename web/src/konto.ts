@@ -251,19 +251,27 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const [ablaufZahl, freigabeZahl, aboZahl] = !unterseite ? await Promise.all([
     finanzrecht ? db<{ id: string }[]>(s, env, `firmenunterlagen?firma_id=eq.${m.firma_id}&art=eq.nachweis&gueltig_bis=lte.${new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10)}&select=id`).then((r) => r.ok ? r.daten.length : 0) : Promise.resolve(0),
     db<{ id: string }[]>(s, env, `vorgang_freigaben?empfaenger_id=eq.${s.userId}&firma_id=eq.${m.firma_id}&select=id`).then((r) => r.ok ? r.daten.length : 0),
-    db<{ auftraggeber_id: string }[]>(s, env, `auftraggeber_abos?firma_id=eq.${m.firma_id}&select=auftraggeber_id`).then((r) => r.ok ? r.daten.length : 0),
+    // New notices of watched contracting authorities in the last 7 days: only then the market tile appears.
+    db<{ auftraggeber_id: string }[]>(s, env, `auftraggeber_abos?firma_id=eq.${m.firma_id}&select=auftraggeber_id`).then(async (r) => {
+      const ids = r.ok ? r.daten.map((x) => x.auftraggeber_id).slice(0, 50) : [];
+      if (!ids.length) return 0;
+      const neu = await db<{ id: string }[]>(s, env, `vergabekatalog?auftraggeber_id=in.(${ids.map((x) => `"${x.replace(/["\\]/g, "")}"`).join(",")})&quell_datum=gte.${new Date(Date.now() - 7 * 86400_000).toISOString()}&select=id&limit=50`);
+      return neu.ok ? neu.daten.length : 0;
+    }),
   ]) : [0, 0, 0];
+  const zugaenge = mitglieder.ok ? mitglieder.daten.filter((x) => x.aktiv !== false).length : 0;
   const cards = [
     ["treffer", "📋", "Ausschreibungen", `${neu} ${neu === 1 ? "offener Treffer" : "offene Treffer"}`],
     ["fristen", "⏰", "Fristen", `${bald} ${bald === 1 ? "Frist" : "Fristen"} diese Woche`],
     ["unterlagen", "📥", "Unterlagen", ablaufZahl ? `⚠️ ${ablaufZahl} ${ablaufZahl === 1 ? "Nachweis läuft" : "Nachweise laufen"} bald ab` : "Dateien hochladen und prüfen lassen"],
     ["kalkulation", "💶", "Kalkulation", "Preise pro Stunde und Los berechnen"],
-    ["team", "👥", "Firma & Team", `${mitglieder.ok ? mitglieder.daten.filter((x) => x.aktiv !== false).length : 0} App-Zugänge · ${b.length || 1} ${b.length === 1 || !b.length ? "Standort" : "Standorte"}`],
-    ["markt", "🌐", "Markt & Chancen", aboZahl ? `${aboZahl} beobachtete ${aboZahl === 1 ? "Auftraggeber" : "Auftraggeber"}` : "Offene Aufträge, Bedarf und Partner"],
+    ["team", "👥", "Firma & Team", `${zugaenge} ${zugaenge === 1 ? "App-Zugang" : "App-Zugänge"} · ${b.length || 1} ${b.length === 1 || !b.length ? "Standort" : "Standorte"}`],
+    ["markt", "🌐", "Markt & Chancen", `${aboZahl} ${aboZahl === 1 ? "neue Ausschreibung" : "neue Ausschreibungen"} beobachteter Auftraggeber`],
     ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? (suchstand.ergebnis?.treffer !== undefined ? `Letzte Suche: ${suchstand.ergebnis.treffer} Treffer` : "Suche ansehen und anpassen") : "Passende Ausschreibungen finden"],
   ];
   cards.push(["freigaben", "📨", "Für mich freigegeben", freigabeZahl ? `${freigabeZahl} ${freigabeZahl === 1 ? "Freigabe" : "Freigaben"} vom Team` : "Noch nichts freigegeben"]);
-  const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? path === "freigaben" : path !== "kalkulation" || finanzrecht);
+  // "Markt & Chancen" only when there is something new there; otherwise it is reachable under Einstellungen ("Mehr").
+  const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? path === "freigaben" : (path !== "kalkulation" || finanzrecht) && (path !== "markt" || aboZahl > 0));
   const kacheln = `<div class="konto-kacheln">${sichtbareKarten.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
   let inhalt: string;
   if (!unterseite) {
@@ -278,7 +286,19 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       nachweise ? `<li><a class="dringend" href="/konto/unterlagen"><strong>${nachweise}</strong> ${nachweise === 1 ? "Nachweis läuft" : "Nachweise laufen"} ab</a></li>` : "",
     ].join("");
     const heuteWichtig = wichtig ? `<h2>Heute wichtig</h2><ul class="heute-wichtig">${wichtig}</ul>` : `<p class="klein">✅ Heute steht nichts Dringendes an.</p>`;
-    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat.</p>${kacheln}`) : rahmen(`${meldungen}${heuteWichtig}<h2>Was möchtest du tun?</h2>${kacheln}`);
+    const ids = zuletztAngesehen(request);
+    const angesehen = ids.length ? await db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}&id=in.(${ids.join(",")})&select=id,titel,frist,punkte,status,erstellt,link`) : null;
+    const zuletzt = angesehen?.ok && angesehen.daten.length ? `<h2>Zuletzt angesehen</h2><div class="standort-liste">${ids.map((id) => angesehen.daten.find((v) => v.id === id)).filter((v): v is Vorgang => !!v).map((v) => `<a class="standort-zeile" href="/konto/vorgang/${v.id}"><span class="standort-text"><strong>${escape(v.titel)}</strong><span class="klein">${v.punkte !== null ? `${v.punkte}/10 · ` : ""}${v.frist ? `Frist ${datum(v.frist)}` : "Frist unbekannt"}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>` : "";
+    // First steps for new firms, until all are done or the user hides them.
+    const ausgeblendet = /(?:^|;\s*)jv_einfuehrung=aus/.test(request.headers.get("cookie") ?? "") || url.searchParams.get("einfuehrung") === "aus";
+    if (url.searchParams.get("einfuehrung") === "aus") s.cookies.push(`jv_einfuehrung=aus; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`);
+    const schritte = [
+      { fertig: sucheEingerichtet, text: "Suchprofil prüfen", hinweis: "Stimmen Arbeiten und Orte?", href: "/konto/suchprofil" },
+      { fertig: ids.length > 0, text: "Ersten Treffer ansehen", hinweis: "Steckbrief und Eckdaten lesen", href: "/konto/treffer" },
+      { fertig: false, text: "Unterlagen hochladen", hinweis: "Jarvis schreibt daraus Steckbrief und Kalkulation", href: "/konto/unterlagen" },
+    ];
+    const einfuehrung = !ausgeblendet && admin && !(schritte[0].fertig && schritte[1].fertig) ? `<section class="einfuehrung"><h2>So startest du mit Jarvis</h2><ol>${schritte.map((x, i) => `<li class="${x.fertig ? "erledigt" : ""}"><span class="schritt-nr" aria-hidden="true">${x.fertig ? "✓" : i + 1}</span><a href="${x.href}"><strong>${x.text}</strong><span class="klein">${x.hinweis}</span></a></li>`).join("")}</ol><a class="klein" href="/konto?einfuehrung=aus">Ausblenden</a></section>` : "";
+    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat.</p>${kacheln}`) : rahmen(`${einfuehrung}${meldungen}${heuteWichtig}<h2>Was möchtest du tun?</h2>${kacheln}${zuletzt}`);
   } else if (unterseite === "treffer") {
     const fb = await db<{ vorgang_id: string; grund: string }[]>(s, env, `treffer_feedback?firma_id=eq.${m.firma_id}&select=vorgang_id,grund`);
     const rueckmeldungen = new Map((fb.ok ? fb.daten : []).map((x) => [x.vorgang_id, x.grund]));
@@ -396,7 +416,7 @@ ${leistungsTreffer(aktuell?.leistungen ?? [], letzte30.ok ? letzte30.daten : [])
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
-    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
@@ -555,6 +575,12 @@ async function einladungAnnehmen(s: Sitzung, form: FormData, _r: Request, env: K
   return html(seite("Einladung", `<p class="fehler">${grund}</p><p><a href="/konto">Zur Übersicht</a></p>`), 400);
 }
 
+/** IDs from the cookie jv_zuletzt (only well-formed UUIDs). */
+function zuletztAngesehen(request: Request): string[] {
+  const roh = /(?:^|;\s*)jv_zuletzt=([0-9a-f,-]{0,120})/.exec(request.headers.get("cookie") ?? "")?.[1] ?? "";
+  return roh.split(",").filter((x) => /^[0-9a-f-]{36}$/.test(x)).slice(0, 3);
+}
+
 /** How many hits of the last 30 days mention each service; shows which search terms pay off. */
 function leistungsTreffer(leistungen: { name: string; woerter: string[] }[], liste: Vorgang[]): string {
   if (!leistungen.length) return "";
@@ -638,6 +664,8 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
     return html(seite("Nicht gefunden", `<p>Diese Ausschreibung gibt es nicht oder du darfst sie nicht sehen.</p><p><a href="/konto">Zur Übersicht</a></p>`), 404);
   }
   const { s, v, rolle, finanzen } = z;
+  // "Zuletzt angesehen" on the overview: the last three opened tenders, newest first.
+  s.cookies.push(`jv_zuletzt=${[v.id, ...zuletztAngesehen(request).filter((x) => x !== v.id)].slice(0, 3).join(",")}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 90}`);
   // Recover summaries of historical hits saved before every hit received a short brief.
   if (!v.steckbrief?.trim() && v.link) {
     const archiv = (kurzberichte as Record<string, string>)[`${v.firma_id}|${v.link}`];
