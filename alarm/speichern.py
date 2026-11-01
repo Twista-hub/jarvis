@@ -105,7 +105,7 @@ def firmen_ergebnis(namen: list[str], treffer: list[dict], ausgewertet: dict) ->
     return list(beste.values()), sorted((abgelehnt or set()) - set(beste))
 
 
-def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict, bereich_je_profil: dict | None = None) -> int:
+def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict, bereich_je_profil: dict | None = None, neue_ids: list | None = None) -> int:
     neu = 0
     for t in treffer:
         bisher = con.execute("select steckbrief from public.vorgaenge where firma_id=%s and quelle_id=%s for update", (firma_id, t["quelle_id"])).fetchone()
@@ -123,10 +123,12 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
                  link = excluded.link, katalog_id=coalesce(excluded.katalog_id,vorgaenge.katalog_id),katalog_version=coalesce(excluded.katalog_version,vorgaenge.katalog_version),
                  bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id),
                  entfernung_km = excluded.entfernung_km, fragefrist = coalesce(excluded.fragefrist, vorgaenge.fragefrist)
-               returning (xmax = 0)""",
+               returning (xmax = 0), id::text""",
             (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, (bereich_je_profil or {}).get(t.get("profil")) or bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"),t.get("entfernung_km"),t.get("fragefrist"), bisher[0] if bisher else None),
         ).fetchone()
         neu += bool(row and row[0])
+        if row and row[0] and neue_ids is not None and len(row) > 1:
+            neue_ids.append(row[1])
     return neu
 
 
@@ -135,15 +137,18 @@ def zwischenspeichern(profil: dict, treffer: list[dict], stand: dict) -> bool:
     firma_id = profil.get("firma_id")
     if not firma_id or not os.environ.get("SUPABASE_DB_PASSWORD"):
         return False
+    neue_ids: list = []
     try:
         with verbinden() as con:
             if treffer:
-                speichern(con, firma_id, treffer, profil.get("regionen", {}), {t["profil"]: profil.get("bereich_id") for t in treffer})
-            if profil.get("zusatz"):
-                return True  # the progress shown in the app belongs to the main profile
-            con.execute("""update public.suchprofile set einstellungen = einstellungen ||
-                jsonb_build_object('suchlauf_zwischenstand', %s::jsonb) where firma_id=%s and bereich_id is null""",
-                        (json.dumps(stand), firma_id))
+                speichern(con, firma_id, treffer, profil.get("regionen", {}), {t["profil"]: profil.get("bereich_id") for t in treffer}, neue_ids)
+            if not profil.get("zusatz"):  # the progress shown in the app belongs to the main profile
+                con.execute("""update public.suchprofile set einstellungen = einstellungen ||
+                    jsonb_build_object('suchlauf_zwischenstand', %s::jsonb) where firma_id=%s and bereich_id is null""",
+                            (json.dumps(stand), firma_id))
+        # After the commit: immediate phone message for top hits (I1).
+        import mail
+        mail.sofort_nach_speichern({firma_id: neue_ids})
         return True
     except (Exception, SystemExit) as e:  # verbinden() exits when the database is unreachable
         print(f"Zwischenstand nicht gespeichert ({type(e).__name__}); Ergebnis folgt am Ende.")
@@ -168,6 +173,7 @@ def main() -> None:
         # Legacy output cannot prove that firms without hits were evaluated.
         profile = {name: p for name, p in profile.items() if any(t["profil"] == name for t in treffer)}
         kompletter_katalog = False
+    neue_je_firma: dict = {}
     with verbinden() as con:
         for name, profil in profile.items():
             firma_id = profil.get("firma_id")
@@ -187,7 +193,7 @@ def main() -> None:
             unpassend = unpassende_verwerfen(con, firma_id, abgelehnt)
             verworfen = ausserhalb_gebiet_verwerfen(con, firma_id, profil.get("suchorte") or [])
             nicht_aktuell = nicht_mehr_aktuell_verwerfen(con, firma_id, eigene, kompletter_katalog)
-            neu = speichern(con, firma_id, eigene, profil.get("regionen", {}), {k: profile[k].get("bereich_id") for k in namen})
+            neu = speichern(con, firma_id, eigene, profil.get("regionen", {}), {k: profile[k].get("bereich_id") for k in namen}, neue_je_firma.setdefault(firma_id, []))
             abgelaufen = abgelaufene_archivieren(con, firma_id)
             ergebnis = {"treffer": len(eigene), "neu": neu, "ungeprueft": sum(t.get("punkte") is None for t in eigene),
                         "archiviert": unpassend + verworfen + nicht_aktuell, "abgelaufen": abgelaufen, **bericht.get("suchstand", {})}
@@ -204,6 +210,11 @@ def main() -> None:
                 print(f"{profil['name']}: {verworfen} alte, unbearbeitete Treffer außerhalb des Suchgebiets ins Archiv verschoben")
             if nicht_aktuell:
                 print(f"{profil['name']}: {nicht_aktuell} alte, unbearbeitete und im aktuellen Katalog fehlende Treffer archiviert")
+    # After the commit: immediate phone messages for new top hits (I1).
+    import mail
+    gesendet = mail.sofort_nach_speichern(neue_je_firma)
+    if gesendet:
+        print(f"{gesendet} Sofort-Nachrichten aufs Handy")
 
 
 if __name__ == "__main__":

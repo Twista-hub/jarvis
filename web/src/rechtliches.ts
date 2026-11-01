@@ -70,6 +70,7 @@ ${dienstleisterTabelle()}
 <h2>6. Speicherdauer</h2>
 <p>Hochgeladene Unterlagen und daraus erstellte Steckbriefe: 30 Tage. Wiederverwendbare Firmenunterlagen und Vorlagen: bis zur Löschung durch die Administration oder bis zum Ende des Firmenkontos. Änderungsprotokoll (wer hat wann was in der Firma geändert, nur für Inhaber sichtbar): 12 Monate. Angebotsentwürfe und Textfreigaben sowie weitere Kontodaten und Firmendaten: solange das Konto besteht; danach werden sie gelöscht, außer wir müssen sie aus gesetzlichen Gründen aufbewahren (z. B. Rechnungen 8 bis 10 Jahre).</p>
 <h2>7. Deine Rechte</h2>
+<p>Unter „Mein Profil“ kannst du deine Daten selbst herunterladen, deinen Namen ändern und dein Konto löschen.</p>
 <p>Du hast das Recht auf Auskunft, Berichtigung, Löschung, Einschränkung der Verarbeitung, Datenübertragbarkeit und Widerspruch gegen Verarbeitungen nach Art. 6 Abs. 1 lit. f DSGVO. Schreib dazu an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>. Du kannst dich außerdem bei einer Datenschutz-Aufsichtsbehörde beschweren${FIRMA.aufsicht ? `, zum Beispiel bei der für uns zuständigen: ${escape(FIRMA.aufsicht)}` : ""}.</p>
 <h2>8. Pflicht zur Angabe</h2>
 <p>Ohne E-Mail-Adresse ist keine Anmeldung möglich. Alles andere ist freiwillig.</p>`;

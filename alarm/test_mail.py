@@ -59,5 +59,33 @@ class MorgenPush(unittest.TestCase):
             senden.assert_not_called()
 
 
+class Einstellungen(unittest.TestCase):
+    def test_ruhezeit_auch_ueber_mitternacht(self):
+        self.assertTrue(mail.in_ruhezeit(22, 20, 7))
+        self.assertTrue(mail.in_ruhezeit(6, 20, 7))
+        self.assertFalse(mail.in_ruhezeit(7, 20, 7))
+        self.assertTrue(mail.in_ruhezeit(13, 12, 14))
+        self.assertFalse(mail.in_ruhezeit(14, 12, 14))
+        self.assertFalse(mail.in_ruhezeit(3, None, None))
+        self.assertEqual(mail.morgen_stunde(None, None), 7)
+        self.assertEqual(mail.morgen_stunde(21, 8), 8)  # 7 Uhr liegt in der Ruhezeit: Frist-Nachricht um 8
+        self.assertEqual(mail.morgen_stunde(22, 6), 7)
+
+    def test_sofortnachricht_nur_ab_punktzahl_ausserhalb_der_ruhezeit(self):
+        from datetime import datetime
+        from unittest.mock import MagicMock, patch
+        con = MagicMock()
+        con.execute.return_value.fetchall.return_value = [("u1", 8, None, None, "Perlease"), ("u2", 9, 0, 0, "Perlease"), ("u3", 8, 0, 23, "Perlease")]
+        with patch.object(mail, "als_person", side_effect=lambda c, uid, sql, args: [("v1", "Kantine", 9, None)] if args[2] <= 9 else []) as person, \
+             patch.object(mail, "senden_an_geraete", return_value=1) as senden, patch.object(mail.push, "schluessel", return_value=("a", "b")), \
+             patch.object(mail, "datetime") as uhr:
+            uhr.now.return_value = datetime(2026, 11, 1, 12, 0)
+            self.assertEqual(mail.sofort_melden(con, "f1", ["v1"]), 2)  # u3 hat 0–23 Uhr Ruhe
+        self.assertEqual([c.args[1] for c in person.call_args_list], ["u1", "u2"])
+        self.assertEqual(senden.call_args.args[3], "⭐ Top-Treffer 9/10")
+        self.assertEqual(senden.call_args.args[5], "/konto/vorgang/v1")
+        self.assertEqual(mail.sofort_melden(con, "f1", []), 0)
+
+
 if __name__ == "__main__":
     unittest.main()

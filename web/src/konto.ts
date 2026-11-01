@@ -18,6 +18,7 @@ import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { mitReferenzen, teilnahmeTeil } from "./markt.ts";
 import { referenzenLaden } from "./referenzen.ts";
 import { ausschlussKarte, filterUebersicht, zusatzBlock, type Zusatzprofil } from "./suchfilter.ts";
+import { benachrichtigungAusFormular, benachrichtigungFelder, profilTeil, type Benachrichtigung } from "./kontoeinstellungen.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
@@ -131,7 +132,9 @@ async function abmelden(request: Request, env: KontoEnv): Promise<Response> {
   if (s) {
     await fetch(`${env.SUPABASE_URL}/auth/v1/logout`, { method: "POST", headers: { apikey: env.SUPABASE_KEY, authorization: `Bearer ${s.token}` } });
   }
-  return weiterleiten("/konto", [`jv_at=; ${COOKIE}; Max-Age=0`, `jv_rt=; ${COOKIE}; Max-Age=0`]);
+  // "Neu anmelden" (e.g. before deleting the account) comes back to where it started.
+  const weiter = sicherWeiter(String((await request.formData().catch(() => new FormData())).get("weiter") ?? ""));
+  return weiterleiten(weiter !== "/konto" ? `/anmelden?weiter=${encodeURIComponent(weiter)}` : "/konto", [`jv_at=; ${COOKIE}; Max-Age=0`, `jv_rt=; ${COOKIE}; Max-Age=0`]);
 }
 
 /** Refresh a session at most once per request, even when several permission checks need it. */
@@ -236,7 +239,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   ]);
   const [profil, mail] = await Promise.all([
     db<(Suchstand & { id: string; beschreibung: string; website_beschreibung?: string; websuche_beschreibung?: string; recherche_version?: string; recherchiert_am?: string; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; websuche_quellen?: { titel: string; url: string }[]; website_hinweis?: string; leistungen?: { name: string; woerter: string[] }[]; suchpunkte?: Suchpunkt[]; radius_km?: number | null; ausschluss_schnell?: string[]; auftraggeber_bevorzugt?: string[]; auftraggeber_aus?: string[]; wert_min?: number | null; wert_max?: number | null; wert_unbekannt?: boolean; zusatzprofile?: Zusatzprofil[] })[]>(s, env, `suchprofile?firma_id=eq.${m.firma_id}&bereich_id=is.null&aktiv=eq.true&select=id,beschreibung,website_beschreibung:einstellungen->>website_beschreibung,websuche_beschreibung:einstellungen->>websuche_beschreibung,recherche_version:einstellungen->>recherche_version,recherchiert_am:einstellungen->>recherchiert_am,websuche_quellen:einstellungen->websuche_quellen,firmenstandorte:einstellungen->firmenstandorte,suchgebiet_modus:einstellungen->>suchgebiet_modus,website_hinweis:einstellungen->>website_hinweis,leistungen:einstellungen->leistungen,suchpunkte:einstellungen->suchpunkte,radius_km:einstellungen->radius_km,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zwischenstand:einstellungen->suchlauf_zwischenstand,ausschluss_schnell:einstellungen->ausschluss_schnell,auftraggeber_bevorzugt:einstellungen->auftraggeber_bevorzugt,auftraggeber_aus:einstellungen->auftraggeber_aus,wert_min:einstellungen->wert_min,wert_max:einstellungen->wert_max,wert_unbekannt:einstellungen->wert_unbekannt,zusatzprofile:einstellungen->zusatzprofile&limit=1`),
-    db<{ stunde: number | null; kanal: string }[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=stunde,kanal`),
+    db<Benachrichtigung[]>(s, env, `benachrichtigungen?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=*`),
   ]);
   const hinterlegt = dateiProfil(m.firma_id);
   const sucheEingerichtet = (profil.ok && profil.daten.length > 0) || Boolean(hinterlegt);
@@ -244,6 +247,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const sucht = sucheLaeuft(suchstand);
   const stunde = mail.ok && mail.daten[0] ? mail.daten[0].stunde : null;
   const kanal = mail.ok && mail.daten[0] ? mail.daten[0].kanal : "mail";
+  const einstellung = mail.ok ? mail.daten[0] : undefined;
   const name = (id: string | null | undefined) => b.find((x) => x.id === id)?.name ?? "";
   const bereichOptionen = optionenFuerBereiche(b);
 
@@ -447,7 +451,8 @@ ${beruf || st ? `<ul class="standort-liste">${gefunden.map((k) => `<li><a class=
     }
     inhalt = rahmen(team);
   } else if (unterseite === "profil") {
-    inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p><a href="/konto/passwort">Passwort ändern</a></p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p>${wechsel}<h2>Abmelden</h2>${abmelden}`);
+    const ich = mitglieder.ok ? mitglieder.daten.find((x) => x.user_id === s.userId) : undefined;
+    inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p><a href="/konto/passwort">Passwort ändern</a></p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p>${wechsel}${profilTeil({ firma_id: m.firma_id, anzeigename: ich?.anzeigename, funktion: ich?.funktion, rolle: m.rolle }, s.token, Date.now(), url.searchParams.get("loeschfehler") ?? "")}<h2>Abmelden</h2>${abmelden}`);
   } else if (unterseite === "suchprofil") {
     const letzte30 = await db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}&erstellt=gte.${new Date(Date.now() - 30 * 86400_000).toISOString()}&select=id,titel,link,frist,status,punkte,erstellt,steckbrief&limit=1000`);
     const aktuell = profil.ok ? profil.daten[0] : undefined;
@@ -469,11 +474,12 @@ ${aktuell && sucheEingerichtet ? `<div id="weitere">${zusatzBlock(Array.isArray(
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
-    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
   <label>Per<select name="kanal">${KANAEL_LISTE.map(([k, t]) => `<option value="${k}"${k === kanal ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+  ${benachrichtigungFelder(einstellung)}
   <button>Speichern</button>
   <p class="klein">Nur wenn es etwas Neues gibt. Mail an ${escape(s.email)}. Ein Tipp auf die Handy-Nachricht öffnet direkt die Ausschreibung. Jeder im Team stellt das für sich selbst ein.</p>
 </form>
@@ -928,7 +934,7 @@ export function stundenOptionen(aktuell: number | null): string {
 }
 
 /** Saves the person's own mail hour (null = no mail). */
-export async function mailZeitSetzen(s: Sitzung, env: KontoEnv, firma: string, wert: unknown, kanalWert?: unknown): Promise<boolean> {
+export async function mailZeitSetzen(s: Sitzung, env: KontoEnv, firma: string, wert: unknown, kanalWert?: unknown, mehr: Partial<Benachrichtigung> = {}): Promise<boolean> {
   // Without a channel (setup assistant) the existing choice stays; new rows start with mail.
   const kanal = ["mail", "push", "beides"].includes(String(kanalWert)) ? String(kanalWert) : undefined;
   const h = typeof wert === "string" && wert !== "" ? Number(wert) : null;
@@ -936,14 +942,14 @@ export async function mailZeitSetzen(s: Sitzung, env: KontoEnv, firma: string, w
   const r = await db(s, env, "benachrichtigungen?on_conflict=firma_id,user_id", {
     method: "POST",
     headers: { prefer: "resolution=merge-duplicates,return=minimal" },
-    body: JSON.stringify({ firma_id: firma, user_id: s.userId, stunde, kanal }),
+    body: JSON.stringify({ firma_id: firma, user_id: s.userId, stunde, kanal, ...mehr }),
   });
   return r.ok;
 }
 
 async function mailSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
   const firma = String(form.get("firma") ?? "");
-  const ok = /^[0-9a-f-]{36}$/.test(firma) && (await mailZeitSetzen(s, env, firma, form.get("stunde"), form.get("kanal")));
+  const ok = /^[0-9a-f-]{36}$/.test(firma) && (await mailZeitSetzen(s, env, firma, form.get("stunde"), form.get("kanal"), benachrichtigungAusFormular(form)));
   const h = String(form.get("stunde") ?? "");
   const wie = KANAELE[String(form.get("kanal"))] ?? "Mail";
   return weiterleiten(`/konto/einstellungen?hinweis=${encodeURIComponent(!ok ? "Die Einstellung konnte nicht gespeichert werden." : h ? `Jeden Tag um ${h}:00 Uhr per ${wie}.` : "Keine tägliche Nachricht mehr.")}#mail`);

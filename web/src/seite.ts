@@ -643,6 +643,21 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .vorschau-zahlen div { display: grid; gap: 2px; padding: 8px; border-radius: 10px; background: var(--bg); text-align: center; }
   .vorschau-zahlen strong { font-size: 1.5rem; color: var(--accent); } .vorschau-zahlen span { font-size: 12px; color: var(--muted); }
   .vorschau-box ul { margin: 2px 0 6px; padding-left: 18px; font-size: 13px; }
+  /* Settings: finer notifications, profile, account deletion, help. */
+  .benachrichtigung-mehr { margin: 4px 0 8px; }
+  .ruhe-felder { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .ruhe-felder label { margin: 0; }
+  .profil-name { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
+  .profil-name label { margin: 0; } .profil-name button { grid-column: 1 / -1; }
+  .konto-loeschen { margin-top: 14px; border-color: var(--error); }
+  .konto-loeschen > summary { color: var(--error); }
+  button.gefahr-voll { background: var(--error); color: #fff; border-color: var(--error); }
+  .hilfe-suche { display: block; margin: 0 0 12px; }
+  .hilfe-gruppe h2 { margin: 16px 0 6px; font-size: 1rem; }
+  .hilfe-frage { margin: 0 0 6px; }
+  .hilfe-frage p { margin: 6px 0 2px; font-size: 14px; line-height: 1.5; }
+  .hilfe-kontakt { margin-top: 18px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .hilfe-kontakt h2 { margin: 0 0 6px; font-size: 1rem; }
 </style>
 </head>
 <body><main>

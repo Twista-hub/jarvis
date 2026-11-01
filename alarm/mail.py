@@ -27,12 +27,12 @@ MORGENS = 7  # hour of the phone notification on the deadline day
 
 
 def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tuple]:
-    """(firma_id, user_id, email, firm name, last sent, channel) for everyone due now."""
+    """(firma_id, user_id, email, firm name, last sent, channel, deadline reminders) for everyone due now."""
     if test:  # test: all firms of this person, hits of the last 24 hours, mail and phone
-        return con.execute("""select m.firma_id::text, m.user_id::text, u.email, f.name, null::timestamptz, 'beides'
+        return con.execute("""select m.firma_id::text, m.user_id::text, u.email, f.name, null::timestamptz, 'beides', true
             from public.mitglieder m join public.firmen f on f.id = m.firma_id join auth.users u on u.id = m.user_id
             where m.aktiv and u.email = %s""", (test,)).fetchall()
-    basis = """select b.firma_id::text, b.user_id::text, u.email, f.name, b.letzte_mail, b.kanal
+    basis = """select b.firma_id::text, b.user_id::text, u.email, f.name, b.letzte_mail, b.kanal, b.fristen
         from public.benachrichtigungen b
         join public.mitglieder m on m.firma_id = b.firma_id and m.user_id = b.user_id and m.aktiv
         join public.firmen f on f.id = b.firma_id
@@ -43,9 +43,14 @@ def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tupl
     return con.execute(basis + "b.stunde = %s and (b.letzte_mail is null or b.letzte_mail < now() - interval '20 hours')", (stunde,)).fetchall()
 
 
-def handy(con, schl, user_id: str, firma_id: str, firma: str, neu: list, fristen: list) -> int:
+def handy(con, schl, user_id: str, firma_id: str, firma: str, neu: list, fristen: list, sofort: bool = False) -> int:
     """Phone notification: one tap opens the hit (one new) or the list (several)."""
-    if fristen and not neu:
+    if sofort and neu:
+        vid, titel, punkte, _ = neu[0]
+        kopf = f"⭐ Top-Treffer {punkte}/10" if len(neu) == 1 else f"⭐ {len(neu)} Top-Treffer für {firma}"
+        text = titel + (f" · und {len(neu) - 1} weitere" if len(neu) > 1 else "")
+        url = f"/konto/vorgang/{vid}" if len(neu) == 1 else f"/konto/treffer?firma={firma_id}"
+    elif fristen and not neu:
         vid, titel, frist = fristen[0]
         kopf, text, url = f"⏰ Frist {datum(frist)}", titel, f"/konto/vorgang/{vid}"
     elif len(neu) == 1:
@@ -93,6 +98,57 @@ def inhalt(con, firma_id: str, user_id: str, seit: datetime) -> tuple[list, list
           and not exists(select 1 from public.vergabekatalog k where k.id=vorgaenge.katalog_id and k.status in ('aufgehoben','vergeben','abgeschlossen'))
           and (frist at time zone 'Europe/Berlin')::date = any(%s) order by frist""", (firma_id, tage))
     return neu, fristen
+
+
+def in_ruhezeit(stunde: int, von, bis) -> bool:
+    """Quiet hours (I2), e.g. 20 to 7: no phone messages from 20:00 until 6:59."""
+    if von is None or bis is None or von == bis:
+        return False
+    return von <= stunde < bis if von < bis else stunde >= von or stunde < bis
+
+
+def morgen_stunde(von, bis) -> int:
+    """Hour of the deadline-day message: 7, or the end of the quiet hours when 7 falls into them."""
+    return bis if in_ruhezeit(MORGENS, von, bis) else MORGENS
+
+
+def sofort_nach_speichern(neue: dict) -> int:
+    """After the hits are committed: immediate phone messages per firm (own connection in autocommit, because
+    als_person() switches the role until the end of the transaction). Never stops the search."""
+    neue = {f: ids for f, ids in neue.items() if ids}
+    if not neue or not os.environ.get("SUPABASE_DB_PASSWORD"):
+        return 0
+    try:
+        with verbinden() as con:
+            con.autocommit = True
+            return sum(sofort_melden(con, f, ids) for f, ids in neue.items())
+    except (Exception, SystemExit) as e:  # noqa: BLE001
+        print(f"Sofort-Nachrichten nicht gesendet ({type(e).__name__})")
+        return 0
+
+
+def sofort_melden(con, firma_id: str, vorgang_ids: list[str]) -> int:
+    """I1: phone message right away for new hits from the score each person chose, outside their quiet hours.
+    Each person only hears about hits they may see (query with their rights); the daily message stays as it is.
+    con must be in autocommit (see sofort_nach_speichern)."""
+    if not vorgang_ids:
+        return 0
+    stunde = datetime.now(BERLIN).hour
+    leute = con.execute("""select b.user_id::text, b.sofort_ab, b.ruhe_von, b.ruhe_bis, f.name from public.benachrichtigungen b
+        join public.mitglieder m on m.firma_id = b.firma_id and m.user_id = b.user_id and m.aktiv
+        join public.firmen f on f.id = b.firma_id
+        where b.firma_id = %s and b.sofort_ab is not null and b.kanal in ('push', 'beides')""", (firma_id,)).fetchall()
+    leute = [p for p in leute if not in_ruhezeit(stunde, p[2], p[3])]
+    if not leute:
+        return 0
+    schl = push.schluessel(con)
+    gesendet = 0
+    for user_id, ab, _von, _bis, firma in leute:
+        treffer = als_person(con, user_id, """select id::text, titel, punkte, frist from public.vorgaenge
+            where firma_id = %s and id::text = any(%s) and punkte >= %s order by punkte desc""", (firma_id, vorgang_ids, ab))
+        if treffer:
+            gesendet += handy(con, schl, user_id, firma_id, firma, treffer, [], sofort=True)
+    return gesendet
 
 
 def heute_faellig(con, firma_id: str, user_id: str) -> list[tuple]:
@@ -190,9 +246,11 @@ def main() -> None:
         con.autocommit = True  # each als_person() runs in its own transaction, SET LOCAL ends with it
         smtp.login(ABSENDER[1], os.environ["SMTP_PASSWORD"].strip())
         schl = push.schluessel(con)
-        for firma_id, user_id, email, firma, letzte, kanal in faellig(con, stunde, test, sofort):
+        for firma_id, user_id, email, firma, letzte, kanal, fristen_an in faellig(con, stunde, test, sofort):
             seit = datetime.now(BERLIN) - timedelta(days=8) if sofort else letzte or datetime.now(BERLIN) - timedelta(days=1)
             neu, fristen = inhalt(con, firma_id, user_id, seit)
+            if not fristen_an:  # deadline reminders switched off in the settings (I1)
+                fristen = []
             nachweise = [] if test or sofort or kanal not in ("mail", "beides") else ablaufende_nachweise(con, firma_id, user_id)
             if not (neu or fristen or nachweise):
                 continue
@@ -205,11 +263,13 @@ def main() -> None:
                 con.execute("update public.benachrichtigungen set letzte_mail = now() where firma_id = %s and user_id = %s", (firma_id, user_id))
                 for dokument_id, _name, _gueltig_bis, tage in nachweise:
                     con.execute("insert into public.nachweis_erinnerungen (firma_id,dokument_id,user_id,tage) values (%s,%s,%s,%s) on conflict do nothing", (firma_id, dokument_id, user_id, tage))
-        if stunde == MORGENS and not (test or sofort):
-            for firma_id, user_id in con.execute("""select b.firma_id::text, b.user_id::text from public.benachrichtigungen b
+        if not (test or sofort):
+            # Deadline-day message at 7, or at the end of the person's quiet hours when 7 falls into them (I2).
+            for firma_id, user_id, von, bis in con.execute("""select b.firma_id::text, b.user_id::text, b.ruhe_von, b.ruhe_bis from public.benachrichtigungen b
                     join public.mitglieder m on m.firma_id = b.firma_id and m.user_id = b.user_id and m.aktiv
-                    where b.stunde is not null and b.kanal in ('push', 'beides')""").fetchall():
-                pushs += morgen_push(con, schl, user_id, firma_id, heute_faellig(con, firma_id, user_id))
+                    where b.stunde is not null and b.fristen and b.kanal in ('push', 'beides')""").fetchall():
+                if stunde == morgen_stunde(von, bis):
+                    pushs += morgen_push(con, schl, user_id, firma_id, heute_faellig(con, firma_id, user_id))
     print(f"{stunde} Uhr: {mails} Mails, {pushs} Handy-Benachrichtigungen")
 
 
