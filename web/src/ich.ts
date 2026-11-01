@@ -6,10 +6,12 @@ import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { GRUENDE, zeitraumText, type Abwesenheit } from "./personal.ts";
 import { ampel, NACHWEIS_VORSCHLAEGE, plusTage, type Nachweis } from "./personalakte.ts";
+import { ausFormular, meineStundenTeil, type Eintrag } from "./stunden.ts";
+import { meineSchichtenTeil, type Schicht } from "./schichten.ts";
 
 export type Ich = { id: string; firma_id: string; vorname: string; nachname: string; berufe: string[]; qualifikationen: string[]; status: string };
 export type MeinAuftrag = { titel: string; beginn: string | null; ende: string | null };
-export type MeineUnterweisung = { titel: string; intervall_monate: number; letzte: string | null };
+export type MeineUnterweisung = { id?: string; titel: string; intervall_monate: number; letzte: string | null; beschreibung?: string; digital?: boolean };
 export type MeineUeberlassung = { entleiher: string; von: string; bis: string | null };
 export type MeineAbwesenheit = Abwesenheit & { status: string };
 
@@ -22,24 +24,26 @@ const passtZuTyp = (b: Uint8Array, typ: string) => typ === "application/pdf" ? b
 /** Next due date of an instruction (never done = due now). */
 export const naechsteUnterweisung = (u: MeineUnterweisung, heute: string) => u.letzte ? plusMonate(u.letzte, u.intervall_monate || 12) : heute;
 
-export function ichSeite(d: { ich: Ich; auftraege: MeinAuftrag[]; ueberlassungen: MeineUeberlassung[]; abwesenheiten: MeineAbwesenheit[]; nachweise: Nachweis[]; unterweisungen: MeineUnterweisung[]; heute: string }): string {
+export function ichSeite(d: { ich: Ich; auftraege: MeinAuftrag[]; ueberlassungen: MeineUeberlassung[]; abwesenheiten: MeineAbwesenheit[]; nachweise: Nachweis[]; unterweisungen: MeineUnterweisung[]; heute: string; stunden?: Eintrag[]; schichten?: Schicht[] }): string {
   const { ich, heute } = d;
   const laufend = (von: string | null, bis: string | null) => (!von || von <= heute) && (!bis || bis >= heute);
   const einsaetze = [
     ...d.ueberlassungen.filter((u) => !u.bis || u.bis >= heute).map((u) => ({ titel: `Überlassung an ${u.entleiher}`, von: u.von, bis: u.bis })),
     ...d.auftraege.filter((a) => !a.ende || a.ende >= heute).map((a) => ({ titel: a.titel, von: a.beginn, bis: a.ende })),
   ].sort((a, b) => (a.von ?? "").localeCompare(b.von ?? ""));
+  const laufendeTitel = [...new Set([...(d.schichten ?? []).filter((s) => s.datum === heute && s.ort).map((s) => s.ort), ...d.ueberlassungen.filter((u) => laufend(u.von, u.bis)).map((u) => u.entleiher), ...d.auftraege.filter((a) => laufend(a.beginn, a.ende)).map((a) => a.titel)])].slice(0, 10);
   const zeitraum = (von: string | null, bis: string | null) => von && bis ? `${datum(von)} – ${datum(bis)}` : von ? `ab ${datum(von)}` : bis ? `bis ${datum(bis)}` : "ohne festes Ende";
   const abw = d.abwesenheiten.filter((a) => a.bis >= heute).sort((a, b) => a.von.localeCompare(b.von));
   const unterweisungen = d.unterweisungen.map((u) => ({ ...u, faellig: naechsteUnterweisung(u, heute) })).sort((a, b) => a.faellig.localeCompare(b.faellig));
   return `<div class="ich-kopf"><h2>👋 Hallo ${escape(ich.vorname)}</h2><p class="klein">${escape([ich.berufe.join(", "), ich.qualifikationen.join(", ")].filter(Boolean).join(" · ")) || "Beruf noch nicht eingetragen"}</p></div>
 <div class="ich-raster">
 <section><h3>📋 Meine Einsätze</h3>${einsaetze.length ? `<ul class="kontakt-liste ich-liste">${einsaetze.map((e) => `<li class="${laufend(e.von, e.bis) ? "aktiv" : ""}"><div><strong>${escape(e.titel)}</strong><span class="klein">${zeitraum(e.von, e.bis)}${laufend(e.von, e.bis) ? " · läuft" : ""}</span></div></li>`).join("")}</ul>` : `<p class="treffer-leer">Gerade keine Einsätze eingetragen.</p>`}</section>
+${meineSchichtenTeil(d.schichten ?? [], heute)}${d.stunden ? meineStundenTeil(d.stunden, laufendeTitel, heute) : ""}
 <section><h3>🌴 Urlaub &amp; Abwesenheit</h3>${abw.length ? `<ul class="kontakt-liste ich-liste">${abw.map((a) => `<li class="${a.status === "beantragt" ? "bald" : ""}"><div><strong>${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[0]} ${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[1]} ${zeitraumText(a)}</strong><span class="klein">${a.status === "beantragt" ? "⏳ beantragt, wartet auf das Büro" : "✅ bestätigt"}${a.notiz ? ` · ${escape(a.notiz)}` : ""}</span></div>${a.status === "beantragt" ? `<form method="post" action="/konto/ich"><input type="hidden" name="zurueckziehen" value="${a.id}"><button class="zweit" aria-label="Antrag zurückziehen">✕</button></form>` : ""}</li>`).join("")}</ul>` : ""}
 <details class="termin-neu"${abw.length ? "" : " open"}><summary>➕ Urlaub beantragen</summary><form method="post" action="/konto/ich"><input type="hidden" name="aktion" value="urlaub"><div class="aueg-form"><label>Von<input type="date" name="von" required min="${heute}"></label><label>Bis<input type="date" name="bis" required min="${heute}"></label><label>Grund<select name="grund"><option value="urlaub">🌴 Urlaub</option><option value="abwesend">⏸️ Nicht verfügbar</option></select></label><label>Notiz<input name="notiz" maxlength="200"></label></div><button>Beantragen</button><p class="klein">Das Büro bestätigt den Antrag. Bitte keine Gesundheitsangaben: Für Krankheit „Nicht verfügbar“ wählen und Bescheinigungen wie gewohnt abgeben.</p></form></details></section>
 <section><h3>🎓 Meine Nachweise</h3>${d.nachweise.length ? `<ul class="kontakt-liste ich-liste">${d.nachweise.map((n) => { const a = ampel(n.gueltig_bis, heute); return `<li class="${a === "rot" ? "abgelaufen" : a === "gelb" ? "bald" : ""}"><div><strong>${escape(n.bezeichnung)}</strong><span class="klein">${n.gueltig_bis ? `${a === "rot" ? "⚠️ abgelaufen am" : a === "gelb" ? "⏳ gültig bis" : "gültig bis"} ${datum(n.gueltig_bis)}` : "ohne Ablauf"}${n.datei_name ? ` · <a href="/konto/ich/nachweis/${n.id}">📎 Datei</a>` : ""}</span></div></li>`; }).join("")}</ul>` : `<p class="treffer-leer">Noch keine Nachweise.</p>`}
 <details class="termin-neu"><summary>➕ Nachweis hochladen</summary><form method="post" action="/konto/ich" enctype="multipart/form-data"><input type="hidden" name="aktion" value="nachweis"><div class="aueg-form"><label class="ganz">Qualifikation<input name="bezeichnung" list="nachweis-vorschlaege" required maxlength="120"></label><datalist id="nachweis-vorschlaege">${NACHWEIS_VORSCHLAEGE.map((v) => `<option value="${v}">`).join("")}</datalist><label>Erworben<input type="date" name="erworben"></label><label>Gültig bis<input type="date" name="gueltig_bis"></label><label class="ganz">Datei (PDF, PNG oder JPG bis 5 MB)<input type="file" name="datei" accept="application/pdf,image/png,image/jpeg" required></label></div><button>Hochladen</button><p class="klein">Ein Foto mit dem Handy reicht. Das Büro sieht den Nachweis sofort in deiner Personalakte.</p></form></details></section>
-<section><h3>🦺 Unterweisungen</h3>${unterweisungen.length ? `<ul class="kontakt-liste ich-liste">${unterweisungen.map((u) => { const st = u.faellig < heute || !u.letzte ? "abgelaufen" : u.faellig <= plusTage(heute, 30) ? "bald" : ""; return `<li class="${st}"><div><strong>${escape(u.titel)}</strong><span class="klein">${u.letzte ? `zuletzt ${datum(u.letzte)} · ${st === "abgelaufen" ? "⚠️ fällig seit" : "nächste"} ${datum(u.faellig)}` : "⚠️ noch nicht unterwiesen"}</span></div></li>`; }).join("")}</ul>` : `<p class="treffer-leer">Keine Unterweisungen eingetragen.</p>`}</section>
+<section><h3>🦺 Unterweisungen</h3>${unterweisungen.length ? `<ul class="kontakt-liste ich-liste">${unterweisungen.map((u) => { const st = u.faellig < heute || !u.letzte ? "abgelaufen" : u.faellig <= plusTage(heute, 30) ? "bald" : ""; return `<li class="${st} unterweisung-ich"><div><strong>${escape(u.titel)}</strong><span class="klein">${u.letzte ? `zuletzt ${datum(u.letzte)}${u.digital ? " 📱" : ""} · ${st === "abgelaufen" ? "⚠️ fällig seit" : "nächste"} ${datum(u.faellig)}` : "⚠️ noch nicht unterwiesen"}</span>${u.id && st && u.beschreibung ? `<details${st === "abgelaufen" ? " open" : ""}><summary class="klein">Inhalt lesen</summary><p class="klein">${escape(u.beschreibung).replace(/\n/g, "<br>")}</p></details>` : ""}</div>${u.id && st && u.letzte !== heute ? `<form method="post" action="/konto/ich"><input type="hidden" name="aktion" value="unterweisung"><input type="hidden" name="id" value="${u.id}"><button class="zweit">✓ Gelesen und verstanden</button></form>` : ""}</li>`; }).join("")}</ul><p class="klein">Mit „Gelesen und verstanden“ bestätigst du die Unterweisung mit Datum. Fragen? Sprich vorher deine Vorgesetzten an.</p>` : `<p class="treffer-leer">Keine Unterweisungen eingetragen.</p>`}</section>
 </div>
 <p class="klein">Stimmt etwas nicht? Sag im Büro Bescheid; deine Stammdaten pflegt das Büro.</p>`;
 }
@@ -97,17 +101,39 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
       if (!r.ok) await env.DATEN?.delete(schluessel(zeile.id));
       return zurueck(r.ok ? "Nachweis hochgeladen." : "Hochladen hat nicht geklappt.");
     }
+    // T17: own hours (only while still open), T18: answer a shift, T22: confirm an instruction.
+    if (t("aktion", 20) === "stunden") {
+      const e = ausFormular(form, heute, true);
+      if (typeof e === "string") return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(e)}#stunden`, f.s.cookies);
+      const r = await db(f.s, env, "stundenzettel", { method: "POST", body: JSON.stringify({ ...e, firma_id: firma, personal_id: person.id }) });
+      return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(r.ok ? "Stunden gespeichert. Das Büro gibt sie frei." : "Speichern hat nicht geklappt.")}#stunden`, f.s.cookies);
+    }
+    if (ID.test(t("stunde_loeschen", 36))) {
+      const r = await db<{ id: string }[]>(f.s, env, `stundenzettel?id=eq.${t("stunde_loeschen", 36)}&personal_id=eq.${person.id}&status=eq.erfasst&select=id`, { method: "DELETE", headers: { prefer: "return=representation" } });
+      return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(r.ok && r.daten.length ? "Eintrag gelöscht." : "Freigegebene Einträge ändert nur das Büro.")}#stunden`, f.s.cookies);
+    }
+    if (t("aktion", 20) === "schicht" && ID.test(t("id", 36)) && ["zugesagt", "abgesagt"].includes(t("antwort", 10))) {
+      const r = await db<boolean>(f.s, env, "rpc/schicht_antworten", { method: "POST", body: JSON.stringify({ s: t("id", 36), a: t("antwort", 10) }) });
+      return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(r.ok && r.daten ? (t("antwort", 10) === "zugesagt" ? "Schicht zugesagt." : "Schicht abgesagt. Das Büro wird benachrichtigt.") : "Das ging nicht (vergangene Schicht?).")}#schichten`, f.s.cookies);
+    }
+    if (t("aktion", 20) === "unterweisung" && ID.test(t("id", 36))) {
+      const r = await db<boolean>(f.s, env, "rpc/unterweisung_bestaetigen", { method: "POST", body: JSON.stringify({ u: t("id", 36) }) });
+      return zurueck(r.ok && r.daten ? "Unterweisung bestätigt. Danke!" : "Bestätigen hat nicht geklappt.");
+    }
     return zurueck("Unbekannte Aktion.");
   }
-  const [a, u, abw, n, uw] = await Promise.all([
+  const vor = `${new Date(Date.UTC(Number(heute.slice(0, 4)), Number(heute.slice(5, 7)) - 2, 1)).toISOString().slice(0, 10)}`;
+  const [a, u, abw, n, uw, st, sch] = await Promise.all([
     db<MeinAuftrag[]>(f.s, env, "rpc/meine_auftraege", { method: "POST", body: JSON.stringify({ f: firma }) }),
     db<MeineUeberlassung[]>(f.s, env, `ueberlassungen?personal_id=eq.${person.id}&select=entleiher,von,bis&order=von.desc&limit=20`),
     db<MeineAbwesenheit[]>(f.s, env, `personal_abwesenheiten?personal_id=eq.${person.id}&bis=gte.${heute}&select=id,personal_id,von,bis,grund,notiz,status&order=von&limit=50`),
     db<Nachweis[]>(f.s, env, `personal_nachweise?personal_id=eq.${person.id}&select=id,personal_id,bezeichnung,erworben,gueltig_bis,datei_name,datei_mime&order=bezeichnung&limit=100`),
     db<MeineUnterweisung[]>(f.s, env, "rpc/meine_unterweisungen", { method: "POST", body: JSON.stringify({ f: firma }) }),
+    db<Eintrag[]>(f.s, env, `stundenzettel?personal_id=eq.${person.id}&datum=gte.${vor}&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status&order=datum.desc&limit=200`),
+    db<Schicht[]>(f.s, env, `schichten?personal_id=eq.${person.id}&datum=gte.${heute}&select=id,personal_id,bereich_id,datum,beginn,ende,ort,notiz,antwort&order=datum,beginn&limit=60`),
   ]);
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${ichSeite({ ich: person, auftraege: a.ok ? a.daten : [], ueberlassungen: u.ok ? u.daten : [], abwesenheiten: abw.ok ? abw.daten : [], nachweise: n.ok ? n.daten : [], unterweisungen: uw.ok ? uw.daten : [], heute })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${ichSeite({ ich: person, auftraege: a.ok ? a.daten : [], ueberlassungen: u.ok ? u.daten : [], abwesenheiten: abw.ok ? abw.daten : [], nachweise: n.ok ? n.daten : [], unterweisungen: uw.ok ? uw.daten : [], heute, stunden: st.ok ? st.daten : [], schichten: sch.ok ? sch.daten : [] })}`);
 }
 
 /** Admin: link a staff login (role "Einsatzkraft") to a personnel record, or remove the link. */

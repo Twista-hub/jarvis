@@ -51,6 +51,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101140000_termine_partner_disposition.sql
 \ir ../migrations/20261101150000_firmenprofil_personalakte.sql
 \ir ../migrations/20261101160000_team_vertretung_aufgaben_selbstpflege.sql
+\ir ../migrations/20261101170000_stunden_schichten_brett_fristen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -868,6 +869,75 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.aufgaben) and (select count(*) = 0 from public.betriebsmittel) and (select count(*) = 0 from public.vertretungen), 'Fremde Firma sieht nichts davon');
 reset role;
 update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
+select set_config('test.uid', '', false);
+
+-- T17–T22: time sheets, shifts, notice board, licence checks, digital instructions.
+reset role;
+update public.mitglieder set aktiv = true, rolle = 'bearbeiter' where user_id = '00000000-0000-0000-0000-00000000000b';
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-0000000000e1';
+delete from public.push_warteschlange;
+select set_config('test.berlin', :'berlin', false);
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000e1');
+insert into public.stundenzettel (firma_id, personal_id, datum, beginn, ende, pause_min, einsatz) values (:'firma', :'p_berlin', current_date - 1, '07:00', '15:30', 30, 'Messe Berlin');
+do $$ begin
+  insert into public.stundenzettel (firma_id, personal_id, datum, beginn, ende, status) values (current_setting('test.firma')::uuid, (select id from public.personal limit 1), current_date, '07:00', '15:00', 'freigegeben');
+  raise exception 'FEHLER: Einsatzkraft gibt eigene Stunden frei';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.stundenzettel (firma_id, personal_id, datum, beginn, ende) values (current_setting('test.firma')::uuid, current_setting('test.p_hh')::uuid, current_date, '07:00', '15:00');
+  raise exception 'FEHLER: Stunden für fremde Person';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.stundenzettel (firma_id, personal_id, datum, beginn, ende) values (current_setting('test.firma')::uuid, (select id from public.personal limit 1), current_date + 3, '07:00', '15:00');
+  raise exception 'FEHLER: Stunden in der Zukunft';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  update public.stundenzettel set status = 'freigegeben';
+  raise exception 'FEHLER: Einsatzkraft ändert Status auf freigegeben';
+exception when insufficient_privilege then null; end $$;
+select pruefe((select count(*) = 1 and bool_and(status = 'erfasst') from public.stundenzettel), 'Einsatzkraft erfasst Stunden, kann sie aber nicht freigeben');
+select test_als('00000000-0000-0000-0000-00000000000b');
+update public.stundenzettel set status = 'freigegeben', freigegeben_von = '00000000-0000-0000-0000-00000000000b', freigegeben_am = now();
+select pruefe((select count(*) = 1 and bool_and(status = 'freigegeben') from public.stundenzettel), 'Bearbeiter gibt Stunden am eigenen Standort frei');
+insert into public.schichten (firma_id, bereich_id, personal_id, datum, beginn, ende, ort) values (:'firma', :'berlin', :'p_berlin', current_date + 2, '06:00', '14:00', 'Messe Halle 3');
+do $$ begin
+  insert into public.schichten (firma_id, bereich_id, personal_id, datum, beginn, ende) values (current_setting('test.firma')::uuid, current_setting('test.berlin')::uuid, current_setting('test.p_hh')::uuid, current_date + 2, '06:00', '14:00');
+  raise exception 'FEHLER: Schicht für Person am fremden Standort';
+exception when insufficient_privilege then null; end $$;
+insert into public.mitteilungen (firma_id, titel, text) values (:'firma', 'Betriebsversammlung', 'Freitag 14 Uhr');
+do $$ begin
+  insert into public.mitteilungen (firma_id, bereich_id, titel) values (current_setting('test.firma')::uuid, (select id from public.bereiche where name = 'Hamburg' limit 1), 'Fremder Standort');
+  raise exception 'FEHLER: Bearbeiter Berlin schreibt für Hamburg';
+exception when insufficient_privilege then null; end $$;
+update public.personal set firmenwagen = true, probezeit_bis = current_date + 20 where id = :'p_berlin';
+insert into public.fuehrerschein_kontrollen (firma_id, personal_id, datum, klassen) values (:'firma', :'p_berlin', current_date, '{B}');
+reset role;
+insert into public.mitteilungen (firma_id, bereich_id, titel) values (:'firma', :'hamburg', 'Nur Hamburg');
+select pruefe((select count(*) = 1 from public.push_warteschlange where user_id = '00000000-0000-0000-0000-0000000000e1' and titel like '📅 Neue Schicht%'), 'Neue Schicht landet in der Handy-Warteschlange der Einsatzkraft');
+select pruefe((select count(*) = 1 from public.push_warteschlange where user_id = '00000000-0000-0000-0000-0000000000e1' and titel like '📌%'), 'Einsatzkraft bekommt nur die Mitteilung für alle, nicht die für Hamburg');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 1 from public.schichten) and (select count(*) = 1 from public.fuehrerschein_kontrollen), 'Einsatzkraft sieht eigene Schicht und eigene Führerscheinkontrolle');
+select pruefe(public.schicht_antworten((select id from public.schichten), 'zugesagt'), 'Einsatzkraft sagt die Schicht zu');
+select pruefe((select antwort = 'zugesagt' from public.schichten), 'Zusage gespeichert');
+update public.schichten set datum = current_date + 9, ort = 'geändert';
+select pruefe((select ort = 'Messe Halle 3' from public.schichten), 'Einsatzkraft kann die Schicht selbst nicht ändern');
+select pruefe((select count(*) = 1 and min(titel) = 'Betriebsversammlung' from public.mitteilungen), 'Einsatzkraft sieht nur Mitteilungen für alle und ihren Standort');
+insert into public.mitteilung_gelesen (mitteilung_id, firma_id) values ((select id from public.mitteilungen), :'firma');
+do $$ begin
+  insert into public.mitteilungen (firma_id, titel) values (current_setting('test.firma')::uuid, 'Von der Einsatzkraft');
+  raise exception 'FEHLER: Einsatzkraft schreibt ans Schwarze Brett';
+exception when insufficient_privilege then null; end $$;
+select pruefe(public.unterweisung_bestaetigen((select id from public.meine_unterweisungen(:'firma') limit 1)), 'Einsatzkraft bestätigt Unterweisung digital');
+select pruefe((select bool_or(digital and letzte = (now() at time zone 'Europe/Berlin')::date) from public.meine_unterweisungen(:'firma')), 'Digitale Bestätigung zählt als Teilnahme von heute');
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select count(*) = 1 from public.mitteilung_gelesen), 'Büro sieht, wer gelesen hat');
+select pruefe(not public.schicht_antworten((select id from public.schichten), 'abgesagt'), 'Bürokraft kann nicht für die Einsatzkraft antworten');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.stundenzettel) and (select count(*) = 0 from public.schichten) and (select count(*) = 0 from public.mitteilungen) and (select count(*) = 0 from public.fuehrerschein_kontrollen), 'Fremde Firma sieht keine Stunden, Schichten, Mitteilungen oder Kontrollen');
+reset role;
+update public.mitglieder set aktiv = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

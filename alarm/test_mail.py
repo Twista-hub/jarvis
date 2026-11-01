@@ -112,3 +112,30 @@ class Vertretung(unittest.TestCase):
         self.assertEqual(mail.vertretung_heute(con, "f1", "u1"), (False, True))
         self.assertIn("vertreter_id", con.sql)
         self.assertEqual((con.args[0], con.args[1], con.args[3], con.args[4]), ("f1", "u1", "f1", "u1"))
+
+
+class Warteschlange(unittest.TestCase):
+    def test_mehrere_nachrichten_einer_person_werden_zusammengefasst(self):
+        class Con:
+            def __init__(self):
+                self.sql = []
+
+            def execute(self, sql, args=()):
+                self.sql.append((sql, args))
+                return self
+
+            def fetchall(self):
+                return [("1", "u1", "📅 Neue Schicht 03.11.", "Messe", "/konto/ich#schichten"),
+                        ("2", "u1", "📅 Neue Schicht 04.11.", "Messe", "/konto/ich#schichten"),
+                        ("3", "u2", "📌 Betriebsversammlung", "Freitag", "/konto/brett")]
+
+        gesendet = []
+        alt = mail.senden_an_geraete
+        mail.senden_an_geraete = lambda con, schl, user, titel, text, url: gesendet.append((user, titel, url)) or 1
+        try:
+            con = Con()
+            self.assertEqual(mail.warteschlange(con, None), 2)
+        finally:
+            mail.senden_an_geraete = alt
+        self.assertEqual(gesendet, [("u1", "2 neue Nachrichten", "/konto"), ("u2", "📌 Betriebsversammlung", "/konto/brett")])
+        self.assertTrue(any("set gesendet" in q and a == (["1", "2", "3"],) for q, a in con.sql))

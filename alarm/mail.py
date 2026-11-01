@@ -94,6 +94,26 @@ def senden_an_geraete(con, schl, user_id: str, kopf: str, text: str, url: str) -
     return ok
 
 
+def warteschlange(con, schl) -> int:
+    """Phone notifications queued by the app (new shift, cancelled shift, notice board, T18/T19): one per person and run,
+    several are combined. Older than two days is dropped unsent."""
+    zeilen = con.execute("""select id, user_id::text, titel, text, url from public.push_warteschlange
+        where gesendet is null and erstellt > now() - interval '2 days' order by erstellt""").fetchall()
+    pro_person: dict[str, list[tuple]] = {}
+    for zeile in zeilen:
+        pro_person.setdefault(zeile[1], []).append(zeile)
+    gesendet = 0
+    for user_id, liste in pro_person.items():
+        _, _, titel, text, url = liste[-1]
+        if len(liste) > 1:
+            titel, text, url = f"{len(liste)} neue Nachrichten", liste[-1][2], "/konto"
+        gesendet += senden_an_geraete(con, schl, user_id, titel, text, url)
+    if zeilen:
+        con.execute("update public.push_warteschlange set gesendet = now() where id = any(%s)", ([z[0] for z in zeilen],))
+    con.execute("delete from public.push_warteschlange where erstellt < now() - interval '30 days'")
+    return gesendet
+
+
 def als_person(con, user_id: str, sql: str, args: tuple) -> list[tuple]:
     """Query with the person's rights (like PostgREST does), inside its own transaction."""
     with con.transaction():
@@ -285,6 +305,7 @@ def main() -> None:
                 for dokument_id, _name, _gueltig_bis, tage in nachweise:
                     con.execute("insert into public.nachweis_erinnerungen (firma_id,dokument_id,user_id,tage) values (%s,%s,%s,%s) on conflict do nothing", (firma_id, dokument_id, user_id, tage))
         if not (test or sofort):
+            pushs += warteschlange(con, schl)
             # Deadline-day message at 7, or at the end of the person's quiet hours when 7 falls into them (I2).
             for firma_id, user_id, von, bis in con.execute("""select b.firma_id::text, b.user_id::text, b.ruhe_von, b.ruhe_bis from public.benachrichtigungen b
                     join public.mitglieder m on m.firma_id = b.firma_id and m.user_id = b.user_id and m.aktiv

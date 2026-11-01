@@ -5,7 +5,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { escape } from "./seite.ts";
 import { absatz, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
 
-export type Akte = { eintritt?: string | null; beschaeftigung?: string; wochenstunden?: number | string | null; fuehrerschein?: string[]; sprachen?: string[]; wohn_plz?: string };
+export type Akte = { eintritt?: string | null; beschaeftigung?: string; wochenstunden?: number | string | null; fuehrerschein?: string[]; sprachen?: string[]; wohn_plz?: string; probezeit_bis?: string | null; befristet_bis?: string | null; aufenthalt_bis?: string | null; firmenwagen?: boolean };
 export type Nachweis = { id: string; personal_id: string; bezeichnung: string; erworben: string | null; gueltig_bis: string | null; datei_name: string | null; datei_mime: string | null };
 export const BESCHAEFTIGUNG: Record<string, string> = { vollzeit: "Vollzeit", teilzeit: "Teilzeit", minijob: "Minijob", aushilfe: "Aushilfe", azubi: "Auszubildende/r" };
 export const FUEHRERSCHEINE = ["B", "BE", "C1", "C1E", "C", "CE", "D1", "D", "T", "L", "Stapler"];
@@ -29,19 +29,24 @@ export function dabeiSeit(eintritt: string | null | undefined, heute: string): s
 
 export function akteFelder(k: Akte & { id?: string }): string {
   const fs = k.fuehrerschein ?? [];
-  return `<details class="akte-felder"${k.eintritt || k.beschaeftigung || fs.length || (k.sprachen ?? []).length || k.wohn_plz ? " open" : ""}><summary>📁 Personalakte</summary>
+  return `<details class="akte-felder"${k.eintritt || k.beschaeftigung || fs.length || (k.sprachen ?? []).length || k.wohn_plz || k.probezeit_bis || k.befristet_bis || k.aufenthalt_bis ? " open" : ""}><summary>📁 Personalakte</summary>
 <div class="zwei"><label>Eintritt<input name="eintritt" type="date" value="${escape(k.eintritt ?? "")}"></label>
 <label>Beschäftigung<select name="beschaeftigung"><option value="">–</option>${Object.entries(BESCHAEFTIGUNG).map(([w, t]) => `<option value="${w}"${k.beschaeftigung === w ? " selected" : ""}>${t}</option>`).join("")}</select></label></div>
 <div class="zwei"><label>Wochenstunden<input name="wochenstunden" inputmode="decimal" maxlength="5" value="${k.wochenstunden ?? ""}"></label>
 <label>Wohnort-PLZ<input name="wohn_plz" inputmode="numeric" maxlength="5" pattern="\\d{5}" value="${escape(k.wohn_plz ?? "")}" placeholder="für die Entfernung"></label></div>
 <fieldset><legend>Führerschein</legend><div class="chips">${FUEHRERSCHEINE.map((f) => `<label><input type="checkbox" name="fuehrerschein" value="${f}"${fs.includes(f) ? " checked" : ""}><span>${f}</span></label>`).join("")}</div></fieldset>
-<label>Sprachen (mit Komma)<input name="sprachen" maxlength="200" value="${escape((k.sprachen ?? []).join(", "))}" placeholder="z. B. Deutsch, Englisch, Türkisch"></label></details>`;
+<label>Sprachen (mit Komma)<input name="sprachen" maxlength="200" value="${escape((k.sprachen ?? []).join(", "))}" placeholder="z. B. Deutsch, Englisch, Türkisch"></label>
+<label class="zeile"><input type="checkbox" name="firmenwagen"${k.firmenwagen ? " checked" : ""}>Fährt Firmenfahrzeuge (Führerscheinkontrolle alle 6 Monate)</label>
+<fieldset><legend>⏳ Fristen</legend><div class="zwei"><label>Probezeit bis<input name="probezeit_bis" type="date" value="${escape(k.probezeit_bis ?? "")}"></label>
+<label>Befristet bis<input name="befristet_bis" type="date" value="${escape(k.befristet_bis ?? "")}"></label></div>
+<label>Aufenthaltstitel / Arbeitserlaubnis gültig bis<input name="aufenthalt_bis" type="date" value="${escape(k.aufenthalt_bis ?? "")}"></label><p class="klein">Jarvis warnt vorher (Probezeit 30, Befristung 60, Aufenthalt 90 Tage). Nur das Datum, keine Kopie des Dokuments.</p></fieldset></details>`;
 }
 
 /** Form → personnel file fields (invalid values become empty). */
 export function akteAusFormular(f: FormData): Required<Akte> {
   const t = (k: string, max: number) => String(f.get(k) ?? "").replace(/\s+/g, " ").trim().slice(0, max);
   const e = t("eintritt", 10), plz = t("wohn_plz", 5), b = t("beschaeftigung", 20);
+  const tag = (k: string) => { const v = t(k, 10); return /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) ? v : null; };
   const h = Number(t("wochenstunden", 6).replace(",", "."));
   return {
     eintritt: /^\d{4}-\d{2}-\d{2}$/.test(e) && Number.isFinite(Date.parse(e)) ? e : null,
@@ -50,13 +55,27 @@ export function akteAusFormular(f: FormData): Required<Akte> {
     fuehrerschein: f.getAll("fuehrerschein").map(String).filter((x) => FUEHRERSCHEINE.includes(x)),
     sprachen: [...new Set(t("sprachen", 200).split(/[,;]/).map((x) => x.trim()).filter((x) => x.length >= 2).map((x) => x.slice(0, 40)))].slice(0, 12),
     wohn_plz: /^\d{5}$/.test(plz) ? plz : "",
+    probezeit_bis: tag("probezeit_bis"), befristet_bis: tag("befristet_bis"), aufenthalt_bis: tag("aufenthalt_bis"),
+    firmenwagen: f.get("firmenwagen") === "on",
   };
+}
+
+// T20: personnel deadlines with their warning period in days.
+export const FRISTEN: [keyof Akte & ("probezeit_bis" | "befristet_bis" | "aufenthalt_bis"), string, string, number][] = [
+  ["probezeit_bis", "⏳", "Probezeit bis", 30], ["befristet_bis", "📄", "befristet bis", 60], ["aufenthalt_bis", "🌍", "Aufenthaltstitel bis", 90]];
+/** Deadlines due within their warning period (or already passed, up to 30 days ago). */
+export function fristen(k: Pick<Akte, "probezeit_bis" | "befristet_bis" | "aufenthalt_bis">, heute: string): { feld: string; icon: string; text: string; bis: string; stufe: "rot" | "gelb" }[] {
+  return FRISTEN.flatMap(([feld, icon, text, tage]) => {
+    const bis = k[feld] as string | null | undefined;
+    if (!bis || bis < plusTage(heute, -30) || bis > plusTage(heute, tage)) return [];
+    return [{ feld, icon, text, bis, stufe: bis <= plusTage(heute, Math.min(14, tage)) ? "rot" as const : "gelb" as const }];
+  });
 }
 
 /** One line on the person card: employment, licence, languages. */
 export function akteZeile(k: Akte, heute: string): string {
   const teile = [k.beschaeftigung ? `${BESCHAEFTIGUNG[k.beschaeftigung]}${k.wochenstunden ? ` ${String(k.wochenstunden).replace(".", ",")} h` : ""}` : "", dabeiSeit(k.eintritt, heute),
-    (k.fuehrerschein ?? []).length ? `🚗 ${(k.fuehrerschein ?? []).join(", ")}` : "", (k.sprachen ?? []).length ? `🗣️ ${(k.sprachen ?? []).join(", ")}` : "", k.wohn_plz ? `📍 ${k.wohn_plz}` : ""].filter(Boolean);
+    (k.fuehrerschein ?? []).length ? `🚗 ${(k.fuehrerschein ?? []).join(", ")}` : "", (k.sprachen ?? []).length ? `🗣️ ${(k.sprachen ?? []).join(", ")}` : "", k.wohn_plz ? `📍 ${k.wohn_plz}` : "", ...fristen(k, heute).map((x) => `${x.icon} ${x.text} ${datum(x.bis)}`)].filter(Boolean);
   return teile.length ? `<p class="klein akte-zeile">${teile.map(escape).join(" · ")}</p>` : "";
 }
 
