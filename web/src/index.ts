@@ -7,6 +7,7 @@ import { unterlagenOhneTreffer } from "./unterlagen";
 import { angebote } from "./angebote";
 import { darfAuftrag } from "./auftragsrechte";
 import { firmenunterlagen } from "./firmenunterlagen";
+import { referenzen } from "./referenzen";
 import { freigaben } from "./freigaben";
 import { mitarbeiterVerwalten } from "./mitarbeiter";
 import { einrichtung } from "./einrichtung";
@@ -104,6 +105,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (am) return am;
     const fu = await firmenunterlagen(request, env);
     if (fu) return fu;
+    const rf = await referenzen(request, env);
+    if (rf) return rf;
     const mv = await mitarbeiterVerwalten(request, env);
     if (mv) return mv;
     const fg = await freigaben(request, env);

@@ -2,6 +2,7 @@ import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
 import { db, html, sitzung, unterlagenSteckbrief, vorgangZugriff, weiterleiten, type KontoEnv } from "./konto.ts";
 import { aktiveFirma, dateiKey, dateiname, UUID, type FirmenDatei } from "./firmenunterlagen.ts";
 import { escape, markdown, seite } from "./seite.ts";
+import { referenzenLaden, referenzlisteDocx } from "./referenzen.ts";
 import { vorlageFuerBereich, type Eingaben, type Los, type LosWerte } from "./kalkulation.ts";
 import type { TarifWahl } from "./tarife.ts";
 import { angebotsText, auswahlSeite, passendeNachweise, preise, type Preise } from "./angebotsauswahl.ts";
@@ -111,6 +112,8 @@ export async function angebote(request:Request,env:KontoEnv):Promise<Response|nu
       dateien[`${String(index+1).padStart(2,"0")}_${dateiname(d.dateiname)}`]=data;
       protokoll.push(`${d.name}${d.gueltig_bis?` (gültig bis ${d.gueltig_bis})`:""}`);
     }
+    // References asked for in the tender: the list from the references form goes along as a Word file.
+    if(/referenz/i.test(`${z.v.steckbrief??""}\n${mappe.text}`)){const refs=await referenzenLaden(s,env,z.v.firma_id);if(refs.length){dateien["Referenzliste.docx"]=referenzlisteDocx(firmenname,refs);protokoll.push(`Referenzliste (${refs.length} Referenzen)`);}}
     dateien["Pruefliste.txt"]=strToU8(protokoll.join("\n"));
     const zip=zipSync(dateien,{level:0});
     const headers=new Headers({"content-type":"application/zip","content-disposition":'attachment; filename="Angebotsmappe.zip"',"cache-control":"private, no-store","x-content-type-options":"nosniff"});

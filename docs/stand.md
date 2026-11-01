@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Unterlagen E1–E5)
+- E1: Ordner für Firmenunterlagen (Spalte `ordner`; leer = Jarvis sortiert nach Namen: Versicherungen, Register & Gewerbe, Steuern & Sozialversicherung, Erlaubnisse & Zertifikate, Erklärungen, Referenzen & Umsatz, Angebotsvorlagen, Sonstiges). Ordner-Chips zum Filtern, kompakte Dateizeilen mit Ampel, Menü ⋯ zum Ändern von Ordner und Ablaufdatum.
+- E2: Ohne Datum liest Jarvis beim Hochladen das Ablaufdatum aus PDF oder Foto (Haiku, Effort low, über das KI-Budget, ca. 1 Cent, nur bis 5 MB). Spalte `gueltig_erkannt`, Hinweis „Bitte kurz prüfen“, im Menü ⋯ auch nachträglich „Datum von Jarvis lesen lassen“.
+- E3: 👁 Vorschau für PDF, Fotos und Text direkt im Browser (`/konto/firmenunterlage/<id>/ansehen`, eigene strenge CSP).
+- E4: Referenzen als Formular (Tabelle `referenzen`, RLS wie Firmenunterlagen, höchstens 100), Seite `/konto/referenzen`, Word-Referenzliste (`/konto/referenzen/liste.docx`). Referenzen zählen im Nachweis-Abgleich als vorhanden; die Angebotsmappe legt die Referenzliste bei, wenn die Ausschreibung Referenzen verlangt. Migration `20261101040000_unterlagen_ordner_referenzen.sql`, Rechte-Test ergänzt.
+- E5: „📦 Vorhandene Nachweise als Zip“ auf der Ausschreibungsseite (`/konto/vorgang/<id>/nachweise.zip`) und „Alle Nachweise / Ordner als Zip“ auf der Unterlagenseite (mit Ordnern im Zip, höchstens 60 MB).
+- Mit Screenshot geprüft (Unterlagen, Menü ⋯, Upload-Formular, Referenzen, Nachweis-Liste, Word-Datei in LibreOffice); 179 Web-Tests und Rechte-Test grün.
+
 ### 01.11.2026 – Claude (Fristen D1–D5)
 - D1: Tipp auf einen Kalendertag zeigt nur dessen Fristen („Nur Donnerstag, 12. November ✕ Alle zeigen“), gewählter Tag umrandet.
 - D2: Kalender-Abo: private Adresse `/kalender/<token>.ics` (Tabelle `kalender_abos`, Funktion `kalender_fristen` liefert nur, was die Person sehen darf), Knopf „Kalender abonnieren“ (webcal), Adresse neu erzeugen macht die alte ungültig.

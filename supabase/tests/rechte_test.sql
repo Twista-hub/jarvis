@@ -38,6 +38,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101010000_vorgaenge_entfernung_fragefrist.sql
 \ir ../migrations/20261101020000_vorgang_notizen.sql
 \ir ../migrations/20261101030000_eigene_termine_kalenderabo.sql
+\ir ../migrations/20261101040000_unterlagen_ordner_referenzen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -450,6 +451,19 @@ select set_config('test.uid', '', false);
 set role anon;
 select pruefe((select count(*)>=1 from public.kalender_fristen(repeat('a', 43)) where art='eigen'), 'Kalender-Abo liefert eigene Termine');
 select pruefe((select count(*)=0 from public.kalender_fristen(repeat('b', 43))), 'Falscher Kalender-Schlüssel liefert nichts');
+reset role;
+
+-- References: the administration keeps them, other firms see nothing.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.referenzen (firma_id, auftraggeber, leistung, von, bis) values (:'firma', 'Stadt Aachen', 'Reinigung Rathaus', '2024-01-01', '2025-12-31');
+select pruefe((select count(*)=1 from public.referenzen), 'Referenz gespeichert');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*)=0 from public.referenzen), 'Fremde Firma sieht keine Referenzen');
+do $$ begin
+  insert into public.referenzen (firma_id, auftraggeber, leistung) values (current_setting('test.firma')::uuid, 'x', 'y');
+  raise exception 'FEHLER: Fremde Referenz angelegt';
+exception when insufficient_privilege or check_violation then null; end $$;
 reset role;
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

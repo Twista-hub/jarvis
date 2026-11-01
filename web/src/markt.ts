@@ -1,4 +1,5 @@
-import { aktiveFirma, type FirmenDatei } from "./firmenunterlagen.ts";
+import { aktiveFirma, nachweiseZip, zipAntwort, type FirmenDatei } from "./firmenunterlagen.ts";
+import { referenzenLaden, type Referenz } from "./referenzen.ts";
 import { db, html, weiterleiten, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { bedarfErkennen, hash, type Bekanntmachung, type Bedarf } from "./katalog-daten.ts";
@@ -14,6 +15,24 @@ async function bekanntmachung(s: Sitzung, env: KontoEnv, v: V): Promise<Bekanntm
   const r = await db<Bekanntmachung[]>(s, env, `vergabekatalog?${filter}&select=id,quelle,quelle_id,titel,version,quell_datum,auftraggeber,auftraggeber_id,beschreibung,ort,plz,cpv,frist,status,lose,bedarf,zuschlaege,vertragsende,link&limit=1`);
   return r.ok ? r.daten[0] ?? null : null;
 }
+/** References entered as a form count as the proof "Referenzen" (the list is built as a Word file). */
+export const REFERENZ_ID = "referenzliste";
+export function mitReferenzen(dateien: FirmenDatei[], refs: Referenz[], firma: string): FirmenDatei[] {
+  return refs.length ? [...dateien, { id: REFERENZ_ID, firma_id: firma, name: `Referenzen (Referenzliste aus Jarvis, ${refs.length} Einträge)`, art: "nachweis", dateiname: "Referenzliste.docx", mime: "", groesse: 0, gueltig_bis: null }] : dateien;
+}
+
+/** The firm's valid proofs that this tender asks for, plus the references when they are asked for. */
+async function nachweiseFuerVorgang(s: Sitzung, env: KontoEnv, v: V): Promise<{ dateien: FirmenDatei[]; refs: Referenz[] } | null> {
+  const n = await bekanntmachung(s, env, v);
+  const bedarf = (n?.bedarf ?? bedarfErkennen(v.steckbrief ?? "")).filter((b) => b.art === "nachweis");
+  const [d, refs] = await Promise.all([db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`), referenzenLaden(s, env, v.firma_id)]);
+  if (!d.ok) return null;
+  const checks = teilnahmeCheck(bedarf, [], mitReferenzen(d.daten, refs, v.firma_id), v.frist);
+  const gefunden = checks.flatMap((c) => c.gefunden && "dokument" in c && c.dokument ? [c.dokument as FirmenDatei] : []);
+  const dateien = [...new Map(gefunden.filter((x) => x.id !== REFERENZ_ID).map((x) => [x.id, x])).values()];
+  return { dateien, refs: gefunden.some((x) => x.id === REFERENZ_ID) ? refs : [] };
+}
+
 const bedarfKey = (b: Bedarf) => `${b.los}|${b.art}|${b.name}`.slice(0, 200);
 const norm = (x: string) => x.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ß/g, "ss");
 
@@ -42,7 +61,7 @@ export async function teilnahmeTeil(s: Sitzung, env: KontoEnv, v: V, finanzrecht
   const version = n?.version ?? await hash(v.steckbrief ?? "");
   const [p, d, bestaetigt, feedback] = await Promise.all([
     db<{ berufe: string[]; qualifikationen: string[]; status: string }[]>(s, env, `personal?firma_id=eq.${v.firma_id}${v.bereich_id ? `&bereich_id=eq.${v.bereich_id}` : ""}&select=berufe,qualifikationen,status&limit=1000`),
-    finanzrecht ? db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`) : Promise.resolve(null),
+    finanzrecht ? Promise.all([db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`), referenzenLaden(s, env, v.firma_id)]).then(([r, refs]) => r.ok ? { ok: true as const, daten: mitReferenzen(r.daten, refs, v.firma_id) } : r) : Promise.resolve(null),
     db<{ schluessel: string; bestaetigt: boolean; quelle_version: string }[]>(s, env, `bedarf_bestaetigungen?vorgang_id=eq.${v.id}&firma_id=eq.${v.firma_id}&select=schluessel,bestaetigt,quelle_version`),
     db<{ grund: string; notiz: string }[]>(s, env, `treffer_feedback?vorgang_id=eq.${v.id}&firma_id=eq.${v.firma_id}&select=grund,notiz`),
   ]);
@@ -69,12 +88,23 @@ export async function teilnahmeTeil(s: Sitzung, env: KontoEnv, v: V, finanzrecht
   const liste = nachweise.length ? `<section class="nachweis-check" id="nachweise"><h2>✅ Nachweise für dieses Angebot <span class="check-zahl">${nachweise.filter((c) => c.gefunden).length}/${nachweise.length} vorhanden</span></h2><ul>${nachweise.map((c) => {
     const dok = "dokument" in c ? c.dokument as FirmenDatei | undefined : undefined;
     return `<li class="${c.gefunden ? "ok" : "fehlt"}"><span aria-hidden="true">${c.gefunden ? "✓" : "✗"}</span><span><strong>${escape(c.b.name)}</strong>${c.b.los ? ` · Los ${escape(c.b.los)}` : ""}<br><span class="klein">${d === null ? "Abgleich braucht die Finanzfreigabe" : dok ? `${escape(dok.name)}${dok.gueltig_bis ? ` · gültig bis ${datum(dok.gueltig_bis)}` : ""}${c.gefunden ? "" : " · abgelaufen"}` : "Noch nicht in den Firmenunterlagen"}</span></span>${!c.gefunden && d !== null ? `<a href="/konto/firmenunterlagen?firma=${v.firma_id}&name=${encodeURIComponent(c.b.name)}">Hochladen</a>` : ""}</li>`;
-  }).join("")}</ul><p class="klein">Erkannt aus der Bekanntmachung und den Losen. Prüfe zusätzlich die Vergabeunterlagen.</p></section>` : "";
+  }).join("")}</ul>${nachweise.some((c) => c.gefunden) ? `<p class="nachweis-zip"><a class="knopf zweit" href="/konto/vorgang/${v.id}/nachweise.zip">📦 Vorhandene Nachweise als Zip</a></p>` : ""}<p class="klein">Erkannt aus der Bekanntmachung und den Losen. Prüfe zusätzlich die Vergabeunterlagen.</p></section>` : "";
   return `<section>${liste}${stand}${aenderungen}<details><summary>Können wir den Auftrag übernehmen?${checks.length ? ` <span class="check-zahl">${checks.filter((c) => c.gefunden).length}/${checks.length} erfüllt</span>` : ""}</summary>${losAuswahl}<p class="klein">Planungshilfe aus Textfundstellen und euren hinterlegten Daten. Unbekannte Anforderungen, Verfügbarkeit und Nachweise vor der Abgabe prüfen. Es wird niemand automatisch eingeplant.</p>${v.frist && Date.parse(v.frist) < Date.now() ? `<p class="fehler">Die gespeicherte Angebotsfrist ist abgelaufen.</p>` : !v.frist ? `<p>Die Angebotsfrist ist unbekannt – zuerst beim Portal prüfen.</p>` : ""}${rows ? `<ul class="teilnahme-liste">${rows}</ul>` : `<p>Aus dem vorhandenen Text wurden noch keine sicheren Berufs- oder Nachweisanforderungen erkannt. Lade die Vergabeunterlagen hoch.</p>`}${n?.lose?.length ? `<details><summary>Lose und eigene Fristen</summary><ul>${n.lose.map((l) => `<li>Los ${escape(l.id)} · ${escape(l.titel)} · Frist ${datum(l.frist)}</li>`).join("")}</ul></details>` : ""}</details></section>${bearbeiten ? `<details><summary>Passt dieser Treffer?</summary><form method="post" action="/konto/vorgang/${v.id}/rueckmeldung"><label>Rückmeldung<select name="grund">${Object.entries(GRUENDE).map(([key, label]) => `<option value="${key}"${rueck?.grund === key ? " selected" : ""}>${label}</option>`).join("")}</select></label><label>Ergänzung<input name="notiz" maxlength="500" value="${escape(rueck?.notiz ?? "")}"></label><button>Rückmeldung speichern</button></form></details>` : ""}${ergebnisForm}`;
 }
 
 export async function markt(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
+  const zip = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/nachweise\.zip$/);
+  if (zip) {
+    const z = await vorgangZugriff(request, env, zip[1]);
+    if (!z) return weiterleiten("/konto");
+    if (!z.finanzen || !env.DATEN) return html(seite("Nicht erlaubt", "<p>Für Nachweise brauchst du eine Finanzfreigabe.</p>"), 403, z.s.cookies);
+    const auswahl = await nachweiseFuerVorgang(z.s, env, z.v);
+    const firma = await db<{ name: string }[]>(z.s, env, `firmen?id=eq.${z.v.firma_id}&select=name`);
+    const inhalt = auswahl ? await nachweiseZip(env.DATEN, auswahl.dateien, auswahl.refs, firma.ok ? firma.daten[0]?.name ?? "" : "", false) : "Die Unterlagen konnten nicht geladen werden.";
+    if (typeof inhalt === "string") return html(seite("Nachweise", `<p class="fehler">${escape(inhalt)}</p><p><a href="/konto/vorgang/${z.v.id}#nachweise">Zurück zur Ausschreibung</a></p>`), 409, z.s.cookies);
+    return zipAntwort(inhalt, `Nachweise_${z.v.titel.replace(/[^\p{L}\p{N} -]/gu, "").trim().slice(0, 50) || "Ausschreibung"}.zip`, z.s.cookies);
+  }
   const rueck = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/(rueckmeldung|bedarf|ergebnis)$/);
   if (rueck && request.method === "POST") {
     const z = await vorgangZugriff(request, env, rueck[1]);

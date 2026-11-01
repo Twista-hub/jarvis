@@ -289,7 +289,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   input[type=file].ziehen, input[type=file]:hover { border-color: var(--accent); background: var(--card); }
   input[type=file]::file-selector-button { margin-right: 10px; padding: 8px 12px; border: 0; border-radius: 8px; background: var(--accent); color: var(--bg); font: inherit; font-weight: 600; cursor: pointer; }
   progress { display: block; width: 100%; height: 6px; margin-top: 8px; accent-color: var(--accent); }
-  .check-zahl { margin-left: auto; padding: 2px 8px; border-radius: 7px; background: var(--bg); color: var(--muted); font-size: 12px; font-weight: 600; }
+  .check-zahl { margin-left: auto; white-space: nowrap; padding: 2px 8px; border-radius: 7px; background: var(--bg); color: var(--muted); font-size: 12px; font-weight: 600; }
   .live-satz { position: sticky; top: 0; z-index: 5; display: grid; gap: 2px; margin: 0; padding: 12px 14px; border: 1px solid var(--accent); border-radius: 12px; background: var(--card); font-size: 15px; }
   .live-satz strong { font-size: 1.35rem; color: var(--accent); }
   details.kalk-gruppe > summary { flex-wrap: wrap; }
@@ -514,6 +514,51 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
     .konto-kacheln { gap: 8px; }
     .konto-zurueck a, .profil-icon { width: 44px; height: 44px; }
   }
+  /* Firm documents: folder chips, compact file rows, ⋯ menu; references. */
+  .erfolg, .hinweis { padding: 8px 12px; border-radius: 10px; font-size: 14px; }
+  .erfolg { background: #e7f4ec; color: #1e6b40; } .hinweis { background: #fff6dd; color: #6b5200; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .erfolg { background: #17321f; color: #9fd8b0; } :root:not([data-theme="light"]) .hinweis { background: #3a3014; color: #f0d68a; } }
+  .unterlagen-werkzeuge { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+  .unterlagen-werkzeuge .knopf { flex: 1 1 0; min-height: 34px; padding: 7px 10px; font-size: 14px; white-space: nowrap; }
+  .ordner-chips { display: flex; gap: 6px; overflow-x: auto; margin: 8px 0 4px; padding-bottom: 4px; scrollbar-width: none; }
+  .ordner-chips a { flex: none; padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+  .ordner-chips a span { margin-left: 3px; opacity: .7; }
+  .ordner-chips a[aria-current] { border-color: var(--accent); color: var(--accent); }
+  .ordner-titel { margin: 16px 0 4px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+  .datei-liste, .referenz-liste { list-style: none; margin: 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .datei { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+  .datei:last-child, .referenz:last-child { border-bottom: 0; }
+  .datei-symbol { flex: none; font-size: 18px; }
+  .datei-text { flex: 1; min-width: 0; display: grid; gap: 1px; }
+  .datei-text strong { font-size: 14px; line-height: 1.3; hyphens: auto; overflow-wrap: break-word; }
+  .ablauf-warnung li > span:last-child { flex: none; white-space: nowrap; }
+  .datei-text .klein { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .datei-status { font-weight: 600; } .datei-status.gruen { color: #2e8b57; } .datei-status.gelb { color: #b07800; } .datei-status.rot { color: var(--error); }
+  .datei-aktionen { flex: none; display: flex; align-items: center; gap: 2px; }
+  .datei-aktionen > a, .datei-menue > summary { display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 8px; color: var(--accent); text-decoration: none; font-size: 15px; cursor: pointer; list-style: none; }
+  .datei-aktionen > a:hover, .datei-menue > summary:hover { background: var(--bg); }
+  .datei-menue { position: relative; margin: 0; padding: 0; border: 0; background: none; }
+  .datei-menue > summary::-webkit-details-marker, .datei-menue > summary::after { display: none; content: none; }
+  .datei-menue-inhalt { position: absolute; right: 0; top: 34px; z-index: 5; width: min(300px, 84vw); display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); box-shadow: 0 8px 24px rgba(0,0,0,.14); }
+  .datei-menue-inhalt form { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+  .datei-menue-inhalt form + form { padding-top: 8px; border-top: 1px solid var(--line); }
+  .datei-menue-inhalt button { min-height: 32px; padding: 4px 10px; font-size: 13px; }
+  button.gefahr { color: var(--error); }
+  .upload-felder, .referenz-felder { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
+  .upload-felder > label:first-of-type, .upload-felder [data-bezeichnung], .upload-felder .ganz, .referenz-felder .ganz { grid-column: 1 / -1; }
+  .upload-felder label, .referenz-felder label { margin: 0; }
+  .upload-felder .klein { margin: 0; }
+  label.haken { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+  label.haken input { width: auto; min-height: 0; }
+  .referenz { position: relative; padding: 10px 44px 10px 12px; border-bottom: 1px solid var(--line); }
+  .referenz-kopf { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 8px; }
+  .referenz p { margin: 3px 0; font-size: 14px; }
+  .referenz-fakten { display: flex; flex-wrap: wrap; gap: 4px 12px; font-size: 13px; color: var(--muted); }
+  .referenz > .datei-menue { position: absolute; top: 6px; right: 6px; }
+  .referenz .datei-menue-inhalt { width: min(340px, 88vw); }
+  .referenz .referenz-felder { grid-template-columns: 1fr; }
+  .referenz-liste + .klein { margin-top: 10px; }
+  .nachweis-zip { margin: 10px 0 4px; } .nachweis-zip .knopf { min-height: 34px; padding: 6px 12px; font-size: 14px; }
 </style>
 </head>
 <body><main>
