@@ -620,6 +620,29 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .protokoll-liste li { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: start; padding: 9px 10px; border-bottom: 1px solid var(--line); }
   .protokoll-liste li p { margin: 0; font-size: 14px; } .protokoll-liste li .klein { margin-top: 2px; overflow-wrap: anywhere; }
   .protokoll-liste time { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  /* Search profile: exclusion after 👎, filters, further profiles, preview. */
+  .ausschluss-karte { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 12px; background: var(--card); }
+  .ausschluss-karte p { margin: 0 0 6px; font-size: 14px; }
+  .ausschluss-woerter { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+  .ausschluss-woerter form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .ausschluss-woerter button { min-height: 32px; padding: 4px 10px; font-size: 13px; width: auto; }
+  .filter-uebersicht ul { list-style: none; margin: 6px 0; padding: 0; font-size: 14px; } .filter-uebersicht li { padding: 3px 0; }
+  .wert-felder { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  .wert-felder label { margin: 0; }
+  .zusatz-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .zusatz-profil { display: flex; align-items: center; gap: 8px; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+  .zusatz-profil:last-child { border-bottom: 0; }
+  .zusatz-profil > div { flex: 1; min-width: 0; display: grid; gap: 2px; }
+  .zusatz-profil .datei-menue-inhalt { width: min(340px, 88vw); }
+  .zusatz-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
+  .zusatz-form label { margin: 0; } .zusatz-form .ganz, .zusatz-form button { grid-column: 1 / -1; }
+  .zusatz-profil .zusatz-form { grid-template-columns: 1fr; }
+  .vorschau-box { margin: 0 0 14px; padding: 12px; border: 1px solid var(--accent); border-radius: 12px; background: var(--card); }
+  .vorschau-box h2 { margin: 0 0 8px; font-size: 1rem; }
+  .vorschau-zahlen { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 6px; }
+  .vorschau-zahlen div { display: grid; gap: 2px; padding: 8px; border-radius: 10px; background: var(--bg); text-align: center; }
+  .vorschau-zahlen strong { font-size: 1.5rem; color: var(--accent); } .vorschau-zahlen span { font-size: 12px; color: var(--muted); }
+  .vorschau-box ul { margin: 2px 0 6px; padding-left: 18px; font-size: 13px; }
 </style>
 </head>
 <body><main>

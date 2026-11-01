@@ -10,6 +10,7 @@ import { kiFehlerart, kiFehlermeldung, type KiFehlerart } from "./ki-fehler.ts";
 import { standorteBereinigen, standortSchluessel, suchorteAnStandorten, type Firmenstandort, type SuchgebietModus } from "./firmenstandorte.ts";
 export { FIRMEN_WEB_SUCHTOOL } from "./firmenrecherche.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
+import { vorschauBox, vorschauZaehlen } from "./vorschau.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
 import { AUSSERHALB, LAENDER, NACHBARN, WEITERE, laenderBereinigen } from "./laender.ts";
 import { websiteKontext, websiteNormalisieren } from "./webseite.ts";
@@ -24,7 +25,9 @@ export interface EinrichtungEnv extends KontoEnv {
 export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
 export type WebQuelle = { titel: string; url: string };
-export type Vorschlag = { radius_km?: number; min_punkte?: number; beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; laender?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string };
+export type Vorschlag = { radius_km?: number; min_punkte?: number; beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; laender?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string;
+  /** H4/H5: preferred and excluded buyers, contract value range; filters only, no re-scoring. */
+  auftraggeber_bevorzugt?: string[]; auftraggeber_aus?: string[]; wert_min?: number; wert_max?: number; wert_unbekannt?: boolean };
 
 export function suchlaufLaeuft(start: string | null | undefined, fertig: string | null | undefined, jetzt = Date.now()): boolean {
   return sucheLaeuft({ erstlauf: start, fertig }, jetzt);
@@ -54,6 +57,7 @@ export async function einrichtung(request: Request, env: EinrichtungEnv, vorlage
   else if (url.pathname === "/konto/einrichtung/automatisch" && post) antwort = await automatischEinrichten(s, env, firma, f.name, f.website, f.rolle, f.plz, f.ort, form!, dienste);
   else if (url.pathname === "/konto/einrichtung/vorschlag" && post) antwort = await vorschlagen(env, firma, f.name, form!);
   else if (url.pathname === "/konto/einrichtung/speichern" && post) antwort = await speichern(s, env, firma, f.name, f.website, f.rolle, form!);
+  else if (url.pathname === "/konto/einrichtung/vorschau" && post) antwort = await vorschauZeigen(s, env, firma, f.name, f.website, form!);
   else if (url.pathname === "/konto/einrichtung/starten" && post) antwort = await gespeicherteSucheStarten(s, env, firma);
   else return null;
   for (const c of s.cookies) antwort.headers.append("set-cookie", c);
@@ -293,6 +297,14 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
     <label>Welche Aufträge soll Jarvis nicht anzeigen?<input name="ausschluss" maxlength="1500" placeholder="z. B. Neubau, wenn ihr nur renoviert" value="${liste(v.ausschluss)}"></label>
     <label>Vergabe-Kennziffern für Ausschlüsse (optional)<input name="ausschluss_cpv" maxlength="300" inputmode="numeric" value="${liste(v.ausschluss_cpv)}"></label>
   </details>
+  <details${(v.auftraggeber_bevorzugt?.length || v.auftraggeber_aus?.length || v.wert_min || v.wert_max) ? " open" : ""}><summary>Auftraggeber und Auftragsgröße (optional)</summary>
+    <label>Bevorzugte Auftraggeber<input name="auftraggeber_bevorzugt" maxlength="2000" placeholder="z. B. Stadt Aachen, Uniklinik Köln" value="${escape((v.auftraggeber_bevorzugt ?? []).join(", "))}"><span class="klein">Treffer dieser Auftraggeber erscheinen schon mit 2 Punkten weniger.</span></label>
+    <label>Diese Auftraggeber nie zeigen<input name="auftraggeber_aus" maxlength="2000" placeholder="z. B. Bundeswehr" value="${escape((v.auftraggeber_aus ?? []).join(", "))}"></label>
+    <div class="wert-felder"><label>Auftragswert ab (€)<input name="wert_min" inputmode="decimal" placeholder="z. B. 50.000" value="${v.wert_min ? v.wert_min.toLocaleString("de-DE") : ""}"></label>
+    <label>bis (€)<input name="wert_max" inputmode="decimal" placeholder="ohne Grenze" value="${v.wert_max ? v.wert_max.toLocaleString("de-DE") : ""}"></label></div>
+    <label class="zeile"><input type="checkbox" name="wert_unbekannt" value="1"${v.wert_unbekannt !== false ? " checked" : ""}> Ausschreibungen ohne Wertangabe trotzdem zeigen (empfohlen, viele nennen keinen Wert)</label>
+    <span class="klein">Ändert nur, welche Treffer erscheinen. Kostet nichts extra.</span>
+  </details>
   <h2>Wo soll Jarvis suchen?</h2>
   <label>Umkreis um jeden Standort<select name="radius_km">${RADIEN.map((km) => `<option value="${km}"${km === (v.radius_km ?? 50) ? " selected" : ""}>${km} km${km === 50 ? " (empfohlen)" : ""}</option>`).join("")}</select>
     <span class="klein">Ausschreibungen mit bekanntem Einsatzort weiter weg blendet Jarvis aus. Ändern kostet nichts extra.</span></label>
@@ -313,6 +325,7 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   </details>
   <p class="kosten-hinweis" data-kosten-hinweis hidden>💡 Du hast Arbeiten, Suchwörter, Ausschlüsse oder Orte geändert. Beim nächsten Suchlauf bewertet Jarvis deshalb alle passenden Ausschreibungen neu. Das kostet einmalig etwa 0,50–1 € KI-Guthaben.</p>
   <button type="submit">Speichern und Ausschreibungen suchen</button>
+  <button type="submit" class="zweit" name="aktion" value="vorschau" formaction="/konto/einrichtung/vorschau">🔍 Vorschau: Wie viele Treffer letzte Woche?</button>
   <button type="submit" class="zweit" name="aktion" value="recherche" formaction="/konto/einrichtung/automatisch" formnovalidate>Firmeninfos neu recherchieren</button>
   <p class="klein">Liest die Website und öffentliche Quellen neu und aktualisiert dein Firmenprofil.</p>
 </form>
@@ -354,7 +367,22 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
     ausschluss_cpv: ziffern(v.ausschluss_cpv, 2, 8),
     standorte: modus === "firmenstandorte" ? suchorteAnStandorten(firmenstandorte, suchorte) : suchorte,
     laender: laenderBereinigen(v.laender),
+    auftraggeber_bevorzugt: auftraggeberListe(v.auftraggeber_bevorzugt),
+    auftraggeber_aus: auftraggeberListe(v.auftraggeber_aus),
+    wert_min: wertOderLeer(v.wert_min),
+    wert_max: wertOderLeer(v.wert_max),
+    wert_unbekannt: v.wert_unbekannt !== false,
   };
+}
+
+/** Buyer names as typed (e.g. "Stadt Köln"), at most 30. */
+export function auftraggeberListe(x: unknown): string[] {
+  return [...new Set((Array.isArray(x) ? x : []).map((n) => String(n).replace(/\s+/g, " ").trim()).filter((n) => n.length >= 3 && n.length <= 120))].slice(0, 30);
+}
+/** Contract value in euros; empty or 0 = no limit. */
+export function wertOderLeer(x: unknown): number | undefined {
+  const n = Math.round(Number(x));
+  return Number.isFinite(n) && n > 0 && n <= 1e10 ? n : undefined;
 }
 
 function sichereQuellenUrl(wert: unknown): string {
@@ -362,6 +390,15 @@ function sichereQuellenUrl(wert: unknown): string {
     const u = new URL(String(wert ?? ""));
     return u.protocol === "https:" && !u.username && !u.password ? u.toString().slice(0, 500) : "";
   } catch { return ""; }
+}
+
+/** "50.000", "50000 €" or "1,5 Mio" → euros. */
+export function euroEingabe(x: unknown): number | undefined {
+  const t = String(x ?? "").toLowerCase().replace(/\s|€|eur/g, "");
+  if (!t) return undefined;
+  const mio = /mio/.test(t);
+  const zahl = Number(t.replace(/mio\.?|millionen/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
+  return Number.isFinite(zahl) ? Math.round(zahl * (mio ? 1e6 : 1)) : undefined;
 }
 
 export function ausFormular(form: FormData): Vorschlag {
@@ -381,7 +418,22 @@ export function ausFormular(form: FormData): Vorschlag {
   try { quellen = form.getAll("websuche_quellen").map(String).map((x) => JSON.parse(x) as WebQuelle); } catch { quellen = []; }
   let firmenstandorte: Firmenstandort[] = [];
   try { firmenstandorte = standorteBereinigen(JSON.parse(String(form.get("firmenstandorte") ?? "[]").slice(0, 40000))); } catch { /* Keep invalid client input out of the profile. */ }
-  return bereinigen({ radius_km: Number(form.get("radius_km")) || undefined, min_punkte: Number(form.get("min_punkte")) || undefined, recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, suchgebiet_modus: form.get("suchgebiet_modus") === "manuell" ? "manuell" : undefined, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String) });
+  return bereinigen({ radius_km: Number(form.get("radius_km")) || undefined, min_punkte: Number(form.get("min_punkte")) || undefined, recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, suchgebiet_modus: form.get("suchgebiet_modus") === "manuell" ? "manuell" : undefined, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String),
+    auftraggeber_bevorzugt: String(form.get("auftraggeber_bevorzugt") ?? "").split(/[,;\n]/), auftraggeber_aus: String(form.get("auftraggeber_aus") ?? "").split(/[,;\n]/),
+    wert_min: euroEingabe(form.get("wert_min")), wert_max: euroEingabe(form.get("wert_max")), wert_unbekannt: form.has("wert_min") || form.has("wert_max") ? form.get("wert_unbekannt") === "1" : undefined });
+}
+
+/** H1: the edited profile next to the saved one, counted over the last 7 days; nothing is saved. */
+async function vorschauZeigen(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, website: string, form: FormData): Promise<Response> {
+  const v = ausFormular(form);
+  const r = await db<{ einstellungen: Partial<Vorschlag> & { ausschluss_schnell?: string[] } }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=einstellungen&limit=1`);
+  const gespeichert = r.ok && r.daten[0]?.einstellungen?.leistungen ? r.daten[0].einstellungen : null;
+  const schnell = gespeichert?.ausschluss_schnell ?? [];
+  const [neu, alt] = await Promise.all([
+    vorschauZaehlen(s, env, firma, v, schnell),
+    gespeichert ? vorschauZaehlen(s, env, firma, bereinigen({ ...gespeichert, beschreibung: "" }), schnell) : Promise.resolve(null),
+  ]);
+  return html(seite(`Suchprofil: ${name}`, vorschauBox(neu, alt) + profilFormular(firma, v, "", String(form.get("website") ?? website))));
 }
 
 async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: string, alteWebsite: string, rolle: string, form: FormData): Promise<Response> {
@@ -420,9 +472,9 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     woerter: [...new Set(v.leistungen.flatMap((l) => l.woerter))].join(", "),
     ausschluss: v.ausschluss.join(", "),
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
-    einstellungen: { radius_km: v.radius_km ?? 50, min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender },
+    einstellungen: { radius_km: v.radius_km ?? 50, min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender, auftraggeber_bevorzugt: v.auftraggeber_bevorzugt, auftraggeber_aus: v.auftraggeber_aus, wert_min: v.wert_min ?? null, wert_max: v.wert_max ?? null, wert_unbekannt: v.wert_unbekannt } as Record<string, unknown>,
   };
-  const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler&limit=1`);
+  const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean; zusatzprofile?: unknown; ausschluss_schnell?: unknown }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zusatzprofile:einstellungen->zusatzprofile,ausschluss_schnell:einstellungen->ausschluss_schnell&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.
   const zuletzt = alt.ok && alt.daten[0]?.erstlauf ? Date.parse(alt.daten[0].erstlauf) : 0;
   const fertig = alt.ok ? alt.daten[0]?.fertig : null;
@@ -432,6 +484,9 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   if (fertig) einstellungen.erstlauf_fertig = fertig;
   if (alt.ok && alt.daten[0]?.ergebnis) einstellungen.suchlauf_ergebnis = alt.daten[0].ergebnis;
   if (alt.ok && alt.daten[0]?.fehler !== undefined) einstellungen.suchlauf_fehler = alt.daten[0].fehler;
+  // Kept from the saved profile: further search profiles (H3) and exclusions added via 👎 (H2) are edited elsewhere.
+  if (alt.ok && Array.isArray(alt.daten[0]?.zusatzprofile)) einstellungen.zusatzprofile = alt.daten[0].zusatzprofile;
+  if (alt.ok && Array.isArray(alt.daten[0]?.ausschluss_schnell)) einstellungen.ausschluss_schnell = alt.daten[0].ausschluss_schnell;
   const r = alt.ok && alt.daten[0]
     ? await db(s, env, `suchprofile?id=eq.${alt.daten[0].id}`, { method: "PATCH", body: JSON.stringify(zeile) })
     : await db(s, env, "suchprofile", { method: "POST", body: JSON.stringify(zeile) });

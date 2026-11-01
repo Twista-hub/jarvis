@@ -125,8 +125,10 @@ export async function markt(request: Request, env: KontoEnv): Promise<Response |
     const r = await db(z.s, env, `${table}?on_conflict=${table === "bedarf_bestaetigungen" ? "firma_id,vorgang_id,schluessel" : "firma_id,vorgang_id"}`, { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(daten) });
     // Thumbs on the hit list send the user back to the list they came from.
     const zurueck = String(f.get("weiter") ?? "");
-    if (r.ok && /^\/konto\/treffer(\?|$)/.test(zurueck) && !/[\r\n]/.test(zurueck)) return weiterleiten(zurueck, z.s.cookies);
-    return weiterleiten(`/konto/vorgang/${z.v.id}${r.ok ? "" : "?fehler=Speichern%20fehlgeschlagen"}`, z.s.cookies);
+    // 👎 "does not fit" by someone who may edit the search profile: offer words to exclude (H2).
+    const vorschlag = r.ok && daten.grund === "taetigkeit" && ["inhaber", "admin"].includes(z.rolle) ? `vorschlag=${z.v.id}` : "";
+    if (r.ok && /^\/konto\/treffer(\?|$)/.test(zurueck) && !/[\r\n]/.test(zurueck)) return weiterleiten(vorschlag ? `${zurueck}${zurueck.includes("?") ? "&" : "?"}${vorschlag}` : zurueck, z.s.cookies);
+    return weiterleiten(`/konto/vorgang/${z.v.id}${r.ok ? (vorschlag ? `?${vorschlag}` : "") : "?fehler=Speichern%20fehlgeschlagen"}`, z.s.cookies);
   }
   if (!url.pathname.startsWith("/konto/markt")) return null;
   const f = await aktiveFirma(request, env); if (!f) return weiterleiten("/konto");
