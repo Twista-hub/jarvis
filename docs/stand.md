@@ -80,7 +80,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Protokoll
 
 ### 01.11.2026 – Claude (Hinweis: Lose stehen oft erst in den Unterlagen)
-- Ausschreibungsseite ohne hochgeladene Unterlagen: kleines „?“ neben der Steckbrief-Überschrift, Antippen öffnet ein Pop-up (auf Wunsch von Benjamin statt Kasten) („Lose, Mengen und Stunden stehen oft erst in den Vergabeunterlagen“), zählt fehlende Angaben („nicht angegeben“), erwähnt fehlende Lose, Knöpfe „⬇️ Unterlagen beim Portal holen“ und „📥 Hier hochladen“ (`unterlagenHinweis` in `web/src/konto.ts`, Test `web/test/unterlagen-hinweis.test.ts`).
+- Ausschreibungsseite ohne hochgeladene Unterlagen: kleines „?“ direkt hinter jeder fehlenden oder vermuteten Angabe im Steckbrief („nicht angegeben“, „nicht genannt“, „nicht bekannt“, „vermutlich“), Antippen öffnet ein Pop-up (HTML-Popover, ohne Skript) – auf Wunsch von Benjamin. Mit hochgeladenen Unterlagen zeigt die Seite den Steckbrief aus den Unterlagen, die Fragezeichen verschwinden („Lose, Mengen und Stunden stehen oft erst in den Vergabeunterlagen“), zählt fehlende Angaben („nicht angegeben“), erwähnt fehlende Lose, Knöpfe „⬇️ Unterlagen beim Portal holen“ und „📥 Hier hochladen“ (`unterlagenHinweis` in `web/src/konto.ts`, Test `web/test/unterlagen-hinweis.test.ts`).
 
 ### 01.11.2026 – Claude (Erster Lauf: 10 ausführliche Steckbriefe)
 - Auf Wunsch von Benjamin: Beim ersten Suchlauf einer neuen Firma (`alarm.yml` mit `firma`) schreibt Jarvis für die besten 10 Treffer gleich einen ausführlichen Steckbrief (`MAX_STECKBRIEFE=10`, Auswahl nur nach Punkten). Tägliche Läufe bleiben bei 4. Kurzüberblicke werden beim Speichern durch den ausführlichen Steckbrief ersetzt. Für das neue Konto „Perlease GmbH“ nachgeholt.

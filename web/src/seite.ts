@@ -193,13 +193,13 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .chips input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
   details > summary { cursor: pointer; }
   /* One compact look for all fold-outs (like the search profile cards): rounded box, small accent title, arrow. */
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) { min-width: 0; margin: 10px 0; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] { padding-bottom: 14px; }
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 10px 0; list-style: none; color: var(--accent); font-size: .95rem; font-weight: 600; }
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) > summary::-webkit-details-marker { display: none; }
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) > summary::after { content: "›"; flex: 0 0 auto; font-size: 1.35rem; line-height: 1; color: var(--muted); transition: transform .15s; }
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] > summary::after { transform: rotate(90deg); }
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] > summary { margin-bottom: 6px; border-bottom: 1px solid var(--line); }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) { min-width: 0; margin: 10px 0; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] { padding-bottom: 14px; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 44px; padding: 10px 0; list-style: none; color: var(--accent); font-size: .95rem; font-weight: 600; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) > summary::-webkit-details-marker { display: none; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse)) > summary::after { content: "›"; flex: 0 0 auto; font-size: 1.35rem; line-height: 1; color: var(--muted); transition: transform .15s; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] > summary::after { transform: rotate(90deg); }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] > summary { margin-bottom: 6px; border-bottom: 1px solid var(--line); }
   .steckbrief-karte { min-width: 0; padding: 4px 16px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
   .steckbrief-karte h2, .steckbrief-karte h3 { margin: 18px 0 6px; color: var(--accent); font-size: 1.02rem; }
   .steckbrief-karte p { margin: 0 0 10px; }
@@ -399,11 +399,11 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   legend { font-size: .9rem; font-weight: 650; padding: 0 4px; }
   .klein { font-size: 12.5px; }
   /* Fold-outs: slimmer boxes; inside cards and fieldsets only a light row with arrow, no box in a box. */
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown)) { margin: 8px 0; padding: 0 12px; border-radius: 10px; }
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown))[open] { padding-bottom: 12px; }
-  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown)) > summary { min-height: 38px; padding: 7px 0; font-size: .9rem; }
-  :is(fieldset, article, .treffer-karte, .firmen-fund, form form, details details) > details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown)) { margin: 4px 0 0; padding: 0; border: 0; border-radius: 0; background: none; }
-  :is(fieldset, article, .treffer-karte, .firmen-fund, form form, details details) > details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .frage-hinweis, .arbeit-dropdown, .qualifikationen-dropdown))[open] > summary { border-bottom: 0; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown)) { margin: 8px 0; padding: 0 12px; border-radius: 10px; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown))[open] { padding-bottom: 12px; }
+  details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown)) > summary { min-height: 38px; padding: 7px 0; font-size: .9rem; }
+  :is(fieldset, article, .treffer-karte, .firmen-fund, form form, details details) > details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown)) { margin: 4px 0 0; padding: 0; border: 0; border-radius: 0; background: none; }
+  :is(fieldset, article, .treffer-karte, .firmen-fund, form form, details details) > details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown))[open] > summary { border-bottom: 0; }
   /* The research box used the old black triangle: same look as all other fold-outs now. */
   .firmen-erkenntnisse { padding: 0 12px; background: var(--card); border-radius: 12px; }
   .firmen-erkenntnisse > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 38px; padding: 7px 0; list-style: none; color: var(--accent); font-size: .9rem; font-weight: 600; }
@@ -945,11 +945,12 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .zu-tabelle td, .zu-tabelle th { text-align: center; font-size: 13px; padding: 3px 6px; } .zu-tabelle td:first-child, .zu-tabelle th:first-child { text-align: left; }
   .sterne { color: #d68910; letter-spacing: 1px; white-space: nowrap; }
   .urlaub-konto { margin: 0 0 6px; }
-  .steckbrief-kopf { position: relative; display: flex; align-items: center; gap: 4px; } .steckbrief-kopf h2, .steckbrief-kopf p { margin-right: 0; }
-  .frage-hinweis { flex: 0 0 auto; } .frage-hinweis summary { display: grid; place-items: center; width: 44px; height: 44px; cursor: pointer; list-style: none; } .frage-hinweis summary::-webkit-details-marker { display: none; }
-  .frage-hinweis summary span { display: grid; place-items: center; width: 26px; height: 26px; border: 2px solid var(--accent); border-radius: 50%; color: var(--accent); font-weight: 700; font-size: 15px; line-height: 1; }
-  .frage-hinweis[open] summary span { background: var(--accent); color: var(--card); }
-  .frage-text { position: absolute; top: 100%; left: 0; right: 0; z-index: 20; max-width: 420px; border: 1px solid var(--line); border-radius: 10px; padding: 12px; background: var(--card); box-shadow: 0 4px 16px #0002; font-size: 14px; } .frage-text p { margin: 0 0 8px; } .frage-text .knopf-zeile { display: flex; flex-wrap: wrap; gap: 8px; } .frage-text .knopf { min-height: 36px; padding: 4px 12px; }
+  .steckbrief-kopf { display: flex; align-items: center; gap: 8px; } .steckbrief-kopf h2, .steckbrief-kopf p { margin-right: 0; }
+  .frage-mini { display: inline-grid; place-items: center; width: 18px; height: 18px; min-height: 0; margin: 0 2px 0 4px; padding: 0; border: 1.5px solid var(--accent); border-radius: 50%; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; line-height: 1; vertical-align: text-top; cursor: pointer; box-shadow: none; position: relative; }
+  .frage-mini::before { content: ""; position: absolute; inset: -12px; }
+  .frage-mini.gross { width: 26px; height: 26px; font-size: 15px; border-width: 2px; }
+  .frage-popup { width: min(420px, calc(100vw - 32px)); margin: auto; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--card); color: var(--text); box-shadow: 0 8px 30px #0004; font-size: 14px; }
+  .frage-popup::backdrop { background: #0004; } .frage-popup p { margin: 0 0 8px; } .frage-popup .knopf-zeile { display: flex; flex-wrap: wrap; gap: 8px; } .frage-popup .knopf, .frage-popup button { min-height: 36px; padding: 4px 12px; }
   /* T34–T45 */
   .ich-oben { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .ich-oben .konto-zurueck { margin: 0; }
   .sprache-wahl { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; align-items: center; font-size: 13px; }
