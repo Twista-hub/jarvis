@@ -18,6 +18,7 @@ import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { mitReferenzen, teilnahmeTeil } from "./markt.ts";
 import { referenzenLaden } from "./referenzen.ts";
 import { ausschlussKarte, filterUebersicht, zusatzBlock, type Zusatzprofil } from "./suchfilter.ts";
+import { auegLaden, fristen as fristen_aueg, fristStatus, personHinweise } from "./aueg.ts";
 import { benachrichtigungAusFormular, benachrichtigungFelder, profilTeil, type Benachrichtigung } from "./kontoeinstellungen.ts";
 import { kurzberichte } from "./kurzberichte.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
@@ -279,15 +280,20 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     }),
   ]) : [0, 0, 0];
   const zugaenge = mitglieder.ok ? mitglieder.daten.filter((x) => x.aktiv !== false).length : 0;
+  // N13: AÜG-Wächter tile for firms that record assignments (temporary work), with the deadlines in 60 days.
+  const auegFristen = !unterseite && m.rolle !== "mitarbeiter" ? fristen_aueg(await auegLaden(s, env, m.firma_id), heute) : [];
+  const auegDringend = auegFristen.filter((f) => ["rot", "gelb"].includes(fristStatus(f, heute).stufe)).length;
   const cards = [
     ["treffer", "📋", "Ausschreibungen", `${neu} ${neu === 1 ? "offener Treffer" : "offene Treffer"}`],
     ["fristen", "⏰", "Fristen", `${bald} ${bald === 1 ? "Frist" : "Fristen"} diese Woche`],
     ["unterlagen", "📥", "Unterlagen", ablaufZahl ? `⚠️ ${ablaufZahl} ${ablaufZahl === 1 ? "Nachweis läuft" : "Nachweise laufen"} bald ab` : "Dateien hochladen und prüfen lassen"],
+    ["angebote", "📝", "Angebote", (() => { const n = liste.filter((v) => v.status === "angebot").length, a = liste.filter((v) => v.status === "abgegeben").length; return n || a ? `${n} in Arbeit · ${a} abgegeben` : "Stand aller Angebote"; })()],
     ["kalkulation", "💶", "Kalkulation", "Preise pro Stunde und Los berechnen"],
     ["team", "👥", "Firma & Team", `${zugaenge} ${zugaenge === 1 ? "App-Zugang" : "App-Zugänge"} · ${b.length || 1} ${b.length === 1 || !b.length ? "Standort" : "Standorte"}`],
     ["markt", "🌐", "Markt & Chancen", `${aboZahl} ${aboZahl === 1 ? "neue Ausschreibung" : "neue Ausschreibungen"} beobachteter Auftraggeber`],
     ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? (suchstand.ergebnis?.treffer !== undefined ? `Letzte Suche: ${suchstand.ergebnis.treffer} Treffer` : "Suche ansehen und anpassen") : "Passende Ausschreibungen finden"],
   ];
+  if (auegFristen.length) cards.push(["aueg", "⚖️", "AÜG-Wächter", auegDringend ? `⚠️ ${auegDringend} ${auegDringend === 1 ? "Frist" : "Fristen"} in 60 Tagen` : `${auegFristen.length} laufende ${auegFristen.length === 1 ? "Überlassung" : "Überlassungen"}`]);
   cards.push(["freigaben", "📨", "Für mich freigegeben", freigabeZahl ? `${freigabeZahl} ${freigabeZahl === 1 ? "Freigabe" : "Freigaben"} vom Team` : "Noch nichts freigegeben"]);
   // "Markt & Chancen" only when there is something new there; otherwise it is reachable under Einstellungen ("Mehr").
   const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? path === "freigaben" : (path !== "kalkulation" || finanzrecht) && (path !== "markt" || aboZahl > 0));
@@ -396,14 +402,15 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     if (b.length <= 1) {
       // Only one location: the personnel is shown right here, no extra page.
       const ort = b[0]?.id ?? null;
-      const [pool, qualifikationen, einsaetze, abw] = await Promise.all([
+      const [pool, qualifikationen, einsaetze, abw, ueberlassungen] = await Promise.all([
         db<Kraft[]>(s, env, `personal?firma_id=eq.${m.firma_id}&bereich_id=${ort ? `eq.${ort}` : "is.null"}&select=*&order=status,vorname`),
         db<{ id: string; name: string; bereich_id: string | null }[]>(s, env, `firmen_qualifikationen?firma_id=eq.${m.firma_id}&select=id,name,bereich_id&order=name`),
         einsaetzeLaden(s, env, m.firma_id),
         abwesenheitenLaden(s, env, m.firma_id),
+        auegLaden(s, env, m.firma_id),
       ]);
       const qs = qualifikationen.ok ? qualifikationen.daten.filter((q) => q.bereich_id === null || q.bereich_id === ort) : [];
-      team = `<h2>Organisationsbaum · ${b[0] ? escape(b[0].name) : escape(m.firmen.name)}</h2>${b[0] ? kontaktBlock(b[0], admin) : ""}${ort ? standortleitungBlock(ort, (mitglieder.ok ? mitglieder.daten : []).map((x) => ({ user_id: x.user_id, rolle: x.rolle, anzeigename: x.anzeigename || "", funktion: x.funktion || "" })), zuordnungen.ok ? zuordnungen.daten : [], admin) : ""}<h3>Einsatzpersonal</h3>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, einsaetze, qs.map((q) => q.name), tarife, abw)}${qualifikationenBlock(ort, qs, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle))}`;
+      team = `<h2>Organisationsbaum · ${b[0] ? escape(b[0].name) : escape(m.firmen.name)}</h2>${b[0] ? kontaktBlock(b[0], admin) : ""}${ort ? standortleitungBlock(ort, (mitglieder.ok ? mitglieder.daten : []).map((x) => ({ user_id: x.user_id, rolle: x.rolle, anzeigename: x.anzeigename || "", funktion: x.funktion || "" })), zuordnungen.ok ? zuordnungen.daten : [], admin) : ""}<h3>Einsatzpersonal</h3>${personalTeil(pool.ok ? pool.daten : [], new URL(request.url), ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle), `/konto/standort/${ort ?? "firma"}`, einsaetze, qs.map((q) => q.name), tarife, abw, personHinweise(fristen_aueg(ueberlassungen, heute), heute))}${qualifikationenBlock(ort, qs, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(m.rolle))}`;
     } else {
       const pool = await db<{ id: string; bereich_id: string | null; status: string; vorname: string; nachname: string; berufe: string[] }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=id,bereich_id,status,vorname,nachname,berufe&order=vorname`);
       // Staff search across all locations, right at the top of the page.
@@ -426,6 +433,8 @@ ${beruf || st ? `<ul class="standort-liste">${gefunden.map((k) => `<li><a class=
   <button>Bereich anlegen</button>
 </form></details>`;
     }
+      // N13: temporary work firms reach the AÜG-Wächter from here.
+      if (m.rolle !== "mitarbeiter" && tarife.some((t) => t.name === GVP.name)) team += `<p><a class="knopf zweit" href="/konto/aueg">⚖️ AÜG-Wächter: Equal Pay und Höchstdauer</a></p>`;
       team += `<h2 id="app-zugaenge">App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> ${anzahl.ok && typeof anzahl.daten === "number" ? ` · ${anzahl.daten} ${anzahl.daten === 1 ? "Nutzer" : "Nutzer"}` : ""}</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen. Eine Standortleitung verwaltet Personal und Einsätze nur am zugeordneten Standort; Kalkulation und Firmenunterlagen bleiben für sie gesperrt.")}${tarifvertraegeBlock(tarife, admin)}`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
     team += funktionsListe;
@@ -474,7 +483,7 @@ ${aktuell && sucheEingerichtet ? `<div id="weitere">${zusatzBlock(Array.isArray(
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
-    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${zeile("/konto/angebote", "📝", "Angebote", "Stand aller Angebote")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
