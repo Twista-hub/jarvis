@@ -752,7 +752,9 @@ function leistungsTreffer(leistungen: { name: string; woerter: string[] }[], lis
 }
 
 /** Words in a Steckbrief from the public notice that mark missing or guessed facts. */
-const UNSICHER = /(?<![\p{L}])(nicht angegeben|nicht genannt|nicht bekannt|vermutlich)(?![\p{L}])/giu;
+const UNSICHER = /(?<![\p{L}])(nicht angegeben|nicht genannt|nicht bekannt|vermutlich|geschätzte[rnms]?|Schätzung)(?![\p{L}])/giu;
+/** Small line-drawn download symbol (arrow into a tray). */
+export const DL_ICON = `<svg class="dl-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v7M4.8 6.6 8 9.8l3.2-3.2M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 /** Small "?" after each missing or guessed fact (opens the shared pop-up); only in text, not inside links or buttons. */
 export function frageMarken(html: string): { html: string; anzahl: number } {
   let anzahl = 0, inLink = 0;
@@ -760,7 +762,7 @@ export function frageMarken(html: string): { html: string; anzahl: number } {
   const out = teile.map((t, i) => {
     if (i % 2) { if (/^<(a|button)\b/i.test(t)) inLink++; else if (/^<\/(a|button)>/i.test(t)) inLink = Math.max(0, inLink - 1); return t; }
     if (inLink) return t;
-    return t.replace(UNSICHER, (x) => { anzahl++; return `${x}<button type="button" class="frage-mini" popovertarget="unterlagen-frage" aria-label="Wo steht das?" title="Wo steht das?">?</button>`; });
+    return t.replace(UNSICHER, (x) => { anzahl++; return `${x}<button type="button" class="frage-mini" popovertarget="unterlagen-frage" aria-label="Genaue Angabe in den Vergabeunterlagen" title="Genaue Angabe in den Vergabeunterlagen">${DL_ICON}</button>`; });
   });
   return { html: out.join(""), anzahl };
 }
@@ -769,9 +771,9 @@ export function frageMarken(html: string): { html: string; anzahl: number } {
 export function unterlagenHinweis(steckbrief: string | null | undefined, portal: string | null | undefined, kannHochladen: boolean): string {
   const fehlt = (steckbrief?.match(/nicht angegeben/gi) ?? []).length;
   const ohneLose = !/\|\s*Los\b|\*\*Lose:\*\*/i.test(steckbrief ?? "");
-  const text = `${fehlt ? `In dieser Bekanntmachung fehlen ${fehlt === 1 ? "eine Angabe" : `${fehlt} Angaben`}${ohneLose ? ", auch zu den Losen" : ""}. ` : ohneLose ? "Die Bekanntmachung nennt keine Lose. " : ""}Was mit ? markiert ist, steht nicht oder nur ungenau in der öffentlichen Bekanntmachung. Lose, Mengen und Stunden stehen meist erst in den Vergabeunterlagen (PDF oder ZIP), die es kostenlos beim Vergabeportal gibt. Lädst du sie hier hoch, liest Jarvis daraus die Lose mit Mengen und Stunden, welches Personal je Los gebraucht wird, Eignungsnachweise, Fristen und das Preisblatt. Danach verschwinden die Fragezeichen.`;
+  const text = `${fehlt ? `In dieser Bekanntmachung fehlen ${fehlt === 1 ? "eine Angabe" : `${fehlt} Angaben`}${ohneLose ? ", auch zu den Losen" : ""}. ` : ohneLose ? "Die Bekanntmachung nennt keine Lose. " : ""}Was mit ${DL_ICON} markiert ist, steht nicht oder nur geschätzt in der öffentlichen Bekanntmachung. Lose, Mengen und Stunden stehen meist erst in den Vergabeunterlagen (PDF oder ZIP), die es kostenlos beim Vergabeportal gibt. Lädst du sie hier hoch, liest Jarvis daraus die Lose mit Mengen und Stunden, welches Personal je Los gebraucht wird, Eignungsnachweise, Fristen und das Preisblatt. Danach verschwinden die Symbole.`;
   const knoepfe = `${portal ? `<a class="knopf zweit" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Unterlagen beim Portal holen</a>` : ""}${kannHochladen ? `<a class="knopf" href="#unterlagen">📥 Hier hochladen</a>` : ""}`;
-  return `<div id="unterlagen-frage" popover class="frage-popup"><p><strong>Wo steht das?</strong></p><p>${text}</p><div class="knopf-zeile">${knoepfe}<button type="button" class="zweit" popovertarget="unterlagen-frage" popovertargetaction="hide">Schließen</button></div></div>`;
+  return `<div id="unterlagen-frage" popover class="frage-popup"><p><strong>Genaue Angaben in den Unterlagen</strong></p><p>${text}</p><div class="knopf-zeile">${knoepfe}<button type="button" class="zweit" popovertarget="unterlagen-frage" popovertargetaction="hide">Schließen</button></div></div>`;
 }
 
 export function bewertungsErklaerung(steckbrief?: string | null): string {
@@ -794,7 +796,7 @@ function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefi
     return `<li><article class="treffer-karte">
   <div class="treffer-meta">${auswahl(v)}<span class="treffer-punkte">${v.punkte !== null ? `${v.punkte}/10 Punkte` : "Noch ohne KI-Bewertung"}</span><span class="treffer-status">${escape(STATUS[v.status] ?? v.status)}</span></div>
   <h2><a href="/konto/vorgang/${v.id}"><span>${istNeu(v) ? '<span class="neu-punkt" title="Neu seit deinem letzten Besuch" aria-label="neu seit deinem letzten Besuch"></span>' : ""}${escape(v.titel)}</span><span aria-hidden="true">›</span></a></h2>
-  ${fakten.length ? `<ul class="treffer-fakten">${fakten.map((f) => `<li>${f.label ? `<span>${escape(f.label)}</span>` : ""}${escape(f.wert)}</li>`).join("")}</ul>` : ""}
+  ${fakten.length ? `<ul class="treffer-fakten">${fakten.map((f) => `<li>${f.label ? `<span>${escape(f.label)}</span>` : ""}${escape(f.wert)}${/^ca\./.test(f.wert) ? `<span class="dl-hinweis" title="Geschätzt – genaue Angaben in den Vergabeunterlagen">${DL_ICON}</span>` : ""}</li>`).join("")}</ul>` : ""}
   ${gesucht ? `<p class="treffer-gesucht">${escape(gesucht)}</p>` : !warum && bewertungsErklaerung(v.steckbrief) ? `<p class="treffer-gesucht">${escape(bewertungsErklaerung(v.steckbrief))}</p>` : ""}
   ${warum ? `<p class="treffer-warum">${escape(warum)}</p>` : ""}
   <div class="treffer-unten">
@@ -1004,7 +1006,7 @@ ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summ
 ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}${kaufverantwortlich}`, 20, "treffer"), 200, s.cookies);
   } else {
     const marken = frageMarken(v.steckbrief ? brief(v.steckbrief) : "");
-    const frageKnopf = `<button type="button" class="frage-mini gross" popovertarget="unterlagen-frage" aria-label="Warum fehlen Angaben?" title="Warum fehlen Angaben?">?</button>`;
+    const frageKnopf = `<button type="button" class="frage-mini gross" popovertarget="unterlagen-frage" aria-label="Genaue Angaben in den Vergabeunterlagen" title="Genaue Angaben in den Vergabeunterlagen">${DL_ICON}</button>`;
     teil = `<div class="steckbrief-kopf">${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${marken.anzahl ? "" : frageKnopf}</div>${marken.html}${unterlagenHinweis(v.steckbrief, portal, rolle !== "leser")}${leiste}${hochladen}`;
   }
   const teilnahme = await teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? "");

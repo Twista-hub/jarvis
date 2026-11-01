@@ -946,9 +946,11 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .sterne { color: #d68910; letter-spacing: 1px; white-space: nowrap; }
   .urlaub-konto { margin: 0 0 6px; }
   .steckbrief-kopf { display: flex; align-items: center; gap: 8px; } .steckbrief-kopf h2, .steckbrief-kopf p { margin-right: 0; }
-  .frage-mini { display: inline-grid; place-items: center; width: 18px; height: 18px; min-height: 0; margin: 0 2px 0 4px; padding: 0; border: 1.5px solid var(--accent); border-radius: 50%; background: transparent; color: var(--accent); font-size: 11px; font-weight: 700; line-height: 1; vertical-align: text-top; cursor: pointer; box-shadow: none; position: relative; }
+  .frage-mini { display: inline-grid; place-items: center; width: 16px; height: 16px; min-height: 0; margin: 0 1px 0 3px; padding: 0; border: 0; background: transparent; color: var(--accent); vertical-align: -2px; cursor: pointer; box-shadow: none; position: relative; }
   .frage-mini::before { content: ""; position: absolute; inset: -12px; }
-  .frage-mini.gross { width: 26px; height: 26px; font-size: 15px; border-width: 2px; }
+  .dl-icon { width: 14px; height: 14px; display: inline-block; vertical-align: -2px; } .frage-mini .dl-icon { vertical-align: 0; }
+  .frage-mini.gross { width: 30px; height: 30px; } .frage-mini.gross .dl-icon { width: 20px; height: 20px; }
+  .dl-hinweis { color: var(--accent); margin-left: 3px; } .frage-popup .dl-icon { color: var(--accent); }
   .frage-popup { width: min(420px, calc(100vw - 32px)); margin: auto; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--card); color: var(--text); box-shadow: 0 8px 30px #0004; font-size: 14px; }
   .frage-popup::backdrop { background: #0004; } .frage-popup p { margin: 0 0 8px; } .frage-popup .knopf-zeile { display: flex; flex-wrap: wrap; gap: 8px; } .frage-popup .knopf, .frage-popup button { min-height: 36px; padding: 4px 12px; }
   /* T34–T45 */
