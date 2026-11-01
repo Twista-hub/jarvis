@@ -454,6 +454,27 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .schritt-nr { display: grid; place-items: center; flex: 0 0 26px; height: 26px; border-radius: 50%; background: var(--accent); color: var(--bg); font-size: 13px; font-weight: 700; }
   .einfuehrung li.erledigt .schritt-nr { background: #2e8b57; }
   .einfuehrung li.erledigt strong { text-decoration: line-through; color: var(--muted); }
+  .ansicht-umschalter { display: flex; justify-content: flex-end; gap: 4px; margin: -6px 0 10px; }
+  .ansicht-umschalter a { padding: 5px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--muted); font-size: 13px; font-weight: 600; text-decoration: none; }
+  .ansicht-umschalter a[aria-current] { border-color: var(--accent); color: var(--accent); }
+  .massen-leiste { position: sticky; top: 8px; z-index: 6; display: flex; align-items: center; gap: 8px; margin: 0 0 10px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 12px; background: var(--card); box-shadow: 0 3px 12px #0000001a; }
+  .massen-leiste[hidden] { display: none; }
+  .massen-leiste span { flex: 1; font-size: 14px; font-weight: 600; }
+  .massen-leiste button { min-height: 36px; padding: 6px 12px; }
+  .auswahl { display: inline-flex; margin-right: 6px; }
+  .neu-etikett { color: var(--accent); font-size: 12px; font-weight: 700; }
+  .neu-punkt { display: inline-block; width: 8px; height: 8px; margin-right: 6px; border-radius: 50%; background: var(--accent); vertical-align: middle; }
+  .schnell { display: flex; gap: 6px; margin: 8px 0 0; }
+  .schnell form { flex: 1; padding: 0; border: 0; background: none; }
+  .schnell button { width: 100%; min-height: 36px; padding: 6px 10px; font-size: 13px; }
+  .treffer-meta { justify-content: flex-start; }
+  .treffer-meta .treffer-status { margin-left: auto; }
+  .treffer-kompakt { list-style: none; margin: 0 0 24px; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; }
+  .treffer-kompakt li { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-bottom: 1px solid var(--line); }
+  .treffer-kompakt li:last-child { border-bottom: 0; }
+  .treffer-kompakt .kp { flex: 0 0 30px; height: 30px; display: grid; place-items: center; border-radius: 8px; background: var(--bg); color: var(--accent); font-size: 13px; font-weight: 800; }
+  .treffer-kompakt a { display: grid; flex: 1; min-width: 0; color: var(--text); text-decoration: none; }
+  .treffer-kompakt a strong { font-size: .92rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   /* Short fields side by side: invitation form, calculation numbers, new location. */
   .kalk-gruppe label { margin-top: 6px; }
   .kalk-gruppe label .klein { font-weight: 400; }

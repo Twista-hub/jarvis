@@ -90,6 +90,7 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (p === "/konto/einladen" && post) return mitSitzung(request, env, einladen);
   if (p === "/konto/einladung/zurueckziehen" && post) return mitSitzung(request, env, einladungZurueckziehen);
   if (p === "/konto/status" && post) return mitSitzung(request, env, statusSetzen);
+  if (p === "/konto/status/mehrere" && post) return mitSitzung(request, env, statusMehrere);
   if (p === "/konto/mail" && post) return mitSitzung(request, env, mailSetzen);
   if (p === "/konto/mail/test" && post) return mitSitzung(request, env, probeMail);
   if (p === "/konto/push/schluessel") return pushSchluessel(env);
@@ -302,8 +303,20 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   } else if (unterseite === "treffer") {
     const fb = await db<{ vorgang_id: string; grund: string }[]>(s, env, `treffer_feedback?firma_id=eq.${m.firma_id}&select=vorgang_id,grund`);
     const rueckmeldungen = new Map((fb.ok ? fb.daten : []).map((x) => [x.vorgang_id, x.grund]));
+    // B1 compact list (remembered), B2 "new since last visit", B4 bulk archive, B5 note about auto-archived hits.
+    const cookie = request.headers.get("cookie") ?? "";
+    const ansichtWahl = url.searchParams.get("ansicht");
+    const kompakt = ansichtWahl ? ansichtWahl === "kompakt" : /(?:^|;\s*)jv_ansicht=kompakt/.test(cookie);
+    if (ansichtWahl === "kompakt" || ansichtWahl === "karten") s.cookies.push(`jv_ansicht=${ansichtWahl}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`);
+    const gesehen = /(?:^|;\s*)jv_gesehen=([0-9TZ:.-]{10,30})/.exec(cookie)?.[1] ?? "";
+    // Reloads within an hour keep the marks; the next visit after that starts a new "since".
+    if (!gesehen || Date.now() - Date.parse(gesehen) > 3600_000) s.cookies.push(`jv_gesehen=${new Date().toISOString()}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`);
+    const darfAendern = !["leser", "mitarbeiter"].includes(m.rolle);
+    const umschalter = `<div class="ansicht-umschalter" role="group" aria-label="Ansicht"><a href="${link(reiter)}&ansicht=karten"${!kompakt ? ' aria-current="true"' : ""}>▦ Karten</a><a href="${link(reiter)}&ansicht=kompakt"${kompakt ? ' aria-current="true"' : ""}>☰ Liste</a></div>`;
+    const massen = darfAendern ? `<form method="post" action="/konto/status/mehrere" id="massen" class="massen-leiste" hidden><input type="hidden" name="weiter" value="${escape(link(reiter))}"><span data-massen-zahl>0 ausgewählt</span><button name="status" value="verworfen">Archivieren</button><button name="status" value="angebot" class="zweit">Merken</button></form>` : "";
+    const abgelaufen = reiter === "neu" && (suchstand.ergebnis as { abgelaufen?: number } | undefined)?.abgelaufen ? `<p class="klein">🗄️ ${(suchstand.ergebnis as { abgelaufen?: number }).abgelaufen} abgelaufene Treffer wurden automatisch ins Archiv verschoben.</p>` : "";
     const tabs = `<nav class="reiter" aria-label="Stand der Ausschreibungen">${[["neu", "Neu"], ["arbeit", "In Arbeit"], ["abgegeben", "Abgegeben"], ["archiv", "Archiv"]].map(([key, label]) => `<a href="${link(key)}"${key === reiter ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
-    inhalt = rahmen(`${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q)}`);
+    inhalt = rahmen(`${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${umschalter}${abgelaufen}${massen}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q, { kompakt, seit: gesehen, darfAendern })}`);
   } else if (unterseite === "fristen") {
     const mitFrist = liste.filter((v) => v.frist || v.fragefrist);
     const kalk = mitFrist.length ? await db<{ vorgang_id: string }[]>(s, env, `kalkulationen?firma_id=eq.${m.firma_id}&vorgang_id=in.(${mitFrist.map((v) => v.id).join(",")})&select=vorgang_id`) : { ok: true as const, daten: [] };
@@ -599,15 +612,21 @@ export function bewertungsErklaerung(steckbrief?: string | null): string {
   return inhalt?.replace(/\*\*/g, "").replace(/\s+/g, " ").trim().slice(0, 420) ?? "";
 }
 
-function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefined) => string, bereichWahl: string, weiter: string, rueckmeldungen = new Map<string, string>(), q = ""): string {
+function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefined) => string, bereichWahl: string, weiter: string, rueckmeldungen = new Map<string, string>(), q = "", opts: { kompakt?: boolean; seit?: string; darfAendern?: boolean } = {}): string {
   if (!liste.length) return `${bereichWahl}<div class="treffer-leer"><h2>${q ? "Nichts gefunden" : "Noch keine Ausschreibungen"}</h2><p>${q ? `Kein Treffer enthält „${escape(q)}“ im Titel.` : "In diesem Bereich gibt es aktuell keine Treffer. Wähle einen anderen Stand oder Bereich."}</p></div>`;
   const optionen = (aktuell: string) => Object.entries(STATUS).map(([k, t]) => `<option value="${k}"${k === aktuell ? " selected" : ""}>${t}</option>`).join("");
+  const istNeu = (v: Vorgang) => !!opts.seit && Date.parse(v.erstellt) > Date.parse(opts.seit);
+  const auswahl = (v: Vorgang) => opts.darfAendern ? `<label class="auswahl"><input type="checkbox" name="id" value="${v.id}" form="massen" data-massen><span class="unsichtbar">${escape(v.titel)} auswählen</span></label>` : "";
+  const schnell = (v: Vorgang) => opts.darfAendern ? `<div class="schnell">${v.status !== "angebot" ? `<form method="post" action="/konto/status"><input type="hidden" name="weiter" value="${escape(weiter)}"><input type="hidden" name="id" value="${v.id}"><button name="status" value="angebot" class="zweit">⭐ Merken</button></form>` : ""}${v.status !== "verworfen" ? `<form method="post" action="/konto/status"><input type="hidden" name="weiter" value="${escape(weiter)}"><input type="hidden" name="id" value="${v.id}"><button name="status" value="verworfen" class="zweit">✕ Weg damit</button></form>` : ""}</div>` : "";
+  if (opts.kompakt) {
+    return `${bereichWahl}<ol class="treffer-kompakt" aria-label="Ausschreibungen">${liste.map((v) => `<li${istNeu(v) ? ' class="ist-neu"' : ""}>${auswahl(v)}<span class="kp">${v.punkte ?? "–"}</span><a href="/konto/vorgang/${v.id}"><strong>${istNeu(v) ? '<span class="neu-punkt" aria-label="neu"></span>' : ""}${escape(v.titel)}</strong><span class="klein">${v.frist ? `Frist ${datum(v.frist)}` : "Frist unbekannt"}${v.entfernung_km != null ? ` · ${Math.round(v.entfernung_km)} km` : ""}</span></a></li>`).join("")}</ol>`;
+  }
   const karten = liste.map((v) => {
     const { gesucht, warum } = bewertung(v.steckbrief);
     const fakten = [...eckdaten(v.steckbrief), ...(v.entfernung_km != null ? [{ label: "", wert: `📍 ${Math.round(v.entfernung_km)} km entfernt` }] : [])];
     return `<li><article class="treffer-karte">
-  <div class="treffer-meta"><span class="treffer-punkte">${v.punkte !== null ? `${v.punkte}/10 Punkte` : "Noch ohne KI-Bewertung"}</span><span class="treffer-status">${escape(STATUS[v.status] ?? v.status)}</span></div>
-  <h2><a href="/konto/vorgang/${v.id}"><span>${escape(v.titel)}</span><span aria-hidden="true">›</span></a></h2>
+  <div class="treffer-meta">${auswahl(v)}<span class="treffer-punkte">${v.punkte !== null ? `${v.punkte}/10 Punkte` : "Noch ohne KI-Bewertung"}</span><span class="treffer-status">${escape(STATUS[v.status] ?? v.status)}</span></div>
+  <h2><a href="/konto/vorgang/${v.id}"><span>${istNeu(v) ? '<span class="neu-punkt" title="Neu seit deinem letzten Besuch" aria-label="neu seit deinem letzten Besuch"></span>' : ""}${escape(v.titel)}</span><span aria-hidden="true">›</span></a></h2>
   ${fakten.length ? `<ul class="treffer-fakten">${fakten.map((f) => `<li>${f.label ? `<span>${escape(f.label)}</span>` : ""}${escape(f.wert)}</li>`).join("")}</ul>` : ""}
   ${gesucht ? `<p class="treffer-gesucht">${escape(gesucht)}</p>` : !warum && bewertungsErklaerung(v.steckbrief) ? `<p class="treffer-gesucht">${escape(bewertungsErklaerung(v.steckbrief))}</p>` : ""}
   ${warum ? `<p class="treffer-warum">${escape(warum)}</p>` : ""}
@@ -615,6 +634,7 @@ function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefi
     <p class="treffer-frist"><span>Abgabefrist</span>${v.frist ? `<time datetime="${escape(v.frist)}">${datum(v.frist)}</time>` : `<strong>Noch nicht bekannt</strong>`}${v.bereich_id ? `<small>${escape(bereichName(v.bereich_id))}</small>` : ""}</p>
     ${daumen(v.id, rueckmeldungen.get(v.id), weiter)}
   </div>
+  ${schnell(v)}
   <details class="treffer-stand"><summary>Stand ändern</summary><form method="post" action="/konto/status">
     <input type="hidden" name="weiter" value="${escape(weiter)}"><input type="hidden" name="id" value="${v.id}">
     <label>Bearbeitungsstand<select name="status">${optionen(v.status)}</select></label><button>Speichern</button>
@@ -631,6 +651,16 @@ async function statusSetzen(s: Sitzung, form: FormData, _r: Request, env: KontoE
   const r = await db(s, env, `vorgaenge?id=eq.${id}`, { method: "PATCH", body: JSON.stringify({ status }) });
   const weiter = sicherWeiter(String(form.get("weiter") ?? "/konto/treffer"));
   return weiterleiten(`${weiter}${weiter.includes("?") ? "&" : "?"}hinweis=${encodeURIComponent(r.ok ? `Stand: ${STATUS[status]}` : "Das darfst du für diese Ausschreibung nicht ändern.")}`);
+}
+
+async function statusMehrere(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
+  const ids = form.getAll("id").map(String).filter((x) => /^[0-9a-f-]{36}$/.test(x)).slice(0, 100);
+  const status = String(form.get("status") ?? "");
+  const weiter = sicherWeiter(String(form.get("weiter") ?? "/konto/treffer"));
+  if (!ids.length || !STATUS[status]) return weiterleiten(weiter);
+  const r = await db<{ id: string }[]>(s, env, `vorgaenge?id=in.(${ids.join(",")})&select=id`, { method: "PATCH", headers: { prefer: "return=representation" }, body: JSON.stringify({ status }) });
+  const n = r.ok ? r.daten.length : 0;
+  return weiterleiten(`${weiter}${weiter.includes("?") ? "&" : "?"}hinweis=${encodeURIComponent(n ? `${n} ${n === 1 ? "Ausschreibung" : "Ausschreibungen"}: ${STATUS[status]}` : "Das konnte nicht geändert werden.")}`);
 }
 
 async function kaufverantwortlichSpeichern(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
