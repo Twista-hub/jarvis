@@ -501,7 +501,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .termin-weg button { min-height: 28px; padding: 2px 8px; font-size: 12px; }
   .kalender-abo input[readonly] { font-size: 13px; }
   .termin-neu form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
-  .termin-neu form label:nth-of-type(3), .termin-neu form button { grid-column: 1 / -1; }
+  .termin-neu form > label:nth-of-type(3), .termin-neu form button { grid-column: 1 / -1; }
   .termin-neu form label { margin: 0; }
   .kalender-abo form button.zweit { min-height: 32px; padding: 4px 10px; font-size: 13px; width: auto; }
   /* Short fields side by side: invitation form, calculation numbers, new location. */
@@ -693,7 +693,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .aueg-aktionen input[type=date] { width: 130px; min-height: 30px; padding: 2px 6px; font-size: 13px; }
   .aueg-aktionen button { min-height: 30px; padding: 2px 8px; font-size: 12px; width: auto; }
   .aueg-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
-  .aueg-form label { margin: 0; } .aueg-form .ganz { grid-column: 1 / -1; }
+  .aueg-form label { margin: 0; min-width: 0; } .aueg-form input, .aueg-form select { min-width: 0; width: 100%; } .aueg-form .ganz { grid-column: 1 / -1; }
   .termin-neu form > .aueg-form, .termin-neu form > .baustein-knoepfe, .termin-neu form > p, .termin-neu form > label.zeile { grid-column: 1 / -1; }
   .unterweisung-karte summary strong, .unterweisung-karte summary .klein { display: block; }
   .aueg-hinweis { margin: 0; font-size: 13px; font-weight: 600; } .aueg-hinweis a { color: #b07800; }
@@ -825,6 +825,49 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .such-form { margin: 0 0 8px; } .such-treffer { display: flex; justify-content: space-between; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); }
   .such-treffer > div:first-child { display: grid; gap: 2px; min-width: 0; font-size: 14px; } .such-werte { display: grid; justify-items: end; gap: 2px; font-size: 13px; white-space: nowrap; }
   .such-treffer.frei { border-left: 3px solid #2e8b57; } .such-treffer.teils { border-left: 3px solid #d68910; } .such-treffer.belegt { opacity: .75; }
+  /* Firma & Team part 2 (T9–T16). */
+  .org-baum { overflow-x: auto; padding: 4px 0 8px; }
+  .org-baum ul { list-style: none; margin: 0; padding: 0 0 0 18px; position: relative; }
+  .org-baum > ul { padding-left: 0; }
+  .org-baum li { position: relative; margin: 6px 0; }
+  .org-baum ul ul > li::before { content: ""; position: absolute; left: -12px; top: -6px; bottom: 50%; width: 10px; border-left: 2px solid var(--line); border-bottom: 2px solid var(--line); border-bottom-left-radius: 6px; }
+  .org-baum ul ul > li:not(:last-child)::after { content: ""; position: absolute; left: -12px; top: 50%; bottom: -8px; border-left: 2px solid var(--line); }
+  .org-knoten { display: grid; gap: 1px; max-width: 420px; padding: 6px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); font-size: 14px; }
+  .org-knoten a { text-decoration: none; } .org-firma { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, var(--card)); }
+  .org-standort { border-left: 3px solid var(--accent); } .org-abteilung { border-left: 3px solid #8e44ad; } .org-team { border-left: 3px solid #2e8b57; }
+  .org-fehlt { color: #b07800; }
+  .tabelle-scroll { overflow-x: auto; margin: 8px 0; }
+  .rechte-tabelle th, .rechte-tabelle td { text-align: center; font-size: 13px; padding: 4px 6px; } .rechte-tabelle td:first-child, .rechte-tabelle th:first-child { text-align: left; min-width: 150px; }
+  .rechte-tabelle th.senkrecht { vertical-align: bottom; padding: 6px 2px; } .rechte-tabelle th.senkrecht span { writing-mode: vertical-rl; transform: rotate(180deg); white-space: nowrap; display: inline-block; }
+  .rechte-tabelle td:not(:first-child) { width: 34px; padding: 4px 2px; }
+  .zugang-tabelle td, .zugang-tabelle th { font-size: 13px; padding: 4px 6px; overflow-wrap: normal; } .zugang-tabelle td:last-child, .zugang-tabelle th:last-child { text-align: center; }
+  tr.gesperrt td { opacity: .6; }
+  .vertretung-hinweis { margin: 0 0 10px; padding: 8px 12px; border: 1px solid color-mix(in srgb, var(--accent) 40%, var(--line)); border-radius: 12px; background: color-mix(in srgb, var(--accent) 8%, var(--card)); font-size: 14px; }
+  .vertretung-liste li.aktiv { border-left: 3px solid var(--accent); }
+  .aufgaben-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .aufgabe { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); }
+  .aufgabe:last-child { border-bottom: 0; } .aufgabe > div { display: grid; gap: 1px; min-width: 0; }
+  .aufgabe form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .aufgabe button { width: auto; min-height: 30px; padding: 2px 8px; font-size: 12px; }
+  .aufgabe .aufgabe-haken { min-width: 34px; font-size: 20px; line-height: 1; background: none; border: 0; color: var(--text); padding: 0; }
+  .aufgabe-titel { font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+  .aufgabe.erledigt .aufgabe-titel { text-decoration: line-through; color: var(--muted); font-weight: 400; }
+  .aufgabe.rot { border-left: 3px solid var(--error); } .aufgabe.gelb { border-left: 3px solid #d68910; }
+  .aufgabe-neu { margin: 8px 0; }
+  .einladungen-liste li.abgelaufen { border-style: dashed; opacity: .85; }
+  .kapazitaet-tabelle th, .kapazitaet-tabelle td { text-align: center; font-size: 13px; padding: 4px 6px; } .kapazitaet-tabelle td:first-child, .kapazitaet-tabelle th:first-child { text-align: left; overflow-wrap: normal; word-break: normal; hyphens: auto; min-width: 92px; } .kapazitaet-tabelle th:nth-child(2) { white-space: nowrap; }
+  .kap-null { background: color-mix(in srgb, var(--error) 14%, var(--card)); } .kap-wenig { background: color-mix(in srgb, #d68910 16%, var(--card)); } .kap-gut { background: color-mix(in srgb, #2e8b57 12%, var(--card)); }
+  .kapazitaet-liste li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  .kapazitaet-liste li:last-child { border-bottom: 0; } .kapazitaet-liste li > div { display: grid; gap: 2px; min-width: 0; font-size: 14px; }
+  .kapazitaet-liste li.reicht { border-left: 3px solid #2e8b57; } .kapazitaet-liste li.knapp { border-left: 3px solid #d68910; } .kapazitaet-liste li.fehlt { border-left: 3px solid var(--error); }
+  .kap-wert { white-space: nowrap; font-size: 13px; font-weight: 600; }
+  .ich-kopf h2 { margin-bottom: 0; } .ich-kopf p { margin-top: 2px; }
+  .ich-raster { display: grid; gap: 4px 16px; } @media (min-width: 760px) { .ich-raster { grid-template-columns: 1fr 1fr; } }
+  .ich-raster section h3 { margin: 10px 0 4px; }
+  .ich-liste li.aktiv { border-left: 3px solid var(--accent); } .ich-liste li.bald { border-left: 3px solid #d68910; } .ich-liste li.abgelaufen { border-left: 3px solid var(--error); }
+  .abwesenheit-liste li.beantragt { background: color-mix(in srgb, #d68910 10%, transparent); border-radius: 6px; } .abwesenheit-liste button { white-space: nowrap; }
+  .zugang-akte { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: end; margin: 6px 0 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .zugang-akte label { flex: 1 1 200px; margin: 0; font-size: 13px; } .zugang-akte button { width: auto; }
 </style>
 </head>
 <body><main>

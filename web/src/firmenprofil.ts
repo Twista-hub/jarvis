@@ -2,6 +2,7 @@
 // three years, logo), prequalification and certificates with expiry. Jarvis puts them into offers (placeholders), the
 // suitability declaration (Word) and the offer folder.
 import { aktiveFirma } from "./firmenunterlagen.ts";
+import { ausstattungText } from "./betriebsmittel.ts";
 import { db, html, weiterleiten, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { absatz, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
@@ -38,12 +39,13 @@ export function fehlt(f: Firma, p: Profil | null, kennzahlen: Kennzahl[] | null,
 }
 
 /** T2: "Eigenerklärung zur Eignung" with company data, revenue and staff, certificates; to compare with the form of the authority. */
-export function eigenerklaerungDocx(name: string, f: Firma, p: Profil | null, kennzahlen: Kennzahl[], zert: Zertifikat[], referenzen: number, heute: string): Uint8Array {
+export function eigenerklaerungDocx(name: string, f: Firma, p: Profil | null, kennzahlen: Kennzahl[], zert: Zertifikat[], referenzen: number, heute: string, ausstattung = ""): Uint8Array {
   const q = p ?? LEER;
   const daten: [string, string][] = [
     ["Firma", name], ["Rechtsform", q.rechtsform], ["Anschrift", anschrift(f)], ["Telefon", f.telefon ?? ""], ["E-Mail", q.email], ["Internet", q.website],
     ["Handelsregister", register(q)], ["USt-IdNr.", q.ustid], ["Geschäftsführung / Inhaber", q.geschaeftsfuehrung], ["Gründungsjahr", q.gruendungsjahr ? String(q.gruendungsjahr) : ""],
     ["Beschäftigte (aktuell)", q.mitarbeiter !== null ? String(q.mitarbeiter) : ""],
+    ...(ausstattung ? [["Technische Ausstattung", ausstattung] as [string, string]] : []),
   ];
   const jahr = Number(heute.slice(0, 4));
   const jahre = [jahr - 3, jahr - 2, jahr - 1];
@@ -101,14 +103,15 @@ ${o.admin ? "<button>Speichern</button>" : '<p class="klein">Ändern dürfen Inh
 }
 
 export async function profilLaden(s: Sitzung, env: KontoEnv, firma: string, finanzen: boolean) {
-  const [f, p, k, z] = await Promise.all([
+  const [f, p, k, z, bm] = await Promise.all([
     db<(Firma & { name: string })[]>(s, env, `firmen?id=eq.${firma}&select=name,strasse,plz,ort,telefon`),
     db<Profil[]>(s, env, `firmenprofil?firma_id=eq.${firma}&select=rechtsform,registergericht,registernummer,gruendungsjahr,mitarbeiter,website,email,ustid,geschaeftsfuehrung,taetigkeit,logo`),
     finanzen ? db<Kennzahl[]>(s, env, `firmen_kennzahlen?firma_id=eq.${firma}&select=jahr,umsatz,beschaeftigte&order=jahr.desc&limit=10`) : Promise.resolve(null),
     db<Zertifikat[]>(s, env, `firmen_zertifikate?firma_id=eq.${firma}&select=id,art,bezeichnung,nummer,aussteller,gueltig_bis&order=gueltig_bis.nullslast`),
+    db<{ art: string }[]>(s, env, `betriebsmittel?firma_id=eq.${firma}&select=art&limit=2000`),
   ]);
   const firm = f.ok ? f.daten[0] : undefined;
-  return { name: firm?.name ?? "Firma", firma: { name: firm?.name ?? "", strasse: firm?.strasse ?? "", plz: firm?.plz ?? "", ort: firm?.ort ?? "", telefon: firm?.telefon ?? "" } as Firma, profil: p.ok ? p.daten[0] ?? null : null, kennzahlen: k ? (k.ok ? k.daten : []) : null, zertifikate: z.ok ? z.daten : [] };
+  return { name: firm?.name ?? "Firma", firma: { name: firm?.name ?? "", strasse: firm?.strasse ?? "", plz: firm?.plz ?? "", ort: firm?.ort ?? "", telefon: firm?.telefon ?? "" } as Firma, profil: p.ok ? p.daten[0] ?? null : null, kennzahlen: k ? (k.ok ? k.daten : []) : null, zertifikate: z.ok ? z.daten : [], ausstattung: ausstattungText(bm.ok ? bm.daten : []) };
 }
 
 export async function firmenprofil(request: Request, env: KontoEnv): Promise<Response | null> {
@@ -128,7 +131,7 @@ export async function firmenprofil(request: Request, env: KontoEnv): Promise<Res
   if (url.pathname.endsWith(".docx")) {
     const d = await profilLaden(f.s, env, firma, f.finanzen);
     const refs = await db<{ id: string }[]>(f.s, env, `referenzen?firma_id=eq.${firma}&select=id`);
-    return wordAntwort(eigenerklaerungDocx(d.name, d.firma, d.profil, d.kennzahlen ?? [], d.zertifikate, refs.ok ? refs.daten.length : 0, heute), `Eigenerklaerung_${d.name.replace(/[^\wäöüÄÖÜß-]+/g, "_").slice(0, 60)}.docx`, f.s.cookies);
+    return wordAntwort(eigenerklaerungDocx(d.name, d.firma, d.profil, d.kennzahlen ?? [], d.zertifikate, refs.ok ? refs.daten.length : 0, heute, d.ausstattung), `Eigenerklaerung_${d.name.replace(/[^\wäöüÄÖÜß-]+/g, "_").slice(0, 60)}.docx`, f.s.cookies);
   }
   if (request.method === "POST") {
     const zurueck = (h: string) => weiterleiten(`/konto/firmenprofil?hinweis=${encodeURIComponent(h)}`, f.s.cookies);

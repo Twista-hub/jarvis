@@ -89,3 +89,26 @@ class Einstellungen(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Vertretung(unittest.TestCase):
+    def test_abwesende_bekommen_nichts_vertretung_immer_fristen(self):
+        self.assertEqual(mail.regel(True, False, True), (False, False))
+        self.assertEqual(mail.regel(True, True, True), (False, False))
+        self.assertEqual(mail.regel(False, True, False), (True, True))
+        self.assertEqual(mail.regel(False, False, False), (True, False))
+        self.assertEqual(mail.regel(False, False, True), (True, True))
+
+    def test_vertretung_heute_fragt_beide_richtungen(self):
+        class Con:
+            def execute(self, sql, args):
+                self.sql, self.args = sql, args
+                return self
+
+            def fetchone(self):
+                return (False, True)
+
+        con = Con()
+        self.assertEqual(mail.vertretung_heute(con, "f1", "u1"), (False, True))
+        self.assertIn("vertreter_id", con.sql)
+        self.assertEqual((con.args[0], con.args[1], con.args[3], con.args[4]), ("f1", "u1", "f1", "u1"))

@@ -50,6 +50,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101130000_textbausteine_leistungsverzeichnis.sql
 \ir ../migrations/20261101140000_termine_partner_disposition.sql
 \ir ../migrations/20261101150000_firmenprofil_personalakte.sql
+\ir ../migrations/20261101160000_team_vertretung_aufgaben_selbstpflege.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -814,6 +815,57 @@ do $$ begin
 exception when check_violation then null; end $$;
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.firmenprofil) and (select count(*) = 0 from public.firmen_zertifikate) and (select count(*) = 0 from public.personal_nachweise) and (select count(*) = 0 from public.unterweisungen), 'Fremde Firma sieht weder Profil noch Personalakte');
+reset role;
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
+select set_config('test.uid', '', false);
+
+-- T12–T16: cover, tasks, equipment; a staff member sees and requests only their own data.
+reset role;
+update public.mitglieder set aktiv = true, rolle = 'bearbeiter' where user_id = '00000000-0000-0000-0000-00000000000b';
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e1', 'einsatz@perlease.test');
+insert into public.mitglieder (firma_id, user_id, rolle, aktiv) values (:'firma', '00000000-0000-0000-0000-0000000000e1', 'mitarbeiter', true);
+update public.personal set user_id = '00000000-0000-0000-0000-0000000000e1' where id = :'p_berlin';
+insert into public.ueberlassungen (firma_id, personal_id, entleiher, von) values (:'firma', :'p_berlin', 'Messe Berlin', '2026-10-01'), (:'firma', :'p_hamburg', 'Fremder Kunde', '2026-10-01');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.vertretungen (firma_id, user_id, vertreter_id, von, bis) values (:'firma', '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000a', '2026-11-10', '2026-11-20');
+do $$ begin
+  insert into public.vertretungen (firma_id, user_id, vertreter_id, von, bis) values (current_setting('test.firma')::uuid, '00000000-0000-0000-0000-00000000000a', '00000000-0000-0000-0000-00000000000b', '2026-11-10', '2026-11-20');
+  raise exception 'FEHLER: Bearbeiter trägt Vertretung für jemand anderen ein';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.vertretungen (firma_id, user_id, vertreter_id, von, bis) values (current_setting('test.firma')::uuid, '00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1', '2026-11-10', '2026-11-20');
+  raise exception 'FEHLER: Einsatzkraft als Vertretung';
+exception when insufficient_privilege then null; end $$;
+insert into public.aufgaben (firma_id, vorgang_id, titel, zustaendig_id, faellig) values (:'firma', (select id from public.vorgaenge where titel = 'Messe-Catering ITB'), 'Preisblatt ausfüllen', '00000000-0000-0000-0000-00000000000b', '2026-11-12');
+do $$ begin
+  insert into public.aufgaben (firma_id, vorgang_id, titel) values (current_setting('test.firma')::uuid, current_setting('test.hh')::uuid, 'Fremde Aufgabe');
+  raise exception 'FEHLER: Aufgabe zu fremder Ausschreibung';
+exception when insufficient_privilege then null; end $$;
+insert into public.betriebsmittel (firma_id, art, bezeichnung, kennung, naechste_pruefung) values (:'firma', 'fahrzeug', 'VW Crafter', 'B-JV 123', '2027-03-31');
+select pruefe((select count(*) = 1 from public.vertretungen) and (select count(*) = 1 from public.aufgaben) and (select count(*) = 1 from public.betriebsmittel), 'Vertretung, Aufgabe und Fahrzeug gespeichert');
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 1 and min(vorname) = 'Protokoll' from public.personal), 'Einsatzkraft sieht nur den eigenen Personaldatensatz');
+select pruefe((select count(*) = 2 and bool_and(entleiher like 'Messe Berlin%') from public.ueberlassungen), 'Einsatzkraft sieht nur eigene Einsätze');
+insert into public.personal_abwesenheiten (firma_id, personal_id, von, bis, grund, status) values (:'firma', :'p_berlin', current_date + 30, current_date + 40, 'urlaub', 'beantragt');
+do $$ begin
+  insert into public.personal_abwesenheiten (firma_id, personal_id, von, bis, grund, status) values (current_setting('test.firma')::uuid, (select id from public.personal limit 1), current_date + 50, current_date + 51, 'urlaub', 'bestaetigt');
+  raise exception 'FEHLER: Einsatzkraft bestätigt den eigenen Urlaub';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.personal_abwesenheiten (firma_id, personal_id, von, bis, grund, status) values (current_setting('test.firma')::uuid, current_setting('test.p_hh')::uuid, current_date + 50, current_date + 51, 'urlaub', 'beantragt');
+  raise exception 'FEHLER: Urlaub für fremde Person';
+exception when insufficient_privilege then null; end $$;
+insert into public.personal_nachweise (firma_id, personal_id, bezeichnung, gueltig_bis) values (:'firma', :'p_berlin', 'Erste Hilfe', '2028-05-01');
+select pruefe((select count(*) = 2 from public.personal_nachweise), 'Einsatzkraft lädt eigenen Nachweis hoch und sieht ihre Nachweise');
+select pruefe((select count(*) = 0 from public.aufgaben) and (select count(*) = 0 from public.betriebsmittel) and (select count(*) = 0 from public.vertretungen) and (select count(*) = 0 from public.unterweisungen), 'Einsatzkraft sieht keine Aufgaben, Geräte, Vertretungen oder Unterweisungs-Liste');
+select pruefe((select count(*) = 1 from public.meine_unterweisungen(:'firma') where letzte = '2026-10-15'), 'Einsatzkraft sieht ihre Unterweisungen');
+reset role;
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-0000000000e1';
+set role authenticated;
+select pruefe((select count(*) = 0 from public.personal) and (select count(*) = 0 from public.meine_unterweisungen(:'firma')), 'Gesperrte Einsatzkraft sieht nichts mehr');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.aufgaben) and (select count(*) = 0 from public.betriebsmittel) and (select count(*) = 0 from public.vertretungen), 'Fremde Firma sieht nichts davon');
 reset role;
 update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 select set_config('test.uid', '', false);
