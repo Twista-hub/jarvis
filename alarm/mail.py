@@ -23,6 +23,7 @@ APP = "https://app.wpdigitalranger.com"
 ABSENDER = ("Jarvis", "kontakt@wpdigitalranger.com")
 BERLIN = ZoneInfo("Europe/Berlin")
 ERINNERN = (7, 2)  # days before the deadline
+MORGENS = 7  # hour of the phone notification on the deadline day
 
 
 def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tuple]:
@@ -54,6 +55,10 @@ def handy(con, schl, user_id: str, firma_id: str, firma: str, neu: list, fristen
         kopf = f"{len(neu)} neue Ausschreibungen für {firma}"
         text = neu[0][1] + (f" · und {len(fristen)} Fristen bald" if fristen else "")
         url = f"/konto/treffer?firma={firma_id}"
+    return senden_an_geraete(con, schl, user_id, kopf, text, url)
+
+
+def senden_an_geraete(con, schl, user_id: str, kopf: str, text: str, url: str) -> int:
     geraete = con.execute("select id, endpoint from public.push_abos where user_id = %s", (user_id,)).fetchall()
     if not geraete:
         return 0
@@ -88,6 +93,33 @@ def inhalt(con, firma_id: str, user_id: str, seit: datetime) -> tuple[list, list
           and not exists(select 1 from public.vergabekatalog k where k.id=vorgaenge.katalog_id and k.status in ('aufgehoben','vergeben','abgeschlossen'))
           and (frist at time zone 'Europe/Berlin')::date = any(%s) order by frist""", (firma_id, tage))
     return neu, fristen
+
+
+def heute_faellig(con, firma_id: str, user_id: str) -> list[tuple]:
+    """(id or None, title, time, kind) of every deadline today: submission, question deadline and own entries."""
+    heute = datetime.now(BERLIN).date()
+    return als_person(con, user_id, """select * from (
+          select id::text, titel, frist as zeit, 'Abgabe' as art from public.vorgaenge
+          where firma_id = %s and status in ('neu', 'pruefen', 'angebot') and (frist at time zone 'Europe/Berlin')::date = %s
+          union all
+          select id::text, titel, fragefrist, 'Fragen' from public.vorgaenge
+          where firma_id = %s and status in ('neu', 'pruefen', 'angebot') and (fragefrist at time zone 'Europe/Berlin')::date = %s
+          union all
+          select vorgang_id::text, titel, zeit, 'Termin' from public.eigene_termine
+          where firma_id = %s and (zeit at time zone 'Europe/Berlin')::date = %s) t
+        order by zeit limit 20""", (firma_id, heute, firma_id, heute, firma_id, heute))
+
+
+def morgen_push(con, schl, user_id: str, firma_id: str, termine: list) -> int:
+    """One phone notification in the morning of a deadline day; at most once a day per person."""
+    if not termine or con.execute("""select 1 from public.push_nachrichten where user_id = %s and titel like '⏰ Heute%%'
+            and erstellt > now() - interval '20 hours'""", (user_id,)).fetchone():
+        return 0
+    vid, titel, zeit, art = termine[0]
+    kopf = f"⏰ Heute {'Frist' if len(termine) == 1 else f'{len(termine)} Fristen'} · {art} {zeit.astimezone(BERLIN):%H:%M} Uhr"
+    text = titel + (f" · und {len(termine) - 1} weitere" if len(termine) > 1 else "")
+    url = f"/konto/vorgang/{vid}" if vid and len(termine) == 1 else f"/konto/fristen?firma={firma_id}"
+    return senden_an_geraete(con, schl, user_id, kopf, text, url)
 
 
 def ablaufende_nachweise(con, firma_id: str, user_id: str) -> list[tuple]:
@@ -173,6 +205,11 @@ def main() -> None:
                 con.execute("update public.benachrichtigungen set letzte_mail = now() where firma_id = %s and user_id = %s", (firma_id, user_id))
                 for dokument_id, _name, _gueltig_bis, tage in nachweise:
                     con.execute("insert into public.nachweis_erinnerungen (firma_id,dokument_id,user_id,tage) values (%s,%s,%s,%s) on conflict do nothing", (firma_id, dokument_id, user_id, tage))
+        if stunde == MORGENS and not (test or sofort):
+            for firma_id, user_id in con.execute("""select b.firma_id::text, b.user_id::text from public.benachrichtigungen b
+                    join public.mitglieder m on m.firma_id = b.firma_id and m.user_id = b.user_id and m.aktiv
+                    where b.stunde is not null and b.kanal in ('push', 'beides')""").fetchall():
+                pushs += morgen_push(con, schl, user_id, firma_id, heute_faellig(con, firma_id, user_id))
     print(f"{stunde} Uhr: {mails} Mails, {pushs} Handy-Benachrichtigungen")
 
 

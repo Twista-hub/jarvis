@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { auftragswert, bewertung, eckdaten, sortieren, suchbegriff } from "../src/treffer.ts";
-import { abstand, ampel, gruppen, ics, offenePunkte } from "../src/fristen.ts";
+import { abstand, ampel, fristenSeite, gruppen, ics, icsKalender, offenePunkte } from "../src/fristen.ts";
+import { berlinZuUtc } from "../src/konto.ts";
 
 const brief = "## Jarvis-Bewertung\n\n**Gesucht:** Servicekräfte\n\n**Warum passend:** Kerngeschäft.\n\n## Kurzüberblick\n\n**Ort:** Bonn\n\n**Lose:** 2 (Küche; Service)\n\n**Geschätzter Auftragswert:** 450.000 €\n\n**Laufzeit:** 730 Tage\n\n";
 
@@ -47,7 +48,6 @@ test("Kalkulation: Live-Satz, Kurzübersicht, Szenarien und CSV", () => {
   assert.match(csv, /"1";"Service"/);
 });
 
-import { fristenSeite } from "../src/fristen.ts";
 
 test("Eckdaten aus ausführlichem Steckbrief, Nähe-Sortierung und Fragefristen", () => {
   const voll = "## Auf einen Blick\n\n| | |\n|---|---|\n| **Laufzeit** | 2 Jahre (730 Tage) je Los |\n| **Umfang** | 18 Lose, zusammen ca. 21.630 Stunden. **Eigene Schätzung:** ca. 0,7–1,0 Mio. € netto |\n";
@@ -59,4 +59,25 @@ test("Eckdaten aus ausführlichem Steckbrief, Nähe-Sortierung und Fragefristen"
     { erledigte: false, monat: "2026-11", zustaendig: () => "", kalkuliert: new Set(), jetzt: Date.parse("2026-11-02T08:00:00Z") });
   assert.match(html, /❓ Fragen bis/);
   assert.equal((html.match(/class="frist /g) ?? []).length, 2);
+});
+
+test("D1–D5: Tagesfilter, eigene Termine, Fragefristen, Zeitleiste und Kalender-Abo", () => {
+  const jetzt = Date.parse("2026-11-01T08:00:00Z");
+  const html = fristenSeite(
+    [{ id: "v1", titel: "Rathaus reinigen", status: "neu", frist: "2026-11-10T10:00:00Z", fragefrist: "2026-11-05T10:00:00Z" } as never],
+    { erledigte: false, monat: "2026-11", zustaendig: () => "", kalkuliert: new Set(), jetzt, tag: "2026-11-05",
+      eigene: [{ id: "t1", titel: "Ortstermin", status: "neu", frist: "2026-11-05T13:00:00Z", art: "eigen" } as never] },
+  );
+  assert.match(html, /Fragen bis/);
+  assert.match(html, /Eigener Termin/);
+  assert.match(html, /✕ Alle zeigen/);
+  assert.doesNotMatch(html, /frist-v1"/); // Abgabe am 10. ist am 5. ausgefiltert
+  assert.match(html, /class="zeitleiste"/);
+  assert.match(html, /tag=2026-11-05[^"]*"[^>]*class="[^"]*gewaehlt|gewaehlt[^>]*tag=2026-11-05/);
+  const ics = icsKalender([{ uid: "a", titel: "Frist, Rathaus", zeit: "2026-11-10T10:00:00Z", text: "x", url: "https://x" }]);
+  assert.match(ics, /X-WR-CALNAME:Jarvis Fristen/);
+  assert.match(ics, /Frist\\, Rathaus/);
+  assert.match(ics, /TRIGGER:-P1D/);
+  assert.equal(berlinZuUtc("2026-11-05T14:00"), "2026-11-05T13:00:00.000Z");
+  assert.equal(berlinZuUtc("2026-07-05T14:00"), "2026-07-05T12:00:00.000Z");
 });
