@@ -47,6 +47,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101100000_aueg_ueberlassungen.sql
 \ir ../migrations/20261101110000_foerderung_radar.sql
 \ir ../migrations/20261101120000_auftraege_auftraggeber_auswertung.sql
+\ir ../migrations/20261101130000_textbausteine_leistungsverzeichnis.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -697,6 +698,35 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.vertraege) and (select count(*) = 0 from public.auftraggeber_kontakte) and (select count(*) = 0 from public.ki_kosten_firma(:'firma')), 'Fremde Firma sieht keine Verträge, Kontakte oder Kosten');
 reset role;
 update public.mitglieder set rolle = 'bearbeiter', aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
+select set_config('test.uid', '', false);
+
+-- N7: text modules per firm; N9: bill of quantities with prices only with finance rights.
+reset role;
+update public.mitglieder set aktiv = true, finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.textbausteine (firma_id, titel, kategorie, text) values (:'firma', 'Firmenvorstellung', 'Einleitung', '{{FIRMA}} ist seit 2010 am Markt.');
+select pruefe((select count(*) = 1 from public.textbausteine), 'Bearbeiter legt einen Textbaustein an');
+do $$ begin
+  insert into public.leistungsverzeichnisse (firma_id, vorgang_id, dateiname, struktur)
+    values (current_setting('test.firma')::uuid, (select id from public.vorgaenge where titel = 'Messe-Catering ITB'), 'LV.X83', '[]');
+  raise exception 'FEHLER: LV ohne Finanzfreigabe gespeichert';
+exception when insufficient_privilege then null; end $$;
+reset role;
+update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+insert into public.leistungsverzeichnisse (firma_id, vorgang_id, dateiname, struktur, preise)
+  values (:'firma', (select id from public.vorgaenge where titel = 'Messe-Catering ITB'), 'LV.X83', '[{"k":"p","id":"P1"}]', '{"P1": 12.5}');
+select pruefe((select (preise->>'P1')::numeric = 12.5 from public.leistungsverzeichnisse), 'Mit Finanzfreigabe: LV mit Preisen gespeichert');
+do $$ begin
+  insert into public.leistungsverzeichnisse (firma_id, vorgang_id, dateiname, struktur)
+    values (current_setting('test.firma')::uuid, current_setting('test.hh')::uuid, 'LV.X83', '[]');
+  raise exception 'FEHLER: LV im fremden Standort';
+exception when insufficient_privilege then null; end $$;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.textbausteine) and (select count(*) = 0 from public.leistungsverzeichnisse), 'Fremde Firma sieht keine Textbausteine und kein LV');
+reset role;
+update public.mitglieder set finanzen = false, aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

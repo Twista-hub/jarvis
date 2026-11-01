@@ -737,6 +737,38 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .trichter-balken { height: 10px; border-radius: 5px; background: var(--bg); overflow: hidden; } .trichter-balken span { display: block; height: 100%; background: var(--accent); border-radius: 5px; }
   .auswertung-tabelle { width: 100%; border-collapse: collapse; font-size: 13px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
   .auswertung-tabelle th, .auswertung-tabelle td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--line); } .auswertung-tabelle th { color: var(--muted); font-weight: 600; }
+  /* Text modules, bill of quantities, introduction (N7–N9). */
+  .baustein-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .baustein-liste li { border-bottom: 1px solid var(--line); } .baustein-liste li:last-child { border-bottom: 0; }
+  .baustein-liste details { margin: 0; padding: 8px 12px; border: 0; border-radius: 0; background: none; box-shadow: none; }
+  .baustein-liste summary { display: grid; gap: 2px; padding: 0; min-height: 0; border: 0; background: none; color: inherit; font-weight: 400; list-style: none; cursor: pointer; }
+  .baustein-liste summary::-webkit-details-marker { display: none; } .baustein-liste summary strong { color: var(--accent); }
+  .baustein-liste summary .radar-marke { justify-self: start; padding: 0 6px; font-size: 11px; }
+  .baustein-vorschau { color: var(--muted); } .baustein-text { white-space: pre-wrap; font-size: 14px; }
+  .baustein-knoepfe { display: flex; gap: 8px; } .baustein-knoepfe button { width: auto; }
+  .baustein-auswahl .zeile { align-items: flex-start; } .baustein-auswahl .zeile .klein { color: var(--muted); white-space: nowrap; }
+  .lv-upload { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; } .lv-upload label { flex: 1 1 220px; margin: 0; } .lv-upload button { width: auto; }
+  .lv-titel { display: flex; justify-content: space-between; gap: 8px; margin: 14px 0 4px; font-size: 15px; } .lv-titel .klein { font-weight: 600; white-space: nowrap; }
+  .lv-gruppe .lv-gruppe .lv-titel { font-size: 14px; }
+  .lv-liste { list-style: none; margin: 4px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .lv-pos { display: grid; gap: 4px; padding: 8px 10px; border-bottom: 1px solid var(--line); } .lv-pos:last-child { border-bottom: 0; }
+  .lv-pos.lv-offen { border-left: 3px solid #d68910; } .lv-pos.lv-neben { background: color-mix(in srgb, var(--bg) 60%, var(--card)); }
+  .lv-text { display: grid; grid-template-columns: auto 1fr; gap: 2px 8px; font-size: 14px; } .lv-text details, .lv-text > span:not(.lv-oz) { min-width: 0; }
+  .lv-oz { font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; } .lv-art { grid-column: 2; font-size: 12px; color: #b07800; }
+  .lv-lang { white-space: pre-wrap; margin: 4px 0; }
+  .lv-zahlen { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; font-size: 13px; }
+  .lv-ep { display: flex; align-items: center; gap: 4px; margin: 0; font-size: 12px; color: var(--muted); }
+  .lv-ep input, .lv-menge { width: 96px; min-height: 32px; padding: 2px 6px; text-align: right; font-size: 14px; }
+  .lv-gp { min-width: 90px; text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .lv-speichern { padding: 8px 0; } .lv-speichern button { width: 100%; }
+  .lv-text details { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .lv-text details summary { padding: 0; min-height: 0; border: 0; background: none; font-weight: 400; color: inherit; list-style: none; cursor: pointer; }
+  .lv-text details summary::after { content: " ▾"; color: var(--muted); font-size: 11px; } .lv-text details summary::-webkit-details-marker { display: none; }
+  .lv-menge-text { display: flex; align-items: center; gap: 4px; white-space: nowrap; } .lv-ep { white-space: nowrap; }
+  .lv-kennzahlen strong { font-size: 1.1rem; }
+  .lv-werkzeuge, .lv-ersetzen { margin: 8px 0; }
+  .hilfe-einfuehrung { margin: 0 0 12px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .einfuehrung-schritte { margin: 8px 0 0; padding-left: 22px; display: grid; gap: 6px; } .einfuehrung-schritte li { font-size: 14px; } .einfuehrung-schritte li span { display: block; }
 </style>
 </head>
 <body><main>
