@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (N1 Angebote-Übersicht, N13 AÜG-Wächter)
+- N1: Seite `/konto/angebote` (Kachel „📝 Angebote“ in der Übersicht, Eintrag unter Mehr): alle Angebote mit Stand In Arbeit / Wartet auf Chef / Freigegeben / Abgegeben / Zuschlag / Absage (aus Ausschreibungsstatus, letzter Angebotsversion und Abgabebeleg), Kennzahlen (in Vorbereitung, warten auf Entscheidung, Gewinnquote), Filter-Chips, Frist und Zuständige; Summen netto aus der letzten Angebotsversion nur mit Finanzfreigabe; bei „Abgegeben“ Knöpfe „🏆 Zuschlag“ / „❌ Absage“.
+- N13: AÜG-Wächter `/konto/aueg` (Tabelle `ueberlassungen`, RLS wie Personal, nicht für reine Mitarbeiter, im Änderungsprotokoll „Person bei Entleiher“): Einsätze je Leiharbeitskraft und Kunde eintragen/beenden/löschen; Berechnung Equal Pay nach 9 Monaten (§ 8 Abs. 4 AÜG) und Ende der Höchstüberlassungsdauer nach 18 Monaten (§ 1 Abs. 1b AÜG), frühere Einsätze beim selben Kunden zählen bei höchstens 3 Monaten Unterbrechung mit, die Unterbrechung selbst nicht; Warnungen 60/30 Tage vorher, Fortschrittsbalken. Hinweise auf der Personalkarte, Kachel in der Übersicht, Link auf Firma & Team für Zeitarbeitsfirmen. Hinweis „ohne Gewähr“, Tarifabweichungen (Branchenzuschlag bis 15 Monate) genannt. Migration `20261101100000_aueg_ueberlassungen.sql`. Datenschutzerklärung ergänzt.
+- Geprüft: Fristen mit von Hand gerechneten Fällen (mit/ohne Unterbrechung, Monatsende, Schaltjahr), Rechte-Test, Screenshots; 203 Web-Tests grün.
+- Offen/Idee: AÜG-Fristen zusätzlich per Mail/Handy melden.
+
 ### 01.11.2026 – Claude (Einstellungen und Profil I1–I5)
 - I1: Unter Einstellungen → Tägliche Nachricht → „Feiner einstellen“: „Sofort aufs Handy bei Top-Treffern ab 7/8/9 von 10“ und Fristen-Erinnerungen an/aus (Spalten `sofort_ab`, `fristen` an `benachrichtigungen`). Der Suchlauf (`speichern.py`) schickt nach dem Speichern neue Top-Treffer sofort aufs Handy (`mail.sofort_nach_speichern`): je Person nur sichtbare Treffer, eigene Verbindung im Autocommit (als_person setzt die Rolle bis Transaktionsende).
 - I2: Ruhezeit von/bis (`ruhe_von`, `ruhe_bis`): keine Handy-Nachrichten in der Ruhezeit; die Fristtag-Nachricht kommt dann zum Ende der Ruhezeit statt um 7 Uhr.

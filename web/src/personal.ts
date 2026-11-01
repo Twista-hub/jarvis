@@ -7,6 +7,7 @@ import { bereichPfad } from "./bereiche.ts";
 import { escape, hilfe, seite } from "./seite.ts";
 import { GVP, lohnAm } from "./tarife.ts";
 import { euro } from "./kalkulation.ts";
+import { auegLaden, fristen as auegFristen, personHinweise } from "./aueg.ts";
 
 export type Kraft = { foto?: boolean; id: string; firma_id: string; bereich_id: string | null; vorname: string; nachname: string; berufe: string[]; qualifikationen: string[]; tarifvertrag_id: string | null; eg: string; telefon: string; email: string; status: string; notiz: string };
 export type Tarifvertrag = { id: string; name: string; geltungsbereich?: string; gruppen: string[]; quelle?: string; quelle_url?: string; gueltig_ab?: string | null; gueltig_bis?: string | null; vorgegeben?: boolean; tarifart?: string; gruppenart?: string; berufe?: string[]; datenstand?: string | null; datenstatus?: string; hinweis?: string };
@@ -167,7 +168,7 @@ export function ausFormular(f: FormData, qualifikationen: string[] = QUALIFIKATI
   };
 }
 
-export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] = [], qualifikationen: string[] = QUALIFIKATIONEN, tarife: Tarifvertrag[] = [], abw: Abwesenheit[] = []): string {
+export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] = [], qualifikationen: string[] = QUALIFIKATIONEN, tarife: Tarifvertrag[] = [], abw: Abwesenheit[] = [], auegHinweis = ""): string {
   const heute = abwesendAm(abw, k.id);
   const [icon, text] = heute ? [(GRUENDE[heute.grund] ?? GRUENDE.abwesend)[0], `${(GRUENDE[heute.grund] ?? GRUENDE.abwesend)[1]} bis ${tagMonat(heute.bis)}`] : STATUS[k.status] ?? STATUS.verfuegbar;
   const name = `${k.vorname} ${k.nachname}`.trim();
@@ -177,6 +178,7 @@ export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] 
   ${k.berufe.length ? `<p class="person-berufe">${k.berufe.map((b) => `<span class="marke">${escape(b)}</span>`).join("")}</p>` : ""}
   ${k.qualifikationen.length || k.eg ? `<p class="klein">${[k.eg ? `${escape(tarife.find((t) => t.id === k.tarifvertrag_id)?.name ?? "Tarif")} · ${escape(k.eg)}` : "", ...k.qualifikationen.map(escape)].filter(Boolean).join(" · ")}</p>` : ""}
   ${k.notiz ? `<p class="klein">📝 ${escape(k.notiz)}</p>` : ""}
+  ${auegHinweis ? `<p class="aueg-hinweis"><a href="/konto/aueg">${escape(auegHinweis)}</a></p>` : ""}
   ${einsaetze.length ? `<ul class="einsatz-kurz">${einsaetze.map((e) => `<li><a href="/konto/vorgang/${e.vorgang_id}#personal">${(EINSATZ[e.status] ?? EINSATZ.geplant)[0]} ${escape(e.vorgaenge?.titel ?? "Ausschreibung")}</a></li>`).join("")}</ul>` : ""}
   <div class="person-aktionen">${k.telefon ? `<a class="knopf-klein" href="tel:${escape(k.telefon.replace(/[^\d+]/g, ""))}">📞 Anrufen</a>` : ""}<a class="knopf-klein" href="/konto/personal/${k.id}/nachricht">💬 Nachricht</a></div>
   ${darfAendern ? `<details id="bearbeiten-${k.id}" class="bearbeiten"><summary>✏️ Bearbeiten</summary>${kraftFormular(k, `/konto/personal/${k.id}`, "Änderungen speichern", qualifikationen, tarife)}${abwesenheitTeil(k, abw, true)}${fotoTeil(k)}<form method="post" action="/konto/personal/${k.id}"><input type="hidden" name="aktion" value="loeschen"><button class="knopf-leise">🗑️ Aus der Liste löschen</button></form></details>` : ""}
@@ -226,7 +228,7 @@ export async function tarifvertraegeLaden(s: Parameters<typeof db>[0], env: Kont
 }
 
 /** The personnel of one location: numbers, filter, cards and the add form (also shown directly on "Firma & Team"). */
-export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, aktion: string, einsaetze: Einsatz[] = [], eigeneQualifikationen: string[] = [], tarife: Tarifvertrag[] = [], abw: Abwesenheit[] = []): string {
+export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, aktion: string, einsaetze: Einsatz[] = [], eigeneQualifikationen: string[] = [], tarife: Tarifvertrag[] = [], abw: Abwesenheit[] = [], auegHinweise: Record<string, string> = {}): string {
   // Filter by occupation and status (GET form, works without scripts).
   const beruf = url.searchParams.get("beruf") ?? "";
   const st = url.searchParams.get("status") ?? "";
@@ -240,7 +242,7 @@ export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, akti
 ${alle.length || darfAendern ? `<nav class="aktionsleiste kompakt">${darfAendern ? `<a href="#neu" data-oeffne="neu">＋ Neue Person</a><a class="zweit" href="/konto/personal/import?bereich=${escape(aktion.split("/").pop() ?? "firma")}">📥 Excel-Import</a>` : ""}${alle.length ? `<a class="zweit" href="/konto/rundnachricht">📣 Anschreiben</a>` : ""}</nav>` : ""}
 ${hilfe("Welche Person soll ich eintragen?", "Erfasse nur Personen, die ihr für Einsätze einplant. Berufe helfen Jarvis, passende Kräfte für Ausschreibungen vorzuschlagen. Die Kontaktangaben nutzt dein Team direkt vom eigenen Gerät.")}
 ${filter}
-<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"), qualifikationen, tarife, abw)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
+<div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"), qualifikationen, tarife, abw, auegHinweise[k.id] ?? "")).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
 ${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>Person hinzufügen <span aria-hidden="true">+</span></summary>${kraftFormular({}, aktion, "Person speichern", qualifikationen, tarife)}</details>` : ""}
 <p class="klein">Die Daten sieht nur, wer Zugriff auf diesen Standort hat. Trag nur ein, was für die Einsatzplanung nötig ist, und lösche Personen, die nicht mehr für euch arbeiten.</p>`;
 }
@@ -427,14 +429,15 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
       db<{ user_id: string; bereich_id: string }[]>(f.s, env, `mitglied_bereiche?firma_id=eq.${f.m.firma_id}&select=user_id,bereich_id`),
       tarifvertraegeLaden(f.s, env, f.m.firma_id),
     ]);
-    const [einsaetze, abw] = await Promise.all([einsaetzeLaden(f.s, env, f.m.firma_id), abwesenheitenLaden(f.s, env, f.m.firma_id)]);
+    const [einsaetze, abw, ueberlassungen] = await Promise.all([einsaetzeLaden(f.s, env, f.m.firma_id), abwesenheitenLaden(f.s, env, f.m.firma_id), auegLaden(f.s, env, f.m.firma_id)]);
+    const auegHinweise = personHinweise(auegFristen(ueberlassungen, heuteIso()), heuteIso());
     const b = bereiche.ok ? bereiche.daten.find((x) => x.id === bid) : undefined;
     if (bid && !b) return antwort("Nicht gefunden", "<p>Diesen Standort gibt es nicht oder du hast keinen Zugriff.</p>", 404);
     const titel = b ? bereichPfad(bereiche.ok ? bereiche.daten : [], b) : "Ganze Firma";
     const alle = liste.ok ? liste.daten : [];
     const hinweis = url.searchParams.get("hinweis");
     const custom = qualifikationen.map((q) => q.name);
-    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${b ? kontaktBlock(b, ["inhaber", "admin"].includes(f.m.rolle)) : ""}${bid ? standortleitungBlock(bid, mitglieder.ok ? mitglieder.daten : [], zuordnungen.ok ? zuordnungen.daten : [], ["inhaber", "admin"].includes(f.m.rolle)) : ""}${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`, einsaetze, custom, tarife, abw)}${qualifikationenBlock(bid, qualifikationen, darfAendern)}`);
+    return antwort(titel, `<h1>📍 ${escape(titel)}</h1>${b ? kontaktBlock(b, ["inhaber", "admin"].includes(f.m.rolle)) : ""}${bid ? standortleitungBlock(bid, mitglieder.ok ? mitglieder.daten : [], zuordnungen.ok ? zuordnungen.daten : [], ["inhaber", "admin"].includes(f.m.rolle)) : ""}${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${personalTeil(alle, url, darfAendern, `/konto/standort/${standort[1]}`, einsaetze, custom, tarife, abw, auegHinweise)}${qualifikationenBlock(bid, qualifikationen, darfAendern)}`);
   }
 
   const pid = einzeln![1];

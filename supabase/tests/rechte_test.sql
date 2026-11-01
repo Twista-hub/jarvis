@@ -44,6 +44,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101070000_team_abwesenheit_kontakt_protokoll.sql
 \ir ../migrations/20261101080000_suchprofil_filter_vorschau.sql
 \ir ../migrations/20261101090000_einstellungen_konto.sql
+\ir ../migrations/20261101100000_aueg_ueberlassungen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -557,6 +558,27 @@ do $$ begin
   raise exception 'FEHLER: Bearbeiter ändert das Suchprofil';
 exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 select pruefe((select count(*) = 0 from public.suchprofil_vorschau(:'firma', '(?<!\w)reinigung')), 'Bearbeiter bekommt keine Vorschau');
+reset role;
+select set_config('test.uid', '', false);
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
+
+-- AÜG-Wächter (N13): assignments follow the worker's location rights; staff-only members and other firms see nothing.
+reset role;
+select set_config('test.uid', '', false);
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.ueberlassungen (firma_id, personal_id, entleiher, von) values (:'firma', :'p_berlin', 'Messe Berlin GmbH', current_date - 200);
+select pruefe((select count(*) = 1 from public.ueberlassungen), 'Bearbeiter trägt Überlassung am eigenen Standort ein');
+do $$ begin
+  insert into public.ueberlassungen (firma_id, personal_id, entleiher, von)
+    select current_setting('test.firma')::uuid, id, 'Hafen Hamburg', current_date from public.personal where vorname = 'Protokoll' and nachname = 'Hamburg';
+  if found then raise exception 'FEHLER: Überlassung an fremdem Standort'; end if;
+exception when insufficient_privilege or check_violation then null; end $$;
+select test_als('00000000-0000-0000-0000-00000000000a');
+select pruefe((select count(*) = 1 from public.aenderungsprotokoll where bereich = 'ueberlassungen' and datensatz = 'Protokoll Berlin bei Messe Berlin GmbH'), 'Protokoll nennt Person und Entleiher');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.ueberlassungen), 'Fremde Firma sieht keine Überlassungen');
 reset role;
 select set_config('test.uid', '', false);
 update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';

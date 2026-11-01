@@ -658,6 +658,43 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .hilfe-frage p { margin: 6px 0 2px; font-size: 14px; line-height: 1.5; }
   .hilfe-kontakt { margin-top: 18px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
   .hilfe-kontakt h2 { margin: 0 0 6px; font-size: 1rem; }
+  /* Offers overview (N1). */
+  .angebot-kennzahlen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin: 0 0 10px; }
+  .angebot-kennzahlen div { display: grid; gap: 2px; padding: 10px 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); text-align: center; }
+  .angebot-kennzahlen strong { font-size: 1.4rem; color: var(--accent); } .angebot-kennzahlen span { font-size: 12px; color: var(--muted); line-height: 1.3; }
+  .angebot-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .angebot-zeile { display: grid; grid-template-columns: 1fr auto; gap: 4px 10px; align-items: center; padding: 10px 12px; border-bottom: 1px solid var(--line); border-left: 4px solid transparent; }
+  .angebot-zeile:last-child { border-bottom: 0; }
+  .angebot-zeile.stand-chef { border-left-color: #d68910; } .angebot-zeile.stand-zuschlag { border-left-color: #2e8b57; } .angebot-zeile.stand-absage { border-left-color: var(--line); opacity: .8; }
+  .angebot-titel { display: grid; gap: 2px; min-width: 0; color: inherit; text-decoration: none; }
+  .angebot-titel strong { font-size: 14px; line-height: 1.3; }
+  .stand-marke { font-weight: 600; color: var(--text); }
+  .frist-knapp { color: var(--error); font-weight: 600; }
+  .angebot-summe { font-weight: 700; font-size: 14px; white-space: nowrap; }
+  .angebot-entscheidung { grid-column: 1 / -1; display: flex; gap: 6px; }
+  .angebot-entscheidung form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .angebot-entscheidung button { min-height: 32px; padding: 4px 10px; font-size: 13px; width: auto; }
+  /* AÜG-Wächter (N13). */
+  .aueg-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .aueg-karte { display: flex; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); border-left: 4px solid transparent; }
+  .aueg-karte:last-child { border-bottom: 0; }
+  .aueg-karte.stufe-rot { border-left-color: var(--error); } .aueg-karte.stufe-gelb { border-left-color: #d68910; } .aueg-karte.stufe-gruen { border-left-color: #2e8b57; }
+  .aueg-text { flex: 1; min-width: 0; display: grid; gap: 3px; }
+  .aueg-text strong { font-size: 14px; }
+  .aueg-status { font-size: 13px; font-weight: 600; }
+  .stufe-rot .aueg-status { color: var(--error); } .stufe-gelb .aueg-status { color: #b07800; }
+  .aueg-leiste { position: relative; height: 6px; margin: 4px 0 2px; border-radius: 3px; background: var(--bg); }
+  .aueg-leiste span { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+  .aueg-leiste i { position: absolute; top: -3px; width: 2px; height: 12px; margin-left: -1px; background: #2e8b57; }
+  .aueg-einsaetze ul { list-style: none; margin: 4px 0 0; padding: 0; font-size: 13px; }
+  .aueg-einsaetze li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px; padding: 4px 0; border-bottom: 1px solid var(--line); }
+  .aueg-aktionen { display: flex; gap: 4px; align-items: center; }
+  .aueg-aktionen form { display: flex; gap: 4px; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .aueg-aktionen input[type=date] { width: 130px; min-height: 30px; padding: 2px 6px; font-size: 13px; }
+  .aueg-aktionen button { min-height: 30px; padding: 2px 8px; font-size: 12px; width: auto; }
+  .aueg-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
+  .aueg-form label { margin: 0; } .aueg-form .ganz { grid-column: 1 / -1; }
+  .aueg-hinweis { margin: 0; font-size: 13px; font-weight: 600; } .aueg-hinweis a { color: #b07800; }
 </style>
 </head>
 <body><main>
