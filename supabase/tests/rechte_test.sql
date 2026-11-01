@@ -52,6 +52,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101150000_firmenprofil_personalakte.sql
 \ir ../migrations/20261101160000_team_vertretung_aufgaben_selbstpflege.sql
 \ir ../migrations/20261101170000_stunden_schichten_brett_fristen.sql
+\ir ../migrations/20261101180000_kunden_leistungsnachweis_ausfall.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -938,6 +939,55 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.stundenzettel) and (select count(*) = 0 from public.schichten) and (select count(*) = 0 from public.mitteilungen) and (select count(*) = 0 from public.fuehrerschein_kontrollen), 'Fremde Firma sieht keine Stunden, Schichten, Mitteilungen oder Kontrollen');
 reset role;
 update public.mitglieder set aktiv = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
+select set_config('test.uid', '', false);
+
+-- T29–T33: customers and sites, hourly rate only with finance access, site info for staff, short-notice absence.
+reset role;
+update public.mitglieder set aktiv = true, rolle = 'bearbeiter', finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-0000000000e1';
+delete from public.push_warteschlange;
+delete from public.personal_abwesenheiten where personal_id = :'p_berlin' and status = 'bestaetigt';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.kunden (firma_id, bereich_id, name, ort) values (:'firma', :'berlin', 'Messe Berlin GmbH', 'Berlin') returning id as kunde_berlin \gset
+do $$ begin
+  insert into public.kunden (firma_id, bereich_id, name) values (current_setting('test.firma')::uuid, (select id from public.bereiche where name = 'Hamburg' limit 1), 'Fremder Kunde');
+  raise exception 'FEHLER: Bearbeiter Berlin legt Kunden in Hamburg an';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.kunden_preise (firma_id, kunde_id, satz) values (current_setting('test.firma')::uuid, (select id from public.kunden limit 1), 32.5);
+  raise exception 'FEHLER: Verrechnungssatz ohne Finanzfreigabe';
+exception when insufficient_privilege then null; end $$;
+insert into public.einsatzorte (firma_id, kunde_id, name, strasse, plz, ort, treffpunkt, kleidung) values (:'firma', :'kunde_berlin', 'Messe Halle 3', 'Messedamm 22', '14055', 'Berlin', 'Eingang Süd', 'Schwarz, Sicherheitsschuhe') returning id as ort_halle \gset
+insert into public.schichten (firma_id, bereich_id, personal_id, einsatzort_id, datum, beginn, ende, ort) values (:'firma', :'berlin', :'p_berlin', :'ort_halle', current_date, '06:00', '14:00', 'Messe Halle 3');
+insert into public.einsatzorte (firma_id, kunde_id, name) values (:'firma', :'kunde_berlin', 'Messe Halle 7');
+reset role;
+update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.kunden_preise (firma_id, kunde_id, satz) values (:'firma', :'kunde_berlin', 32.5);
+select pruefe((select count(*) = 1 from public.kunden_preise), 'Mit Finanzfreigabe Verrechnungssatz speichern');
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 0 from public.kunden) and (select count(*) = 0 from public.kunden_preise), 'Einsatzkraft sieht keine Kunden und keine Preise');
+select pruefe((select count(*) = 1 and min(treffpunkt) = 'Eingang Süd' from public.einsatzorte), 'Einsatzkraft sieht nur den Einsatzort ihrer Schicht');
+insert into public.stundenzettel (firma_id, personal_id, datum, beginn, ende, pause_min, einsatz) values (:'firma', :'p_berlin', current_date, '06:00', '14:00', 30, 'Messe Halle 3');
+reset role;
+select pruefe((select kunde_id = :'kunde_berlin' from public.stundenzettel where datum = current_date and einsatz = 'Messe Halle 3'), 'Stunden der Einsatzkraft werden über den Einsatzort dem Kunden zugeordnet');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe(public.ausfall_melden(current_date + 3, '') = -1, 'Ausfall nur für heute oder morgen');
+select pruefe(public.ausfall_melden(current_date, '') = 1, 'Ausfall gemeldet, eine Schicht abgesagt');
+select pruefe(public.ausfall_melden(current_date, '') = -2, 'Ausfall nicht doppelt');
+select pruefe((select antwort = 'abgesagt' from public.schichten where datum = current_date), 'Schicht des Tages ist abgesagt');
+reset role;
+select pruefe((select count(*) = 1 and bool_and(kurzfristig and status = 'bestaetigt') from public.personal_abwesenheiten where personal_id = :'p_berlin' and von = current_date), 'Kurzfristiger Ausfall als Abwesenheit gespeichert');
+select pruefe((select count(*) >= 2 from public.push_warteschlange where titel like '🚨 Ausfall%') and not exists (select 1 from public.push_warteschlange where titel like '🚨 Ausfall%' and user_id = '00000000-0000-0000-0000-0000000000e1'), 'Ausfall geht an Planer und Leitung, nicht an die Einsatzkraft selbst');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.kunden) and (select count(*) = 0 from public.einsatzorte) and (select count(*) = 0 from public.kunden_preise), 'Fremde Firma sieht keine Kunden, Orte oder Preise');
+select pruefe(public.ausfall_melden(current_date, '') = -1, 'Ohne eigene Personalakte kein Ausfall');
+reset role;
+update public.mitglieder set aktiv = false, finanzen = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

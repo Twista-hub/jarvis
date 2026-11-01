@@ -1,0 +1,113 @@
+// T33: Kunden und Einsatzorte. One list of customers (address, contact, hourly rate only with finance access) and their
+// sites with what staff need on the day (address, contact on site, meeting point, clothing, notes; T31).
+// Shifts, time sheets and the proof of work (T29) use it.
+import { aktiveFirma } from "./firmenunterlagen.ts";
+import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
+import { escape, seite } from "./seite.ts";
+
+export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; email: string; notiz: string };
+export type Einsatzort = { id: string; kunde_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; treffpunkt: string; kleidung: string; hinweise: string };
+export type Preis = { kunde_id: string; satz: number | string };
+const euro = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+export const adresse = (x: { strasse: string; plz: string; ort: string }) => [x.strasse, [x.plz, x.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+/** Map link for an address (opens the phone's map app via OpenStreetMap search). */
+export const kartenLink = (x: { strasse: string; plz: string; ort: string; name?: string }) => `https://www.openstreetmap.org/search?query=${encodeURIComponent(adresse(x) || x.name || "")}`;
+
+const kundeFelder = (k: Partial<Kunde>, bereiche: { id: string; name: string }[], preis: string | null) => `<div class="aueg-form">
+<label class="ganz">Name<input name="name" required maxlength="160" value="${escape(k.name ?? "")}"></label>
+<label class="ganz">Straße und Nr.<input name="strasse" maxlength="160" value="${escape(k.strasse ?? "")}"></label>
+<label>PLZ<input name="plz" maxlength="5" inputmode="numeric" pattern="\\d{5}" value="${escape(k.plz ?? "")}"></label><label>Ort<input name="ort" maxlength="100" value="${escape(k.ort ?? "")}"></label>
+<label>Ansprechpartner<input name="ansprechpartner" maxlength="160" value="${escape(k.ansprechpartner ?? "")}"></label><label>Telefon<input name="telefon" type="tel" maxlength="60" value="${escape(k.telefon ?? "")}"></label>
+<label class="ganz">E-Mail<input name="email" type="email" maxlength="200" value="${escape(k.email ?? "")}"></label>
+${bereiche.length ? `<label>Standort<select name="bereich"><option value="">ganze Firma</option>${bereiche.map((b) => `<option value="${b.id}"${k.bereich_id === b.id ? " selected" : ""}>${escape(b.name)}</option>`).join("")}</select></label>` : ""}
+${preis !== null ? `<label>Verrechnungssatz (€/Std., netto)<input name="satz" inputmode="decimal" maxlength="9" value="${escape(preis)}" placeholder="z. B. 32,50"></label>` : ""}
+<label class="ganz">Notiz<input name="notiz" maxlength="500" value="${escape(k.notiz ?? "")}"></label></div>`;
+
+const ortFelder = (o: Partial<Einsatzort>) => `<div class="aueg-form">
+<label class="ganz">Bezeichnung<input name="name" required maxlength="160" value="${escape(o.name ?? "")}" placeholder="z. B. Messe Halle 3, Baustelle Hauptstraße"></label>
+<label class="ganz">Straße und Nr.<input name="strasse" maxlength="160" value="${escape(o.strasse ?? "")}"></label>
+<label>PLZ<input name="plz" maxlength="5" inputmode="numeric" pattern="\\d{5}" value="${escape(o.plz ?? "")}"></label><label>Ort<input name="ort" maxlength="100" value="${escape(o.ort ?? "")}"></label>
+<label>Ansprechpartner vor Ort<input name="ansprechpartner" maxlength="160" value="${escape(o.ansprechpartner ?? "")}"></label><label>Telefon<input name="telefon" type="tel" maxlength="60" value="${escape(o.telefon ?? "")}"></label>
+<label class="ganz">Treffpunkt<input name="treffpunkt" maxlength="300" value="${escape(o.treffpunkt ?? "")}" placeholder="z. B. Eingang Süd, beim Pförtner melden"></label>
+<label class="ganz">Kleidung / Ausrüstung<input name="kleidung" maxlength="300" value="${escape(o.kleidung ?? "")}" placeholder="z. B. schwarze Hose, Sicherheitsschuhe S3"></label>
+<label class="ganz">Hinweise<textarea name="hinweise" maxlength="1000" rows="2">${escape(o.hinweise ?? "")}</textarea></label></div>`;
+
+/** Site details as staff see them on their shift (T31). */
+export function ortInfo(o: Einsatzort): string {
+  const a = adresse(o);
+  return [a ? `<span>📍 <a href="${kartenLink(o)}" target="_blank" rel="noopener">${escape(a)}</a></span>` : "",
+    o.ansprechpartner || o.telefon ? `<span>👤 ${escape(o.ansprechpartner)}${o.telefon ? ` · <a href="tel:${escape(o.telefon.replace(/[^\d+]/g, ""))}">${escape(o.telefon)}</a>` : ""}</span>` : "",
+    o.treffpunkt ? `<span>🚪 ${escape(o.treffpunkt)}</span>` : "", o.kleidung ? `<span>👕 ${escape(o.kleidung)}</span>` : "",
+    o.hinweise ? `<span>ℹ️ ${escape(o.hinweise).replace(/\n/g, "<br>")}</span>` : ""].filter(Boolean).join("");
+}
+
+export function kundenSeite(kunden: Kunde[], orte: Einsatzort[], preise: Preis[], o: { darfAendern: boolean; finanzen: boolean; bereiche: { id: string; name: string }[]; offen?: string }): string {
+  const preis = (id: string) => { const p = preise.find((x) => x.kunde_id === id); return p ? Number(p.satz) : null; };
+  const ortZeile = (x: Einsatzort) => `<li><details${o.offen === x.id ? " open" : ""}><summary><strong>${escape(x.name)}</strong><span class="klein">${escape(adresse(x) || "ohne Adresse")}${x.treffpunkt ? ` · 🚪 ${escape(x.treffpunkt)}` : ""}</span></summary><div class="ort-info">${ortInfo(x)}</div>
+${o.darfAendern ? `<details class="ort-bearbeiten"><summary class="klein">✏️ Bearbeiten</summary><form method="post" action="/konto/kunden"><input type="hidden" name="aktion" value="ort"><input type="hidden" name="id" value="${x.id}"><input type="hidden" name="kunde" value="${x.kunde_id ?? ""}">${ortFelder(x)}<div class="knopf-zeile"><button>Speichern</button><button name="loeschen" value="1" class="zweit">Löschen</button></div></form></details>` : ""}</details></li>`;
+  const karte = (k: Kunde) => {
+    const l = orte.filter((x) => x.kunde_id === k.id), p = preis(k.id);
+    return `<article class="kunde-karte" id="kunde-${k.id}"><h3>🏢 ${escape(k.name)}</h3><p class="klein">${[escape(adresse(k)), k.ansprechpartner ? `👤 ${escape(k.ansprechpartner)}` : "", k.telefon ? `☎️ ${escape(k.telefon)}` : "", o.finanzen && p !== null ? `💶 ${euro(p)}/Std.` : ""].filter(Boolean).join(" · ")}</p>
+${l.length ? `<ul class="ort-liste">${l.map(ortZeile).join("")}</ul>` : `<p class="klein">Noch kein Einsatzort.</p>`}
+${o.darfAendern ? `<details class="termin-neu"><summary>➕ Einsatzort</summary><form method="post" action="/konto/kunden"><input type="hidden" name="aktion" value="ort"><input type="hidden" name="kunde" value="${k.id}">${ortFelder({ strasse: k.strasse, plz: k.plz, ort: k.ort })}<button>Einsatzort speichern</button></form></details>
+<details class="termin-neu"><summary>✏️ Kunde bearbeiten</summary><form method="post" action="/konto/kunden"><input type="hidden" name="aktion" value="kunde"><input type="hidden" name="id" value="${k.id}">${kundeFelder(k, o.bereiche, o.finanzen ? (p !== null ? String(p).replace(".", ",") : "") : null)}<div class="knopf-zeile"><button>Speichern</button><button name="loeschen" value="1" class="zweit">Kunde löschen</button></div></form></details>` : ""}</article>`;
+  };
+  const ohne = orte.filter((x) => !x.kunde_id);
+  return `<p class="klein">Kunden und ihre Einsatzorte. Beim Planen einer Schicht wählst du den Einsatzort; die Einsatzkraft sieht dann Adresse mit Karte, Ansprechpartner, Treffpunkt und Kleidung. Stunden werden dem Kunden zugeordnet, wenn der Einsatz so heißt wie Kunde oder Einsatzort.${o.finanzen ? "" : " Verrechnungssätze sehen nur Personen mit Finanzfreigabe."}</p>
+${o.darfAendern ? `<details class="termin-neu"${kunden.length ? "" : " open"}><summary>➕ Kunde anlegen</summary><form method="post" action="/konto/kunden"><input type="hidden" name="aktion" value="kunde">${kundeFelder({}, o.bereiche, o.finanzen ? "" : null)}<button>Kunde speichern</button></form></details>` : ""}
+${kunden.length ? kunden.map(karte).join("") : `<p class="treffer-leer">Noch keine Kunden.</p>`}
+${ohne.length ? `<h2>Einsatzorte ohne Kunde</h2><ul class="ort-liste">${ohne.map(ortZeile).join("")}</ul>` : ""}`;
+}
+
+export async function kundenLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string, finanzen: boolean) {
+  const [k, o, p] = await Promise.all([
+    db<Kunde[]>(s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz&order=name&limit=1000`),
+    db<Einsatzort[]>(s, env, `einsatzorte?firma_id=eq.${firma}&select=id,kunde_id,name,strasse,plz,ort,ansprechpartner,telefon,treffpunkt,kleidung,hinweise&order=name&limit=3000`),
+    finanzen ? db<Preis[]>(s, env, `kunden_preise?firma_id=eq.${firma}&select=kunde_id,satz&limit=1000`) : Promise.resolve(null),
+  ]);
+  return { kunden: k.ok ? k.daten : [], orte: o.ok ? o.daten : [], preise: p?.ok ? p.daten : [] };
+}
+
+export async function kunden(request: Request, env: KontoEnv): Promise<Response | null> {
+  const url = new URL(request.url);
+  if (url.pathname !== "/konto/kunden") return null;
+  const f = await aktiveFirma(request, env);
+  if (!f) return weiterleiten("/konto");
+  const antwort = (t: string, status = 200) => html(seite("Kunden & Einsatzorte", `<p class="konto-zurueck"><a href="/konto/team" aria-label="Zurück zu Firma &amp; Team">←</a></p>${t}`, 0, "team"), status, f.s.cookies);
+  if (f.m.rolle === "mitarbeiter") return antwort("<p>Das sieht das Büroteam.</p>", 403);
+  const firma = f.m.firma_id;
+  const darfAendern = ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(f.m.rolle);
+  if (request.method === "POST") {
+    const form = await request.formData();
+    const zurueck = (h: string, anker = "") => weiterleiten(`/konto/kunden?hinweis=${encodeURIComponent(h)}${anker}`, f.s.cookies);
+    if (!darfAendern) return zurueck("Ändern dürfen Bearbeiter, Standortleitungen und Admins.");
+    const t = (k: string, max: number) => String(form.get(k) ?? "").replace(/\s+/g, " ").trim().slice(0, max);
+    const uuid = (k: string) => /^[0-9a-f-]{36}$/.test(t(k, 36)) ? t(k, 36) : "";
+    const plz = /^\d{5}$/.test(t("plz", 5)) ? t("plz", 5) : "";
+    const id = uuid("id"), loeschen = form.get("loeschen") === "1";
+    if (t("aktion", 10) === "ort") {
+      const kunde = uuid("kunde") || null;
+      if (loeschen && id) { const r = await db<{ id: string }[]>(f.s, env, `einsatzorte?id=eq.${id}&firma_id=eq.${firma}&select=id`, { method: "DELETE", headers: { prefer: "return=representation" } }); return zurueck(r.ok && r.daten.length ? "Einsatzort gelöscht." : "Löschen hat nicht geklappt.", kunde ? `#kunde-${kunde}` : ""); }
+      const zeile = { firma_id: firma, kunde_id: kunde, name: t("name", 160), strasse: t("strasse", 160), plz, ort: t("ort", 100), ansprechpartner: t("ansprechpartner", 160), telefon: t("telefon", 60), treffpunkt: t("treffpunkt", 300), kleidung: t("kleidung", 300), hinweise: String(form.get("hinweise") ?? "").trim().slice(0, 1000) };
+      if (zeile.name.length < 2) return zurueck("Bitte eine Bezeichnung angeben.");
+      const r = id ? await db(f.s, env, `einsatzorte?id=eq.${id}&firma_id=eq.${firma}`, { method: "PATCH", body: JSON.stringify(zeile) }) : await db(f.s, env, "einsatzorte", { method: "POST", body: JSON.stringify(zeile) });
+      return zurueck(r.ok ? "Einsatzort gespeichert." : "Speichern hat nicht geklappt.", kunde ? `#kunde-${kunde}` : "");
+    }
+    if (loeschen && id) { const r = await db<{ id: string }[]>(f.s, env, `kunden?id=eq.${id}&firma_id=eq.${firma}&select=id`, { method: "DELETE", headers: { prefer: "return=representation" } }); return zurueck(r.ok && r.daten.length ? "Kunde gelöscht." : "Löschen hat nicht geklappt."); }
+    const zeile = { firma_id: firma, name: t("name", 160), strasse: t("strasse", 160), plz, ort: t("ort", 100), ansprechpartner: t("ansprechpartner", 160), telefon: t("telefon", 60), email: t("email", 200), notiz: t("notiz", 500), bereich_id: uuid("bereich") || null };
+    if (zeile.name.length < 2) return zurueck("Bitte einen Namen angeben.");
+    const r = id ? await db<{ id: string }[]>(f.s, env, `kunden?id=eq.${id}&firma_id=eq.${firma}&select=id`, { method: "PATCH", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) })
+      : await db<{ id: string }[]>(f.s, env, "kunden?select=id", { method: "POST", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) });
+    if (!r.ok || !r.daten.length) return zurueck(r.ok ? "Speichern hat nicht geklappt." : /duplicate|23505/.test(r.fehler) ? "Diesen Kunden gibt es schon." : "Speichern hat nicht geklappt. Hast du Rechte für diesen Standort?");
+    const kid = r.daten[0].id, satzText = t("satz", 9).replace(",", ".");
+    if (f.finanzen && form.has("satz")) {
+      const satz = Number(satzText);
+      if (satzText && Number.isFinite(satz) && satz >= 0 && satz <= 10000) await db(f.s, env, "kunden_preise?on_conflict=firma_id,kunde_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ firma_id: firma, kunde_id: kid, satz: Math.round(satz * 100) / 100, geaendert: new Date().toISOString() }) });
+      else if (!satzText) await db(f.s, env, `kunden_preise?firma_id=eq.${firma}&kunde_id=eq.${kid}`, { method: "DELETE" });
+    }
+    return zurueck("Kunde gespeichert.", `#kunde-${kid}`);
+  }
+  const [d, b] = await Promise.all([kundenLaden(f.s, env, firma, f.finanzen), db<{ id: string; name: string }[]>(f.s, env, `bereiche?firma_id=eq.${firma}&select=id,name&order=name`)]);
+  const hinweis = url.searchParams.get("hinweis");
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${kundenSeite(d.kunden, d.orte, d.preise, { darfAendern, finanzen: f.finanzen, bereiche: b.ok ? b.daten : [] })}`);
+}
