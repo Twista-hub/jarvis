@@ -41,6 +41,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101040000_unterlagen_ordner_referenzen.sql
 \ir ../migrations/20261101050000_kalkulationsprofile_zuschlagvergleich.sql
 \ir ../migrations/20261101060000_zuschlag_vergleich_robust.sql
+\ir ../migrations/20261101070000_team_abwesenheit_kontakt_protokoll.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -486,6 +487,44 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*)=0 from public.kalkulationsprofile), 'Fremde Firma sieht keine Kalkulationsvorlagen');
 select pruefe((select count(*)=0 from public.zuschlag_vergleich(:'firma', array['Reinigung'], array['90910000'])), 'Fremde bekommen keinen Zuschlagsvergleich dieser Firma');
 reset role;
+
+-- Team: absences follow the worker's location rights, contacts per location, change log only for owners.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.personal (firma_id, bereich_id, vorname, nachname) values (:'firma', :'berlin', 'Protokoll', 'Berlin') returning id as p_berlin \gset
+insert into public.personal (firma_id, bereich_id, vorname, nachname) values (:'firma', :'hamburg', 'Protokoll', 'Hamburg') returning id as p_hamburg \gset
+update public.personal set status = 'einsatz' where id = :'p_berlin';
+update public.bereiche set ansprechpartner = 'Frau Berg', telefon = '030 123' where id = :'berlin';
+select pruefe((select count(*) >= 1 from public.aenderungsprotokoll where bereich = 'personal' and aktion = 'UPDATE' and datensatz = 'Protokoll Berlin'
+  and aenderungen @> '[{"feld": "status", "alt": "verfuegbar", "neu": "einsatz"}]'), 'Protokoll hält Statusänderung mit alt und neu fest');
+select pruefe((select count(*) = 1 from public.aenderungsprotokoll where bereich = 'bereiche' and aktion = 'UPDATE' and wer <> ''), 'Protokoll nennt, wer den Standort geändert hat');
+do $$ begin
+  insert into public.aenderungsprotokoll (firma_id, bereich, aktion) values (current_setting('test.firma')::uuid, 'x', 'INSERT');
+  raise exception 'FEHLER: Protokoll von Hand beschrieben';
+exception when insufficient_privilege then null; end $$;
+reset role;
+select set_config('test.uid', '', false);
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.personal_abwesenheiten (firma_id, personal_id, von, bis) values (:'firma', :'p_berlin', current_date, current_date + 10);
+select pruefe((select count(*) = 1 from public.personal_abwesenheiten where personal_id = :'p_berlin'), 'Bearbeiter trägt Urlaub am eigenen Standort ein');
+do $$ begin
+  insert into public.personal_abwesenheiten (firma_id, personal_id, von, bis)
+    select current_setting('test.firma')::uuid, id, current_date, current_date + 1 from public.personal where vorname = 'Protokoll' and nachname = 'Hamburg';
+  if found then raise exception 'FEHLER: Urlaub an fremdem Standort eingetragen'; end if;
+exception when insufficient_privilege or check_violation then null; end $$;
+select pruefe((select count(*) = 0 from public.aenderungsprotokoll), 'Bearbeiter sieht das Änderungsprotokoll nicht');
+select pruefe((select ansprechpartner = 'Frau Berg' from public.bereiche where id = :'berlin'), 'Ansprechpartner des Standorts ist für das Team sichtbar');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.aenderungsprotokoll), 'Fremde Firma sieht kein Protokoll');
+select pruefe((select count(*) = 0 from public.personal_abwesenheiten), 'Fremde Firma sieht keine Abwesenheiten');
+select test_als('00000000-0000-0000-0000-00000000000a');
+select pruefe((select count(*) >= 1 from public.aenderungsprotokoll where bereich = 'personal_abwesenheiten' and datensatz = 'Protokoll Berlin'), 'Inhaber sieht den eingetragenen Urlaub im Protokoll');
+reset role;
+select pruefe((select count(*) = 0 from public.aenderungsprotokoll where user_id is null), 'Hintergrundänderungen ohne Person werden nicht protokolliert');
+select set_config('test.uid', '', false);
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.
 reset role;

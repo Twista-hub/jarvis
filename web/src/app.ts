@@ -148,9 +148,10 @@ document.querySelectorAll("[data-sofort-wahl]").forEach(function (w) {
   w.addEventListener("change", function () { w.form.submit(); });
 });
 // Direct links from the employee form open the tariff manager on "Firma & Team".
-if (location.hash === "#tarifvertraege") {
-  var tarifverwaltung = document.getElementById("tarifvertraege");
-  if (tarifverwaltung) tarifverwaltung.open = true;
+// The same for any folded section named in the address (e.g. back to an edited worker: #bearbeiten-<id>).
+if (/^#[A-Za-z0-9_-]{1,80}$/.test(location.hash)) {
+  var ziel = document.getElementById(location.hash.slice(1));
+  if (ziel && ziel.tagName === "DETAILS") ziel.open = true;
 }
 // An employee's wage group is specific to the selected tariff agreement.
 document.querySelectorAll("select[data-tarifvertrag]").forEach(function (tarif) {
