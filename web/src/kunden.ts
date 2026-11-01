@@ -5,22 +5,27 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 
-export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; email: string; notiz: string };
+export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; email: string; notiz: string; bz_tarif?: string; bz_prozente?: (number | string)[] };
 export type Einsatzort = { id: string; kunde_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; treffpunkt: string; kleidung: string; hinweise: string };
-export type Preis = { kunde_id: string; satz: number | string };
+export type Preis = { kunde_id: string; satz: number | string; zuschlag_nacht?: number | string; zuschlag_sonntag?: number | string; zuschlag_feiertag?: number | string };
+// T38: sector surcharge agreements (temporary work). Only the metal/electrical preset is filled in; please check against the current agreement.
+export const BZ_VORLAGEN: Record<string, number[]> = { "Metall- und Elektroindustrie (TV BZ ME)": [15, 20, 30, 45, 50] };
+export const BZ_STUFEN = ["6 Wochen", "3 Monate", "5 Monate", "7 Monate", "9 Monate"];
 const euro = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 export const adresse = (x: { strasse: string; plz: string; ort: string }) => [x.strasse, [x.plz, x.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 /** Map link for an address (opens the phone's map app via OpenStreetMap search). */
 export const kartenLink = (x: { strasse: string; plz: string; ort: string; name?: string }) => `https://www.openstreetmap.org/search?query=${encodeURIComponent(adresse(x) || x.name || "")}`;
 
-const kundeFelder = (k: Partial<Kunde>, bereiche: { id: string; name: string }[], preis: string | null) => `<div class="aueg-form">
+const kundeFelder = (k: Partial<Kunde>, bereiche: { id: string; name: string }[], preis: string | null, zuschlaege: [string, string, string] = ["", "", ""]) => `<div class="aueg-form">
 <label class="ganz">Name<input name="name" required maxlength="160" value="${escape(k.name ?? "")}"></label>
 <label class="ganz">Straße und Nr.<input name="strasse" maxlength="160" value="${escape(k.strasse ?? "")}"></label>
 <label>PLZ<input name="plz" maxlength="5" inputmode="numeric" pattern="\\d{5}" value="${escape(k.plz ?? "")}"></label><label>Ort<input name="ort" maxlength="100" value="${escape(k.ort ?? "")}"></label>
 <label>Ansprechpartner<input name="ansprechpartner" maxlength="160" value="${escape(k.ansprechpartner ?? "")}"></label><label>Telefon<input name="telefon" type="tel" maxlength="60" value="${escape(k.telefon ?? "")}"></label>
 <label class="ganz">E-Mail<input name="email" type="email" maxlength="200" value="${escape(k.email ?? "")}"></label>
 ${bereiche.length ? `<label>Standort<select name="bereich"><option value="">ganze Firma</option>${bereiche.map((b) => `<option value="${b.id}"${k.bereich_id === b.id ? " selected" : ""}>${escape(b.name)}</option>`).join("")}</select></label>` : ""}
-${preis !== null ? `<label>Verrechnungssatz (€/Std., netto)<input name="satz" inputmode="decimal" maxlength="9" value="${escape(preis)}" placeholder="z. B. 32,50"></label>` : ""}
+${preis !== null ? `<label>Verrechnungssatz (€/Std., netto)<input name="satz" inputmode="decimal" maxlength="9" value="${escape(preis)}" placeholder="z. B. 32,50"></label><fieldset class="ganz"><legend>Zuschläge auf der Rechnung (% vom Satz)</legend><div class="drei"><label>Nacht<input name="z_nacht" inputmode="decimal" maxlength="6" value="${escape(zuschlaege[0])}"></label><label>Sonntag<input name="z_sonntag" inputmode="decimal" maxlength="6" value="${escape(zuschlaege[1])}"></label><label>Feiertag<input name="z_feiertag" inputmode="decimal" maxlength="6" value="${escape(zuschlaege[2])}"></label></div></fieldset>` : ""}
+<details class="ganz bz-felder"${(k.bz_prozente ?? []).length ? " open" : ""}><summary class="klein">Branchenzuschläge Zeitarbeit (TV BZ)</summary><label>Tarif<input name="bz_tarif" maxlength="80" list="bz-vorlagen" value="${escape(k.bz_tarif ?? "")}" placeholder="z. B. Metall- und Elektroindustrie (TV BZ ME)"></label><datalist id="bz-vorlagen">${Object.keys(BZ_VORLAGEN).map((v) => `<option value="${v}">`).join("")}</datalist>
+<p class="klein">Zuschlag in % nach Einsatzdauer beim Kunden:</p><div class="fuenf">${BZ_STUFEN.map((st, i) => `<label title="nach ${st}">${st.replace(" Wochen", " Wo.").replace(" Monate", " Mon.")}<input name="bz_${i}" inputmode="decimal" maxlength="5" value="${escape(String((k.bz_prozente ?? [])[i] ?? ""))}"></label>`).join("")}</div><p class="klein">Leer lassen, wenn kein Branchenzuschlag gilt. Bei der Vorlage Metall/Elektro füllt Jarvis 15/20/30/45/50 % aus; bitte mit dem aktuellen Tarifvertrag abgleichen.</p></details>
 <label class="ganz">Notiz<input name="notiz" maxlength="500" value="${escape(k.notiz ?? "")}"></label></div>`;
 
 const ortFelder = (o: Partial<Einsatzort>) => `<div class="aueg-form">
@@ -43,6 +48,7 @@ export function ortInfo(o: Einsatzort): string {
 
 export function kundenSeite(kunden: Kunde[], orte: Einsatzort[], preise: Preis[], o: { darfAendern: boolean; finanzen: boolean; bereiche: { id: string; name: string }[]; offen?: string }): string {
   const preis = (id: string) => { const p = preise.find((x) => x.kunde_id === id); return p ? Number(p.satz) : null; };
+  const zuschlaegeVon = (id: string): [string, string, string] => { const p = preise.find((x) => x.kunde_id === id); const f = (v?: number | string) => Number(v ?? 0) ? String(Number(v)).replace(".", ",") : ""; return [f(p?.zuschlag_nacht), f(p?.zuschlag_sonntag), f(p?.zuschlag_feiertag)]; };
   const ortZeile = (x: Einsatzort) => `<li><details${o.offen === x.id ? " open" : ""}><summary><strong>${escape(x.name)}</strong><span class="klein">${escape(adresse(x) || "ohne Adresse")}${x.treffpunkt ? ` · 🚪 ${escape(x.treffpunkt)}` : ""}</span></summary><div class="ort-info">${ortInfo(x)}</div>
 ${o.darfAendern ? `<details class="ort-bearbeiten"><summary class="klein">✏️ Bearbeiten</summary><form method="post" action="/konto/kunden"><input type="hidden" name="aktion" value="ort"><input type="hidden" name="id" value="${x.id}"><input type="hidden" name="kunde" value="${x.kunde_id ?? ""}">${ortFelder(x)}<div class="knopf-zeile"><button>Speichern</button><button name="loeschen" value="1" class="zweit">Löschen</button></div></form></details>` : ""}</details></li>`;
   const karte = (k: Kunde) => {
@@ -50,7 +56,7 @@ ${o.darfAendern ? `<details class="ort-bearbeiten"><summary class="klein">✏️
     return `<article class="kunde-karte" id="kunde-${k.id}"><h3>🏢 ${escape(k.name)}</h3><p class="klein">${[escape(adresse(k)), k.ansprechpartner ? `👤 ${escape(k.ansprechpartner)}` : "", k.telefon ? `☎️ ${escape(k.telefon)}` : "", o.finanzen && p !== null ? `💶 ${euro(p)}/Std.` : ""].filter(Boolean).join(" · ")}</p>
 ${l.length ? `<ul class="ort-liste">${l.map(ortZeile).join("")}</ul>` : `<p class="klein">Noch kein Einsatzort.</p>`}
 ${o.darfAendern ? `<details class="termin-neu"><summary>➕ Einsatzort</summary><form method="post" action="/konto/kunden"><input type="hidden" name="aktion" value="ort"><input type="hidden" name="kunde" value="${k.id}">${ortFelder({ strasse: k.strasse, plz: k.plz, ort: k.ort })}<button>Einsatzort speichern</button></form></details>
-<details class="termin-neu"><summary>✏️ Kunde bearbeiten</summary><form method="post" action="/konto/kunden"><input type="hidden" name="aktion" value="kunde"><input type="hidden" name="id" value="${k.id}">${kundeFelder(k, o.bereiche, o.finanzen ? (p !== null ? String(p).replace(".", ",") : "") : null)}<div class="knopf-zeile"><button>Speichern</button><button name="loeschen" value="1" class="zweit">Kunde löschen</button></div></form></details>` : ""}</article>`;
+<details class="termin-neu"><summary>✏️ Kunde bearbeiten</summary><form method="post" action="/konto/kunden"><input type="hidden" name="aktion" value="kunde"><input type="hidden" name="id" value="${k.id}">${kundeFelder(k, o.bereiche, o.finanzen ? (p !== null ? String(p).replace(".", ",") : "") : null, zuschlaegeVon(k.id))}<div class="knopf-zeile"><button>Speichern</button><button name="loeschen" value="1" class="zweit">Kunde löschen</button></div></form></details>` : ""}</article>`;
   };
   const ohne = orte.filter((x) => !x.kunde_id);
   return `<p class="klein">Kunden und ihre Einsatzorte. Beim Planen einer Schicht wählst du den Einsatzort; die Einsatzkraft sieht dann Adresse mit Karte, Ansprechpartner, Treffpunkt und Kleidung. Stunden werden dem Kunden zugeordnet, wenn der Einsatz so heißt wie Kunde oder Einsatzort.${o.finanzen ? "" : " Verrechnungssätze sehen nur Personen mit Finanzfreigabe."}</p>
@@ -61,9 +67,9 @@ ${ohne.length ? `<h2>Einsatzorte ohne Kunde</h2><ul class="ort-liste">${ohne.map
 
 export async function kundenLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string, finanzen: boolean) {
   const [k, o, p] = await Promise.all([
-    db<Kunde[]>(s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz&order=name&limit=1000`),
+    db<Kunde[]>(s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz,bz_tarif,bz_prozente&order=name&limit=1000`),
     db<Einsatzort[]>(s, env, `einsatzorte?firma_id=eq.${firma}&select=id,kunde_id,name,strasse,plz,ort,ansprechpartner,telefon,treffpunkt,kleidung,hinweise&order=name&limit=3000`),
-    finanzen ? db<Preis[]>(s, env, `kunden_preise?firma_id=eq.${firma}&select=kunde_id,satz&limit=1000`) : Promise.resolve(null),
+    finanzen ? db<Preis[]>(s, env, `kunden_preise?firma_id=eq.${firma}&select=kunde_id,satz,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag&limit=1000`) : Promise.resolve(null),
   ]);
   return { kunden: k.ok ? k.daten : [], orte: o.ok ? o.daten : [], preise: p?.ok ? p.daten : [] };
 }
@@ -94,7 +100,12 @@ export async function kunden(request: Request, env: KontoEnv): Promise<Response 
       return zurueck(r.ok ? "Einsatzort gespeichert." : "Speichern hat nicht geklappt.", kunde ? `#kunde-${kunde}` : "");
     }
     if (loeschen && id) { const r = await db<{ id: string }[]>(f.s, env, `kunden?id=eq.${id}&firma_id=eq.${firma}&select=id`, { method: "DELETE", headers: { prefer: "return=representation" } }); return zurueck(r.ok && r.daten.length ? "Kunde gelöscht." : "Löschen hat nicht geklappt."); }
-    const zeile = { firma_id: firma, name: t("name", 160), strasse: t("strasse", 160), plz, ort: t("ort", 100), ansprechpartner: t("ansprechpartner", 160), telefon: t("telefon", 60), email: t("email", 200), notiz: t("notiz", 500), bereich_id: uuid("bereich") || null };
+    const bzTarif = t("bz_tarif", 80);
+    const pz = (k: string) => { const n = Number(t(k, 6).replace(",", ".")); return t(k, 6) && Number.isFinite(n) && n >= 0 && n <= 300 ? Math.round(n * 100) / 100 : null; };
+    let bz = [0, 1, 2, 3, 4].map((i) => pz(`bz_${i}`));
+    if (bz.every((x) => x === null) && BZ_VORLAGEN[bzTarif]) bz = BZ_VORLAGEN[bzTarif];
+    const zeile = { firma_id: firma, name: t("name", 160), strasse: t("strasse", 160), plz, ort: t("ort", 100), ansprechpartner: t("ansprechpartner", 160), telefon: t("telefon", 60), email: t("email", 200), notiz: t("notiz", 500), bereich_id: uuid("bereich") || null,
+      bz_tarif: bzTarif, bz_prozente: bz.some((x) => x !== null) ? bz.map((x) => x ?? 0) : [] };
     if (zeile.name.length < 2) return zurueck("Bitte einen Namen angeben.");
     const r = id ? await db<{ id: string }[]>(f.s, env, `kunden?id=eq.${id}&firma_id=eq.${firma}&select=id`, { method: "PATCH", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) })
       : await db<{ id: string }[]>(f.s, env, "kunden?select=id", { method: "POST", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) });
@@ -102,7 +113,7 @@ export async function kunden(request: Request, env: KontoEnv): Promise<Response 
     const kid = r.daten[0].id, satzText = t("satz", 9).replace(",", ".");
     if (f.finanzen && form.has("satz")) {
       const satz = Number(satzText);
-      if (satzText && Number.isFinite(satz) && satz >= 0 && satz <= 10000) await db(f.s, env, "kunden_preise?on_conflict=firma_id,kunde_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ firma_id: firma, kunde_id: kid, satz: Math.round(satz * 100) / 100, geaendert: new Date().toISOString() }) });
+      if (satzText && Number.isFinite(satz) && satz >= 0 && satz <= 10000) await db(f.s, env, "kunden_preise?on_conflict=firma_id,kunde_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ firma_id: firma, kunde_id: kid, satz: Math.round(satz * 100) / 100, zuschlag_nacht: pz("z_nacht") ?? 0, zuschlag_sonntag: pz("z_sonntag") ?? 0, zuschlag_feiertag: pz("z_feiertag") ?? 0, geaendert: new Date().toISOString() }) });
       else if (!satzText) await db(f.s, env, `kunden_preise?firma_id=eq.${firma}&kunde_id=eq.${kid}`, { method: "DELETE" });
     }
     return zurueck("Kunde gespeichert.", `#kunde-${kid}`);

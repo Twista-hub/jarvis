@@ -8,7 +8,7 @@ import { db, html, weiterleiten, type KontoEnv, type Sitzung } from "./konto.ts"
 import { escape, seite } from "./seite.ts";
 import { absatz, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
 
-export type Profil = { rechtsform: string; registergericht: string; registernummer: string; gruendungsjahr: number | null; mitarbeiter: number | null; website: string; email: string; ustid: string; geschaeftsfuehrung: string; taetigkeit: string; logo: string | null; bundesland?: string };
+export type Profil = { rechtsform: string; registergericht: string; registernummer: string; gruendungsjahr: number | null; mitarbeiter: number | null; website: string; email: string; ustid: string; geschaeftsfuehrung: string; taetigkeit: string; logo: string | null; bundesland?: string; steuernummer?: string; kleinunternehmer?: boolean; zahlungshinweis?: string };
 export type Firma = { name: string; strasse: string | null; plz: string | null; ort: string | null; telefon: string | null };
 export type Kennzahl = { jahr: number; umsatz: number | string | null; beschaeftigte: number | null };
 export type Zertifikat = { id: string; art: string; bezeichnung: string; nummer: string; aussteller: string; gueltig_bis: string | null };
@@ -81,7 +81,9 @@ ${feld("email", "E-Mail", q.email, ' maxlength="200" type="email"')}${feld("webs
 ${feld("gruendungsjahr", "Gründungsjahr", q.gruendungsjahr, ' inputmode="numeric" maxlength="4"')}
 ${feld("registergericht", "Registergericht", q.registergericht, ' maxlength="100" placeholder="z. B. Amtsgericht Aachen"')}${feld("registernummer", "Registernummer", q.registernummer, ' maxlength="60" placeholder="z. B. HRB 12345"')}
 ${feld("geschaeftsfuehrung", "Geschäftsführung / Inhaber", q.geschaeftsfuehrung, ' maxlength="300"')}${feld("mitarbeiter", "Beschäftigte (aktuell)", q.mitarbeiter, ' inputmode="numeric"')}
-${feld("ustid", "USt-IdNr. (falls vorhanden)", q.ustid, ' maxlength="20" placeholder="DE123456789"')}<label class="ganz">Bundesland (für Feiertage und Zuschläge)<select name="bundesland"${ro ? " disabled" : ""}><option value="">aus der PLZ${landAusPlz(f.plz) ? ` (${LAENDER[landAusPlz(f.plz)]})` : ""}</option>${Object.entries(LAENDER).map(([k, n]) => `<option value="${k}"${q.bundesland === k ? " selected" : ""}>${n}</option>`).join("")}</select></label>
+${feld("ustid", "USt-IdNr. (falls vorhanden)", q.ustid, ' maxlength="20" placeholder="DE123456789"')}${feld("steuernummer", "Steuernummer", q.steuernummer ?? "", ' maxlength="30" placeholder="für Rechnungen"')}<label class="zeile"><input type="checkbox" name="kleinunternehmer"${q.kleinunternehmer ? " checked" : ""}${ro}>Kleinunternehmer (§ 19 UStG, keine Umsatzsteuer)</label>
+<label class="ganz">Zahlungshinweis auf Rechnungen<input name="zahlungshinweis" maxlength="300" value="${escape(q.zahlungshinweis ?? "")}" placeholder="z. B. Bankverbindung: IBAN DE.. · Musterbank"${ro}></label>
+<label class="ganz">Bundesland (für Feiertage und Zuschläge)<select name="bundesland"${ro ? " disabled" : ""}><option value="">aus der PLZ${landAusPlz(f.plz) ? ` (${LAENDER[landAusPlz(f.plz)]})` : ""}</option>${Object.entries(LAENDER).map(([k, n]) => `<option value="${k}"${q.bundesland === k ? " selected" : ""}>${n}</option>`).join("")}</select></label>
 <label class="ganz">Tätigkeitsbereich (kurz, für Angebote)<textarea name="taetigkeit" rows="3" maxlength="2000"${ro}>${escape(q.taetigkeit)}</textarea></label></div>
 ${o.admin ? "<button>Speichern</button>" : '<p class="klein">Ändern dürfen Inhaber und Admins.</p>'}</form>`;
   const jahr = Number(o.heute.slice(0, 4));
@@ -106,7 +108,7 @@ ${o.admin ? "<button>Speichern</button>" : '<p class="klein">Ändern dürfen Inh
 export async function profilLaden(s: Sitzung, env: KontoEnv, firma: string, finanzen: boolean) {
   const [f, p, k, z, bm] = await Promise.all([
     db<(Firma & { name: string })[]>(s, env, `firmen?id=eq.${firma}&select=name,strasse,plz,ort,telefon`),
-    db<Profil[]>(s, env, `firmenprofil?firma_id=eq.${firma}&select=rechtsform,registergericht,registernummer,gruendungsjahr,mitarbeiter,website,email,ustid,geschaeftsfuehrung,taetigkeit,logo,bundesland`),
+    db<Profil[]>(s, env, `firmenprofil?firma_id=eq.${firma}&select=rechtsform,registergericht,registernummer,gruendungsjahr,mitarbeiter,website,email,ustid,geschaeftsfuehrung,taetigkeit,logo,bundesland,steuernummer,kleinunternehmer,zahlungshinweis`),
     finanzen ? db<Kennzahl[]>(s, env, `firmen_kennzahlen?firma_id=eq.${firma}&select=jahr,umsatz,beschaeftigte&order=jahr.desc&limit=10`) : Promise.resolve(null),
     db<Zertifikat[]>(s, env, `firmen_zertifikate?firma_id=eq.${firma}&select=id,art,bezeichnung,nummer,aussteller,gueltig_bis&order=gueltig_bis.nullslast`),
     db<{ art: string }[]>(s, env, `betriebsmittel?firma_id=eq.${firma}&select=art&limit=2000`),
@@ -146,7 +148,7 @@ export async function firmenprofil(request: Request, env: KontoEnv): Promise<Res
       if (t("name", 200).length < 2 || Number.isNaN(gj) || Number.isNaN(ma) || (t("email", 200) && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(t("email", 200)))) return zurueck("Bitte die Angaben prüfen (Name, Jahr, Zahl, E-Mail).");
       // The firm's row (name, address) may only be changed by the owner (database rule); admins save the profile.
       const firmenZeile = f.m.rolle === "inhaber" ? await db(f.s, env, `firmen?id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ name: t("name", 200), strasse: t("strasse", 200), plz: t("plz", 10), ort: t("ort", 100), telefon: t("telefon", 40) }) }) : { ok: true };
-      const r = await db(f.s, env, "firmenprofil?on_conflict=firma_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ firma_id: firma, rechtsform: t("rechtsform", 60), registergericht: t("registergericht", 100), registernummer: t("registernummer", 60), gruendungsjahr: gj, mitarbeiter: ma, website: t("website", 200), email: t("email", 200), ustid: t("ustid", 20).toUpperCase().replace(/\s/g, ""), geschaeftsfuehrung: t("geschaeftsfuehrung", 300), taetigkeit: String(form.get("taetigkeit") ?? "").trim().slice(0, 2000), bundesland: String(form.get("bundesland") ?? "") in LAENDER ? String(form.get("bundesland")) : "", geaendert: new Date().toISOString() }) });
+      const r = await db(f.s, env, "firmenprofil?on_conflict=firma_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ firma_id: firma, rechtsform: t("rechtsform", 60), registergericht: t("registergericht", 100), registernummer: t("registernummer", 60), gruendungsjahr: gj, mitarbeiter: ma, website: t("website", 200), email: t("email", 200), ustid: t("ustid", 20).toUpperCase().replace(/\s/g, ""), geschaeftsfuehrung: t("geschaeftsfuehrung", 300), taetigkeit: String(form.get("taetigkeit") ?? "").trim().slice(0, 2000), bundesland: String(form.get("bundesland") ?? "") in LAENDER ? String(form.get("bundesland")) : "", steuernummer: t("steuernummer", 30), kleinunternehmer: form.get("kleinunternehmer") === "on", zahlungshinweis: t("zahlungshinweis", 300), geaendert: new Date().toISOString() }) });
       return zurueck(r.ok && firmenZeile.ok ? `Gespeichert.${f.m.rolle !== "inhaber" ? " Name und Anschrift kann nur der Inhaber ändern." : ""}` : "Speichern hat nicht geklappt.");
     }
     if (aktion === "kennzahlen") {

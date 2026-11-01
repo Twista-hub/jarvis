@@ -915,10 +915,11 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .ich-liste li:has(> .ort-details) { flex-wrap: wrap; } .ich-liste li > .ort-details { flex: 1 1 100%; }
   .ort-details { margin: 4px 0 0; padding: 0; border: 0; background: none; box-shadow: none; } .ort-details summary { min-height: 0; padding: 0; }
   .knopf-zeile { display: flex; gap: 6px; } .knopf-zeile button { flex: 1; }
+  .nachweis-liste li { display: grid; grid-template-columns: 1fr; gap: 6px; align-items: start; } .nachweis-liste .nachweis-status { margin: 0; }
   .nachweis-liste li .knopf { width: auto; min-height: 34px; padding: 4px 12px; font-size: 13px; white-space: nowrap; }
   .ausfall-melden { margin: 0 0 10px; border-color: color-mix(in srgb, var(--error) 50%, var(--line)); } .ausfall-melden summary { color: var(--error); font-weight: 600; }
   /* Firma & Team part 5 (T23–T28). */
-  .mehr-warnungen { flex-basis: 100%; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .mehr-warnungen summary { min-height: 0; padding: 0; font-size: 13px; } .mehr-warnungen[open] { display: flex; flex-wrap: wrap; gap: 6px 14px; } .mehr-warnungen[open] summary { flex-basis: 100%; }
+  .mehr-warnungen { flex-basis: 100%; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .mehr-warnungen summary { min-height: 0; padding: 0; font-size: 13px; } .mehr-liste { display: flex; flex-wrap: wrap; gap: 6px 14px; margin-top: 6px; }
   .werkzeug-gruppe { margin: 10px 0 2px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
   .konto-kacheln.team-werkzeuge { margin: 4px 0 8px; }
   .psa-person, .bewerber, .checkliste { margin: 6px 0; } .psa-person > summary, .bewerber > summary, .checkliste > summary { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; } .psa-person > summary > *, .bewerber > summary > *, .checkliste > summary > * { grid-column: 1; } .psa-person > summary::after, .bewerber > summary::after, .checkliste > summary::after { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
@@ -944,6 +945,34 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .zu-tabelle td, .zu-tabelle th { text-align: center; font-size: 13px; padding: 3px 6px; } .zu-tabelle td:first-child, .zu-tabelle th:first-child { text-align: left; }
   .sterne { color: #d68910; letter-spacing: 1px; white-space: nowrap; }
   .urlaub-konto { margin: 0 0 6px; }
+  /* T34–T45 */
+  .ich-oben { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .ich-oben .konto-zurueck { margin: 0; }
+  .sprache-wahl { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; align-items: center; font-size: 13px; }
+  .sprache-wahl a { flex: none; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--muted); text-decoration: none; font-weight: 600; }
+  .sprache-wahl a[aria-current] { border-color: var(--accent); color: var(--accent); }
+  .unterschrift-feld { display: grid; gap: 4px; margin: 6px 0; grid-column: 1 / -1; width: 100%; } .unterschrift-feld canvas { width: 100%; height: auto; aspect-ratio: 5 / 2; max-width: 100%; border: 1px dashed var(--line); border-radius: 10px; background: #fff; touch-action: none; }
+  .unterschrift-feld button { justify-self: end; min-height: 30px; padding: 2px 10px; font-size: 13px; }
+  .stempeluhr { margin: 8px 0 12px; } .stempeluhr h3 { margin: 6px 0 2px; } .stempel-status { margin: 0 0 6px; font-weight: 600; }
+  .stempeluhr form { display: grid; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+  .stempeluhr .knopf-zeile { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; } .stempeluhr .knopf-zeile button { min-height: 46px; font-size: 1.05rem; }
+  .nachweis-knoepfe { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; } .nachweis-knoepfe form { margin: 0; display: flex; gap: 6px; align-items: center; } .nachweis-knoepfe .knopf, .nachweis-knoepfe button { min-height: 34px; padding: 4px 10px; font-size: 14px; }
+  .nachweis-status { font-size: 13px; margin: 4px 0; } .nachweis-status.ok { color: var(--ok, #1a7f37); } .nachweis-status.frage { color: var(--warn, #9a6700); }
+  .drei { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; } .fuenf { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 6px; } .fuenf input { padding-left: 6px; padding-right: 4px; }
+  .bz-felder { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; } .bz-felder legend { font-weight: 600; font-size: 14px; }
+  .teilen { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
+  .nachweis-tabelle td, .nachweis-tabelle th { white-space: nowrap; } .tabelle-scroll { overflow-x: auto; }
+  .minus { color: var(--error); } .plus { color: var(--ok, #1a7f37); }
+  .aueg-bz { display: block; margin-top: 2px; }
+  .kraefte-liste { display: grid; gap: 6px; margin: 8px 0; } @media (min-width: 760px) { .kraefte-liste { grid-template-columns: 1fr 1fr; } }
+  .kraft-zeile { display: flex; gap: 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); cursor: pointer; }
+  .kraft-zeile input { width: 20px; height: 20px; flex: none; margin: 0; } .kraft-zeile > span { display: grid; min-width: 0; }
+  .einladungen-karten { display: grid; gap: 10px; margin: 10px 0; } @media (min-width: 760px) { .einladungen-karten { grid-template-columns: 1fr 1fr; } }
+  .einladung-karte { display: grid; grid-template-columns: 112px 1fr; gap: 10px; align-items: start; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); break-inside: avoid; }
+  .einladung-karte h3 { margin: 0 0 6px; } .einladung-karte .teilen { margin: 0 0 6px; } .einladung-karte .knopf { min-height: 34px; padding: 4px 12px; }
+  .einladung-qr svg, svg.qr { display: block; width: 112px; height: 112px; }
+  .nur-drucken { display: none; }
+  @media print { .nicht-drucken, .konto-zurueck { display: none !important; } .nur-drucken { display: block; } .einladungen-karten { grid-template-columns: 1fr 1fr; } .einladung-karte { border: 1px solid #999; } .einladung-qr svg { width: 150px; height: 150px; } .einladung-karte { grid-template-columns: 150px 1fr; } }
+  html[dir="rtl"] .konto-zurueck a { transform: scaleX(-1); display: inline-block; }
 </style>
 </head>
 <body><main>

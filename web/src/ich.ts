@@ -2,7 +2,8 @@
 // request leave (stays "beantragt" until the office confirms) and upload their own proofs. The database only shows
 // them their own record (policies "eigene" in 20261101160000).
 import { aktiveFirma } from "./firmenunterlagen.ts";
-import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
+import { COOKIE, db, html, weiterleiten, type KontoEnv } from "./konto.ts";
+import { SPRACHEN, spracheAus, sprachWahl, uebersetzen } from "./sprache.ts";
 import { escape, seite } from "./seite.ts";
 import { GRUENDE, zeitraumText, type Abwesenheit } from "./personal.ts";
 import { ampel, NACHWEIS_VORSCHLAEGE, plusTage, type Nachweis } from "./personalakte.ts";
@@ -11,6 +12,11 @@ import { meineSchichtenTeil, type Schicht } from "./schichten.ts";
 import { meinePsaTeil, type Psa } from "./psa.ts";
 import { meinUrlaubText, stand, type Konto } from "./urlaub.ts";
 import { landDerFirma } from "./stunden.ts";
+import { stempeln, stempelTeil, type Stempel } from "./stempel.ts";
+import { offeneSchichtenTeil } from "./schichten.ts";
+import { meineSpesenTeil, speseSpeichern, belegSchluessel, type Spese } from "./spesen.ts";
+import { hm, zeitkonto, zeitkontoDaten } from "./zeitkonto.ts";
+import { pngAusDataUrl, schluessel as uSchluessel, unterschriftFeld } from "./unterschrift.ts";
 
 export type Ich = { id: string; firma_id: string; vorname: string; nachname: string; berufe: string[]; qualifikationen: string[]; status: string };
 export type MeinAuftrag = { titel: string; beginn: string | null; ende: string | null };
@@ -27,7 +33,7 @@ const passtZuTyp = (b: Uint8Array, typ: string) => typ === "application/pdf" ? b
 /** Next due date of an instruction (never done = due now). */
 export const naechsteUnterweisung = (u: MeineUnterweisung, heute: string) => u.letzte ? plusMonate(u.letzte, u.intervall_monate || 12) : heute;
 
-export function ichSeite(d: { ich: Ich; auftraege: MeinAuftrag[]; ueberlassungen: MeineUeberlassung[]; abwesenheiten: MeineAbwesenheit[]; nachweise: Nachweis[]; unterweisungen: MeineUnterweisung[]; heute: string; stunden?: Eintrag[]; schichten?: Schicht[]; psa?: Psa[]; urlaubText?: string }): string {
+export function ichSeite(d: { ich: Ich; auftraege: MeinAuftrag[]; ueberlassungen: MeineUeberlassung[]; abwesenheiten: MeineAbwesenheit[]; nachweise: Nachweis[]; unterweisungen: MeineUnterweisung[]; heute: string; stunden?: Eintrag[]; schichten?: Schicht[]; psa?: Psa[]; urlaubText?: string; oben?: string; unten?: string; zeitkontoText?: string }): string {
   const { ich, heute } = d;
   const laufend = (von: string | null, bis: string | null) => (!von || von <= heute) && (!bis || bis >= heute);
   const einsaetze = [
@@ -40,16 +46,16 @@ export function ichSeite(d: { ich: Ich; auftraege: MeinAuftrag[]; ueberlassungen
   const unterweisungen = d.unterweisungen.map((u) => ({ ...u, faellig: naechsteUnterweisung(u, heute) })).sort((a, b) => a.faellig.localeCompare(b.faellig));
   return `<div class="ich-kopf"><h2>👋 Hallo ${escape(ich.vorname)}</h2><p class="klein">${escape([ich.berufe.join(", "), ich.qualifikationen.join(", ")].filter(Boolean).join(" · ")) || "Beruf noch nicht eingetragen"}</p></div>
 <details class="ausfall-melden"><summary>🚨 Ich falle kurzfristig aus</summary><form method="post" action="/konto/ich"><input type="hidden" name="aktion" value="ausfall"><div class="aueg-form"><label>Wann?<select name="tag"><option value="${heute}">heute</option><option value="${plusTage(heute, 1)}">morgen</option></select></label><label>Notiz (freiwillig)<input name="notiz" maxlength="200" placeholder="z. B. Kind krank, Auto kaputt"></label></div><button>Ausfall melden</button><p class="klein">Bitte keine Gesundheitsangaben. Deine Schichten an dem Tag werden abgesagt und das Büro wird benachrichtigt. Eine Krankmeldung gibst du wie gewohnt ab.</p></form></details>
-<div class="ich-raster">
+${d.oben ?? ""}<div class="ich-raster">
 <section><h3>📋 Meine Einsätze</h3>${einsaetze.length ? `<ul class="kontakt-liste ich-liste">${einsaetze.map((e) => `<li class="${laufend(e.von, e.bis) ? "aktiv" : ""}"><div><strong>${escape(e.titel)}</strong><span class="klein">${zeitraum(e.von, e.bis)}${laufend(e.von, e.bis) ? " · läuft" : ""}</span></div></li>`).join("")}</ul>` : `<p class="treffer-leer">Gerade keine Einsätze eingetragen.</p>`}</section>
-${meineSchichtenTeil(d.schichten ?? [], heute)}${d.stunden ? meineStundenTeil(d.stunden, laufendeTitel, heute) : ""}
+${meineSchichtenTeil(d.schichten ?? [], heute)}${d.zeitkontoText ?? ""}${d.stunden ? meineStundenTeil(d.stunden, laufendeTitel, heute) : ""}
 <section><h3>🌴 Urlaub &amp; Abwesenheit</h3>${d.urlaubText ?? ""}${abw.length ? `<ul class="kontakt-liste ich-liste">${abw.map((a) => `<li class="${a.status === "beantragt" ? "bald" : ""}"><div><strong>${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[0]} ${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[1]} ${zeitraumText(a)}</strong><span class="klein">${a.status === "beantragt" ? "⏳ beantragt, wartet auf das Büro" : "✅ bestätigt"}${a.notiz ? ` · ${escape(a.notiz)}` : ""}</span></div>${a.status === "beantragt" ? `<form method="post" action="/konto/ich"><input type="hidden" name="zurueckziehen" value="${a.id}"><button class="zweit" aria-label="Antrag zurückziehen">✕</button></form>` : ""}</li>`).join("")}</ul>` : ""}
 <details class="termin-neu"${abw.length ? "" : " open"}><summary>➕ Urlaub beantragen</summary><form method="post" action="/konto/ich"><input type="hidden" name="aktion" value="urlaub"><div class="aueg-form"><label>Von<input type="date" name="von" required min="${heute}"></label><label>Bis<input type="date" name="bis" required min="${heute}"></label><label>Grund<select name="grund"><option value="urlaub">🌴 Urlaub</option><option value="abwesend">⏸️ Nicht verfügbar</option></select></label><label>Notiz<input name="notiz" maxlength="200"></label></div><button>Beantragen</button><p class="klein">Das Büro bestätigt den Antrag. Bitte keine Gesundheitsangaben: Für Krankheit „Nicht verfügbar“ wählen und Bescheinigungen wie gewohnt abgeben.</p></form></details></section>
 <section><h3>🎓 Meine Nachweise</h3>${d.nachweise.length ? `<ul class="kontakt-liste ich-liste">${d.nachweise.map((n) => { const a = ampel(n.gueltig_bis, heute); return `<li class="${a === "rot" ? "abgelaufen" : a === "gelb" ? "bald" : ""}"><div><strong>${escape(n.bezeichnung)}</strong><span class="klein">${n.gueltig_bis ? `${a === "rot" ? "⚠️ abgelaufen am" : a === "gelb" ? "⏳ gültig bis" : "gültig bis"} ${datum(n.gueltig_bis)}` : "ohne Ablauf"}${n.datei_name ? ` · <a href="/konto/ich/nachweis/${n.id}">📎 Datei</a>` : ""}</span></div></li>`; }).join("")}</ul>` : `<p class="treffer-leer">Noch keine Nachweise.</p>`}
 <details class="termin-neu"><summary>➕ Nachweis hochladen</summary><form method="post" action="/konto/ich" enctype="multipart/form-data"><input type="hidden" name="aktion" value="nachweis"><div class="aueg-form"><label class="ganz">Qualifikation<input name="bezeichnung" list="nachweis-vorschlaege" required maxlength="120"></label><datalist id="nachweis-vorschlaege">${NACHWEIS_VORSCHLAEGE.map((v) => `<option value="${v}">`).join("")}</datalist><label>Erworben<input type="date" name="erworben"></label><label>Gültig bis<input type="date" name="gueltig_bis"></label><label class="ganz">Datei (PDF, PNG oder JPG bis 5 MB)<input type="file" name="datei" accept="application/pdf,image/png,image/jpeg" required></label></div><button>Hochladen</button><p class="klein">Ein Foto mit dem Handy reicht. Das Büro sieht den Nachweis sofort in deiner Personalakte.</p></form></details></section>
 ${meinePsaTeil(d.psa ?? [], heute)}
 <section><h3>📋 Unterweisungen</h3>${unterweisungen.length ? `<ul class="kontakt-liste ich-liste">${unterweisungen.map((u) => { const st = u.faellig < heute || !u.letzte ? "abgelaufen" : u.faellig <= plusTage(heute, 30) ? "bald" : ""; return `<li class="${st} unterweisung-ich"><div><strong>${escape(u.titel)}</strong><span class="klein">${u.letzte ? `zuletzt ${datum(u.letzte)}${u.digital ? " 📱" : ""} · ${st === "abgelaufen" ? "⚠️ fällig seit" : "nächste"} ${datum(u.faellig)}` : "⚠️ noch nicht unterwiesen"}</span>${u.id && st && u.beschreibung ? `<details${st === "abgelaufen" ? " open" : ""}><summary class="klein">Inhalt lesen</summary><p class="klein">${escape(u.beschreibung).replace(/\n/g, "<br>")}</p></details>` : ""}</div>${u.id && st && u.letzte !== heute ? `<form method="post" action="/konto/ich"><input type="hidden" name="aktion" value="unterweisung"><input type="hidden" name="id" value="${u.id}"><button class="zweit">✓ Gelesen und verstanden</button></form>` : ""}</li>`; }).join("")}</ul><p class="klein">Mit „Gelesen und verstanden“ bestätigst du die Unterweisung mit Datum. Fragen? Sprich vorher deine Vorgesetzten an.</p>` : `<p class="treffer-leer">Keine Unterweisungen eingetragen.</p>`}</section>
-</div>
+${d.unten ?? ""}</div>
 <p class="klein">Stimmt etwas nicht? Sag im Büro Bescheid; deine Stammdaten pflegt das Büro.</p>`;
 }
 
@@ -61,7 +67,11 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
   const firma = f.m.firma_id;
-  const antwort = (t: string, status = 200) => html(seite("Meine Einsätze & Daten", `<p class="konto-zurueck"><a href="/konto" aria-label="Zurück zur Übersicht">←</a></p>${t}`, 0, ""), status, f.s.cookies);
+  // T42: language of the staff page (cookie jv_sprache, chosen with ?sprache=xx).
+  const wahl = url.searchParams.get("sprache") ?? "";
+  if (request.method === "GET" && SPRACHEN[wahl]) return weiterleiten("/konto/ich", [...f.s.cookies, `jv_sprache=${wahl}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`]);
+  const sprache = spracheAus(request);
+  const antwort = (t: string, status = 200) => html(uebersetzen(seite("Meine Einsätze & Daten", `<div class="ich-oben"><p class="konto-zurueck"><a href="/konto" aria-label="Zurück zur Übersicht">←</a></p>${sprachWahl(sprache)}</div>${t}`, 0, ""), sprache), status, f.s.cookies);
   const p = await db<Ich[]>(f.s, env, `personal?firma_id=eq.${firma}&user_id=eq.${f.s.userId}&select=id,firma_id,vorname,nachname,berufe,qualifikationen,status`);
   const person = p.ok ? p.daten[0] : undefined;
   if (!person) return antwort(`<p>Dein Zugang ist noch nicht mit deiner Personalakte verknüpft.</p><p class="klein">Ein Inhaber oder Admin verknüpft das unter Firma &amp; Team → App-Zugänge.</p>`, datei ? 404 : 200);
@@ -121,6 +131,32 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
       const r = await db<boolean>(f.s, env, "rpc/schicht_antworten", { method: "POST", body: JSON.stringify({ s: t("id", 36), a: t("antwort", 10) }) });
       return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(r.ok && r.daten ? (t("antwort", 10) === "zugesagt" ? "Schicht zugesagt." : "Schicht abgesagt. Das Büro wird benachrichtigt.") : "Das ging nicht (vergangene Schicht?).")}#schichten`, f.s.cookies);
     }
+    // T36 expenses, T41 time clock, T44 take an open shift, T39 signature.
+    if (t("aktion", 20) === "spese") return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(await speseSpeichern(f.s, env, form, firma, person.id, heute))}#spesen`, f.s.cookies);
+    if (ID.test(t("spese_weg", 36))) {
+      const r = await db<{ id: string; beleg_mime: string | null }[]>(f.s, env, `spesen?id=eq.${t("spese_weg", 36)}&personal_id=eq.${person.id}&status=eq.erfasst&select=id,beleg_mime`, { method: "DELETE", headers: { prefer: "return=representation" } });
+      if (r.ok && r.daten[0]?.beleg_mime) await env.DATEN?.delete(belegSchluessel(firma, r.daten[0].id));
+      return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(r.ok && r.daten.length ? "Beleg gelöscht." : "Freigegebene Belege ändert nur das Büro.")}#spesen`, f.s.cookies);
+    }
+    if (t("aktion", 20) === "stempel") {
+      const sch = await db<{ einsatzorte: { name: string; plz: string } | null }[]>(f.s, env, `schichten?personal_id=eq.${person.id}&datum=gte.${heute}&datum=lte.${heute}&select=einsatzorte(name,plz)&limit=20`);
+      const orte = (sch.ok ? sch.daten : []).map((x) => x.einsatzorte).filter((x): x is { name: string; plz: string } => !!x);
+      return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(await stempeln(f.s, env, form, firma, person.id, orte))}#stempeluhr`, f.s.cookies);
+    }
+    if (t("aktion", 20) === "uebernehmen" && ID.test(t("id", 36))) {
+      const r = await db<string>(f.s, env, "rpc/schicht_uebernehmen", { method: "POST", body: JSON.stringify({ s: t("id", 36) }) });
+      const text: Record<string, string> = { ok: "Schicht übernommen. Sie steht jetzt unter „Meine Schichten“.", vergeben: "Zu spät, jemand anderes war schneller.", abwesend: "Du bist an dem Tag als abwesend eingetragen.", doppelt: "Du hast zu der Zeit schon eine Schicht.", nicht_passend: "Diese Schicht passt nicht zu deinem Beruf oder Standort.", vorbei: "Die Schicht ist vorbei." };
+      return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(r.ok ? text[String(r.daten)] ?? "Das ging nicht." : "Das ging nicht.")}#schichten`, f.s.cookies);
+    }
+    if (t("aktion", 20) === "unterschrift" && ["psa", "stunden"].includes(t("art", 10))) {
+      const png = pngAusDataUrl(String(form.get("unterschrift") ?? ""));
+      if (!png) return zurueck("Bitte zuerst im Feld unterschreiben.");
+      const id = crypto.randomUUID(), bezug = t("bezug", 40);
+      await env.DATEN?.put(uSchluessel.person(firma, id), png, { httpMetadata: { contentType: "image/png" } });
+      const r = await db(f.s, env, "unterschriften", { method: "POST", body: JSON.stringify({ id, firma_id: firma, personal_id: person.id, art: t("art", 10), bezug }) });
+      if (!r.ok) await env.DATEN?.delete(uSchluessel.person(firma, id));
+      return zurueck(r.ok ? "Danke, unterschrieben." : "Unterschreiben hat nicht geklappt.");
+    }
     if (t("aktion", 20) === "ausfall") {
       const tag = d("tag");
       if (!tag || (tag !== heute && tag !== plusTage(heute, 1))) return zurueck("Bitte heute oder morgen wählen.");
@@ -136,7 +172,8 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
   }
   const vor = `${new Date(Date.UTC(Number(heute.slice(0, 4)), Number(heute.slice(5, 7)) - 2, 1)).toISOString().slice(0, 10)}`;
   const jahr = Number(heute.slice(0, 4));
-  const [a, u, abw, n, uw, st, sch, ps, kt, jabw, land] = await Promise.all([
+  const vormonat = new Date(Date.UTC(Number(heute.slice(0, 4)), Number(heute.slice(5, 7)) - 2, 15)).toISOString().slice(0, 7);
+  const [a, u, abw, n, uw, st, sch, ps, kt, jabw, land, stp, offen, sp, us, zk] = await Promise.all([
     db<MeinAuftrag[]>(f.s, env, "rpc/meine_auftraege", { method: "POST", body: JSON.stringify({ f: firma }) }),
     db<MeineUeberlassung[]>(f.s, env, `ueberlassungen?personal_id=eq.${person.id}&select=entleiher,von,bis&order=von.desc&limit=20`),
     db<MeineAbwesenheit[]>(f.s, env, `personal_abwesenheiten?personal_id=eq.${person.id}&bis=gte.${heute}&select=id,personal_id,von,bis,grund,notiz,status&order=von&limit=50`),
@@ -148,9 +185,27 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
     db<Konto[]>(f.s, env, `urlaubskonten?personal_id=eq.${person.id}&jahr=eq.${jahr}&select=personal_id,jahr,anspruch,uebertrag`),
     db<MeineAbwesenheit[]>(f.s, env, `personal_abwesenheiten?personal_id=eq.${person.id}&grund=eq.urlaub&von=lte.${jahr}-12-31&bis=gte.${jahr}-01-01&select=id,personal_id,von,bis,grund,notiz,status&limit=100`),
     landDerFirma(f.s, env, firma),
+    db<Stempel[]>(f.s, env, `stempel?personal_id=eq.${person.id}&zeit=gte.${new Date(Date.now() - 3 * 86400_000).toISOString()}&select=art,zeit,einsatz,am_ort&order=zeit&limit=200`),
+    db<Schicht[]>(f.s, env, `schichten?personal_id=is.null&firma_id=eq.${firma}&datum=gte.${heute}&select=id,personal_id,bereich_id,datum,beginn,ende,ort,notiz,antwort,beruf&order=datum,beginn&limit=30`),
+    db<Spese[]>(f.s, env, `spesen?personal_id=eq.${person.id}&datum=gte.${new Date(Date.now() - 90 * 86400_000).toISOString().slice(0, 10)}&select=id,personal_id,datum,art,betrag,notiz,beleg_mime,status&order=datum.desc&limit=50`),
+    db<{ art: string; bezug: string }[]>(f.s, env, `unterschriften?personal_id=eq.${person.id}&select=art,bezug&order=erstellt.desc&limit=50`),
+    zeitkontoDaten(f.s, env, firma, heute, person.id),
   ]);
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${ichSeite({ ich: person, auftraege: a.ok ? a.daten : [], ueberlassungen: u.ok ? u.daten : [], abwesenheiten: abw.ok ? abw.daten : [], nachweise: n.ok ? n.daten : [], unterweisungen: uw.ok ? uw.daten : [], heute, stunden: st.ok ? st.daten : [], schichten: sch.ok ? sch.daten : [], psa: ps.ok ? ps.daten : [], urlaubText: meinUrlaubText(stand(person.id, jahr, kt.ok ? kt.daten : [], jabw.ok ? jabw.daten : [], land), jahr) })}`);
+  const psaListe = ps.ok ? ps.daten : [], unterschrieben = us.ok ? us.daten : [];
+  const psaBezug = psaListe.map((x) => x.ausgegeben).sort().at(-1) ?? "";
+  const stundenVormonat = (st.ok ? st.daten : []).filter((x) => x.datum.startsWith(vormonat) && x.status === "freigegeben");
+  const zuUnterschreiben = [
+    psaListe.length && !unterschrieben.some((x) => x.art === "psa" && x.bezug === psaBezug) ? ["psa", psaBezug, `Empfang der Schutzausrüstung (${psaListe.length} ${psaListe.length === 1 ? "Teil" : "Teile"})`] : null,
+    stundenVormonat.length && !unterschrieben.some((x) => x.art === "stunden" && x.bezug === vormonat) ? ["stunden", vormonat, `Stunden ${new Date(`${vormonat}-15T12:00:00Z`).toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" })} (${stundenVormonat.length} ${stundenVormonat.length === 1 ? "Eintrag" : "Einträge"}, freigegeben)`] : null,
+  ].filter((x): x is string[] => !!x);
+  const unterschriftTeil = zuUnterschreiben.length ? `<section id="unterschreiben"><h3>✍️ Bitte unterschreiben</h3>${zuUnterschreiben.map(([art, bezug, text]) => `<details class="termin-neu"><summary>${escape(text)}</summary><form method="post" action="/konto/ich"><input type="hidden" name="aktion" value="unterschrift"><input type="hidden" name="art" value="${art}"><input type="hidden" name="bezug" value="${escape(bezug)}">${unterschriftFeld("unterschrift", { pflicht: true })}<button>Unterschreiben</button><p class="klein">${art === "psa" ? "Ich habe die Schutzausrüstung erhalten und wurde in die Benutzung unterwiesen." : "Ich bestätige die Richtigkeit meiner Arbeitszeiten."}</p></form></details>`).join("")}</section>` : "";
+  const zp = zk.personen[0], konto = zp ? zeitkonto(zp, zk.starts[0], zk.stunden, zk.abw, zk.land, heute) : [];
+  const zeitkontoText = konto.length ? `<p class="klein urlaub-konto">⚖️ Zeitkonto: <strong>${hm(konto.at(-1)!.stand)} Std.</strong> (Stand heute, freigegebene Stunden)</p>` : "";
+  const vorschlaege = [...new Set((sch.ok ? sch.daten : []).filter((x) => x.datum === heute).map((x) => x.ort).filter(Boolean))];
+  const oben = stempelTeil(stp.ok ? stp.daten : [], vorschlaege, new Date().toISOString()) + offeneSchichtenTeil(offen.ok ? offen.daten : []);
+  const unten = unterschriftTeil + meineSpesenTeil(sp.ok ? sp.daten : [], heute);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${ichSeite({ ich: person, auftraege: a.ok ? a.daten : [], ueberlassungen: u.ok ? u.daten : [], abwesenheiten: abw.ok ? abw.daten : [], nachweise: n.ok ? n.daten : [], unterweisungen: uw.ok ? uw.daten : [], heute, stunden: st.ok ? st.daten : [], schichten: sch.ok ? sch.daten : [], psa: ps.ok ? ps.daten : [], urlaubText: meinUrlaubText(stand(person.id, jahr, kt.ok ? kt.daten : [], jabw.ok ? jabw.daten : [], land), jahr), oben, unten, zeitkontoText })}`);
 }
 
 /** Admin: link a staff login (role "Einsatzkraft") to a personnel record, or remove the link. */
