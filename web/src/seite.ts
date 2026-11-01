@@ -917,6 +917,33 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .knopf-zeile { display: flex; gap: 6px; } .knopf-zeile button { flex: 1; }
   .nachweis-liste li .knopf { width: auto; min-height: 34px; padding: 4px 12px; font-size: 13px; white-space: nowrap; }
   .ausfall-melden { margin: 0 0 10px; border-color: color-mix(in srgb, var(--error) 50%, var(--line)); } .ausfall-melden summary { color: var(--error); font-weight: 600; }
+  /* Firma & Team part 5 (T23–T28). */
+  .mehr-warnungen { flex-basis: 100%; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .mehr-warnungen summary { min-height: 0; padding: 0; font-size: 13px; } .mehr-warnungen[open] { display: flex; flex-wrap: wrap; gap: 6px 14px; } .mehr-warnungen[open] summary { flex-basis: 100%; }
+  .werkzeug-gruppe { margin: 10px 0 2px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .konto-kacheln.team-werkzeuge { margin: 4px 0 8px; }
+  .psa-person, .bewerber, .checkliste { margin: 6px 0; } .psa-person > summary, .bewerber > summary, .checkliste > summary { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; } .psa-person > summary > *, .bewerber > summary > *, .checkliste > summary > * { grid-column: 1; } .psa-person > summary::after, .bewerber > summary::after, .checkliste > summary::after { grid-column: 2; grid-row: 1 / span 3; align-self: center; }
+  .checkliste .profil-balken { margin-top: 2px; }
+  .status-wahl { display: flex; flex-wrap: wrap; gap: 4px; margin: 6px 0; padding: 0; border: 0; background: none; box-shadow: none; } .status-wahl button { width: auto; min-height: 32px; padding: 2px 10px; font-size: 13px; }
+  .zeile-form { display: flex; flex-wrap: wrap; gap: 6px; align-items: end; margin: 6px 0; padding: 0; border: 0; background: none; box-shadow: none; } .zeile-form label { flex: 1 1 200px; margin: 0; font-size: 13px; } .zeile-form button { width: auto; min-height: 38px; }
+  .bewerber-gruppe h2 { margin: 12px 0 4px; font-size: 16px; }
+  .knopf-zeile form { flex: 1; margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .knopf-zeile form button { width: 100%; }
+  .urlaub-tabelle td, .urlaub-tabelle th { font-size: 13px; padding: 4px 6px; text-align: center; } .urlaub-tabelle td:first-child, .urlaub-tabelle th:first-child { text-align: left; overflow-wrap: normal; word-break: normal; hyphens: auto; } .urlaub-tabelle th { white-space: nowrap; font-size: 12px; } .urlaub-tabelle td:last-child { white-space: nowrap; }
+  .urlaub-tabelle input { width: 46px; min-height: 30px; padding: 2px 4px; text-align: center; } .urlaub-tabelle tr.minus td:last-child { color: var(--error); }
+  .zeile-inline { display: flex; align-items: center; gap: 6px; font-size: 13px; margin: 0; } .zeile-inline input { width: 64px; min-height: 34px; }
+  .kalender-scroll { border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+  .team-kalender { border-collapse: collapse; font-size: 11px; } .team-kalender th, .team-kalender td { min-width: 22px; height: 24px; padding: 0; text-align: center; border-bottom: 1px solid var(--line); }
+  .team-kalender th span { font-weight: 400; color: var(--muted); font-size: 9px; }
+  .team-kalender .name { position: sticky; left: 0; z-index: 1; background: var(--card); text-align: left; padding: 0 6px; min-width: 96px; max-width: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 12px; }
+  .team-kalender .we, .team-kalender .ft { background: var(--bg); color: var(--muted); } .team-kalender .heute { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .team-kalender td.urlaub { background: color-mix(in srgb, #2e8b57 30%, var(--card)); font-weight: 600; } .team-kalender td.beantragt { background: color-mix(in srgb, #d68910 25%, var(--card)); }
+  .team-kalender td.schulung { background: color-mix(in srgb, var(--accent) 22%, var(--card)); } .team-kalender td.weg { background: color-mix(in srgb, var(--muted) 20%, var(--card)); }
+  .team-kalender tr.summe th { font-size: 11px; } .team-kalender th.zuviel { background: color-mix(in srgb, var(--error) 25%, var(--card)); color: var(--error); }
+  .kennzahlen { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 8px 0; } @media (min-width: 760px) { .kennzahlen { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+  .kennzahl { display: grid; gap: 2px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); } .kennzahl strong { font-size: 20px; }
+  .balken { display: inline-block; width: 80px; height: 8px; border-radius: 4px; background: var(--bg); overflow: hidden; vertical-align: middle; } .balken span { display: block; height: 100%; background: var(--accent); }
+  .zu-tabelle td, .zu-tabelle th { text-align: center; font-size: 13px; padding: 3px 6px; } .zu-tabelle td:first-child, .zu-tabelle th:first-child { text-align: left; }
+  .sterne { color: #d68910; letter-spacing: 1px; white-space: nowrap; }
+  .urlaub-konto { margin: 0 0 6px; }
 </style>
 </head>
 <body><main>

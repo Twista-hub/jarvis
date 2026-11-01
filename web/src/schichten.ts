@@ -5,6 +5,7 @@ import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { kalenderwoche, montag, wochentage } from "./disposition.ts";
 import { ortInfo, type Einsatzort } from "./kunden.ts";
+import { gesperrtFuer, type Bewertung } from "./bewertungen.ts";
 
 export type Schicht = { id: string; personal_id: string | null; bereich_id: string | null; datum: string; beginn: string; ende: string; ort: string; notiz: string; antwort: string; einsatzort_id?: string | null; einsatzorte?: Einsatzort | null };
 type Person = { id: string; vorname: string; nachname: string; bereich_id: string | null; status: string; berufe?: string[] };
@@ -44,8 +45,8 @@ export function konflikte(schichten: Schicht[], abw: Abw[]): Map<string, string>
 
 /** T32: who can take over a shift: same job as the absent person (if known), available, not absent, no customer assignment
  *  and no overlapping shift that day. People with a matching job first, at most five. */
-export function ersatzVorschlaege(schicht: Schicht, fuer: Person | undefined, personen: Person[], schichten: Schicht[], abw: Abw[], ueb: Ueb[]): Person[] {
-  const frei = personen.filter((p) => p.id !== schicht.personal_id && p.status !== "nicht"
+export function ersatzVorschlaege(schicht: Schicht, fuer: Person | undefined, personen: Person[], schichten: Schicht[], abw: Abw[], ueb: Ueb[], gesperrt: Set<string> = new Set()): Person[] {
+  const frei = personen.filter((p) => p.id !== schicht.personal_id && p.status !== "nicht" && !gesperrt.has(p.id)
     && !abw.some((a) => a.personal_id === p.id && a.von <= schicht.datum && a.bis >= schicht.datum)
     && !ueb.some((u) => u.personal_id === p.id && u.von <= schicht.datum && (!u.bis || u.bis >= schicht.datum))
     && !schichten.some((x) => x.personal_id === p.id && x.datum === schicht.datum && x.antwort !== "abgesagt" && ueberschneiden(x, schicht)));
@@ -53,7 +54,7 @@ export function ersatzVorschlaege(schicht: Schicht, fuer: Person | undefined, pe
   return [...frei.filter(passt), ...frei.filter((p) => !passt(p))].slice(0, 5);
 }
 
-export function schichtenSeite(liste: Schicht[], personen: Person[], abw: Abw[], o: { montag: string; heute: string; darfAendern: boolean; bereiche: { id: string; name: string }[]; orte?: { id: string; name: string }[]; ueb?: Ueb[] }): string {
+export function schichtenSeite(liste: Schicht[], personen: Person[], abw: Abw[], o: { montag: string; heute: string; darfAendern: boolean; bereiche: { id: string; name: string }[]; orte?: { id: string; name: string }[]; ueb?: Ueb[]; gesperrt?: (s: Schicht) => Set<string> }): string {
   const name = (id: string | null) => { const p = id ? personen.find((x) => x.id === id) : null; return p ? `${p.vorname} ${p.nachname}`.trim() : ""; };
   const k = konflikte(liste, abw);
   const tage = wochentage(o.montag);
@@ -73,7 +74,7 @@ ${o.bereiche.length ? `<label class="ganz">Standort (bei offener Schicht)<select
   const ausfall = ausfaelle.length ? `<section id="ausfall" class="ausfall"><h2>🚨 Kurzfristig ausgefallen</h2>${ausfaelle.map((a) => {
     const p = personen.find((x) => x.id === a.personal_id);
     const offen = liste.filter((x) => x.personal_id === a.personal_id && x.datum >= a.von && x.datum <= a.bis && x.antwort === "abgesagt" && !liste.some((y) => y.id !== x.id && y.datum === x.datum && y.beginn === x.beginn && y.ort === x.ort && y.notiz.startsWith("Ersatz für") && y.antwort !== "abgesagt"));
-    return `<article class="ausfall-person"><h3>${escape(name(a.personal_id) || "?")} <span class="klein">${a.von === o.heute ? "heute" : tagText(a.von)}${a.notiz ? ` · ${escape(a.notiz)}` : ""}</span></h3>${offen.length ? offen.map((x) => { const v = ersatzVorschlaege(x, p, personen, liste, abw, o.ueb ?? []); return `<div class="ersatz"><p><strong>${uhr(x.beginn)}–${uhr(x.ende)}${x.ort ? ` · ${escape(x.ort)}` : ""}</strong></p>${v.length ? `<form method="post" action="/konto/schichten" class="ersatz-wahl"><input type="hidden" name="aktion" value="ersatz"><input type="hidden" name="schicht" value="${x.id}"><input type="hidden" name="woche" value="${o.montag}"><span class="klein">Ersatz:</span>${v.map((e) => `<button name="person" value="${e.id}" class="zweit">${escape(`${e.vorname} ${e.nachname}`.trim())}${(e.berufe ?? []).length ? ` <span class="klein">${escape((e.berufe ?? [])[0])}</span>` : ""}</button>`).join("")}</form>` : `<p class="klein">Niemand frei. Schicht ist offen geblieben.</p>`}</div>`; }).join("") : `<p class="klein">Keine offene Schicht (mehr) an diesem Tag.</p>`}</article>`;
+    return `<article class="ausfall-person"><h3>${escape(name(a.personal_id) || "?")} <span class="klein">${a.von === o.heute ? "heute" : tagText(a.von)}${a.notiz ? ` · ${escape(a.notiz)}` : ""}</span></h3>${offen.length ? offen.map((x) => { const v = ersatzVorschlaege(x, p, personen, liste, abw, o.ueb ?? [], o.gesperrt?.(x)); return `<div class="ersatz"><p><strong>${uhr(x.beginn)}–${uhr(x.ende)}${x.ort ? ` · ${escape(x.ort)}` : ""}</strong></p>${v.length ? `<form method="post" action="/konto/schichten" class="ersatz-wahl"><input type="hidden" name="aktion" value="ersatz"><input type="hidden" name="schicht" value="${x.id}"><input type="hidden" name="woche" value="${o.montag}"><span class="klein">Ersatz:</span>${v.map((e) => `<button name="person" value="${e.id}" class="zweit">${escape(`${e.vorname} ${e.nachname}`.trim())}${(e.berufe ?? []).length ? ` <span class="klein">${escape((e.berufe ?? [])[0])}</span>` : ""}</button>`).join("")}</form>` : `<p class="klein">Niemand frei. Schicht ist offen geblieben.</p>`}</div>`; }).join("") : `<p class="klein">Keine offene Schicht (mehr) an diesem Tag.</p>`}</article>`;
   }).join("")}<p class="klein">Ein Tipp auf einen Namen plant die Schicht für diese Person; sie bekommt eine Handy-Nachricht zum Zusagen.</p></section>` : "";
   return `${ausfall}<nav class="dispo-nav"><a class="knopf zweit" href="/konto/schichten?woche=${plusTage(o.montag, -7)}" aria-label="Vorige Woche">‹</a><strong>KW ${kalenderwoche(o.montag)} · ${tage[0].split("-").reverse().slice(0, 2).join(".")}.–${tage[6].split("-").reverse().slice(0, 2).join(".")}.</strong><a class="knopf zweit" href="/konto/schichten?woche=${plusTage(o.montag, 7)}" aria-label="Nächste Woche">›</a></nav>
 ${liste.length ? `<p class="klein">${liste.length} ${liste.length === 1 ? "Schicht" : "Schichten"}${offen ? ` · ⏳ ${offen} ohne Antwort` : ""}${ab ? ` · ❌ ${ab} abgesagt` : ""}${frei ? ` · 🔓 ${frei} offen` : ""}${k.size ? ` · ⚠️ ${k.size} ${k.size === 1 ? "Konflikt" : "Konflikte"}` : ""}</p>` : ""}${form}
@@ -142,17 +143,21 @@ export async function schichtenRoute(request: Request, env: KontoEnv): Promise<R
   }
   const mo = montag(datumOk(url.searchParams.get("woche") ?? "") ? url.searchParams.get("woche")! : heute);
   const so = plusTage(mo, 6);
-  const [s, p, a, b, eo, u] = await Promise.all([
+  const [s, p, a, b, eo, u, nein] = await Promise.all([
     db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&datum=gte.${mo}&datum=lte.${so}&select=id,personal_id,bereich_id,datum,beginn,ende,ort,notiz,antwort,einsatzort_id&order=datum,beginn&limit=2000`),
     db<Person[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,bereich_id,status,berufe&order=vorname&limit=3000`),
     db<Abw[]>(f.s, env, `personal_abwesenheiten?firma_id=eq.${firma}&von=lte.${so}&bis=gte.${mo}&select=personal_id,von,bis,status,kurzfristig,notiz&limit=5000`),
     db<{ id: string; name: string }[]>(f.s, env, `bereiche?firma_id=eq.${firma}&select=id,name&order=name`),
-    db<{ id: string; name: string; kunden: { name: string } | null }[]>(f.s, env, `einsatzorte?firma_id=eq.${firma}&select=id,name,kunden(name)&order=name&limit=1000`),
+    db<{ id: string; name: string; kunde_id: string | null; kunden: { name: string } | null }[]>(f.s, env, `einsatzorte?firma_id=eq.${firma}&select=id,name,kunde_id,kunden(name)&order=name&limit=1000`),
     db<Ueb[]>(f.s, env, `ueberlassungen?firma_id=eq.${firma}&von=lte.${so}&or=(bis.is.null,bis.gte.${mo})&select=personal_id,von,bis&limit=5000`),
+    db<Bewertung[]>(f.s, env, `einsatz_bewertungen?firma_id=eq.${firma}&kunde_id=not.is.null&select=id,personal_id,kunde_id,einsatz,datum,sterne,wieder,notiz&limit=5000`),
   ]);
+  // T27: people a customer does not want again are left out of the replacement suggestions for that customer's sites.
+  const kundeVonOrt = new Map((eo.ok ? eo.daten : []).map((x) => [x.id, x.kunde_id]));
+  const gesperrt = (x: Schicht) => gesperrtFuer(nein.ok ? nein.daten : [], x.einsatzort_id ? kundeVonOrt.get(x.einsatzort_id) ?? null : null);
   const orte = (eo.ok ? eo.daten : []).map((x) => ({ id: x.id, name: x.kunden?.name && !x.name.includes(x.kunden.name) ? `${x.name} (${x.kunden.name})` : x.name }));
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${schichtenSeite(s.ok ? s.daten : [], p.ok ? p.daten : [], a.ok ? a.daten : [], { montag: mo, heute, darfAendern, bereiche: b.ok ? b.daten : [], orte, ueb: u.ok ? u.daten : [] })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${schichtenSeite(s.ok ? s.daten : [], p.ok ? p.daten : [], a.ok ? a.daten : [], { montag: mo, heute, darfAendern, bereiche: b.ok ? b.daten : [], orte, ueb: u.ok ? u.daten : [], gesperrt })}`);
 }
 
 /** Shifts as assignments for the Disposition (cancelled ones do not count). */
