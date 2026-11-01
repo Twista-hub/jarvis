@@ -44,6 +44,8 @@ jobs:
         run: python alarm/alarm.py ${{ inputs.tage }}
         env:
           FIRMA: ${{ inputs.firma }}
+          # First run of a new firm: the best 10 hits get a detailed Steckbrief at once (Benjamin, 01.11.2026); daily runs 4.
+          MAX_STECKBRIEFE: ${{ inputs.firma != '' && '10' || '4' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           # US federal tenders (alarm/usa.py); empty = USA skipped.
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
