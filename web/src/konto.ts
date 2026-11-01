@@ -6,6 +6,7 @@ import type { Firmenstandort, SuchgebietModus } from "./firmenstandorte.ts";
 import { bereichOptionen as optionenFuerBereiche } from "./bereiche.ts";
 import { funktionsListe, personFormular } from "./mitarbeiter.ts";
 import { darfFinanzen, ZUGRIFFE } from "./rechte.ts";
+import { bestaetigung, frage, HILFE_BEREICH, HILFE_FINANZEN, HILFE_ZUGRIFF } from "./zugriff.ts";
 import { ABSENDER, einladungsMail, senden } from "./mail.ts";
 import { CSP } from "./app.ts";
 import { FELDER, STANDARD, euro, felderHtml, fmt, tarifSchnellwahl, verrechnungssatz, zahl, type Eingaben } from "./kalkulation.ts";
@@ -501,20 +502,21 @@ ${beruf || st ? `<ul class="standort-liste">${gefunden.map((k) => `<li><a class=
     if (offen.length) {
       // T11: open and (up to 60 days) expired invitations; expired ones can be sent again with a new link.
       team += `<h3>Einladungen</h3><ul class="einladungen-liste">${offen.map((e) => `<li${Date.parse(e.gueltig_bis) < Date.now() ? ' class="abgelaufen"' : ""}><span><strong>${e.email ? escape(e.email) : `📲 ${escape(e.anzeigename || "Einsatzkraft")}`}</strong> · ${escape(ROLLEN[e.rolle] ?? e.rolle)} · ${Date.parse(e.gueltig_bis) < Date.now() ? `⌛ abgelaufen am ${datum(e.gueltig_bis)}, noch nicht angenommen` : `offen bis ${datum(e.gueltig_bis)}`}</span><span class="knoepfe">
-  ${e.email ? `<form method="post" action="/konto/einladen"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="email" value="${escape(e.email)}"><input type="hidden" name="rolle" value="${escape(e.rolle)}"><input type="hidden" name="funktion" value="${escape(e.funktion || "Mitarbeiter/in")}">${e.bereich_ids?.[0] ? `<input type="hidden" name="bereich" value="${escape(e.bereich_ids[0])}">` : ""}${e.finanzen ? '<input type="hidden" name="finanzen" value="1">' : ""}<input type="hidden" name="ersetzt" value="${e.id}"><button class="zweit">✉️ Erneut senden</button></form>` : `<a class="knopf zweit" href="/konto/kraefte-einladen">📲 Neuer Link</a>`}
+  ${e.email ? `<form method="post" action="/konto/einladen"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="email" value="${escape(e.email)}"><input type="hidden" name="rolle" value="${escape(e.rolle)}"><input type="hidden" name="funktion" value="${escape(e.funktion || "Mitarbeiter/in")}"><input type="hidden" name="bereich" value="${escape(e.bereich_ids?.[0] ?? "firma")}">${e.finanzen ? '<input type="hidden" name="finanzen" value="1">' : ""}<input type="hidden" name="ersetzt" value="${e.id}"><input type="hidden" name="bestaetigt" value="1"><button class="zweit">✉️ Erneut senden</button></form>` : `<a class="knopf zweit" href="/konto/kraefte-einladen">📲 Neuer Link</a>`}
   <form method="post" action="/konto/einladung/zurueckziehen"><input type="hidden" name="id" value="${e.id}"><button class="zweit">Zurückziehen</button></form></span></li>`).join("")}</ul>`;
     }
-    team += `<details class="einladen"><summary>➕ Person einladen</summary><form method="post" action="/konto/einladen">
+    const fz = frage("frage-zugriff", "Welcher Zugriff?", HILFE_ZUGRIFF), fb = frage("frage-bereich", "Welcher Bereich?", HILFE_BEREICH), ff = frage("frage-finanzen", "Finanzen freigeben?", HILFE_FINANZEN);
+    team += `<details class="einladen" id="einladen"><summary>➕ Person einladen</summary><form method="post" action="/konto/einladen">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Name<input name="name" maxlength="200"></label>
   <label>E-Mail-Adresse <input type="email" name="email" required></label>
   <label>Funktion im Betrieb<input name="funktion" list="funktionen" value="Mitarbeiter/in" required maxlength="100"></label>
-      <label>Zugriff<select name="rolle">${Object.entries(ZUGRIFFE).filter(([r]) => r !== "inhaber").sort(([a],[b]) => Number(b === "mitarbeiter") - Number(a === "mitarbeiter")).map(([r,t]) => `<option value="${r}">${escape(t)}</option>`).join("")}</select></label>
-  <label class="zeile"><input type="checkbox" name="finanzen">Finanzdaten zusätzlich freigeben (nur bei vollständigen Steckbriefen)</label><p class="klein">Funktion und Zugriffsrechte sind getrennt. „Nur persönlich freigegebene Informationen“ öffnet keine Originalunterlagen und keine Kalkulation. Inhaber und Administration sehen alle Daten.</p>
-  ${b.length ? `<label>Bereich <select name="bereich"><option value="">ganze Firma</option>${bereichOptionen}</select></label><p class="klein">Für Standortleitung einen einzelnen Standort wählen, keine Region. Die Einladung gilt dort und in untergeordneten Teams.</p>` : ""}
-  <button>Einladung erstellen</button>
-  <p class="klein">Du bekommst einen Link, den du der Person schickst. Er gilt 14 Tage und nur für diese Adresse.</p>
-</form></details>`;
+  <label class="ganz"><span class="label-zeile">Zugriff ${fz.knopf}</span><select name="rolle" required><option value="" disabled selected>– bitte bewusst wählen –</option>${Object.entries(ZUGRIFFE).filter(([r]) => r !== "inhaber").sort(([a],[b]) => Number(b === "mitarbeiter") - Number(a === "mitarbeiter")).map(([r,t]) => `<option value="${r}">${escape(t)}</option>`).join("")}</select></label>
+  ${b.length ? `<label class="ganz"><span class="label-zeile">Bereich ${fb.knopf}</span><select name="bereich" required><option value="" disabled selected>– bitte bewusst wählen –</option>${bereichOptionen}<option value="firma">🏢 Ganze Firma (alle Standorte)</option></select></label>` : `<input type="hidden" name="bereich" value="firma"><p class="klein">Noch keine Standorte angelegt: Der Zugriff gilt für die ganze Firma. ${fb.knopf}</p>`}
+  <label class="zeile"><input type="checkbox" name="finanzen">Finanzen zusätzlich freigeben (Kalkulation, Preise, Umsatz) ${ff.knopf}</label>
+  <button>Weiter zur Prüfung</button>
+  <p class="klein">Im nächsten Schritt siehst du genau, was die Person sehen und tun kann, und bestätigst erst dann. Der Link gilt 14 Tage und nur für diese Adresse.</p>
+${fz.popup}${fb.popup}${ff.popup}</form></details>`;
     }
     inhalt = rahmen(team);
   } else if (unterseite === "profil") {
@@ -637,7 +639,17 @@ async function bereichAnlegen(s: Sitzung, form: FormData, _r: Request, env: Kont
 
 async function einladen(s: Sitzung, form: FormData, request: Request, env: KontoEnv): Promise<Response> {
   const email = String(form.get("email") ?? "").trim().toLowerCase();
-  const rolle = String(form.get("rolle") ?? "mitarbeiter");
+  const rolle = String(form.get("rolle") ?? "");
+  // Access and area must be chosen on purpose (no silent "whole firm"); then a confirmation page before the invitation.
+  const bereichWahl = String(form.get("bereich") ?? "");
+  if (!["admin", "bearbeiter", "standortleitung", "leser", "mitarbeiter"].includes(rolle)) return weiterleiten(`/konto/team?hinweis=${encodeURIComponent("Bitte den Zugriff bewusst auswählen.")}#einladen`);
+  if (bereichWahl !== "firma" && !/^[0-9a-f-]{36}$/i.test(bereichWahl)) return weiterleiten(`/konto/team?hinweis=${encodeURIComponent("Bitte den Bereich bewusst auswählen (ein Standort oder ganze Firma).")}#einladen`);
+  form.set("bereich", bereichWahl === "firma" ? "" : bereichWahl);
+  if (form.get("bestaetigt") !== "1") {
+    const bn = bereichWahl === "firma" ? null : await db<{ name: string }[]>(s, env, `bereiche?id=eq.${bereichWahl}&select=name`);
+    const anzeige = new FormData(); for (const [k, v] of form.entries()) anzeige.append(k, k === "bereich" ? bereichWahl : v);
+    return html(seite("Einladung prüfen", bestaetigung({ action: "/konto/einladen", form: anzeige, titel: "die Einladung erstellst", zeilen: [["Name", String(form.get("name") ?? "") || "–"], ["E-Mail", email], ["Funktion", String(form.get("funktion") ?? "")]], rolle, bereich: bereichWahl === "firma" ? "ganze Firma" : `nur ${bn?.ok ? bn.daten[0]?.name ?? "gewählter Bereich" : "gewählter Bereich"}`, finanzen: form.has("finanzen"), zurueck: "/konto/team#einladen", knopf: "✅ Ja, so einladen" }), 0, "team"), 200, s.cookies);
+  }
   // "Erneut senden": the new invitation replaces the old one (same address and access).
   const ersetzt = String(form.get("ersetzt") ?? "");
   if (/^[0-9a-f-]{36}$/.test(ersetzt)) await db(s, env, `einladungen?id=eq.${ersetzt}&angenommen=is.null`, { method: "DELETE" });

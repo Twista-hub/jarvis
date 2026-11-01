@@ -79,6 +79,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Rechte sicher vergeben)
+- Auf Wunsch von Benjamin („für den Chef sehr sicher“): Beim Einladen sind Zugriff und Bereich Pflicht und ohne Vorauswahl („– bitte bewusst wählen –“; „Ganze Firma“ ist eine eigene Option am Ende), Finanzen bleiben aus. „?“-Pop-ups erklären Zugriff, Bereich und Finanzen (HTML-Popover, `web/src/zugriff.ts`).
+- Vor dem Einladen und vor dem Ändern von Rechten kommt eine Prüfseite: Tabelle (Zugriff, Bereich, Finanzen), Warnung bei „ganze Firma“ oder Administration, Liste „Kann / Kann nicht“ aus der Rechtetabelle; erst „Ja, so einladen/speichern“ führt es aus. Server prüft dasselbe (ohne bewusste Wahl kein Speichern). „Erneut senden“ übernimmt die alte Einladung unverändert.
+
 ### 01.11.2026 – Claude (Hinweis: Lose stehen oft erst in den Unterlagen)
 - Ausschreibungsseite ohne hochgeladene Unterlagen: kleines gezeichnetes Download-Symbol direkt hinter jeder fehlenden, vermuteten oder geschätzten Angabe im Steckbrief („nicht angegeben“, „nicht genannt“, „nicht bekannt“, „vermutlich“, „geschätzt“, „Schätzung“) und hinter geschätzten Werten („ca. …“) auf den Trefferkarten, Antippen öffnet ein Pop-up (HTML-Popover, ohne Skript) – auf Wunsch von Benjamin. Mit hochgeladenen Unterlagen zeigt die Seite den Steckbrief aus den Unterlagen, die Symbole verschwinden („Lose, Mengen und Stunden stehen oft erst in den Vergabeunterlagen“), zählt fehlende Angaben („nicht angegeben“), erwähnt fehlende Lose, Knöpfe „⬇️ Unterlagen beim Portal holen“ und „📥 Hier hochladen“ (`unterlagenHinweis` in `web/src/konto.ts`, Test `web/test/unterlagen-hinweis.test.ts`).
 

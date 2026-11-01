@@ -124,7 +124,7 @@ const HILFE: [string, [string, string][]][] = [
     ["Zeigt Jarvis Geburtstage und Jubiläen?", "Ja, wenn in der Personalakte Geburtstag bzw. Eintritt eingetragen ist. Oben in Firma & Team erscheinen Geburtstage und Firmenjubiläen (1, 5, 10, 15 … Jahre) der nächsten 7 Tage."],
   ]],
   ["👥 Team und Konto", [
-    ["Wie lade ich Kolleginnen und Kollegen ein?", "Unter Firma & Team → App-Zugänge eine Einladung per Mail schicken und die Rolle wählen. Viele Einsatzkräfte auf einmal: „Einsatzkräfte einladen“ (Links per WhatsApp, SMS oder QR-Code). Wer welche Standorte und Finanzen sieht, legt die Firmenleitung fest."],
+    ["Wie lade ich Kolleginnen und Kollegen ein?", "Unter Firma & Team → App-Zugänge → „Person einladen“. Zugriff und Bereich musst du bewusst auswählen (die „?“ erklären jede Stufe), Finanzen sind aus. Vor dem Einladen zeigt Jarvis eine Prüfseite, was die Person sehen und tun kann; erst nach „Ja, so einladen“ wird der Link erstellt. Dasselbe gilt beim Ändern von Rechten. Viele Einsatzkräfte auf einmal: „Einsatzkräfte einladen“ (Links per WhatsApp, SMS oder QR-Code). Wer welche Standorte und Finanzen sieht, legt die Firmenleitung fest."],
     ["Wie lösche ich mein Konto?", "Unter Mein Profil → „Konto löschen“. Bist du die letzte Inhaberin oder der letzte Inhaber einer Firma mit weiteren Mitgliedern, übertrage die Inhaberrolle vorher an jemand anderen."],
     ["Wo liegen unsere Daten und wer sieht sie?", "Gespeichert in Rechenzentren in der EU. Jeder sieht nur die Daten seiner Firma und der Bereiche, für die er freigeschaltet ist; Finanzen nur mit Finanzfreigabe. Einzelheiten stehen in der Datenschutzerklärung."],
   ]],
