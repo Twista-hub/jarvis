@@ -949,6 +949,11 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .frage-mini { display: inline-grid; place-items: center; width: 16px; height: 16px; min-height: 0; margin: 0 1px 0 3px; padding: 0; border: 0; background: transparent; color: var(--accent); vertical-align: -2px; cursor: pointer; box-shadow: none; position: relative; }
   .frage-mini::before { content: ""; position: absolute; inset: -12px; }
   .dl-icon { width: 14px; height: 14px; display: inline-block; vertical-align: -2px; } .frage-mini .dl-icon { vertical-align: 0; }
+  .frage-mini.kreis { width: 20px; height: 20px; border: 1.5px solid var(--accent); border-radius: 50%; font-size: 12px; font-weight: 700; line-height: 1; vertical-align: 1px; }
+  .einladen form .ganz { grid-column: 1 / -1; }
+  .label-zeile { display: flex; align-items: center; gap: 6px; }
+  .frage-liste { margin: 0 0 8px; padding-left: 18px; } .frage-liste li { margin: 0 0 6px; }
+  .zugriff-tabelle th { text-align: left; width: 34%; } .zugriff-zusammenfassung ul { list-style: none; margin: 0 0 10px; padding: 0; } .zugriff-zusammenfassung li { margin: 3px 0; } .zugriff-zusammenfassung .nein li { color: var(--muted); }
   .frage-mini.gross { width: 30px; height: 30px; } .frage-mini.gross .dl-icon { width: 20px; height: 20px; }
   .dl-hinweis { color: var(--accent); margin-left: 3px; } .frage-popup .dl-icon { color: var(--accent); }
   .frage-popup { width: min(420px, calc(100vw - 32px)); margin: auto; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--card); color: var(--text); box-shadow: 0 8px 30px #0004; font-size: 14px; }
