@@ -5,6 +5,8 @@ import { frageMarken, unterlagenHinweis } from "../src/konto.ts";
 test("Fragezeichen hinter fehlenden oder vermuteten Angaben, Pop-up mit Holen und Hochladen", () => {
   const m = frageMarken(`<table><tr><td>Menge</td><td>nicht angegeben</td></tr></table><p>Vermutlich elektronisch. <a href="/x">nicht angegeben</a> Wochenende</p>`);
   assert.equal(m.anzahl, 2, "nicht im Link");
+  assert.match(m.html, /<svg class="dl-icon"/);
+  assert.equal(frageMarken("<p>Schätzung: ca. 2 Mio. €, geschätzter Wert</p>").anzahl, 2);
   assert.match(m.html, /<td>nicht angegeben<button type="button" class="frage-mini" popovertarget="unterlagen-frage"/);
   assert.match(m.html, /Vermutlich<button/);
   assert.equal(frageMarken("<p>Alles da, Lose 1 bis 3.</p>").anzahl, 0);
