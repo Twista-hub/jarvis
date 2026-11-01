@@ -32,7 +32,7 @@ export interface KontoEnv {
 export type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
 type Mitglied = { firma_id: string; rolle: string; aktiv?: boolean; erstellt: string; user_id: string; anzeigename?: string; funktion?: string; finanzen?: boolean; alle_bereiche?: boolean };
 export type Bereich = { id: string; name: string; art: string; parent_id: string | null };
-type Vorgang = { id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; kaufverantwortlich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };
+type Vorgang = { entfernung_km?: number | null; fragefrist?: string | null; id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; kaufverantwortlich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };
 const STATUS: Record<string, string> = {
   neu: "neu",
   pruefen: "prüfen",
@@ -201,7 +201,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const alle = url.searchParams.get("alle") === "1";
   const reiter = ["neu", "arbeit", "abgegeben", "archiv"].includes(url.searchParams.get("stand") ?? "") ? url.searchParams.get("stand")! : alle ? "archiv" : "neu";
   const gruppen: Record<string, string[]> = { neu: ["neu", "pruefen"], arbeit: ["angebot"], abgegeben: ["abgegeben"], archiv: ["gewonnen", "verloren", "verworfen"] };
-  const statusFilter = unterseite === "treffer" ? `&status=in.(${gruppen[reiter].join(",")})` : unterseite === "fristen" ? (url.searchParams.get("erledigte") === "1" ? "&frist=not.is.null" : "&status=in.(neu,pruefen,angebot)&frist=not.is.null") : "";
+  const statusFilter = unterseite === "treffer" ? `&status=in.(${gruppen[reiter].join(",")})` : unterseite === "fristen" ? (url.searchParams.get("erledigte") === "1" ? "&or=(frist.not.is.null,fragefrist.not.is.null)" : "&status=in.(neu,pruefen,angebot)&or=(frist.not.is.null,fragefrist.not.is.null)") : "";
   const q = suchbegriff(url.searchParams.get("q"));
   const sortierung = SORTIERUNGEN[url.searchParams.get("sortierung") ?? ""] ? url.searchParams.get("sortierung")! : "punkte";
   const titelFilter = unterseite === "treffer" && q ? `&titel=ilike.${encodeURIComponent(`*${q}*`)}` : "";
@@ -214,7 +214,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const unter = (id: string): string[] => [id, ...b.filter((x) => x.parent_id === id).flatMap((x) => unter(x.id))];
   const bereichFilter = filter ? `&bereich_id=in.(${unter(filter.id).join(",")})` : "";
   const [vorgaenge, mitglieder, einladungen, anzahl] = await Promise.all([
-    db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${bereichFilter}${statusFilter}${fristFilter}${titelFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief&order=${unterseite === "fristen" ? "frist.asc" : "punkte.desc.nullslast,erstellt.desc"}&limit=100`),
+    db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${bereichFilter}${statusFilter}${fristFilter}${titelFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief,entfernung_km,fragefrist&order=${unterseite === "fristen" ? "frist.asc" : "punkte.desc.nullslast,erstellt.desc"}&limit=100`),
     db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&select=firma_id,rolle,aktiv,erstellt,user_id,anzeigename,funktion,finanzen,alle_bereiche&order=erstellt`),
     admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date().toISOString()}&select=id,email,rolle,gueltig_bis,angenommen&order=erstellt.desc`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
@@ -247,27 +247,30 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const labels: Record<string, string> = { treffer: "Ausschreibungen", fristen: "Fristen", unterlagen: "Unterlagen prüfen", kalkulation: "Kalkulation", team: "Firma & Team", einstellungen: "Einstellungen", profil: "Mein Profil", suchprofil: "Suchprofil" };
   const rahmen = (body: string) => `${kopf}${body}`;
   const meldungen = suchmeldung(suchstand, m.firma_id);
+  // Real numbers for the remaining overview tiles (only on the overview itself).
+  const [ablaufZahl, freigabeZahl, aboZahl] = !unterseite ? await Promise.all([
+    finanzrecht ? db<{ id: string }[]>(s, env, `firmenunterlagen?firma_id=eq.${m.firma_id}&art=eq.nachweis&gueltig_bis=lte.${new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10)}&select=id`).then((r) => r.ok ? r.daten.length : 0) : Promise.resolve(0),
+    db<{ id: string }[]>(s, env, `vorgang_freigaben?empfaenger_id=eq.${s.userId}&firma_id=eq.${m.firma_id}&select=id`).then((r) => r.ok ? r.daten.length : 0),
+    db<{ auftraggeber_id: string }[]>(s, env, `auftraggeber_abos?firma_id=eq.${m.firma_id}&select=auftraggeber_id`).then((r) => r.ok ? r.daten.length : 0),
+  ]) : [0, 0, 0];
   const cards = [
     ["treffer", "📋", "Ausschreibungen", `${neu} ${neu === 1 ? "offener Treffer" : "offene Treffer"}`],
     ["fristen", "⏰", "Fristen", `${bald} ${bald === 1 ? "Frist" : "Fristen"} diese Woche`],
-    ["unterlagen", "📥", "Unterlagen", "Dateien hochladen und prüfen lassen"],
+    ["unterlagen", "📥", "Unterlagen", ablaufZahl ? `⚠️ ${ablaufZahl} ${ablaufZahl === 1 ? "Nachweis läuft" : "Nachweise laufen"} bald ab` : "Dateien hochladen und prüfen lassen"],
     ["kalkulation", "💶", "Kalkulation", "Preise pro Stunde und Los berechnen"],
     ["team", "👥", "Firma & Team", `${mitglieder.ok ? mitglieder.daten.filter((x) => x.aktiv !== false).length : 0} App-Zugänge · ${b.length || 1} ${b.length === 1 || !b.length ? "Standort" : "Standorte"}`],
-    ["markt", "🌐", "Markt & Chancen", "Offene Aufträge, Bedarf und Partner"],
+    ["markt", "🌐", "Markt & Chancen", aboZahl ? `${aboZahl} beobachtete ${aboZahl === 1 ? "Auftraggeber" : "Auftraggeber"}` : "Offene Aufträge, Bedarf und Partner"],
     ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? (suchstand.ergebnis?.treffer !== undefined ? `Letzte Suche: ${suchstand.ergebnis.treffer} Treffer` : "Suche ansehen und anpassen") : "Passende Ausschreibungen finden"],
   ];
-  cards.push(["freigaben", "📨", "Für mich freigegeben", "Ausgewählte Informationen vom Team"]);
+  cards.push(["freigaben", "📨", "Für mich freigegeben", freigabeZahl ? `${freigabeZahl} ${freigabeZahl === 1 ? "Freigabe" : "Freigaben"} vom Team` : "Noch nichts freigegeben"]);
   const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? path === "freigaben" : path !== "kalkulation" || finanzrecht);
   const kacheln = `<div class="konto-kacheln">${sichtbareKarten.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
   let inhalt: string;
   if (!unterseite) {
     // "Heute wichtig": what needs attention today, each with a direct link.
-    const [wartend, ablaufend] = await Promise.all([
-      admin && finanzrecht ? db<{ id: string }[]>(s, env, `angebotsmappen?firma_id=eq.${m.firma_id}&freigabe_status=eq.wartet&select=id&limit=50`) : Promise.resolve(null),
-      finanzrecht ? db<{ id: string }[]>(s, env, `firmenunterlagen?firma_id=eq.${m.firma_id}&art=eq.nachweis&gueltig_bis=lte.${new Date(Date.now() + 30 * 86400_000).toISOString().slice(0, 10)}&select=id`) : Promise.resolve(null),
-    ]);
+    const wartend = admin && finanzrecht ? await db<{ id: string }[]>(s, env, `angebotsmappen?firma_id=eq.${m.firma_id}&freigabe_status=eq.wartet&select=id&limit=50`) : null;
     const freigaben = wartend?.ok ? wartend.daten.length : 0;
-    const nachweise = ablaufend?.ok ? ablaufend.daten.length : 0;
+    const nachweise = ablaufZahl;
     const wichtig = [
       neu ? `<li><a href="/konto/treffer"><strong>${neu}</strong> ${neu === 1 ? "neuer Treffer" : "neue Treffer"}</a></li>` : "",
       bald ? `<li><a class="dringend" href="/konto/fristen"><strong>${bald}</strong> ${bald === 1 ? "Frist" : "Fristen"} in 7 Tagen</a></li>` : "",
@@ -282,7 +285,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const tabs = `<nav class="reiter" aria-label="Stand der Ausschreibungen">${[["neu", "Neu"], ["arbeit", "In Arbeit"], ["abgegeben", "Abgegeben"], ["archiv", "Archiv"]].map(([key, label]) => `<a href="${link(key)}"${key === reiter ? ' aria-current="page"' : ""}>${label}</a>`).join("")}</nav>`;
     inhalt = rahmen(`${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q)}`);
   } else if (unterseite === "fristen") {
-    const mitFrist = liste.filter((v) => v.frist);
+    const mitFrist = liste.filter((v) => v.frist || v.fragefrist);
     const kalk = mitFrist.length ? await db<{ vorgang_id: string }[]>(s, env, `kalkulationen?firma_id=eq.${m.firma_id}&vorgang_id=in.(${mitFrist.map((v) => v.id).join(",")})&select=vorgang_id`) : { ok: true as const, daten: [] };
     const personen = mitglieder.ok ? mitglieder.daten : [];
     const monat = /^\d{4}-\d{2}$/.test(url.searchParams.get("monat") ?? "") ? url.searchParams.get("monat")! : new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }).slice(0, 7);
@@ -375,6 +378,7 @@ ${beruf || st ? `<ul class="standort-liste">${gefunden.map((k) => `<li><a class=
   } else if (unterseite === "profil") {
     inhalt = rahmen(`<h2>Dein Konto</h2><p>E-Mail-Adresse<br><strong>${escape(s.email)}</strong></p><p>Firma: ${escape(m.firmen.name)}<br>Rolle: ${ROLLEN[m.rolle] ?? escape(m.rolle)}</p><p><a href="/konto/passwort">Passwort ändern</a></p><p><a href="/konto/einstellungen">Nachrichten & Einstellungen</a></p><p><a href="/konto/suchprofil">Suchprofil der Firma</a></p>${wechsel}<h2>Abmelden</h2>${abmelden}`);
   } else if (unterseite === "suchprofil") {
+    const letzte30 = await db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}&erstellt=gte.${new Date(Date.now() - 30 * 86400_000).toISOString()}&select=id,titel,link,frist,status,punkte,erstellt,steckbrief&limit=1000`);
     const aktuell = profil.ok ? profil.daten[0] : undefined;
     if (admin && aktuell && !aktuell.websuche_beschreibung && aktuell.recherche_version !== "2") return weiterleiten(`/konto/einrichtung?firma=${m.firma_id}&automatisch=1`, s.cookies);
     const beschreibung = (profil.ok ? profil.daten[0]?.beschreibung : "") || hinterlegt?.beschreibung || "";
@@ -388,7 +392,7 @@ ${admin && (profil.ok || sucheEingerichtet) ? `${sucheEingerichtet ? `${startSuc
 ${sucheEingerichtet ? `<form method="post" data-suchaktion action="/konto/einrichtung/automatisch"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="aktion" value="recherche"><button type="submit" class="zweit">Firmeninfos neu recherchieren</button></form><p class="klein">Prüft Website und öffentliche Quellen erneut und aktualisiert dein Firmenprofil.</p>` : ""}` : !admin ? `<p class="klein">Ein Inhaber oder Admin kann das Suchprofil bearbeiten.</p>` : ""}
 ${datum ? `<p class="klein" role="status">Firmeninfos zuletzt aktualisiert: ${escape(datum)} Uhr</p>` : ""}
 ${suchgebietKarte(aktuell?.suchpunkte ?? [], aktuell?.radius_km ?? null)}
-${leistungsTreffer(aktuell?.leistungen ?? [], liste)}
+${leistungsTreffer(aktuell?.leistungen ?? [], letzte30.ok ? letzte30.daten : [])}
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
@@ -554,14 +558,14 @@ async function einladungAnnehmen(s: Sitzung, form: FormData, _r: Request, env: K
 /** How many hits of the last 30 days mention each service; shows which search terms pay off. */
 function leistungsTreffer(leistungen: { name: string; woerter: string[] }[], liste: Vorgang[]): string {
   if (!leistungen.length) return "";
-  const seit = Date.now() - 30 * 86400_000;
-  const neu = liste.filter((v) => Date.parse(v.erstellt) >= seit).map((v) => `${v.titel} ${v.steckbrief ?? ""}`.toLowerCase());
+  // Title and the AI's "Gesucht" line, not the whole Steckbrief: long texts mention almost every word.
+  const neu = liste.map((v) => `${v.titel} ${bewertung(v.steckbrief).gesucht}`.toLowerCase());
   const zeilen = leistungen.slice(0, 12).map((l) => {
-    const woerter = (l.woerter ?? []).map((w) => w.toLowerCase()).filter((w) => w.length >= 3);
+    const woerter = [...(l.woerter ?? []), ...l.name.split(/\s+/)].map((w) => w.toLowerCase()).filter((w) => w.length >= 4);
     const anzahl = neu.filter((t) => woerter.some((w) => t.includes(w))).length;
     return `<li${anzahl ? "" : ' class="leer"'}>${escape(l.name)} <span>${anzahl}</span></li>`;
   }).join("");
-  return `<h3>Treffer je Arbeit (letzte 30 Tage)</h3><ul class="leistung-treffer">${zeilen}</ul>`;
+  return `<h3>Treffer je Arbeit (letzte 30 Tage)</h3><ul class="leistung-treffer">${zeilen}</ul><p class="klein">${liste.length} Treffer insgesamt; zugeordnet über die Suchwörter der Arbeit in Titel und Kurzbeschreibung.</p>`;
 }
 
 export function bewertungsErklaerung(steckbrief?: string | null): string {
@@ -574,7 +578,7 @@ function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefi
   const optionen = (aktuell: string) => Object.entries(STATUS).map(([k, t]) => `<option value="${k}"${k === aktuell ? " selected" : ""}>${t}</option>`).join("");
   const karten = liste.map((v) => {
     const { gesucht, warum } = bewertung(v.steckbrief);
-    const fakten = eckdaten(v.steckbrief);
+    const fakten = [...eckdaten(v.steckbrief), ...(v.entfernung_km != null ? [{ label: "", wert: `📍 ${Math.round(v.entfernung_km)} km entfernt` }] : [])];
     return `<li><article class="treffer-karte">
   <div class="treffer-meta"><span class="treffer-punkte">${v.punkte !== null ? `${v.punkte}/10 Punkte` : "Noch ohne KI-Bewertung"}</span><span class="treffer-status">${escape(STATUS[v.status] ?? v.status)}</span></div>
   <h2><a href="/konto/vorgang/${v.id}"><span>${escape(v.titel)}</span><span aria-hidden="true">›</span></a></h2>

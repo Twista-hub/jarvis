@@ -43,7 +43,22 @@ for (let i = 0; i < BERUF_REGELN.length; i++) {
   BERUF_REGELN[i] = [name, new RegExp(`(?<![\\p{L}])(?:${regex.source})`, "giu")];
 }
 const QUALI: [string, RegExp][] = [["Staplerschein", /staplerschein|flurf[oö]rdermittelschein/gi], ["Führerschein B", /f[uü]hrerschein.{0,15}(klasse\s*)?\bB\b/gi], ["Schweißprüfung", /schwei[ßs]pr[uü]fung|DIN\s*EN\s*ISO\s*9606/gi], ["Ersthelfer", /ersthelfer/gi], ["Sachkunde § 34a", /34\s*a.{0,15}gewo|sachkundepr[uü]fung/gi]];
-const NACHWEISE: [string, RegExp][] = [["Arbeitnehmerüberlassungserlaubnis", /erlaubnis.{0,40}arbeitnehmer[uü]berlassung|a[uü]g.erlaubnis/gi], ["Referenzen", /referenz(?:en|nachweise)?/gi], ["ISO 9001", /ISO\s*9001/gi], ["Betriebshaftpflicht", /betriebshaftpflicht|berufshaftpflicht/gi]];
+// Typical suitability evidence in German tenders; the checklist compares them with the firm's stored documents.
+const NACHWEISE: [string, RegExp][] = [
+  ["Arbeitnehmerüberlassungserlaubnis", /erlaubnis.{0,40}arbeitnehmer[uü]berlassung|a[uü]g.erlaubnis/gi],
+  ["Referenzen", /referenz(?:en|nachweise)?/gi],
+  ["ISO 9001", /ISO\s*9001/gi], ["ISO 14001", /ISO\s*14001/gi], ["ISO 45001", /ISO\s*45001/gi],
+  ["Betriebshaftpflicht", /betriebshaftpflicht|berufshaftpflicht|haftpflichtversicherung/gi],
+  ["Handelsregisterauszug", /handelsregister(?:auszug)?/gi],
+  ["Gewerbeanmeldung", /gewerbe(?:anmeldung|schein|erlaubnis)/gi],
+  ["Unbedenklichkeitsbescheinigung Finanzamt", /unbedenklichkeitsbescheinigung.{0,40}finanzamt|steuerliche.{0,20}unbedenklichkeit|bescheinigung in steuersachen/gi],
+  ["Unbedenklichkeitsbescheinigung Sozialversicherung", /unbedenklichkeitsbescheinigung.{0,40}(?:krankenkasse|sozialversicherung)/gi],
+  ["Berufsgenossenschaft", /berufsgenossenschaft|unbedenklichkeitsbescheinigung.{0,30}\bBG\b/gi],
+  ["Präqualifizierung", /pr[äa]qualifi(?:kation|zierung)|PQ-VOL|PQ-Bau/gi],
+  ["Tariftreueerklärung", /tariftreue/gi],
+  ["Bewachungserlaubnis § 34a", /§\s*34a|bewachungserlaubnis/gi],
+  ["Umsatznachweis", /umsatz(?:zahlen|nachweis|angaben)/gi],
+];
 export function bedarfErkennen(text: string, los = ""): Bedarf[] {
   const result: Bedarf[] = [];
   for (const [art, regeln] of [["beruf", BERUF_REGELN], ["qualifikation", QUALI], ["nachweis", NACHWEISE]] as const) {

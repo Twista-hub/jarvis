@@ -102,6 +102,21 @@ document.querySelectorAll("[data-drucken]").forEach(function (b) { b.addEventLis
     });
   });
 })();
+// Search profile: warn about the paid re-scoring only when fields that change the scores were edited.
+document.querySelectorAll("form[data-kosten-warnung]").forEach(function (form) {
+  var hinweis = form.querySelector("[data-kosten-hinweis]");
+  function stand() {
+    return Array.prototype.map.call(form.elements, function (e) {
+      if (!e.name || !/^(l\d+_|o\d+_|ausschluss|beschreibung|website_beschreibung|websuche_beschreibung|laender|suchgebiet_modus)/.test(e.name)) return "";
+      return e.name + "=" + (e.type === "checkbox" || e.type === "radio" ? e.checked : e.value);
+    }).join("&");
+  }
+  var anfang = stand();
+  function pruefen() { if (hinweis) hinweis.hidden = stand() === anfang; }
+  form.addEventListener("input", pruefen);
+  form.addEventListener("change", pruefen);
+  form.addEventListener("click", function () { setTimeout(pruefen, 0); });
+});
 // Search fields that filter a list on the page as you type.
 document.querySelectorAll("[data-listenfilter]").forEach(function (f) {
   var liste = document.getElementById(f.dataset.listenfilter);

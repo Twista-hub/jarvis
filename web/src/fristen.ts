@@ -1,7 +1,7 @@
 // "Fristen": traffic-light deadlines grouped by week, a small month calendar, calendar files and what is still open.
 import { escape } from "./seite.ts";
 
-export type FristVorgang = { id: string; titel: string; frist: string | null; status: string; kaufverantwortlich_id?: string | null };
+export type FristVorgang = { id: string; titel: string; frist: string | null; status: string; kaufverantwortlich_id?: string | null; fragefrist?: string | null; art?: "fragen" };
 
 const BERLIN = "Europe/Berlin";
 const TAG = 86400_000;
@@ -93,15 +93,18 @@ export function offenePunkte(v: FristVorgang, hatKalkulation: boolean): string[]
 
 export function fristenSeite(liste: FristVorgang[], opts: { erledigte: boolean; monat: string; zustaendig: (id?: string | null) => string; kalkuliert: Set<string>; jetzt?: number }): string {
   const jetzt = opts.jetzt ?? Date.now();
+  // The deadline for bidder questions appears as its own entry ("Fragen bis"), before the submission deadline.
+  liste = liste.flatMap((v) => [...(v.frist ? [v] : []), ...(v.fragefrist ? [{ ...v, frist: v.fragefrist, art: "fragen" as const }] : [])])
+    .sort((a, b) => (a.frist ?? "").localeCompare(b.frist ?? ""));
   const offen = liste.filter((v) => v.frist && OFFEN.includes(v.status) && tageBis(v.frist, jetzt) >= 0);
   const erledigt = liste.filter((v) => v.frist && !offen.includes(v));
   const eintrag = (v: FristVorgang) => {
-    const fehlt = offenePunkte(v, opts.kalkuliert.has(v.id));
+    const fehlt = v.art === "fragen" ? [] : offenePunkte(v, opts.kalkuliert.has(v.id));
     const wer = opts.zustaendig(v.kaufverantwortlich_id);
-    return `<li id="frist-${v.id}" class="frist ${ampel(v, jetzt)}">
-  <div class="frist-kopf"><time datetime="${escape(v.frist!)}">${new Date(v.frist!).toLocaleDateString("de-DE", { timeZone: BERLIN, weekday: "short", day: "2-digit", month: "2-digit" })}</time><span class="frist-abstand">${abstand(v.frist!, jetzt)}</span></div>
+    return `<li id="frist-${v.id}${v.art === "fragen" ? "-fragen" : ""}" class="frist ${ampel(v, jetzt)}">
+  <div class="frist-kopf">${v.art === "fragen" ? `<span class="frist-art">❓ Fragen bis</span>` : ""}<time datetime="${escape(v.frist!)}">${new Date(v.frist!).toLocaleDateString("de-DE", { timeZone: BERLIN, weekday: "short", day: "2-digit", month: "2-digit" })}</time><span class="frist-abstand">${abstand(v.frist!, jetzt)}</span></div>
   <a class="frist-titel" href="/konto/vorgang/${v.id}">${escape(v.titel)}</a>
-  <div class="frist-info">${wer ? `<span>👤 ${escape(wer)}</span>` : ""}${fehlt.map((x) => `<span class="fehlt">${escape(x)}</span>`).join("")}<a class="frist-ics" href="/konto/frist/${v.id}.ics" download>📅 In Kalender</a></div>
+  <div class="frist-info">${wer ? `<span>👤 ${escape(wer)}</span>` : ""}${fehlt.map((x) => `<span class="fehlt">${escape(x)}</span>`).join("")}${v.art === "fragen" ? "" : `<a class="frist-ics" href="/konto/frist/${v.id}.ics" download>📅 In Kalender</a>`}</div>
 </li>`;
   };
   const listen = offen.length

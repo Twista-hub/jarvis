@@ -269,7 +269,8 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .fristen-liste li.frist { gap: 6px; margin-bottom: 8px; padding: 12px 14px; border: 1px solid var(--line); border-left: 5px solid var(--muted); border-radius: 12px; background: var(--card); }
   .fristen-liste li.frist.rot { border-left-color: #c0392b; } .fristen-liste li.frist.gelb { border-left-color: #d68910; } .fristen-liste li.frist.gruen { border-left-color: #2e8b57; }
   .frist-kopf { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
-  .frist-abstand { color: var(--muted); font-weight: 600; }
+  .frist-abstand { color: var(--muted); font-weight: 600; margin-left: auto; }
+  .frist-art { margin-right: 6px; font-weight: 700; color: var(--accent); }
   .frist.rot .frist-abstand { color: #c0392b; }
   .frist-titel { color: var(--text); font-weight: 600; text-decoration: none; }
   .frist-info { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; font-size: 13px; color: var(--muted); }
@@ -336,6 +337,14 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .suchkarte .ort { fill: var(--accent); stroke: var(--card); stroke-width: 2; }
   .suchkarte figcaption { display: grid; gap: 2px; margin-top: 8px; text-align: center; font-size: 14px; font-weight: 600; }
   .suchkarte figcaption .klein { font-size: 11px; font-weight: 400; }
+  .nachweis-check { margin: 18px 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .nachweis-check h2 { display: flex; align-items: center; gap: 8px; margin: 0 0 8px; font-size: 1.05rem; }
+  .nachweis-check ul { list-style: none; margin: 0; padding: 0; }
+  .nachweis-check li { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
+  .nachweis-check li > span:first-child { flex: 0 0 22px; font-weight: 800; }
+  .nachweis-check li.ok > span:first-child { color: #2e8b57; } .nachweis-check li.fehlt > span:first-child { color: var(--error); }
+  .nachweis-check li > span:nth-child(2) { flex: 1; min-width: 0; }
+  .nachweis-check li a { font-size: 14px; font-weight: 600; white-space: nowrap; }
   .frist-schalter { margin: 16px 0 6px; font-size: 14px; }
   .aktionsleiste { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 0 0 16px; }
   .aktionsleiste a { display: grid; place-items: center; min-height: 52px; padding: 8px; border-radius: 10px; background: var(--accent); color: var(--bg); text-decoration: none; text-align: center; font-weight: 650; font-size: 14px; line-height: 1.3; }

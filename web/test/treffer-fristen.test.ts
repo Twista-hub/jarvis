@@ -46,3 +46,17 @@ test("Kalkulation: Live-Satz, Kurzübersicht, Szenarien und CSV", () => {
   assert.match(csv, /"Angebotspreis pro Stunde netto";"\d+,\d\d"/);
   assert.match(csv, /"1";"Service"/);
 });
+
+import { fristenSeite } from "../src/fristen.ts";
+
+test("Eckdaten aus ausführlichem Steckbrief, Nähe-Sortierung und Fragefristen", () => {
+  const voll = "## Auf einen Blick\n\n| | |\n|---|---|\n| **Laufzeit** | 2 Jahre (730 Tage) je Los |\n| **Umfang** | 18 Lose, zusammen ca. 21.630 Stunden. **Eigene Schätzung:** ca. 0,7–1,0 Mio. € netto |\n";
+  assert.deepEqual(eckdaten(voll).map((e) => e.wert), ["18 Lose", "ca. 21.630", "ca. 0,7–1,0 Mio. €", "2 Jahre"]);
+  const nah = { punkte: 5, frist: null, erstellt: "1", entfernung_km: 12 };
+  const fern = { punkte: 9, frist: null, erstellt: "2", entfernung_km: 140 };
+  assert.deepEqual(sortieren([fern, nah], "naehe"), [nah, fern]);
+  const html = fristenSeite([{ id: "a", titel: "Auftrag", frist: "2026-11-20T10:00:00Z", fragefrist: "2026-11-10T10:00:00Z", status: "neu" }],
+    { erledigte: false, monat: "2026-11", zustaendig: () => "", kalkuliert: new Set(), jetzt: Date.parse("2026-11-02T08:00:00Z") });
+  assert.match(html, /❓ Fragen bis/);
+  assert.equal((html.match(/class="frist /g) ?? []).length, 2);
+});

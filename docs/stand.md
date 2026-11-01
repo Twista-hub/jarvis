@@ -79,6 +79,16 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Die 9 offenen Punkte der 40 Verbesserungen)
+- Nach Benjamins Nachfrage ehrlich nachgeprüft: 31 voll, 7 teilweise, 2 nicht umgesetzt. Jetzt erledigt:
+  - Ausschreibungen: Eckdaten auch aus ausführlichen Steckbriefen („Auf einen Blick“: Lose, Stunden, Wert/Schätzung, Laufzeit); Sortierung „Nächste zuerst“ und Etikett „📍 x km entfernt“ (neue Spalte `vorgaenge.entfernung_km`, vom Alarm über PLZ-Koordinaten berechnet).
+  - Fristen: Fragefristen als eigener Eintrag „❓ Fragen bis“ (neue Spalte `vorgaenge.fragefrist` aus OCDS `tender.enquiryPeriod.endDate`; erscheint nur, wenn die Bekanntmachung sie liefert).
+  - Unterlagen: Fortschritt „Datei x von y wird gelesen“; sichtbare Karte „✅ Nachweise für dieses Angebot“ mit vorhanden/abgelaufen/fehlt und Hochladen-Link, erkannte Nachweise um Handelsregister, Gewerbe, Unbedenklichkeitsbescheinigungen, BG, Präqualifizierung, ISO 14001/45001, Tariftreue, § 34a, Umsatz erweitert (ohne KI, Textmuster).
+  - Kalkulation: Entgeltgruppe je Los automatisch aus eurem Personal (gleicher Beruf, bevorzugt gleicher Standort, mit Tarifvertragsname), wenn die Unterlagen keine EG vorschlagen.
+  - Suchprofil: Treffer je Arbeit aus allen Treffern der letzten 30 Tage (Titel + „Gesucht“); Kostenhinweis erscheint nur, wenn bewertungsrelevante Felder geändert wurden.
+  - Übersicht: Kacheln Unterlagen (ablaufende Nachweise), Markt (beobachtete Auftraggeber), Für mich freigegeben (Anzahl) mit echten Zahlen.
+- Migration `20261101010000_vorgaenge_entfernung_fragefrist.sql`; Tests ergänzt (Web 173, Python 46, Python-SQL-Test angepasst).
+
 ### 01.11.2026 – Claude (Suchradius in km und Karte der Suchgebiete)
 - Radius: `alarm/geo_radius.py` (Entfernung über PLZ-Koordinaten), `profile_db.suchpunkte` (Koordinaten der Firmenstandorte bzw. des Firmensitzes), `im_suchgebiet` prüft bei gesetztem `radius_km` die Entfernung, sobald die Bekanntmachung eine bekannte PLZ nennt; ohne bekannte PLZ gilt die bisherige Logik. Radius und Suchpunkte zählen nicht zur Profilversion (keine Neubewertung). Auswahl 25/50/75/100/150 km im Suchprofil, Vorgabe 50 km beim Speichern.
 - Karte: `web/src/karte.ts` zeichnet Deutschland, Ländergrenzen, Standorte und Umkreis als SVG. Die Koordinaten schreibt der Suchlauf nach `einstellungen.suchpunkte` (die App lädt die PLZ-Tabelle nicht); die Karte erscheint also nach dem ersten Suchlauf mit dieser Version.

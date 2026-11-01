@@ -297,7 +297,16 @@ def treffer_eintrag(name: str, b: dict, day: str, rel: dict, pfad: Path | None =
             "punkte": b.get("punkte") or None, "plz": plz(rel),
             "steckbrief": (bewertungsabschnitt(b)
                            + (pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day))),
-            "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version")}
+            "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version"),
+            "fragefrist": ((t.get("enquiryPeriod") or {}).get("endDate") or None)}
+
+
+def entfernung(profile: dict, rel: dict):
+    """Distance in km from the nearest firm location to the place of performance (None if unknown)."""
+    from geo_radius import entfernung_km, koordinaten
+    ziel = koordinaten(plz(rel))
+    punkte = [p for p in profile.get("suchpunkte") or [] if p.get("lat") is not None]
+    return round(min(entfernung_km([p["lat"], p["lon"]], ziel) for p in punkte), 1) if ziel and punkte else None
 
 
 def zwischenstand(name: str, profile: dict, alle: list, cache: dict, gespeichert: set) -> None:
@@ -309,7 +318,7 @@ def zwischenstand(name: str, profile: dict, alle: list, cache: dict, gespeichert
         b = cache.get(katalog.schluessel(rel))
         if not (rel.get("_beobachtet") or (b and b.get("punkte", 0) >= profile.get("min_punkte", MIN_PASSUNG))):
             continue
-        eintrag = treffer_eintrag(name, b or {}, day, rel, steckbrief_datei(name, day, rel) if steckbrief_datei(name, day, rel).exists() else None)
+        eintrag = treffer_eintrag(name, b or {}, day, rel, steckbrief_datei(name, day, rel) if steckbrief_datei(name, day, rel).exists() else None) | {"entfernung_km": entfernung(profile, rel)}
         if eintrag["quelle_id"] not in gespeichert:
             neue.append(eintrag)
     bewertet = sum(katalog.schluessel(r[2]) in cache for r in alle)
@@ -438,7 +447,7 @@ def run(days: list[str]) -> str:
             if pfad:
                 links += f" · [📄 Steckbrief](../steckbriefe/{pfad.name})"
             lines += [links, ""]
-            treffer.append(treffer_eintrag(name, b, day, rel, pfad))
+            treffer.append(treffer_eintrag(name, b, day, rel, pfad) | {"entfernung_km": entfernung(profile, rel)})
         if weg:
             lines += [f"_{len(weg)} weitere Kandidaten aussortiert: unter {profile.get('min_punkte', MIN_PASSUNG)}/10 oder ohne eindeutigen Leistungsbezug._", ""]
             lines += ["<details><summary>Aussortierte Kandidaten und Gründe</summary>", ""]
