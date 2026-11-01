@@ -6,7 +6,7 @@ import { escape, seite } from "./seite.ts";
 
 export type Person = { id: string; vorname: string; nachname: string; berufe: string[]; bereich_id: string | null; status: string };
 export type Ueberlassung = { id: string; personal_id: string; entleiher: string; von: string; bis: string | null };
-export type Abwesenheit = { personal_id: string; von: string; bis: string; grund: string };
+export type Abwesenheit = { personal_id: string; von: string; bis: string; grund: string; status?: string };
 export type EinsatzAuftrag = { personal_id: string; vorgang_id: string; titel: string; beginn: string | null; ende: string | null };
 export type Zelle = { art: "einsatz" | "abwesend" | "frei" | "nicht"; text: string };
 
@@ -30,7 +30,8 @@ export function belegung(personen: Person[], ueb: Ueberlassung[], abw: Abwesenhe
   for (const p of personen) m.set(p.id, tage.map((t) => {
     if (p.status === "nicht") return { art: "nicht", text: "nicht verfügbar" };
     const a = abw.find((x) => x.personal_id === p.id && x.von <= t && x.bis >= t);
-    if (a) return { art: "abwesend", text: ABW[a.grund] ?? "Abwesend" };
+    // T16: requested leave is planned around already, marked with "?" until the office confirms.
+    if (a) return { art: "abwesend", text: `${ABW[a.grund] ?? "Abwesend"}${a.status === "beantragt" ? "?" : ""}` };
     const u = ueb.find((x) => x.personal_id === p.id && x.von <= t && (!x.bis || x.bis >= t));
     if (u) return { art: "einsatz", text: u.entleiher };
     const e = auftraege.find((x) => x.personal_id === p.id && (!x.beginn || x.beginn <= t) && (!x.ende || x.ende >= t));
@@ -103,7 +104,7 @@ export async function disposition(request: Request, env: KontoEnv): Promise<Resp
   const [personen, ueb, abw, eins, vt, bereiche, kunden] = await Promise.all([
     db<Person[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,berufe,bereich_id,status&order=vorname&limit=2000`),
     db<Ueberlassung[]>(f.s, env, `ueberlassungen?firma_id=eq.${firma}&von=lte.${so}&or=(bis.is.null,bis.gte.${mo})&select=id,personal_id,entleiher,von,bis&limit=5000`),
-    db<Abwesenheit[]>(f.s, env, `personal_abwesenheiten?firma_id=eq.${firma}&von=lte.${so}&bis=gte.${mo}&select=personal_id,von,bis,grund&limit=5000`),
+    db<Abwesenheit[]>(f.s, env, `personal_abwesenheiten?firma_id=eq.${firma}&von=lte.${so}&bis=gte.${mo}&select=personal_id,von,bis,grund,status&limit=5000`),
     db<{ personal_id: string; vorgang_id: string; vorgaenge: { titel: string; status: string } | null }[]>(f.s, env, `einsaetze?firma_id=eq.${firma}&status=eq.zugesagt&select=personal_id,vorgang_id,vorgaenge(titel,status)&limit=5000`),
     db<{ vorgang_id: string; beginn: string | null; ende: string | null }[]>(f.s, env, `vertraege?firma_id=eq.${firma}&select=vorgang_id,beginn,ende`),
     db<{ id: string; name: string }[]>(f.s, env, `bereiche?firma_id=eq.${firma}&select=id,name&order=name`),

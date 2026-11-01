@@ -31,6 +31,12 @@ import { freigaben } from "./freigaben";
 import { mitarbeiterVerwalten } from "./mitarbeiter";
 import { einrichtung } from "./einrichtung";
 import { personal } from "./personal";
+import { organisation } from "./organisation.ts";
+import { vertretung } from "./vertretung.ts";
+import { aufgaben } from "./aufgaben.ts";
+import { betriebsmittel } from "./betriebsmittel.ts";
+import { kapazitaetSeiteRoute } from "./kapazitaet.ts";
+import { ich } from "./ich.ts";
 import { markt } from "./markt.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
@@ -172,6 +178,10 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (uw) return uw;
     const ps = await personalsuche(request, env);
     if (ps) return ps;
+    for (const route of [organisation, vertretung, aufgaben, betriebsmittel, kapazitaetSeiteRoute, ich]) {
+      const r = await route(request, env);
+      if (r) return r;
+    }
     const pe = await personal(request, env);
     if (pe) return pe;
     const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");

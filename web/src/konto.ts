@@ -10,6 +10,9 @@ import { ABSENDER, einladungsMail, senden } from "./mail.ts";
 import { CSP } from "./app.ts";
 import { FELDER, STANDARD, euro, felderHtml, fmt, tarifSchnellwahl, verrechnungssatz, zahl, type Eingaben } from "./kalkulation.ts";
 import { GVP, lohnAm } from "./tarife.ts";
+import { aufgabenTeil } from "./aufgaben.ts";
+import { aktiv as aktivAm, vertretungHinweis, vertretungenLaden } from "./vertretung.ts";
+import { reichtTeil } from "./kapazitaet.ts";
 import { escape, hilfe, markdown, seite } from "./seite.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
@@ -62,7 +65,7 @@ function bereichPfad(bereich: Bereich, alle: Bereich[]): string {
   const eltern = bereich.parent_id ? alle.find((x) => x.id === bereich.parent_id) : undefined;
   return eltern ? `${bereichPfad(eltern, alle)} · ${bereich.name}` : bereich.name;
 }
-type Einladung = { id: string; email: string; rolle: string; gueltig_bis: string; angenommen: string | null };
+type Einladung = { id: string; email: string; rolle: string; gueltig_bis: string; angenommen: string | null; bereich_ids?: string[]; finanzen?: boolean; funktion?: string };
 
 const ROLLEN: Record<string, string> = {
   inhaber: "Inhaber",
@@ -245,7 +248,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const [vorgaenge, mitglieder, einladungen, anzahl] = await Promise.all([
     db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${bereichFilter}${statusFilter}${fristFilter}${titelFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief,entfernung_km,fragefrist&order=${unterseite === "fristen" ? "frist.asc" : "punkte.desc.nullslast,erstellt.desc"}&limit=100`),
     db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&select=firma_id,rolle,aktiv,erstellt,user_id,anzeigename,funktion,finanzen,alle_bereiche&order=erstellt`),
-    admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date().toISOString()}&select=id,email,rolle,gueltig_bis,angenommen&order=erstellt.desc`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
+    admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date(Date.now() - 60 * 86400_000).toISOString()}&select=id,email,rolle,gueltig_bis,angenommen,bereich_ids,finanzen,funktion&order=erstellt.desc&limit=50`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
   ]);
   const [profil, mail] = await Promise.all([
@@ -291,6 +294,12 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     // N2: new suitable funding programmes of the last 14 days, not yet marked; only then the tile appears.
     m.rolle !== "mitarbeiter" ? db<{ programm_id: string }[]>(s, env, `foerder_bewertungen?firma_id=eq.${m.firma_id}&stand=eq.neu&punkte=gte.${PASSEND_AB}&bewertet=gte.${new Date(Date.now() - 14 * 86400_000).toISOString()}&select=programm_id&limit=50`).then((r) => r.ok ? r.daten.length : 0) : Promise.resolve(0),
   ]) : [0, 0, 0, 0];
+  // T12/T13/T16: own open tasks, today's cover arrangements and (for staff) the link to their own record.
+  const [meineAufgaben, vertretungenHeute, eigeneAkte] = !unterseite ? await Promise.all([
+    m.rolle !== "mitarbeiter" ? db<{ id: string; faellig: string | null }[]>(s, env, `aufgaben?firma_id=eq.${m.firma_id}&zustaendig_id=eq.${s.userId}&erledigt=is.null&select=id,faellig&limit=500`).then((r) => r.ok ? r.daten : []) : Promise.resolve([]),
+    m.rolle !== "mitarbeiter" ? vertretungenLaden(s, env, m.firma_id, heute).then((l) => l.filter((x) => aktivAm(x, heute) && (x.user_id === s.userId || x.vertreter_id === s.userId))) : Promise.resolve([]),
+    m.rolle === "mitarbeiter" ? db<{ id: string }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=id`).then((r) => r.ok && r.daten.length > 0) : Promise.resolve(false),
+  ]) : [[], [], false];
   const zugaenge = mitglieder.ok ? mitglieder.daten.filter((x) => x.aktiv !== false).length : 0;
   // N13: AÜG-Wächter tile for firms that record assignments (temporary work), with the deadlines in 60 days.
   const auegFristen = !unterseite && m.rolle !== "mitarbeiter" ? fristen_aueg(await auegLaden(s, env, m.firma_id), heute) : [];
@@ -314,9 +323,11 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   }
   if (foerderZahl) cards.push(["foerderung", "🎯", "Förderprogramme", `${foerderZahl} ${foerderZahl === 1 ? "passendes Programm" : "passende Programme"} neu`]);
   if (auegFristen.length) cards.push(["aueg", "⚖️", "AÜG-Wächter", auegDringend ? `⚠️ ${auegDringend} ${auegDringend === 1 ? "Frist" : "Fristen"} in 60 Tagen` : `${auegFristen.length} laufende ${auegFristen.length === 1 ? "Überlassung" : "Überlassungen"}`]);
+  if (meineAufgaben.length) { const ueber = meineAufgaben.filter((x) => x.faellig && x.faellig < heute).length; cards.splice(4, 0, ["aufgaben", "✅", "Meine Aufgaben", ueber ? `⚠️ ${ueber} überfällig · ${meineAufgaben.length} offen` : `${meineAufgaben.length} ${meineAufgaben.length === 1 ? "offene Aufgabe" : "offene Aufgaben"}`]); }
+  if (eigeneAkte) cards.unshift(["ich", "🙋", "Meine Einsätze & Daten", "Einsätze, Urlaub, Nachweise"]);
   cards.push(["freigaben", "📨", "Für mich freigegeben", freigabeZahl ? `${freigabeZahl} ${freigabeZahl === 1 ? "Freigabe" : "Freigaben"} vom Team` : "Noch nichts freigegeben"]);
   // "Markt & Chancen" only when there is something new there; otherwise it is reachable under Einstellungen ("Mehr").
-  const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? path === "freigaben" : (path !== "kalkulation" || finanzrecht) && (path !== "markt" || aboZahl > 0));
+  const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? ["freigaben", "ich"].includes(path) : (path !== "kalkulation" || finanzrecht) && (path !== "markt" || aboZahl > 0));
   const kacheln = `<div class="konto-kacheln">${sichtbareKarten.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
   let inhalt: string;
   if (!unterseite) {
@@ -343,7 +354,19 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       { fertig: false, text: "Unterlagen hochladen", hinweis: "Jarvis schreibt daraus Steckbrief und Kalkulation", href: "/konto/unterlagen" },
     ];
     const einfuehrung = !ausgeblendet && admin && !(schritte[0].fertig && schritte[1].fertig) ? `<section class="einfuehrung"><h2>So startest du mit Jarvis</h2><ol>${schritte.map((x, i) => `<li class="${x.fertig ? "erledigt" : ""}"><span class="schritt-nr" aria-hidden="true">${x.fertig ? "✓" : i + 1}</span><a href="${x.href}"><strong>${x.text}</strong><span class="klein">${x.hinweis}</span></a></li>`).join("")}</ol><a class="klein" href="/konto?einfuehrung=aus">Ausblenden</a></section>` : "";
-    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat.</p>${kacheln}`) : rahmen(`${einfuehrung}${meldungen}${heuteWichtig}<h2>Was möchtest du tun?</h2>${kacheln}${zuletzt}`);
+    // T12: banner for whoever covers (or is absent) today, with the absent person's open tasks and tenders.
+    let vertretungBanner = "";
+    if (vertretungenHeute.length) {
+      const fuer = vertretungenHeute.filter((x) => x.vertreter_id === s.userId).map((x) => x.user_id);
+      const [af, vf] = fuer.length ? await Promise.all([
+        db<{ zustaendig_id: string }[]>(s, env, `aufgaben?firma_id=eq.${m.firma_id}&zustaendig_id=in.(${fuer.join(",")})&erledigt=is.null&select=zustaendig_id&limit=1000`),
+        db<{ kaufverantwortlich_id: string }[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}&kaufverantwortlich_id=in.(${fuer.join(",")})&status=in.(neu,pruefen,angebot)&select=kaufverantwortlich_id&limit=1000`),
+      ]) : [null, null];
+      const zahlen = Object.fromEntries(fuer.map((u) => [u, { aufgaben: af?.ok ? af.daten.filter((x) => x.zustaendig_id === u).length : 0, vorgaenge: vf?.ok ? vf.daten.filter((x) => x.kaufverantwortlich_id === u).length : 0 }]));
+      const namen = Object.fromEntries((mitglieder.ok ? mitglieder.daten : []).map((x) => [x.user_id, x.anzeigename || x.funktion || "Ohne Namen"]));
+      vertretungBanner = vertretungHinweis(vertretungenHeute, s.userId, namen, heute, zahlen);
+    }
+    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>${eigeneAkte ? "Deine Einsätze, Urlaub und Nachweise findest du unter „Meine Einsätze &amp; Daten“. Daneben liegt, was dir dein Team persönlich freigegeben hat." : "Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat."}</p>${kacheln}`) : rahmen(`${vertretungBanner}${einfuehrung}${meldungen}${heuteWichtig}<h2>Was möchtest du tun?</h2>${kacheln}${zuletzt}`);
   } else if (unterseite === "treffer") {
     const fb = await db<{ vorgang_id: string; grund: string }[]>(s, env, `treffer_feedback?firma_id=eq.${m.firma_id}&select=vorgang_id,grund`);
     const rueckmeldungen = new Map((fb.ok ? fb.daten : []).map((x) => [x.vorgang_id, x.grund]));
@@ -456,16 +479,20 @@ ${beruf || st ? `<ul class="standort-liste">${gefunden.map((k) => `<li><a class=
     }
       // N13: temporary work firms reach the AÜG-Wächter from here.
       // T1–T8: company profile, personnel tools and what needs attention, at the top of the page.
-      if (m.rolle !== "mitarbeiter") team = (await teamKopf(s, env, m.firma_id, heute, tarife.some((t) => t.name === GVP.name))) + team;
+      if (m.rolle !== "mitarbeiter") team = (await teamKopf(s, env, m.firma_id, heute, tarife.some((t) => t.name === GVP.name), admin)) + team;
       team += `<h2 id="app-zugaenge">App-Zugänge</h2><p class="klein">Diese Personen melden sich bei Jarvis an. Einsatzkräfte stehen separat im Organisationsbaum.</p><p class="klein">Deine Rolle: <strong>${ROLLEN[m.rolle] ?? m.rolle}</strong> ${anzahl.ok && typeof anzahl.daten === "number" ? ` · ${anzahl.daten} ${anzahl.daten === 1 ? "Nutzer" : "Nutzer"}` : ""}</p>${hilfe("Funktion und Zugriff", "Die Funktion beschreibt die Aufgabe in der Firma. Der Zugriff legt getrennt davon fest, welche Daten die Person sehen und bearbeiten darf. Finanzfreigabe gibt zusätzlich Zugriff auf Kalkulation und Firmenunterlagen. Eine Standortleitung verwaltet Personal und Einsätze nur am zugeordneten Standort; Kalkulation und Firmenunterlagen bleiben für sie gesperrt.")}${tarifvertraegeBlock(tarife, admin)}`;
     const ml = mitglieder.ok ? mitglieder.daten : [];
     team += funktionsListe;
-    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"${x.aktiv === false ? ' style="opacity:.75"' : ""}><div class="person-kopf mitglied-kopf">${avatar(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"), x.user_id, undefined, "person-avatar klein-avatar")}<h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3></div><ul class="rechte-chips">${(x.funktion || "Mitarbeiter/in") !== (ROLLEN[x.rolle] ?? x.rolle) ? `<li>${escape(x.funktion || "Mitarbeiter/in")}</li>` : ""}<li class="stark">${escape(ROLLEN[x.rolle] ?? x.rolle)}</li>${x.finanzen || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>💶 Finanzen</li>" : ""}${x.alle_bereiche || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>Ganze Firma</li>" : (zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id) : []).map((z) => `<li>📍 ${escape(name(z.bereich_id))}</li>`).join("")}${x.aktiv === false ? "<li>🔒 gesperrt</li>" : ""}</ul>${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
+    // T16: staff logins can be linked to their personnel record ("Meine Einsätze & Daten").
+    const aktenAntwort = admin && ml.some((x) => x.rolle === "mitarbeiter") ? await db<{ id: string; vorname: string; nachname: string; user_id: string | null }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&select=id,vorname,nachname,user_id&order=vorname&limit=3000`) : null;
+    const akten = aktenAntwort?.ok ? aktenAntwort.daten : [];
+    team += `<div class="mitarbeiter-liste">${ml.map((x) => `<article class="treffer-karte"${x.aktiv === false ? ' style="opacity:.75"' : ""}><div class="person-kopf mitglied-kopf">${avatar(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"), x.user_id, undefined, "person-avatar klein-avatar")}<h3>${escape(x.anzeigename || (x.user_id === s.userId ? s.email : "Mitarbeiter"))}</h3></div><ul class="rechte-chips">${(x.funktion || "Mitarbeiter/in") !== (ROLLEN[x.rolle] ?? x.rolle) ? `<li>${escape(x.funktion || "Mitarbeiter/in")}</li>` : ""}<li class="stark">${escape(ROLLEN[x.rolle] ?? x.rolle)}</li>${x.finanzen || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>💶 Finanzen</li>" : ""}${x.alle_bereiche || x.rolle === "inhaber" || x.rolle === "admin" ? "<li>Ganze Firma</li>" : (zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id) : []).map((z) => `<li>📍 ${escape(name(z.bereich_id))}</li>`).join("")}${x.aktiv === false ? "<li>🔒 gesperrt</li>" : ""}</ul>${admin && x.rolle === "mitarbeiter" ? zugangPersonalForm(x.user_id, akten) : ""}${admin ? personFormular(x, m.firma_id, b, zuordnungen.ok ? zuordnungen.daten.filter((z) => z.user_id === x.user_id).map((z) => z.bereich_id) : [], m.rolle === "inhaber") : ""}</article>`).join("")}</div>`;
     if (admin) {
     const offen = einladungen.ok ? einladungen.daten : [];
     if (offen.length) {
-      team += `<h3>Offene Einladungen</h3><ul class="einladungen-liste">${offen.map((e) => `<li><span><strong>${escape(e.email)}</strong> · ${escape(ROLLEN[e.rolle] ?? e.rolle)} · gültig bis ${datum(e.gueltig_bis)}</span><span class="knoepfe">
-  <form method="post" action="/konto/einladen"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="email" value="${escape(e.email)}"><input type="hidden" name="rolle" value="${escape(e.rolle)}"><input type="hidden" name="funktion" value="Mitarbeiter/in"><input type="hidden" name="ersetzt" value="${e.id}"><button class="zweit">✉️ Erneut senden</button></form>
+      // T11: open and (up to 60 days) expired invitations; expired ones can be sent again with a new link.
+      team += `<h3>Einladungen</h3><ul class="einladungen-liste">${offen.map((e) => `<li${Date.parse(e.gueltig_bis) < Date.now() ? ' class="abgelaufen"' : ""}><span><strong>${escape(e.email)}</strong> · ${escape(ROLLEN[e.rolle] ?? e.rolle)} · ${Date.parse(e.gueltig_bis) < Date.now() ? `⌛ abgelaufen am ${datum(e.gueltig_bis)}, noch nicht angenommen` : `offen bis ${datum(e.gueltig_bis)}`}</span><span class="knoepfe">
+  <form method="post" action="/konto/einladen"><input type="hidden" name="firma" value="${m.firma_id}"><input type="hidden" name="email" value="${escape(e.email)}"><input type="hidden" name="rolle" value="${escape(e.rolle)}"><input type="hidden" name="funktion" value="${escape(e.funktion || "Mitarbeiter/in")}">${e.bereich_ids?.[0] ? `<input type="hidden" name="bereich" value="${escape(e.bereich_ids[0])}">` : ""}${e.finanzen ? '<input type="hidden" name="finanzen" value="1">' : ""}<input type="hidden" name="ersetzt" value="${e.id}"><button class="zweit">✉️ Erneut senden</button></form>
   <form method="post" action="/konto/einladung/zurueckziehen"><input type="hidden" name="id" value="${e.id}"><button class="zweit">Zurückziehen</button></form></span></li>`).join("")}</ul>`;
     }
     team += `<details class="einladen"><summary>➕ Person einladen</summary><form method="post" action="/konto/einladen">
@@ -505,7 +532,7 @@ ${aktuell && sucheEingerichtet ? `<div id="weitere">${zusatzBlock(Array.isArray(
 ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmenstandorte?.length ? firmenInfos({ website_beschreibung: websiteBeschreibung, websuche_beschreibung: websucheBeschreibung, websuche_quellen: aktuell?.websuche_quellen, firmenstandorte: aktuell?.firmenstandorte, suchgebiet_modus: aktuell?.suchgebiet_modus, website_hinweis: aktuell?.website_hinweis }, false, beschreibung) : ""}`);
   } else {
     const zeile = (href: string, icon: string, titel: string, text: string) => `<a class="standort-zeile" href="${href}"><span class="standort-icon" aria-hidden="true">${icon}</span><span class="standort-text"><strong>${titel}</strong><span class="klein">${text}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
-    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${zeile("/konto/firmenprofil", "🏢", "Firmenprofil", "Stammdaten, Umsatz, Zertifikate, Eigenerklärung")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${zeile("/konto/angebote", "📝", "Angebote", "Stand aller Angebote")}${zeile("/konto/foerderung", "🎯", "Förderprogramme", "Täglich geprüft, passend zu deiner Firma")}${zeile("/konto/radar", "🔮", "Neuausschreibungs-Radar", "Verträge, die bald auslaufen")}${zeile("/konto/auftraege", "🏗️", "Laufende Aufträge", "Laufzeit, Leute, Verlängerung")}${zeile("/konto/auftraggeber", "🏛️", "Auftraggeber", "Frühere Ausschreibungen, Ansprechpartner")}${zeile("/konto/auswertung", "📊", "Auswertung", "Treffer, Gewinnquote, Umsatz, KI-Kosten")}${zeile("/konto/textbausteine", "📚", "Textbausteine", "Wiederkehrende Angebotstexte")}${zeile("/konto/partner", "🤝", "Nachunternehmer &amp; Partner", "Partnerbetriebe je Gewerk")}${zeile("/konto/disposition", "🗓️", "Disposition", "Wer ist wann wo, wer ist frei")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
+    inhalt = rahmen(`<div class="standort-liste einstellungs-liste">${zeile("/konto/profil", "👤", "Mein Profil", "E-Mail, Passwort, Firma wechseln")}${zeile("/konto/suchprofil", "🔎", "Suchprofil", "Was und wo Jarvis sucht")}${zeile("/konto/team", "👥", "Firma &amp; Team", "Standorte, Personal, Zugänge")}${zeile("/konto/firmenprofil", "🏢", "Firmenprofil", "Stammdaten, Umsatz, Zertifikate, Eigenerklärung")}${finanzrecht ? zeile("/konto/kalkulation", "💶", "Kalkulation", "Standardwerte für Preise") : ""}${zeile("/konto/unterlagen", "📥", "Unterlagen", "Vergabe- und Firmenunterlagen")}${zeile("/konto/markt", "🌐", "Markt &amp; Chancen", "Offene Aufträge, Auftraggeber, Partner")}${zeile("/konto/angebote", "📝", "Angebote", "Stand aller Angebote")}${zeile("/konto/foerderung", "🎯", "Förderprogramme", "Täglich geprüft, passend zu deiner Firma")}${zeile("/konto/radar", "🔮", "Neuausschreibungs-Radar", "Verträge, die bald auslaufen")}${zeile("/konto/auftraege", "🏗️", "Laufende Aufträge", "Laufzeit, Leute, Verlängerung")}${zeile("/konto/auftraggeber", "🏛️", "Auftraggeber", "Frühere Ausschreibungen, Ansprechpartner")}${zeile("/konto/auswertung", "📊", "Auswertung", "Treffer, Gewinnquote, Umsatz, KI-Kosten")}${zeile("/konto/textbausteine", "📚", "Textbausteine", "Wiederkehrende Angebotstexte")}${zeile("/konto/partner", "🤝", "Nachunternehmer &amp; Partner", "Partnerbetriebe je Gewerk")}${zeile("/konto/disposition", "🗓️", "Disposition", "Wer ist wann wo, wer ist frei")}${m.rolle !== "mitarbeiter" ? `${zeile("/konto/aufgaben", "✅", "Aufgaben", "Wer macht was bis wann")}${zeile("/konto/vertretung", "🔁", "Vertretung", "Urlaub, Fristen an die Vertretung")}${zeile("/konto/kapazitaet", "📊", "Kapazität", "Personal frei in den nächsten 3 Monaten")}${zeile("/konto/betriebsmittel", "🚐", "Fahrzeuge &amp; Geräte", "TÜV, UVV, Wartung")}${zeile("/konto/organigramm", "🧭", "Organigramm", "Aufbau der Firma")}${admin ? zeile("/konto/rechte", "🔐", "Rechte-Übersicht", "Wer darf was") : ""}` : zeile("/konto/ich", "🙋", "Meine Einsätze &amp; Daten", "Einsätze, Urlaub, Nachweise")}${m.rolle === "inhaber" ? zeile("/konto/protokoll", "🕘", "Änderungsprotokoll", "Wer hat wann was geändert") : ""}${zeile("/konto/hilfe", "❓", "Hilfe", "Häufige Fragen und Kontakt")}</div>${meldungen}<h2 id="mail">🔔 Tägliche Nachricht</h2>
 <form method="post" action="/konto/mail">
   <input type="hidden" name="firma" value="${m.firma_id}">
   <label>Neue Treffer und Fristen-Erinnerungen (7 und 2 Tage vorher) um<select name="stunde">${stundenOptionen(stunde)}</select></label>
@@ -891,7 +918,12 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
       const aktueller = v.kaufverantwortlich_id ? await db<{ user_id: string; rolle: string; anzeigename: string | null; funktion: string | null; aktiv: boolean }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${v.kaufverantwortlich_id}&select=user_id,rolle,anzeigename,funktion,aktiv`) : null;
       const eingetragen = aktueller?.ok ? aktueller.daten[0] : undefined;
       const alle = eingetragen && !kandidaten.some((x) => x.user_id === eingetragen.user_id) ? [...kandidaten, eingetragen] : kandidaten;
-      const wer = eingetragen ? escape(eingetragen.anzeigename || eingetragen.funktion || "Mitglied") : "nicht zugewiesen";
+      // T12: show who covers for the responsible person today.
+      const tag = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
+      const vt = eingetragen ? await db<{ vertreter_id: string; bis: string }[]>(s, env, `vertretungen?firma_id=eq.${v.firma_id}&user_id=eq.${eingetragen.user_id}&von=lte.${tag}&bis=gte.${tag}&select=vertreter_id,bis&limit=1`) : null;
+      const vertreter = vt?.ok && vt.daten[0] ? await db<{ anzeigename: string | null; funktion: string | null }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${vt.daten[0].vertreter_id}&select=anzeigename,funktion`) : null;
+      const vertretenDurch = vertreter?.ok && vertreter.daten[0] ? ` <span class="klein">(abwesend, vertreten durch ${escape(vertreter.daten[0].anzeigename || vertreter.daten[0].funktion || "Mitglied")})</span>` : "";
+      const wer = eingetragen ? escape(eingetragen.anzeigename || eingetragen.funktion || "Mitglied") + vertretenDurch : "nicht zugewiesen";
       kaufverantwortlich = `<details class="zustaendigkeit"><summary>👤 Kaufmännisch zuständig: ${wer}</summary>${eingetragen && !eingetragen.aktiv ? `<p class="klein">Bisher: ${escape(eingetragen.anzeigename || eingetragen.funktion || "Mitglied")} (Zugang gesperrt)</p>` : ""}<form method="post" action="/konto/verantwortlich"><input type="hidden" name="vorgang" value="${v.id}"><label>Verantwortliche Person<select name="person"><option value="">Nicht zugewiesen</option>${alle.map((x) => `<option value="${x.user_id}"${x.user_id === v.kaufverantwortlich_id ? " selected" : ""}${!x.aktiv ? " disabled" : ""}>${escape(x.anzeigename || x.funktion || "Mitglied")} · ${escape(ROLLEN[x.rolle] ?? x.rolle)}${!x.aktiv ? " (gesperrt)" : ""}</option>`).join("")}</select></label><button>Zuständigkeit speichern</button></form></details>`;
     }
   }
@@ -948,9 +980,11 @@ ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief
   const firmaName = await db<{ name: string }[]>(s, env, `firmen?id=eq.${v.firma_id}&select=name`);
   const partnerBlock = await partnerTeil(s, env, v, rolle, finanzen, firmaName.ok ? firmaName.daten[0]?.name ?? "" : "");
   // Jump bar to the sections of this long page; only sections that exist.
-  const sprung = [["#steckbrief", "Steckbrief"], teilnahme.includes('id="nachweise"') ? ["#nachweise", "Nachweise"] : null, finanzen ? [kalkulation, "Kalkulation"] : null, personalBlock ? ["#personal", "Personal"] : null, hochladen ? ["#unterlagen", "Unterlagen"] : null, termineBlock ? ["#termine", "Termine"] : null, partnerBlock ? ["#partner", "Partner"] : null, ["#notizen", "Notizen"]].filter((x): x is string[] => !!x);
+  const heuteBerlin = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
+  const [aufgabenBlock, reichtBlock] = await Promise.all([aufgabenTeil(s, env, v, rolle, heuteBerlin), reichtTeil(s, env, v, rolle)]);
+  const sprung = [["#steckbrief", "Steckbrief"], teilnahme.includes('id="nachweise"') ? ["#nachweise", "Nachweise"] : null, finanzen ? [kalkulation, "Kalkulation"] : null, personalBlock ? ["#personal", "Personal"] : null, reichtBlock ? ["#kapazitaet", "Kapazität"] : null, aufgabenBlock ? ["#aufgaben", "Aufgaben"] : null, hochladen ? ["#unterlagen", "Unterlagen"] : null, termineBlock ? ["#termine", "Termine"] : null, partnerBlock ? ["#partner", "Partner"] : null, ["#notizen", "Notizen"]].filter((x): x is string[] => !!x);
   const sprungleiste = `<nav class="sprungleiste" aria-label="Abschnitte">${sprung.map(([href, text]) => `<a href="${escape(href)}">${text}</a>`).join("")}</nav>`;
-  return html(seite(v.titel, kopf + sprungleiste + verweise + teil + teilnahme + personalBlock + termineBlock + partnerBlock + notizBlock + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
+  return html(seite(v.titel, kopf + sprungleiste + verweise + teil + teilnahme + personalBlock + reichtBlock + aufgabenBlock + termineBlock + partnerBlock + notizBlock + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */
@@ -1117,4 +1151,11 @@ export function html(body: string, status = 200, cookies: string[] = []): Respon
   });
   for (const c of cookies) h.append("set-cookie", c);
   return new Response(body, { status, headers: h });
+}
+
+/** T16: select to link a staff login with a personnel record. */
+export function zugangPersonalForm(user: string, akten: { id: string; vorname: string; nachname: string; user_id: string | null }[]): string {
+  const jetzt = akten.find((a) => a.user_id === user);
+  const frei = akten.filter((a) => !a.user_id || a.user_id === user);
+  return `<form method="post" action="/konto/zugang/personal" class="zugang-akte"><input type="hidden" name="user" value="${user}"><label>🙋 Personalakte<select name="personal" data-sofort-wahl><option value="">${jetzt ? "Verknüpfung entfernen" : "nicht verknüpft"}</option>${frei.map((a) => `<option value="${a.id}"${a.id === jetzt?.id ? " selected" : ""}>${escape(`${a.vorname} ${a.nachname}`.trim())}</option>`).join("")}</select></label><noscript><button class="zweit">Speichern</button></noscript>${jetzt ? `<span class="klein">sieht eigene Einsätze, beantragt Urlaub, lädt Nachweise hoch</span>` : ""}</form>`;
 }

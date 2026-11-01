@@ -43,6 +43,23 @@ def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tupl
     return con.execute(basis + "b.stunde = %s and (b.letzte_mail is null or b.letzte_mail < now() - interval '20 hours')", (stunde,)).fetchall()
 
 
+def vertretung_heute(con, firma_id: str, user_id: str) -> tuple[bool, bool]:
+    """(absent today, covers for someone today) from the cover arrangements (T12)."""
+    heute = datetime.now(BERLIN).date()
+    abwesend, vertritt = con.execute("""select
+          exists(select 1 from public.vertretungen where firma_id = %s and user_id = %s and %s between von and bis),
+          exists(select 1 from public.vertretungen where firma_id = %s and vertreter_id = %s and %s between von and bis)""",
+        (firma_id, user_id, heute, firma_id, user_id, heute)).fetchone()
+    return bool(abwesend), bool(vertritt)
+
+
+def regel(abwesend: bool, vertritt: bool, fristen_an: bool) -> tuple[bool, bool]:
+    """(send at all, with deadlines): absent people get nothing; whoever covers always gets the deadlines."""
+    if abwesend:
+        return False, False
+    return True, fristen_an or vertritt
+
+
 def handy(con, schl, user_id: str, firma_id: str, firma: str, neu: list, fristen: list, sofort: bool = False) -> int:
     """Phone notification: one tap opens the hit (one new) or the list (several)."""
     if sofort and neu:
@@ -248,6 +265,10 @@ def main() -> None:
         schl = push.schluessel(con)
         for firma_id, user_id, email, firma, letzte, kanal, fristen_an in faellig(con, stunde, test, sofort):
             seit = datetime.now(BERLIN) - timedelta(days=8) if sofort else letzte or datetime.now(BERLIN) - timedelta(days=1)
+            if not (test or sofort):
+                senden, fristen_an = regel(*vertretung_heute(con, firma_id, user_id), fristen_an)
+                if not senden:  # absent today, the cover gets the deadlines (T12)
+                    continue
             neu, fristen = inhalt(con, firma_id, user_id, seit)
             if not fristen_an:  # deadline reminders switched off in the settings (I1)
                 fristen = []
@@ -267,7 +288,11 @@ def main() -> None:
             # Deadline-day message at 7, or at the end of the person's quiet hours when 7 falls into them (I2).
             for firma_id, user_id, von, bis in con.execute("""select b.firma_id::text, b.user_id::text, b.ruhe_von, b.ruhe_bis from public.benachrichtigungen b
                     join public.mitglieder m on m.firma_id = b.firma_id and m.user_id = b.user_id and m.aktiv
-                    where b.stunde is not null and b.fristen and b.kanal in ('push', 'beides')""").fetchall():
+                    where b.stunde is not null and b.kanal in ('push', 'beides')
+                      and (b.fristen or exists(select 1 from public.vertretungen v where v.firma_id = b.firma_id and v.vertreter_id = b.user_id
+                                                 and (now() at time zone 'Europe/Berlin')::date between v.von and v.bis))
+                      and not exists(select 1 from public.vertretungen v where v.firma_id = b.firma_id and v.user_id = b.user_id
+                                       and (now() at time zone 'Europe/Berlin')::date between v.von and v.bis)""").fetchall():
                 if stunde == morgen_stunde(von, bis):
                     pushs += morgen_push(con, schl, user_id, firma_id, heute_faellig(con, firma_id, user_id))
     print(f"{stunde} Uhr: {mails} Mails, {pushs} Handy-Benachrichtigungen")

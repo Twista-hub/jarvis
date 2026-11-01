@@ -83,7 +83,7 @@ export async function personalsuche(request: Request, env: KontoEnv): Promise<Re
     db<SuchPerson[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,berufe,qualifikationen,bereich_id,status,telefon,fuehrerschein,sprachen,wohn_plz&order=vorname&limit=3000`),
     gesucht ? db<Nachweis[]>(f.s, env, `personal_nachweise?firma_id=eq.${firma}&select=id,personal_id,bezeichnung,erworben,gueltig_bis,datei_name,datei_mime&limit=10000`) : Promise.resolve({ ok: true as const, daten: [] as Nachweis[] }),
     gesucht ? db<Ueberlassung[]>(f.s, env, `ueberlassungen?firma_id=eq.${firma}&von=lte.${bis}&or=(bis.is.null,bis.gte.${von})&select=id,personal_id,entleiher,von,bis&limit=5000`) : Promise.resolve({ ok: true as const, daten: [] as Ueberlassung[] }),
-    gesucht ? db<Abwesenheit[]>(f.s, env, `personal_abwesenheiten?firma_id=eq.${firma}&von=lte.${bis}&bis=gte.${von}&select=personal_id,von,bis,grund&limit=5000`) : Promise.resolve({ ok: true as const, daten: [] as Abwesenheit[] }),
+    gesucht ? db<Abwesenheit[]>(f.s, env, `personal_abwesenheiten?firma_id=eq.${firma}&von=lte.${bis}&bis=gte.${von}&select=personal_id,von,bis,grund,status&limit=5000`) : Promise.resolve({ ok: true as const, daten: [] as Abwesenheit[] }),
     gesucht ? db<{ personal_id: string; vorgang_id: string; vorgaenge: { titel: string; status: string } | null }[]>(f.s, env, `einsaetze?firma_id=eq.${firma}&status=eq.zugesagt&select=personal_id,vorgang_id,vorgaenge(titel,status)&limit=5000`) : Promise.resolve({ ok: true as const, daten: [] }),
     gesucht ? db<{ vorgang_id: string; beginn: string | null; ende: string | null }[]>(f.s, env, `vertraege?firma_id=eq.${firma}&select=vorgang_id,beginn,ende`) : Promise.resolve({ ok: true as const, daten: [] }),
   ]);

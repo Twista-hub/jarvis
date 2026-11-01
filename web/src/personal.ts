@@ -48,13 +48,13 @@ export type Einsatz = { id: string; personal_id: string; vorgang_id: string; sta
 const ID = /^[0-9a-f-]{36}$/;
 
 // G2: absences with a period. Neutral reasons only (no health data).
-export type Abwesenheit = { id: string; personal_id: string; von: string; bis: string; grund: string; notiz: string };
+export type Abwesenheit = { id: string; personal_id: string; von: string; bis: string; grund: string; notiz: string; status?: string };
 export const GRUENDE: Record<string, [string, string]> = { urlaub: ["🌴", "Urlaub"], schulung: ["🎓", "Schulung"], abwesend: ["⏸️", "Nicht verfügbar"] };
 const tagMonat = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
 export const heuteIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
 /** Absence today, if any. */
 export function abwesendAm(abw: Abwesenheit[], personal: string, tag = heuteIso()): Abwesenheit | undefined {
-  return abw.find((a) => a.personal_id === personal && a.von <= tag && a.bis >= tag);
+  return abw.find((a) => a.personal_id === personal && a.status !== "beantragt" && a.von <= tag && a.bis >= tag);
 }
 export function zeitraumText(a: Pick<Abwesenheit, "von" | "bis">): string {
   return a.von === a.bis ? tagMonat(a.von) : `${tagMonat(a.von)}–${tagMonat(a.bis)}`;
@@ -92,7 +92,7 @@ export function bildTyp(b: Uint8Array): string | null {
 /** Absence list and form inside "Bearbeiten". */
 function abwesenheitTeil(k: Kraft, abw: Abwesenheit[], darfAendern: boolean): string {
   const eigene = abw.filter((a) => a.personal_id === k.id).sort((a, b) => a.von.localeCompare(b.von));
-  const liste = eigene.length ? `<ul class="abwesenheit-liste">${eigene.map((a) => `<li><span>${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[0]} ${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[1]} ${zeitraumText(a)}${a.notiz ? ` · ${escape(a.notiz)}` : ""}</span>${darfAendern ? `<form method="post" action="/konto/personal/${k.id}/abwesenheit" class="termin-weg"><input type="hidden" name="loeschen" value="${a.id}"><button class="zweit" aria-label="Abwesenheit löschen">✕</button></form>` : ""}</li>`).join("")}</ul>` : "";
+  const liste = eigene.length ? `<ul class="abwesenheit-liste">${eigene.map((a) => `<li${a.status === "beantragt" ? ' class="beantragt"' : ""}><span>${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[0]} ${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[1]} ${zeitraumText(a)}${a.status === "beantragt" ? " · ⏳ beantragt" : ""}${a.notiz ? ` · ${escape(a.notiz)}` : ""}</span>${darfAendern ? `${a.status === "beantragt" ? `<form method="post" action="/konto/personal/${k.id}/abwesenheit" class="termin-weg"><input type="hidden" name="bestaetigen" value="${a.id}"><button class="zweit" aria-label="Antrag bestätigen">✓ OK</button></form>` : ""}<form method="post" action="/konto/personal/${k.id}/abwesenheit" class="termin-weg"><input type="hidden" name="loeschen" value="${a.id}"><button class="zweit" aria-label="${a.status === "beantragt" ? "Antrag ablehnen" : "Abwesenheit löschen"}">✕</button></form>` : ""}</li>`).join("")}</ul>` : "";
   if (!darfAendern) return liste;
   return `<div class="abwesenheit-teil"><h4>📅 Abwesenheiten</h4>${liste}<form method="post" action="/konto/personal/${k.id}/abwesenheit" class="abwesenheit-form"><label>Von<input type="date" name="von" required></label><label>Bis<input type="date" name="bis" required></label><label>Grund<select name="grund">${Object.entries(GRUENDE).map(([w, [i, t]]) => `<option value="${w}">${i} ${t}</option>`).join("")}</select></label><button class="zweit">Eintragen</button></form><p class="klein">Bitte keine Gesundheitsangaben: Für Krankheit „Nicht verfügbar“ wählen.</p></div>`;
 }
@@ -178,7 +178,7 @@ export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] 
   const name = `${k.vorname} ${k.nachname}`.trim();
   const bald = abw.filter((a) => a.personal_id === k.id && a !== heute && a.von > heuteIso() && a.von <= new Date(Date.now() + 45 * 86400_000).toISOString().slice(0, 10));
   return `<article class="person-karte">
-  <div class="person-kopf">${avatar(name, k.id, k.foto ? `/konto/personal/${k.id}/foto` : undefined)}<div><h3>${escape(name)}</h3><span class="status status-${heute ? "nicht" : k.status}">${icon} ${text}</span>${bald.length ? `<span class="klein abwesenheit-bald">${bald.map((a) => `${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[0]} ${zeitraumText(a)}`).join(" · ")}</span>` : ""}</div>${darfAendern ? `<a class="stift" href="#bearbeiten-${k.id}" data-oeffne="bearbeiten-${k.id}" aria-label="${escape(name)} bearbeiten" title="Bearbeiten">✏️</a>` : ""}</div>
+  <div class="person-kopf">${avatar(name, k.id, k.foto ? `/konto/personal/${k.id}/foto` : undefined)}<div><h3>${escape(name)}</h3><span class="status status-${heute ? "nicht" : k.status}">${icon} ${text}</span>${bald.length ? `<span class="klein abwesenheit-bald">${bald.map((a) => `${(GRUENDE[a.grund] ?? GRUENDE.abwesend)[0]} ${zeitraumText(a)}${a.status === "beantragt" ? " (beantragt)" : ""}`).join(" · ")}</span>` : ""}</div>${darfAendern ? `<a class="stift" href="#bearbeiten-${k.id}" data-oeffne="bearbeiten-${k.id}" aria-label="${escape(name)} bearbeiten" title="Bearbeiten">✏️</a>` : ""}</div>
   ${k.berufe.length ? `<p class="person-berufe">${k.berufe.map((b) => `<span class="marke">${escape(b)}</span>`).join("")}</p>` : ""}
   ${k.qualifikationen.length || k.eg ? `<p class="klein">${[k.eg ? `${escape(tarife.find((t) => t.id === k.tarifvertrag_id)?.name ?? "Tarif")} · ${escape(k.eg)}` : "", ...k.qualifikationen.map(escape)].filter(Boolean).join(" · ")}</p>` : ""}
   ${akteZeile(k, heuteIso())}${nachweisMarken(eigeneNachweise, heuteIso())}
@@ -253,7 +253,7 @@ ${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open
 }
 
 export async function abwesenheitenLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string): Promise<Abwesenheit[]> {
-  const r = await db<Abwesenheit[]>(s, env, `personal_abwesenheiten?firma_id=eq.${firma}&bis=gte.${heuteIso()}&select=id,personal_id,von,bis,grund,notiz&order=von&limit=1000`);
+  const r = await db<Abwesenheit[]>(s, env, `personal_abwesenheiten?firma_id=eq.${firma}&bis=gte.${heuteIso()}&select=id,personal_id,von,bis,grund,notiz,status&order=von&limit=1000`);
   return r.ok ? r.daten : [];
 }
 
@@ -482,7 +482,12 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     const form = await request.formData();
     const weg = String(form.get("loeschen") ?? "");
     let hinweis: string;
-    if (ID.test(weg)) {
+    const ok = String(form.get("bestaetigen") ?? "");
+    if (ID.test(ok)) {
+      // T16: leave requested by the staff member is confirmed by the office.
+      const r = await db<{ id: string }[]>(f.s, env, `personal_abwesenheiten?id=eq.${ok}&personal_id=eq.${pid}&status=eq.beantragt&select=id`, { method: "PATCH", headers: { prefer: "return=representation" }, body: JSON.stringify({ status: "bestaetigt" }) });
+      hinweis = r.ok && r.daten.length ? `Antrag von ${kraft.vorname} bestätigt.` : "Bestätigen hat nicht geklappt.";
+    } else if (ID.test(weg)) {
       const r = await db(f.s, env, `personal_abwesenheiten?id=eq.${weg}&personal_id=eq.${pid}`, { method: "DELETE" });
       hinweis = r.ok ? "Abwesenheit gelöscht." : "Löschen hat nicht geklappt.";
     } else {

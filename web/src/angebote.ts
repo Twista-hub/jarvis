@@ -129,7 +129,7 @@ export async function angebote(request:Request,env:KontoEnv):Promise<Response|nu
     if(/referenz/i.test(`${z.v.steckbrief??""}\n${mappe.text}`)){const refs=await referenzenLaden(s,env,z.v.firma_id);if(refs.length){dateien["Referenzliste.docx"]=referenzlisteDocx(firmenname,refs);protokoll.push(`Referenzliste (${refs.length} Referenzen)`);}}
     // T2: the suitability declaration with company data, revenue, staff and certificates.
     const refAnzahl=(await referenzenLaden(s,env,z.v.firma_id)).length;
-    dateien["Eigenerklaerung_Eignung.docx"]=eigenerklaerungDocx(firmenname,profil.firma,profil.profil,profil.kennzahlen??[],profil.zertifikate,refAnzahl,heuteIso);protokoll.push("Eigenerklärung zur Eignung (mit dem Formular des Auftraggebers abgleichen)");
+    dateien["Eigenerklaerung_Eignung.docx"]=eigenerklaerungDocx(firmenname,profil.firma,profil.profil,profil.kennzahlen??[],profil.zertifikate,refAnzahl,heuteIso,profil.ausstattung);protokoll.push("Eigenerklärung zur Eignung (mit dem Formular des Auftraggebers abgleichen)");
     // N9: the bid file (GAEB X84) and the price list, when the tender has a bill of quantities.
     for(const [name,inhalt] of Object.entries(await lvDateien(s,env,z.v.id,z.v.firma_id))){dateien[name]=strToU8(inhalt);protokoll.push(name.endsWith(".X84")?`Angebotsdatei ${name} (im Vergabeportal hochladen)`:`Preisliste ${name}`);}
     dateien["Pruefliste.txt"]=strToU8(protokoll.join("\n"));
