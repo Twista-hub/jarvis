@@ -79,6 +79,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 01.11.2026 – Claude (Erster Lauf: 10 ausführliche Steckbriefe)
+- Auf Wunsch von Benjamin: Beim ersten Suchlauf einer neuen Firma (`alarm.yml` mit `firma`) schreibt Jarvis für die besten 10 Treffer gleich einen ausführlichen Steckbrief (`MAX_STECKBRIEFE=10`, Auswahl nur nach Punkten). Tägliche Läufe bleiben bei 4. Kurzüberblicke werden beim Speichern durch den ausführlichen Steckbrief ersetzt. Für das neue Konto „Perlease GmbH“ nachgeholt.
+
 ### 01.11.2026 – Claude (Firmenprüfung bei der Registrierung repariert)
 - Fehler: Neue Registrierung (Perlease, 16 Standorte) endete mit „Die Firmenprüfung konnte gerade nicht abgeschlossen werden“. Diagnose (`.github/workflows/einrichtung-diagnose.yml`, nur lesend): die erste KI-Anfrage (Websuche) lief und wurde bezahlt, die zweite (Profil) wurde nie gestellt. Die Websuche endete nicht mit `end_turn` (bei vielen Standorten `pause_turn` bzw. abgeschnitten), das galt als Fehler.
 - Behebung `web/src/firmenrecherche.ts`: `pause_turn` wird bis zu zweimal fortgesetzt, Ausgabegrenze 3000 → 5000, ein abgeschnittener Text mit Quellen wird weiterverwendet. Der technische Grund eines Fehlschlags steht jetzt im Suchprofil (`recherche_fehler_text`) und in der Diagnose.

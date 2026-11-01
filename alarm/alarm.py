@@ -27,7 +27,7 @@ UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger
 # Portals whose terms and robots.txt allow downloading the documents for our service (checked by hand).
 # Not DTVP: its AGB (29.10.2026) forbid systematic downloads of notices and documents for commercial offers.
 PORTALE: set[str] = set()
-MAX_STECKBRIEFE = int(os.environ.get("MAX_STECKBRIEFE", "4"))  # per firm and day (Benjamin, 31.10.2026)
+MAX_STECKBRIEFE = int(os.environ.get("MAX_STECKBRIEFE") or "4")  # per firm and day (Benjamin, 31.10.2026); first run of a new firm 10 (01.11.2026)
 STECKBRIEF_AB = 7
 MIN_PASSUNG = 6
 FIRMA = os.environ.get("FIRMA", "") if re.fullmatch(r"[0-9a-f-]{36}", os.environ.get("FIRMA", "")) else ""
@@ -271,7 +271,8 @@ def steckbrief_auswahl(name: str, rows: list, namen: list[str] | None = None) ->
     offen = [r for r in rows if r[0] and not vorhandener_steckbrief(namen, r[2], r[3])]
     beste = sorted((r for r in offen if r[0].get("punkte", 0) >= STECKBRIEF_AB),
                    key=lambda r: (-r[0].get("punkte", 0), -umfang(r[3].get("tender") or {})))
-    gewaehlt = beste[:max(0, (frei + 1) // 2)]
+    # First run of a new firm (FIRMA set): simply the best hits; daily runs: half best, half most work.
+    gewaehlt = beste[:max(0, frei if os.environ.get("FIRMA") else (frei + 1) // 2)]
     rest = sorted((r for r in offen if r not in gewaehlt and umfang(r[3].get("tender") or {})),
                   key=lambda r: (-umfang(r[3].get("tender") or {}), -r[0].get("punkte", 0)))
     gewaehlt += rest[:max(0, frei - len(gewaehlt))]
