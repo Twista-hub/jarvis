@@ -183,7 +183,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     }
     const gw = await gewerke(request, env, ADRESSE, (h) => html(h));
     if (gw) return gw;
-    const fr = metiers(request, ADRESSE, (h) => html(h));
+    const fr = await metiers(request, env, ADRESSE, (h) => html(h));
     if (fr) return fr;
     const sam = samAnleitungSeite(request, ADRESSE, (h) => html(h));
     if (sam) return sam;

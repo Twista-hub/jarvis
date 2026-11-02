@@ -62,6 +62,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261102100000_gewerk_cache.sql
 \ir ../migrations/20261102110000_gewerk_offen.sql
 \ir ../migrations/20261102120000_us_bieterprofil.sql
+\ir ../migrations/20261102130000_boamp_bestand.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1162,6 +1163,29 @@ select pruefe(public.gewerk_statistik(array['45311'])->'beispiele'->0->>'titel' 
 select pruefe(public.gewerk_statistik(array['x%; drop']) ->> 'monat' = '0', 'Ungültige Präfixe liefern nichts');
 reset role;
 delete from public.vergabekatalog where id like 'test:g%';
+
+-- French trade pages: BOAMP stock is internal, the numbers are public and come from the same background cache.
+reset role;
+insert into jarvis_intern.boamp_avis (idweb, publication, titel, acheteur, departements, cpv, limite, link) values
+  ('26-1', current_date - 1, 'Nettoyage des locaux de la mairie', 'Ville de Lyon', '{69}', '{90911200}', now() + interval '12 days', 'https://www.boamp.fr/pages/avis/?q=idweb:26-1'),
+  ('26-2', current_date - 3, 'Nettoyage clos', 'Ville de Lyon', '{69}', '{90910000}', now() - interval '1 day', 'https://www.boamp.fr/pages/avis/?q=idweb:26-2'),
+  ('26-3', current_date - 45, 'Nettoyage ancien', 'Ville de Lyon', '{69}', '{90910000}', null, 'https://www.boamp.fr/pages/avis/?q=idweb:26-3'),
+  ('26-4', current_date - 1, 'Gardiennage', 'CHU', '{75}', '{79713000}', null, 'https://www.boamp.fr/pages/avis/?q=idweb:26-4');
+set role anon;
+do $$ begin perform 1 from jarvis_intern.boamp_avis; raise exception 'FEHLER: anon liest BOAMP-Bestand'; exception when insufficient_privilege then null; end $$;
+select pruefe(coalesce((public.metier_statistik(array['9091','90919'])->>'monat')::int, 0) = 0, 'Neue Bekanntmachungen erst nach der Hintergrundberechnung sichtbar');
+set role authenticated;
+do $$ begin insert into jarvis_intern.boamp_avis (idweb, publication, titel, link) values ('x', current_date, 'x', 'https://x'); raise exception 'FEHLER: authenticated schreibt BOAMP-Bestand'; exception when insufficient_privilege then null; end $$;
+reset role;
+select pruefe(jarvis_intern.gewerk_aktualisieren() >= 21, 'Hintergrundberechnung deutsch und französisch');
+set role anon;
+select pruefe((public.metier_statistik(array['9091','90919'])->>'monat')::int = 2 and (public.metier_statistik(array['9091','90919'])->>'offen')::int = 1, 'Französische Zahlen: 30 Tage, offen nach Frist');
+select pruefe(public.metier_statistik(array['9091','90919'])->'beispiele'->0->>'ort' = 'Département 69', 'Beispiel mit Département');
+select pruefe((public.metier_statistik(array['7971'])->>'offen')::int = 1, 'Ohne Frist gilt als offen');
+select pruefe(public.metier_statistik(array['x%; drop'])->>'monat' = '0', 'Ungültige Präfixe liefern nichts (fr)');
+select pruefe(public.gewerk_statistik(array['9091','90919']) is null, 'Deutsche Abfrage sieht die französischen Zahlen nicht');
+reset role;
+delete from jarvis_intern.boamp_avis;
 
 -- Error alarm: callable without login, limited, goes to the operator only; budget warning at 80 %.
 reset role;

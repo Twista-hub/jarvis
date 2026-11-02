@@ -46,3 +46,14 @@ class BoampTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BestandTest(unittest.TestCase):
+    def test_zeile_fuer_den_bestand(self):
+        import boamp_bestand
+        a = {"idweb": "26-123", "publication": "2026-11-02", "objet": "Nettoyage", "acheteur": "Ville", "departements": ["69", ""],
+             "cpv": ["90911200"], "limite": "2026-11-20T12:00", "url_avis": "https://www.boamp.fr/pages/avis/?q=idweb:26-123"}
+        z = boamp_bestand.zeile(a, "2026-11-02")
+        self.assertEqual(z, ("26-123", "2026-11-02", "Nettoyage", "Ville", ["69"], ["90911200"], "2026-11-20T12:00+01:00", "https://www.boamp.fr/pages/avis/?q=idweb:26-123"))
+        self.assertIsNone(boamp_bestand.zeile({**a, "url_avis": ""}, "2026-11-02"))
+        self.assertEqual(boamp_bestand.zeile({**a, "publication": "", "limite": ""}, "2026-11-01")[1::5], ("2026-11-01", None))
