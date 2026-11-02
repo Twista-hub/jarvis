@@ -54,9 +54,9 @@ jobs:
         run: |
           set -euo pipefail
           cd repo/web && npm ci --silent
-          npx wrangler r2 object put "jarvis-auftraege/sicherung/jarvis-$TAG.tar.enc" --file "$GITHUB_WORKSPACE/jarvis-$TAG.tar.enc" --remote --content-type application/octet-stream
+          npx wrangler r2 object put "jarvis-auftraege/sicherung/jarvis-$TAG.tar.enc" --file "$GITHUB_WORKSPACE/jarvis-$TAG.tar.enc" --remote --jurisdiction eu --content-type application/octet-stream
           ALT=$(date -u -d "15 days ago" +%F)
-          if [ "$(date -u -d "15 days ago" +%d)" != "01" ]; then npx wrangler r2 object delete "jarvis-auftraege/sicherung/jarvis-$ALT.tar.enc" --remote || true; fi
+          if [ "$(date -u -d "15 days ago" +%d)" != "01" ]; then npx wrangler r2 object delete "jarvis-auftraege/sicherung/jarvis-$ALT.tar.enc" --remote --jurisdiction eu || true; fi
           # Monthly backups are kept for one year (deleted data must not stay forever).
           JAHR=$(date -u -d "366 days ago" +%F)
-          if [ "$(date -u -d "366 days ago" +%d)" = "01" ]; then npx wrangler r2 object delete "jarvis-auftraege/sicherung/jarvis-$JAHR.tar.enc" --remote || true; fi
+          if [ "$(date -u -d "366 days ago" +%d)" = "01" ]; then npx wrangler r2 object delete "jarvis-auftraege/sicherung/jarvis-$JAHR.tar.enc" --remote --jurisdiction eu || true; fi

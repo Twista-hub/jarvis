@@ -16,7 +16,7 @@ Schlägt die Sicherung fehl, kommt eine Handy-Nachricht (Ablauf „Fehler melden
 3. „Add secret“ tippen.
 
 ## Wiederherstellen (nur im Notfall, Claude oder ChatGPT mit Benjamin)
-1. Datei aus R2 holen: `npx wrangler r2 object get jarvis-auftraege/sicherung/jarvis-JJJJ-MM-TT.tar.enc --remote --file s.tar.enc`
+1. Datei aus R2 holen: `npx wrangler r2 object get jarvis-auftraege/sicherung/jarvis-JJJJ-MM-TT.tar.enc --remote --jurisdiction eu --file s.tar.enc`
 2. Entschlüsseln: `openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -in s.tar.enc -pass env:BACKUP_PASSWORT | tar -xf -`
 3. In eine **neue, leere** Datenbank einspielen (nie ungeprüft über die laufende):
    `gzip -dc daten.sql.gz | psql "<Verbindung>"`, danach `gzip -dc anmeldungen.sql.gz | psql "<Verbindung>"`.
