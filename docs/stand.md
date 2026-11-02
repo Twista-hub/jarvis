@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Polnisch, Recherche Polen und Spanien)
+- Polnische Oberfläche: Wörterbuch `web/src/polnisch/*.json` (2.242 Einträge, 7 Teile per Agent), App-Sprache pl aus Land PL oder Cookie, Fuß bietet Polski. KI-Steckbriefe/Bewertungen auf Polnisch (`alarm/sprache-pl.txt`, polnische Vergabebegriffe), Morgenmail/Handy auf Polnisch mit Zeitzone Warschau. Sprache aus Ländern: nur POL → pl (Liste `profile_db.LANDESSPRACHE`).
+- Recherche `docs/polen.md`: BZP-API e-Zamówienia (`/mo-board/api/v1/notice`, JSON, ohne Anmeldung, 30 Abrufe/Minute, ab 11.01.2027 max. 100 pro Seite), ca. 520 Ausschreibungen pro Werktag, Weiterverwendung nach polnischem Open-Data-Gesetz frei. robots.txt und Beispielantwort: Lese-Workflow `polen-test.yml`.
+- Recherche `docs/spanien.md`: PLACSP ATOM-Feeds (eigene Plattform + Regionalplattformen), CODICE-XML, Lizenz Hacienda (kommerziell erlaubt, Quellenangabe), ca. 460 + 120 pro Tag. robots.txt noch offen.
+- Französische Ausschreibungen: kein GAEB-Kasten mehr. PerLease-Erstlauf ausgewertet (siehe Offene Punkte).
+
 ### 02.11.2026 – Claude (Frankreich-Durchlauf mit Testfirma)
 - `alarm/frankreich_durchlauf.py` + Workflow `frankreich-durchlauf.yml` (manuell, nichts speichern, keine Mail): erfundene Reinigungsfirma Paris, Île-de-France. Lauf https://github.com/Twista-hub/jarvis/actions/runs/41526978782: ERGEBNIS ALLES OK, 0,07 $ KI. 768 BOAMP-Aufrufe (4 Tage) → 173 im Gebiet → 8 Kandidaten → KI-Bewertung auf Französisch (Saint-Mandé, ENSA Paris-La Villette 10/10, Éco-pâturage 1/10), Steckbrief französisch mit deutschen Marken, Morgenmail französisch.
 - Oberfläche: Suche über 75 gerenderte App-Seiten fand 325 deutsche Reste (Funktionen nach dem Wörterbuch). 262 nachgetragen (`englisch/nachtrag.json`, `franzoesisch/nachtrag.json`), Rest sind Beispieldaten. Beträge mit geschützten Leerzeichen werden jetzt erkannt.

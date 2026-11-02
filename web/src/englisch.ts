@@ -1,5 +1,5 @@
-// English and French office interface: every HTML answer is translated after rendering, text node by text node, with
-// a fixed dictionary per language (web/src/englisch/*.json, web/src/franzoesisch/*.json: German key, one entry per
+// English, French and Polish office interface: every HTML answer is translated after rendering, text node by text node,
+// with a fixed dictionary per language (web/src/englisch, franzoesisch, polnisch/*.json: German key, one entry per
 // visible text; `#` stands for a number or date and is carried over in order). Texts the dictionary does not know stay
 // German (names, customer texts). Language: cookie jv_psprache ("de", "en" or "fr"), otherwise from the visitor's
 // country and browser (besucher.ts). The footer offers the switch (/sprache?zu=fr&weiter=…).
@@ -23,24 +23,36 @@ import f05 from "./franzoesisch/teil05.json" with { type: "json" };
 import fZusatz from "./franzoesisch/zusatz.json" with { type: "json" };
 import fAttribute from "./franzoesisch/attribute.json" with { type: "json" };
 import fNachtrag from "./franzoesisch/nachtrag.json" with { type: "json" };
+import p00 from "./polnisch/teil00.json" with { type: "json" };
+import p01 from "./polnisch/teil01.json" with { type: "json" };
+import p02 from "./polnisch/teil02.json" with { type: "json" };
+import p03 from "./polnisch/teil03.json" with { type: "json" };
+import p04 from "./polnisch/teil04.json" with { type: "json" };
+import p05 from "./polnisch/teil05.json" with { type: "json" };
+import pZusatz from "./polnisch/zusatz.json" with { type: "json" };
+import pAttribute from "./polnisch/attribute.json" with { type: "json" };
+import pNachtrag from "./polnisch/nachtrag.json" with { type: "json" };
 
-export type AppSprache = "de" | "en" | "fr";
+export type AppSprache = "de" | "en" | "fr" | "pl";
 type Fremd = Exclude<AppSprache, "de">;
 
 const ZAHL = "(\\d[\\d.,:]*)";
 const TEILE: Record<Fremd, Record<string, string>[]> = {
   en: [t00, t01, t02, t03, t04, t05, tZusatz, tAttribute, tNachtrag],
   fr: [f00, f01, f02, f03, f04, f05, fZusatz, fAttribute, fNachtrag],
+  pl: [p00, p01, p02, p03, p04, p05, pZusatz, pAttribute, pNachtrag],
 };
 /** Fixed labels in front of free text (AI fact sheet title, rating lines). */
 const PRAEFIXE: Record<Fremd, [string, string][]> = {
   en: [["Steckbrief: ", "Fact sheet: "], ["Gesucht: ", "Wanted: "], ["Warum passend: ", "Why it fits: "], ["Empfehlung: ", "Recommendation: "]],
   fr: [["Steckbrief: ", "Fiche synthèse : "], ["Gesucht: ", "Objet : "], ["Warum passend: ", "Pourquoi c'est pertinent : "], ["Empfehlung: ", "Recommandation : "]],
+  pl: [["Steckbrief: ", "Karta przetargu: "], ["Gesucht: ", "Przedmiot: "], ["Warum passend: ", "Dlaczego pasuje: "], ["Empfehlung: ", "Rekomendacja: "]],
 };
 /** Fixed labels after free text (a work or place name the firm typed). */
 const SUFFIXE: Record<Fremd, [string, (frei: string) => string][]> = {
   en: [[" suchen", (f) => `Search for ${f}`], [" als Einsatzort", (f) => `${f} as place of work`]],
   fr: [[" suchen", (f) => `Rechercher : ${f}`], [" als Einsatzort", (f) => `${f} comme lieu d'intervention`]],
+  pl: [[" suchen", (f) => `Szukaj: ${f}`], [" als Einsatzort", (f) => `${f} jako miejsce pracy`]],
 };
 type Muster = { re: RegExp; ziel: string };
 type Woerterbuch = { genau: Map<string, string>; muster: Muster[] };
@@ -132,7 +144,7 @@ export function uebersetzen(seite: string, sprache: AppSprache): string {
   }).join("");
 }
 
-const APP_SPRACHEN: readonly AppSprache[] = ["de", "en", "fr"];
+const APP_SPRACHEN: readonly AppSprache[] = ["de", "en", "fr", "pl"];
 const zuApp = (s: string): AppSprache => (APP_SPRACHEN as readonly string[]).includes(s) ? s as AppSprache : "en";
 
 /** Office language of this visitor: the cookie decides, otherwise country and browser (besucher.ts). German, English
@@ -142,7 +154,7 @@ export function appSprache(request: Request): AppSprache {
   return zuApp(c ?? besucher(request).sprache);
 }
 
-const NAMEN: Record<AppSprache, string> = { de: "Deutsch", en: "English", fr: "Français" };
+const NAMEN: Record<AppSprache, string> = { de: "Deutsch", en: "English", fr: "Français", pl: "Polski" };
 const FUSS = '<p class="klein">WP Digital Ranger · ';
 /** Adds the language switch (the two other languages) to the page footer. */
 export function sprachFuss(seite: string, sprache: AppSprache, pfad: string): string {
