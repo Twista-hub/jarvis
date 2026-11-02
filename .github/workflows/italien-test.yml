@@ -1,0 +1,158 @@
+# Read-only check of the Italian national tender source (ANAC, Piattaforma Pubblicità a valore legale, JSON API
+# /api/v0 on pubblicitalegale.anticorruzione.it) and the ANAC open data portal: robots.txt, licence/terms pages and the
+# head of the API for the last publication day. 15 requests, 3 s apart. Nothing is stored, no secrets.
+# Docs: docs/italien.md
+name: Italien-Test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      UA: "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+      PVL: "https://pubblicitalegale.anticorruzione.it"
+    steps:
+      - name: robots.txt (3 Abrufe)
+        run: |
+          for h in pubblicitalegale.anticorruzione.it dati.anticorruzione.it www.anticorruzione.it; do
+            echo "== https://$h/robots.txt"
+            curl -sS -m 20 -A "$UA" -D h.txt -o r.txt -w "HTTP %{http_code}, %{size_download} Bytes, Typ %{content_type}\n" "https://$h/robots.txt" || true
+            grep -i "^location" h.txt || true
+            head -c 3000 r.txt; echo; echo
+            cp r.txt "robots-$h.txt"
+            sleep 3
+          done
+          # House rule: the API is only fetched when robots.txt allows /api/ for every user agent (checked below).
+          python3 - <<'PY'
+          import urllib.robotparser
+          rp = urllib.robotparser.RobotFileParser()
+          rp.parse(open("robots-pubblicitalegale.anticorruzione.it.txt", encoding="utf-8", errors="replace").read().splitlines())
+          erlaubt = rp.can_fetch("JarvisAlarm", "https://pubblicitalegale.anticorruzione.it/api/v0/avvisi")
+          print("robots.txt erlaubt /api/v0/avvisi:", erlaubt)
+          open("api-erlaubt", "w").write("ja" if erlaubt else "nein")
+          PY
+
+      - name: Lizenz und Nutzungsbedingungen (6 Abrufe)
+        run: |
+          set +e  # one failed request must not hide the rest
+          pip install -q pypdf
+          text() { python3 -c "
+          import re,sys; t=open(sys.argv[1],errors='replace').read()
+          links=sorted(set(m for m in re.findall(r'href=\"([^\"]+)\"', t) if re.search(r'legal|licen|condizion|privacy|termini|open.?data|dati', m, re.I)))
+          print('Links:', links[:30])
+          t=re.sub(r'<script[\s\S]*?</script>|<style[\s\S]*?</style>','',t); t=re.sub(r'<[^>]+>',' ',t); t=re.sub(r'\s+',' ',t)
+          hits=[m.group(0) for m in re.finditer(r'.{0,300}(licenz|Creative Commons|CC[ -]BY|IODL|riutilizz|riuso|condizioni d.uso|note legali|scraping|automatizz|robot).{0,300}', t, re.I)]
+          print('Text (Anfang):', t[:400]); print()
+          for h in hits[:12]: print('…', h); print()" "$1"; }
+          echo "== PVL-Startseite $PVL/bandi"
+          curl -sS -m 30 -A "$UA" -o p.html -w "HTTP %{http_code}, %{size_download} Bytes\n" "$PVL/bandi" && text p.html
+          sleep 3
+          echo "== Handbuch $PVL/assets/manuale_utente_pvl.pdf"
+          curl -sS -m 60 -A "$UA" -o m.pdf -w "HTTP %{http_code}, %{size_download} Bytes\n" "$PVL/assets/manuale_utente_pvl.pdf"
+          python3 - <<'PY'
+          import re
+          from pypdf import PdfReader
+          try:
+              t = "\n".join(p.extract_text() or "" for p in PdfReader("m.pdf").pages)
+          except Exception as e:
+              print("kein PDF:", e); raise SystemExit
+          print("Seiten-Text:", len(t), "Zeichen")
+          for m in re.finditer(r".{0,250}(licenz|riutilizz|open data|dati aperti|API|servizi web|web service|JSON|robot|automat).{0,250}", t, re.I | re.S):
+              print("…", " ".join(m.group(0).split())); print()
+          PY
+          sleep 3
+          echo "== Note legali anticorruzione.it"
+          curl -sSL -m 30 -A "$UA" -o n.html -w "HTTP %{http_code}, %{size_download} Bytes, Ziel %{url_effective}\n" "https://www.anticorruzione.it/note-legali" && text n.html
+          sleep 3
+          echo "== Startseite anticorruzione.it (Link zu Note legali suchen)"
+          curl -sSL -m 30 -A "$UA" -o a.html -w "HTTP %{http_code}, %{size_download} Bytes\n" "https://www.anticorruzione.it/" && python3 -c "
+          import re; t=open('a.html',errors='replace').read()
+          print(sorted(set(m for m in re.findall(r'href=\"([^\"]+)\"', t) if re.search(r'note|legal|licen|condizion|open.?data', m, re.I)))[:20])"
+          sleep 3
+          echo "== OCDS-Seite dati.anticorruzione.it (Lizenz, Takt)"
+          curl -sSL -m 30 -A "$UA" -o o.html -w "HTTP %{http_code}, %{size_download} Bytes\n" "https://dati.anticorruzione.it/opendata/ocds_it" && text o.html
+          sleep 3
+          echo "== CKAN-Metadaten eines Datensatzes (license_title, frequency)"
+          curl -sSL -m 30 -A "$UA" -o c.json -w "HTTP %{http_code}, %{size_download} Bytes\n" "https://dati.anticorruzione.it/opendata/api/3/action/package_show?id=ocds-appalti-ordinari-2025"
+          python3 -c "
+          import json
+          try:
+              r=json.load(open('c.json'))['result']
+          except Exception as e:
+              print('kein JSON:', e, open('c.json',errors='replace').read()[:300]); raise SystemExit
+          print({k: r.get(k) for k in ('title','license_id','license_title','license_url','metadata_modified')})
+          print('extras:', [(e.get('key'), str(e.get('value'))[:80]) for e in r.get('extras') or []][:20])
+          print('Ressourcen:', [(x.get('name'), x.get('format'), x.get('last_modified')) for x in r.get('resources') or []][:8])"
+
+      - name: Schnittstelle /api/v0 (6 Abrufe)
+        run: |
+          set +e
+          if [ "$(cat api-erlaubt)" != "ja" ]; then echo "robots.txt sperrt die Schnittstelle: kein Abruf."; exit 0; fi
+          get() { curl -sS -m 120 -A "$UA" -H "Accept: application/json" -o "$1" -w "HTTP %{http_code}, %{size_download} Bytes, %{time_total}s\n" "$2"; sleep 3; }
+          echo "== $PVL/api/v0/date"; get d.json "$PVL/api/v0/date"; head -c 300 d.json; echo
+          D=$(python3 -c "
+          import json; from datetime import datetime, timedelta, timezone
+          heute=(datetime.now(timezone.utc)+timedelta(hours=1)).date()
+          try:
+              tage=[datetime.strptime(x,'%d/%m/%Y').date() for x in json.load(open('d.json'))]
+              print(max(t for t in tage if t < heute).strftime('%d/%m/%Y'))
+          except Exception:
+              print((heute-timedelta(days=1)).strftime('%d/%m/%Y'))")
+          echo "Veröffentlichungstag für die Proben: $D"
+          echo "== $PVL/api/v0/map"; get map.json "$PVL/api/v0/map"; head -c 2500 map.json; echo
+          B="$PVL/api/v0/avvisi?dataPubblicazioneStart=$D&dataPubblicazioneEnd=$D&sortField=dataPubblicazione&sortDirection=ASC&page=0"
+          echo "== Bandi (codiceScheda=2,4), 100 pro Seite"; get b.json "$B&size=100&codiceScheda=2,4"
+          echo "== alle Arten, nur Anzahl"; get all.json "$B&size=1"
+          echo "== Indagini di mercato (codiceScheda=5), nur Anzahl"; get ind.json "$B&size=1&codiceScheda=5"
+          python3 - <<'PY'
+          import json, collections as C
+          def lade(f):
+              try:
+                  return json.load(open(f))
+              except Exception as e:
+                  print(f, "kein JSON:", e, open(f, errors="replace").read()[:300]); return {}
+          for f, name in (("all.json", "alle Arten"), ("ind.json", "Indagini (5)"), ("b.json", "Bandi (2,4)")):
+              d = lade(f); print(f"{name}: totalElements={d.get('totalElements')} totalPages={d.get('totalPages')}")
+          b = lade("b.json"); rows = b.get("content") or []
+          def tpl(r):
+              t = r.get("template") or []
+              return (t[0].get("template") or {}) if t and isinstance(t[0], dict) else {}
+          def lotti(r):
+              return [i for s in tpl(r).get("sections") or [] if str(s.get("name", "")).startswith("SEZ. C") for i in s.get("items") or []]
+          def sa(r):
+              for s in tpl(r).get("sections") or []:
+                  x = (s.get("fields") or {}).get("soggetti_sa")
+                  if x: return x[0]
+              return {}
+          print("Einträge auf Seite 1:", len(rows))
+          print("codiceScheda:", C.Counter(r.get("codiceScheda") for r in rows).most_common())
+          print("codiceEform:", C.Counter(r.get("codiceEform") for r in rows).most_common(10))
+          print("tipo:", C.Counter(r.get("tipo") for r in rows), "attivo:", sum(1 for r in rows if r.get("attivo")), "oscurato:", sum(1 for r in rows if r.get("oscurato")))
+          print("mit dataScadenza:", sum(1 for r in rows if r.get("dataScadenza")), "mit link_eform_ted:", sum(1 for r in rows if (tpl(r).get("metadata") or {}).get("link_eform_ted")))
+          L = [l for r in rows for l in lotti(r)]
+          print("Lose:", len(L), "mit CIG:", sum(1 for l in L if l.get("cig")), "mit Wert:", sum(1 for l in L if l.get("valore_complessivo_stimato")), "mit Unterlagen-Link:", sum(1 for l in L if l.get("documenti_di_gara_link")))
+          print("natura_principale:", C.Counter(l.get("natura_principale") for l in L).most_common())
+          for k in ("cpv", "luogo_nuts", "luogo_istat"):
+              print(f"{k} (Beispiele):", list(dict.fromkeys(str(l.get(k))[:70] for l in L if l.get(k)))[:12])
+          print("Schlüssel der Vergabestelle:", sorted(sa(rows[0]).keys()) if rows else "-")
+          for r in rows[:5]:
+              m = tpl(r).get("metadata") or {}
+              print("=====", r.get("codiceScheda"), r.get("tipo"), "|", (m.get("descrizione") or m.get("titolo") or "")[:120])
+              print("   Felder:", sorted(k for k in r if k != "template"))
+              print("   metadata:", sorted(m.keys()), "| TED:", m.get("link_eform_ted"))
+              print("   Abschnitte:", [s.get("name") for s in tpl(r).get("sections") or []])
+              print("   Vergabestelle:", sa(r).get("denominazione_amministrazione"), "| Frist:", r.get("dataScadenza"), "| veröff.:", r.get("dataPubblicazione"))
+              for l in lotti(r)[:2]:
+                  print("   Los-Felder:", sorted(l.keys()))
+                  print("   Los:", {k: str(l.get(k))[:90] for k in ("cig", "natura_principale", "cpv", "luogo_nuts", "luogo_istat", "valore_complessivo_stimato", "termine_ricezione", "documenti_di_gara_link")})
+          open("id.txt", "w").write(rows[0]["idAvviso"] if rows else "")
+          PY
+          ID=$(cat id.txt)
+          if [ -n "$ID" ]; then
+            echo "== Einzelabruf $PVL/api/v0/avvisi/$ID"; get one.json "$PVL/api/v0/avvisi/$ID"
+            python3 -c "
+          import json; d=json.load(open('one.json')); print('Felder:', sorted(d.keys())); print('Gleicher Inhalt wie Liste (template):', bool(d.get('template')))"
+          fi
