@@ -60,6 +60,14 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
   Bietergemeinschaft finden, Auftragsbörse …).
 - `docs/abos.md`: Free 0 €, Basis 59 €, Pro 149 €, Business 399 € pro Monat, Länderpreise, Margen.
 
+### Bewusst nicht umgesetzt (Regeln aus CLAUDE.md, braucht dein OK)
+- **Abo-Preise und Stripe:** Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
+  Punkt 7c war ein Vorschlag gefragt; `web/src/plaene.ts` bleibt abgeschaltet.
+- **Neue Arbeitsoberflächen-Funktionen:** Punkt 7b war ausdrücklich „nur Konzept, nichts bauen“. Sobald du die Top 10
+  priorisierst, baue ich sie der Reihe nach.
+- **Batch-API einschalten:** verschiebt den Zeitpunkt der Ergebnisse → Alarm-Zeitplan ändern; der Schalter liegt bereit.
+- **Anfragen an PLACSP und TenderNed:** Mails an Dritte nur nach deinem OK.
+
 ### Deine Entscheidungen (keine Eile)
 - **Abo-Preise** aus `docs/abos.md` freigeben oder ändern (erst danach Stripe).
 - **Batch-API einschalten?** Spart weitere 50 %, dafür muss der tägliche Alarm früher starten (z. B. 03:00).
