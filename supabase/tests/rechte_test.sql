@@ -63,6 +63,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261102110000_gewerk_offen.sql
 \ir ../migrations/20261102120000_us_bieterprofil.sql
 \ir ../migrations/20261102130000_boamp_bestand.sql
+\ir ../migrations/20261102150000_ausland_bestand.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1186,6 +1187,26 @@ select pruefe(public.metier_statistik(array['x%; drop'])->>'monat' = '0', 'Ungü
 select pruefe(public.gewerk_statistik(array['9091','90919']) is null, 'Deutsche Abfrage sieht die französischen Zahlen nicht');
 reset role;
 delete from jarvis_intern.boamp_avis;
+
+-- Polish and Spanish trade pages: stock internal, numbers public per country from the background cache.
+insert into jarvis_intern.ausland_avis (land, id, publication, titel, auftraggeber, region, cpv, frist, link) values
+  ('pl', 'bzp-1', current_date - 1, 'Sprzątanie urzędu', 'Gmina Kraków', 'woj. małopolskie', '{90911200}', now() + interval '9 days', 'https://ezamowienia.gov.pl/mp-client/search/list/ocds-148610-1'),
+  ('pl', 'bzp-2', current_date - 2, 'Sprzątanie szkoły', 'Gmina Kraków', 'woj. małopolskie', '{90910000}', now() - interval '1 day', 'https://ezamowienia.gov.pl/x'),
+  ('es', 'cat-1', current_date - 1, 'Neteja escola', 'Ajuntament de Girona', 'Girona', '{90911200}', null, 'https://contractaciopublica.cat/ca/detall-publicacio/1');
+set role anon;
+do $$ begin perform 1 from jarvis_intern.ausland_avis; raise exception 'FEHLER: anon liest Auslandsbestand'; exception when insufficient_privilege then null; end $$;
+set role authenticated;
+do $$ begin insert into jarvis_intern.ausland_avis (land, id, publication, titel, link) values ('pl', 'x', current_date, 'x', 'https://x'); raise exception 'FEHLER: authenticated schreibt Auslandsbestand'; exception when insufficient_privilege then null; end $$;
+reset role;
+select pruefe(jarvis_intern.gewerk_aktualisieren() >= 41, 'Hintergrundberechnung für alle Länder');
+set role anon;
+select pruefe((public.land_statistik('pl', array['9091','90919'])->>'monat')::int = 2 and (public.land_statistik('pl', array['9091','90919'])->>'offen')::int = 1, 'Polnische Zahlen: 30 Tage, offen nach Frist');
+select pruefe(public.land_statistik('pl', array['9091','90919'])->'beispiele'->0->>'ort' = 'woj. małopolskie', 'Beispiel mit Woiwodschaft');
+select pruefe((public.land_statistik('es', array['9091','90919'])->>'monat')::int = 1, 'Spanische Zahlen getrennt von Polen');
+select pruefe(public.land_statistik('de', array['9091'])->>'monat' = '0', 'Nur pl und es');
+select pruefe(public.land_statistik('pl', array['x%; drop'])->>'monat' = '0', 'Ungültige Präfixe liefern nichts (pl)');
+reset role;
+delete from jarvis_intern.ausland_avis;
 
 -- Error alarm: callable without login, limited, goes to the operator only; budget warning at 80 %.
 reset role;

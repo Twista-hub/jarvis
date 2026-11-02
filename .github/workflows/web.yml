@@ -115,6 +115,9 @@ jobs:
           curl -fsS -H "cookie: jv_psprache=pl" "$URL/registrieren" -o reg_pl.html && grep -q '<html lang="pl"' reg_pl.html && grep -q "Polski\|Deutsch" reg_pl.html
           curl -fsS -H "cookie: jv_psprache=es" "$URL/registrieren" -o reg_es.html && grep -q '<html lang="es"' reg_es.html
           curl -fsS -H "cookie: jv_psprache=fr" "$URL/datenschutz" -o ds_fr.html && grep -q "fait foi" ds_fr.html && grep -q "CNIL" ds_fr.html
+          curl -fsS -H "cookie: jv_psprache=de" "$URL/pl/przetargi/sprzatanie" -o branza.html && grep -q "Biuletyn Zamówień Publicznych" branza.html && grep -q '<html lang="pl"' branza.html
+          curl -fsS -H "cookie: jv_psprache=de" "$URL/es/licitaciones/limpieza" -o oficio.html && grep -q "Generalitat de Catalunya" oficio.html && grep -q '<html lang="es"' oficio.html
+          curl -fsS -H "cookie: jv_psprache=pl" "$URL/datenschutz" -o ds_pl.html && grep -q "UODO" ds_pl.html && curl -fsS -H "cookie: jv_psprache=es" "$URL/datenschutz" -o ds_es.html && grep -q "AEPD" ds_es.html
           curl -fsS "$URL/impressum" -o impressum.html && grep -q "Rochusstraße" impressum.html
           curl -fsS "$URL/app.js" -o app.js && grep -q "push-test" app.js
           echo "Upload-Seite: $URL" >> "$GITHUB_STEP_SUMMARY"

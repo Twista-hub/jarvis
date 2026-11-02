@@ -23,7 +23,7 @@ ${FIRMA.ustId ? `<h2>TVA</h2><p>Numéro de TVA intracommunautaire selon le § 27
 <h2>Règlement des litiges de consommation</h2>
 <p>Jarvis s'adresse uniquement aux entreprises. Nous ne sommes ni disposés ni tenus à participer à une procédure de règlement des litiges devant un organisme de médiation de la consommation.</p>
 <h2>Sources</h2>
-<p>Appels d'offres : service de publication de la fédération allemande (oeffentlichevergabe.de), licence CC0 ; BOAMP, DILA (France), Licence Ouverte 2.0. Programmes d'aide : base de données fédérale allemande des aides, licence CC BY-ND 4.0 DE (titre et lien uniquement). Les notes et fiches synthèse sont rédigées par Jarvis.</p>
+<p>Appels d'offres : service de publication de la fédération allemande (oeffentlichevergabe.de), licence CC0 ; BOAMP, DILA (France), Licence Ouverte 2.0 ; TED, Office des publications de l'UE (réutilisation avec mention de la source) ; Biuletyn Zamówień Publicznych, UZP (Pologne) ; Plataforma de serveis de contractació pública, Generalitat de Catalunya (Espagne), Llicència oberta d'ús d'informació – Catalunya ; SAM.gov (États-Unis, données publiques du gouvernement fédéral). Programmes d'aide : base de données fédérale allemande des aides, licence CC BY-ND 4.0 DE (titre et lien uniquement). Les notes et fiches synthèse sont rédigées par Jarvis.</p>
 `;
 }
 

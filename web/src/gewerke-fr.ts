@@ -5,6 +5,7 @@
 // "praefixe", the same list as in migration 20261102130000). The pages are always French (header x-jv-sprache).
 import { escape, seite } from "./seite.ts";
 import type { Statistik } from "./gewerke.ts";
+import { alternativen } from "./gewerke-sprachen.ts";
 
 type Metier = { slug: string; de: string; name: string; h1: string; cpv: string[]; praefixe: string[]; intro: string; vorteile: string[]; fragen: [string, string][] };
 
@@ -102,11 +103,6 @@ ${KNOEPFE}
 ${QUELLE}`;
 }
 
-/** hreflang pair: German page ↔ French page (also used by the German pages). */
-export function sprachPaar(adresse: string, de: string, fr: string): string {
-  return `<link rel="alternate" hreflang="de" href="${adresse}${de}">\n<link rel="alternate" hreflang="fr" href="${adresse}${fr}">`;
-}
-export const frZuDe = (deSlug: string): string | null => METIERS.find((m) => m.de === deSlug)?.slug ?? null;
 
 export const FR_PFADE = [LISTE, ...METIERS.map((m) => `${LISTE}/${m.slug}`)];
 
@@ -130,7 +126,7 @@ export async function metiers(request: Request, env: MetierEnv, adresse: string,
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
   const schluessel = new Request(`${adresse}${url.pathname.replace(/\/$/, "")}?cache=1`);
   if (url.pathname === LISTE || url.pathname === `${LISTE}/`) {
-    r = antwort(kopf(seite("Appels d'offres publics par métier", uebersichtMetiers()), "Appels d'offres publics pour le BTP, le nettoyage, la sécurité et l'intérim : Jarvis trouve chaque jour au BOAMP les marchés adaptés à votre entreprise, dans vos départements.", `${adresse}${LISTE}`, sprachPaar(adresse, "/ausschreibungen", LISTE)));
+    r = antwort(kopf(seite("Appels d'offres publics par métier", uebersichtMetiers()), "Appels d'offres publics pour le BTP, le nettoyage, la sécurité et l'intérim : Jarvis trouve chaque jour au BOAMP les marchés adaptés à votre entreprise, dans vos départements.", `${adresse}${LISTE}`, alternativen(adresse, null)));
   } else {
     const slug = url.pathname.slice(LISTE.length + 1).replace(/\/$/, "");
     const m = METIERS.find((x) => x.slug === slug);
@@ -138,7 +134,7 @@ export async function metiers(request: Request, env: MetierEnv, adresse: string,
     const alt = await cache?.match(schluessel).catch(() => undefined);
     if (alt) return alt;
     s = await statistik(env, m);
-    r = antwort(kopf(seite(m.h1, metierSeite(m, s)), `${m.h1} : ${s?.monat ? `${zahl(s.monat)} appels d'offres sur les 30 derniers jours. ` : ""}Jarvis lit chaque jour le BOAMP et vous envoie les marchés adaptés à votre entreprise, dans vos départements. Inscription gratuite.`, `${adresse}${LISTE}/${m.slug}`, sprachPaar(adresse, `/ausschreibungen/${m.de}`, `${LISTE}/${m.slug}`)));
+    r = antwort(kopf(seite(m.h1, metierSeite(m, s)), `${m.h1} : ${s?.monat ? `${zahl(s.monat)} appels d'offres sur les 30 derniers jours. ` : ""}Jarvis lit chaque jour le BOAMP et vous envoie les marchés adaptés à votre entreprise, dans vos départements. Inscription gratuite.`, `${adresse}${LISTE}/${m.slug}`, alternativen(adresse, m.de)));
   }
   r.headers.set("cache-control", "public, max-age=3600");
   r.headers.set("x-jv-sprache", "fr");

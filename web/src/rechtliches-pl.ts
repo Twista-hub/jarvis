@@ -1,0 +1,156 @@
+// Polish translation of the legal pages (rechtliches.ts) for visitors with app language pl. Translation for information;
+// the German version is binding (said on every page, with a link to it). Keep both in step: every change to the German
+// text needs the same change here (test/rechtliches-pl.test.ts compares the section counts).
+import { escape } from "./seite.ts";
+import { FIRMA } from "./rechtliches.ts";
+
+const anschrift = () => `${escape(FIRMA.name)}, ${escape(FIRMA.firma)}<br>${escape(FIRMA.strasse)}<br>${escape(FIRMA.ort)}, Niemcy`;
+const mail = () => `<a href="mailto:${FIRMA.email}">${FIRMA.email}</a>`;
+
+/** Note on top of every Polish legal page, with the link to the binding German version. */
+export function hinweisDeutschPl(pfad: string): string {
+  return `<p class="hinweis">Tłumaczenie ma charakter wyłącznie informacyjny. Wiążąca jest jedynie <a href="/sprache?zu=de&amp;weiter=${encodeURIComponent(pfad)}" hreflang="de" lang="de">wersja niemiecka</a>.</p>`;
+}
+
+export function impressumPl(): string {
+  return `<h2>Informacje zgodnie z § 5 niemieckiej ustawy o usługach cyfrowych (DDG)</h2>
+<p>${anschrift()}</p>
+<h2>Kontakt</h2>
+<p>E-mail: ${mail()}${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
+${FIRMA.ustId ? `<h2>Podatek VAT</h2><p>Numer identyfikacyjny VAT zgodnie z § 27a niemieckiej ustawy o podatku od towarów i usług (UStG): ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>Podatek VAT</h2><p>Mały przedsiębiorca w rozumieniu § 19 niemieckiej ustawy o podatku od towarów i usług (UStG), w związku z czym podatek VAT nie jest naliczany.</p>` : ""}
+<h2>Odpowiedzialny za treść</h2>
+<p>${escape(FIRMA.name)}, adres jak wyżej.</p>
+<h2>Pozasądowe rozwiązywanie sporów konsumenckich</h2>
+<p>Jarvis jest skierowany wyłącznie do przedsiębiorców. Nie jesteśmy gotowi ani zobowiązani do udziału w postępowaniu w sprawie rozwiązywania sporów przed podmiotem uprawnionym do pozasądowego rozwiązywania sporów konsumenckich.</p>
+<h2>Źródła</h2>
+<p>Przetargi: federalny serwis ogłoszeń w Niemczech (oeffentlichevergabe.de), licencja CC0; BOAMP, DILA (Francja), Licence Ouverte 2.0; TED, Urząd Publikacji UE (ponowne wykorzystanie z podaniem źródła); Biuletyn Zamówień Publicznych, UZP (Polska); Plataforma de serveis de contractació pública, Generalitat de Catalunya (Hiszpania), Llicència oberta d'ús d'informació – Catalunya; SAM.gov (USA, dane publiczne rządu federalnego USA). Programy dofinansowania: federalna baza programów wsparcia w Niemczech (Förderdatenbank des Bundes), licencja CC BY-ND 4.0 DE (wyłącznie tytuł i link). Oceny i karty przetargów Jarvis przygotowuje samodzielnie.</p>`;
+}
+
+const DIENSTLEISTER_PL = [
+  ["Cloudflare, Inc., San Francisco (USA)", "Obsługa strony internetowej, przechowywanie przesłanych dokumentów (centra danych w UE), konwersja plików na tekst", "EU-US Data Privacy Framework, standardowe klauzule umowne"],
+  ["Supabase, Inc., San Francisco (USA)", "Logowanie i baza danych (firmy, członkowie, przetargi); serwery we Frankfurcie nad Menem", "Standardowe klauzule umowne"],
+  ["Anthropic, PBC, San Francisco (USA)", "Model AI Claude: czyta ogłoszenia i dokumenty, tworzy profile wyszukiwania firm z użyciem ograniczonego wyszukiwania w internecie oraz pisze oceny i karty przetargów. Według dostawcy dane przekazywane przez API nie są wykorzystywane do trenowania modeli", "Standardowe klauzule umowne"],
+  ["Namecheap, Inc., Phoenix (USA)", "Skrzynka e-mail kontakt@wpdigitalranger.com: linki do logowania, zaproszenia i wiadomości", "Standardowe klauzule umowne"],
+  ["GitHub, Inc. (Microsoft), San Francisco (USA)", "Codzienna analiza publicznych przetargów na podstawie profili wyszukiwania firm; nocna szyfrowana kopia zapasowa", "EU-US Data Privacy Framework, standardowe klauzule umowne"],
+];
+
+const tabelle = () =>
+  `<table><tr><th>Usługodawca</th><th>W jakim celu</th><th>Podstawa przekazania</th></tr>${DIENSTLEISTER_PL.map((z) => `<tr>${z.map((x) => `<td>${escape(x)}</td>`).join("")}</tr>`).join("")}</table>`;
+
+export function datenschutzPl(): string {
+  return `<p class="klein">Stan na: ${FIRMA.standDatenschutz}</p>
+<h2>1. Administrator</h2>
+<p>${anschrift()}<br>E-mail: ${mail()}</p>
+<h2>2. Czym zajmuje się Jarvis</h2>
+<p>Jarvis codziennie wyszukuje publiczne przetargi, ocenia, czy pasują do danej firmy, i przygotowuje karty przetargów. Klienci mogą przesyłać dokumenty zamówienia, które Jarvis analizuje. Jarvis jest skierowany wyłącznie do przedsiębiorców.</p>
+<h2>3. Jakie dane przetwarzamy</h2>
+<ul>
+<li><strong>Przy wyświetlaniu strony:</strong> dane niezbędne z technicznego punktu widzenia (adres IP, czas, wyświetlona strona, przeglądarka). Operator serwerów (Cloudflare) przechowuje je krótko w celu zapewnienia bezpieczeństwa i wyszukiwania błędów. Podstawa prawna: art. 6 ust. 1 lit. f RODO (bezpieczne działanie serwisu).</li>
+<li><strong>Konto:</strong> imię i nazwisko, adres e-mail, hasło (przechowywane wyłącznie w postaci zaszyfrowanej), nazwa, adres i – dobrowolnie – numer telefonu firmy, data rejestracji, wyrażenia zgody i logowania, przynależność do firm, funkcja w przedsiębiorstwie, uprawnienia dostępu i obszary. Podstawa prawna: art. 6 ust. 1 lit. b RODO (umowa).</li>
+<li><strong>Dane firmy:</strong> nazwa firmy, lokalizacje, dobrowolnie podana strona internetowa, profil wyszukiwania, przetargi wraz ze statusem i notatkami, wartości kalkulacji. Podczas automatycznego wyszukiwania służącego do utworzenia profilu wyszukiwania nazwa firmy, strona internetowa i siedziba firmy są przekazywane do publicznego wyszukiwania internetowego Anthropic; pasujące publiczne źródła są zapisywane w profilu wraz z adresem URL.</li>
+<li><strong>Przesłane dokumenty:</strong> dokumenty zamówienia dotyczące przetargu. Mogą zawierać imiona, nazwiska i dane kontaktowe osób kontaktowych zamawiającego. Są one odczytywane wyłącznie na potrzeby karty przetargu i <strong>usuwane po 30 dniach</strong>. Prosimy nie przesyłać dokumentów zawierających dane Państwa pracowników (np. życiorysów).</li>
+<li><strong>Osoby kontaktowe u zamawiających i w firmach partnerskich:</strong> imię i nazwisko, funkcja, służbowy numer telefonu i adres e-mail oraz notatka i ocena, które firma wprowadza samodzielnie, osoby kontaktowe w umowach i zapytaniach do podwykonawców. Odpowiedzialność za te dane ponosi firma; przetwarzamy je w jej imieniu. Widoczne wyłącznie dla zespołu biurowego tej firmy; usuwane, gdy firma usunie wpis lub swoje konto.</li>
+<li><strong>Personel firmy (planowanie pracy):</strong> imię i nazwisko, zawody, kwalifikacje, grupa wynagrodzenia, numer telefonu, dobrowolnie adres e-mail i zdjęcie, dostępność, okresy nieobecności (wyłącznie „urlop”, „szkolenie” lub „niedostępny”, bez danych o zdrowiu), skierowania do klientów wraz z okresem (na potrzeby terminów wynikających z niemieckiej ustawy o pracy tymczasowej, AÜG), data zatrudnienia, rodzaj zatrudnienia, liczba godzin tygodniowo, kategorie prawa jazdy, języki, kod pocztowy miejsca zamieszkania (wyłącznie do obliczenia odległości do miejsca pracy), dokumenty potwierdzające kwalifikacje z datą ważności i dobrowolnie przesłanym plikiem, udział w szkoleniach oraz notatka o pracownikach, które firma wprowadza samodzielnie. Odpowiedzialność za te dane ponosi firma; przetwarzamy je w jej imieniu (umowa powierzenia przetwarzania danych). Widoczne wyłącznie dla członków z dostępem do danej lokalizacji; przechowywane do czasu ich usunięcia przez firmę. Jarvis nie wysyła sam wiadomości do tych osób – są one wysyłane przez WhatsApp, SMS lub e-mail z urządzenia firmy.</li>
+<li><strong>Samodzielna obsługa przez pracowników:</strong> jeżeli firma połączy dostęp pracownika do aplikacji z jego aktami osobowymi, osoba ta widzi wyłącznie własne dane: własne zlecenia, własne nieobecności, własne dokumenty potwierdzające i szkolenia. Może składać wnioski urlopowe (do czasu zatwierdzenia przez biuro zapisywane jako „złożony wniosek”) i przesyłać własne dokumenty potwierdzające. Danych innych osób nie widzi.</li>
+<li><strong>Godziny, zmiany, komunikaty (od listopada 2026 r.):</strong> ewidencja godzin (data, początek, koniec, przerwa, zlecenie, notatka, zatwierdzenie – przez kogo i kiedy), zmiany (data, godzina, miejsce, przyjęcie lub odmowa), komunikaty na tablicy ogłoszeń z potwierdzeniem przeczytania (kto i kiedy przeczytał), terminy kadrowe (koniec okresu próbnego, koniec umowy na czas określony, ważność dokumentu pobytowego lub zezwolenia na pracę – wyłącznie data, bez kopii), kontrole prawa jazdy (data, kategorie, kto sprawdzał) oraz szkolenia potwierdzone elektronicznie (data, godzina). Pracownicy widzą z tego wyłącznie własne dane. Na potrzeby powiadomień na telefon o nowych zmianach i komunikatach przechowujemy tytuł i krótki tekst przez maksymalnie 30 dni. Odpowiedzialność ponosi firma, my przetwarzamy dane w jej imieniu; przechowywane do czasu usunięcia przez firmę (zmiany w godzinach, zmianach i kontrolach są widoczne w dzienniku zmian przez 12 miesięcy).</li>
+<li><strong>Klienci, miejsca pracy, potwierdzenia wykonania usług:</strong> klienci firmy (nazwa, adres, osoba kontaktowa, telefon, e-mail, notatka; stawka rozliczeniowa wyłącznie dla osób z uprawnieniem finansowym) oraz miejsca pracy (adres, osoba kontaktowa na miejscu, miejsce zbiórki, odzież, wskazówki). Pracownicy widzą wyłącznie miejsce pracy własnej zmiany. Potwierdzenia wykonania usług oraz godziny z dodatkami (praca w nocy, w niedziele, w święta) Jarvis oblicza na podstawie zatwierdzonej ewidencji godzin i nie zapisuje w tym celu żadnych dodatkowych danych. Jeżeli pracownik zgłosi nieobecność w ostatniej chwili, zapisujemy wyłącznie dzień, dobrowolną notatkę oraz informację, że zgłoszenie było krótkoterminowe, bez podania przyczyny i bez danych o zdrowiu.</li>
+<li><strong>Aplikacje kandydatów, środki ochrony indywidualnej, listy kontrolne, urlopy, oceny:</strong> dane kandydatów (imię i nazwisko, dane kontaktowe, zawód, źródło, status, termin rozmowy, notatka, przesłane dokumenty) widzą wyłącznie osoby obsługujące rekrutację, kierownicy lokalizacji i administratorzy; są one usuwane 6 miesięcy po odrzuceniu kandydatury (termin wynikający z niemieckiej ustawy o równym traktowaniu, AGG) lub 30 dni po zatrudnieniu, gdy tylko ktoś z biura otworzy aplikację. Ponadto wydane środki ochrony indywidualnej (artykuł, rozmiar, data, wymiana, zwrot), listy kontrolne przy rozpoczęciu i zakończeniu zatrudnienia z datą odejścia, konta urlopowe (wymiar, urlop przeniesiony) oraz oceny zleceń przez klientów (gwiazdki, czy chętnie ponownie, notatka). Oceny i listy kontrolne widzi wyłącznie biuro; pracownicy widzą własne środki ochrony indywidualnej i własne konto urlopowe. Odpowiedzialność ponosi firma, my przetwarzamy dane w jej imieniu.</li>
+<li><strong>Organizacja zespołu:</strong> zastępstwa (kto kogo zastępuje, od kiedy do kiedy, dobrowolna notatka), zadania (tytuł, osoba odpowiedzialna, termin, data wykonania) oraz pojazdy i urządzenia (nazwa, numer rejestracyjny lub numer inwentarzowy, rodzaj przeglądu i termin następnego przeglądu). Widoczne dla zespołu biurowego firmy, nie dla pracowników; przechowywane do czasu ich usunięcia przez firmę. Podczas zastępstwa przypomnienia o terminach trafiają do osoby zastępującej zamiast do osoby nieobecnej.</li>
+<li><strong>Dokumenty firmy, szablony ofert, teczki ofert i potwierdzenia złożenia:</strong> dokumenty potwierdzające, szablony i potwierdzenia wpływu świadomie zapisane przez firmę oraz projekty ofert są przechowywane do czasu ich usunięcia przez administrację lub do zakończenia konta firmy. Dostęp odbywa się zgodnie z nadanymi uprawnieniami. Data ważności dokumentu potwierdzającego uniemożliwia jego wykorzystanie w nowej teczce ofert po tej dacie, ale nie powoduje automatycznego usunięcia pliku. Jeżeli wiadomości e-mail firmy są włączone, przypomnienia o upływie ważności są wysyłane na 30, 14, 7 i 2 dni wcześniej do członków z dostępem do finansów.</li>
+<li><strong>Codzienne powiadomienie:</strong> wyłącznie jeśli sami Państwo wybiorą godzinę, raz dziennie wysyłamy Państwu nowe trafienia i przypomnienia o terminach e-mailem lub na telefon. Na potrzeby powiadomień na telefon zapisujemy adres push, który nadaje w tym celu Państwa przeglądarka; powiadomienie przechodzi przez usługę push Państwa przeglądarki (np. Google lub Apple), nie zawiera jednak żadnego tekstu: telefon pobiera go następnie bezpośrednio od nas. Można je w każdej chwili wyłączyć w Przeglądzie w sekcji „Codzienne powiadomienie”. Podstawa prawna: art. 6 ust. 1 lit. b RODO.</li>
+<li><strong>Rozliczenia, rejestracja czasu pracy, podpisy (od listopada 2026 r.):</strong> projekty faktur (numer, klient, miesiąc, pozycje, kwoty; wyłącznie z uprawnieniem finansowym), numer ewidencyjny pracownika i data urodzenia w aktach osobowych (data urodzenia wyłącznie na potrzeby przypomnienia w biurze), koszty podróży i wydatki ze zdjęciem dowodu (rodzaj, kwota, data, notatka, zatwierdzenie), konto czasu pracy (data początkowa i saldo początkowe; czas planowany i rzeczywisty są obliczane na podstawie godzin), rejestracje czasu (przyjście, przerwa, wznowienie, wyjście z godziną serwera). Przy zegarze rejestracji czasu pracy telefon jednorazowo i dobrowolnie pyta o lokalizację; w chwili rejestracji porównujemy ją z kodem pocztowym miejsca pracy i zapisujemy wyłącznie informację „w miejscu pracy tak/nie”, nigdy współrzędne. Podpisy złożone palcem (obraz, data, cel) przy odbiorze środków ochrony indywidualnej i potwierdzeniu godzin miesięcznych. Linki do potwierdzenia dla klientów: zamrożona lista godzin z danego miesiąca, imię i nazwisko osoby potwierdzającej, uwaga, dobrowolny podpis, data i godzina; link jest ważny 30 dni, zapisywany jest wyłącznie skrót (hash) linku. Linki z zaproszeniem dla pracowników bez adresu e-mail (ważne 14 dni, zapisywany jest wyłącznie skrót). Odpowiedzialność ponosi firma, my przetwarzamy dane w jej imieniu. Jarvis nie wysyła sam faktur ani linków.</li>
+<li><strong>Kopie zapasowe i komunikaty o błędach:</strong> co noc baza danych jest zapisywana w postaci zaszyfrowanej kopii zapasowej (w magazynie Cloudflare z centrami danych w UE; tworzonej za pomocą GitHub Actions). Kopie dzienne są usuwane po 14 dniach, kopie miesięczne po roku; usunięte dane znikają najpóźniej wtedy również z kopii zapasowych. Techniczne komunikaty o błędach przesyłane do operatora nie zawierają imion, nazwisk ani adresów e-mail i są usuwane po 30 dniach.</li>
+<li><strong>Zaproszenia:</strong> adres e-mail osoby zapraszanej, abyśmy mogli wysłać link z zaproszeniem (w przypadku linków dla pracowników wyłącznie imię i nazwisko oraz powiązanie z aktami osobowymi).</li>
+</ul>
+<h2>4. Pliki cookie</h2>
+<p>Stosujemy wyłącznie pliki cookie niezbędne z technicznego punktu widzenia: do logowania (jv_at, jv_rt, jv_pkce), ostatnio wybranej firmy (jv_firma) oraz do zapamiętania Państwa wyborów i sposobu korzystania: język, kraj, sposób wyświetlania i widok (jv_psprache, jv_sprache, jv_land, jv_darstellung, jv_ansicht), ostatnio otwierane przetargi i ostatnia wizyta (jv_zuletzt, jv_gesehen) oraz informacja, czy wprowadzenie zostało już wyświetlone (jv_einfuehrung). Nie ma reklam, analityki ani śledzenia. Podstawa prawna: § 25 ust. 2 pkt 2 niemieckiej ustawy o ochronie danych w telekomunikacji i usługach cyfrowych (TDDDG).</p>
+<h2>5. Usługodawcy</h2>
+<p>Korzystamy z tych usługodawców jako podmiotów przetwarzających (art. 28 RODO). Niektórzy z nich mają siedzibę w USA. Przekazanie danych jest zabezpieczone wskazanymi gwarancjami.</p>
+${tabelle()}
+<h2>6. Okres przechowywania</h2>
+<p>Przesłane dokumenty i utworzone na ich podstawie karty przetargów: 30 dni. Dokumenty firmy i szablony do ponownego wykorzystania: do czasu ich usunięcia przez administrację lub do zakończenia konta firmy. Dziennik zmian (kto, kiedy i co zmienił w firmie, widoczny wyłącznie dla właściciela): 12 miesięcy. Projekty ofert i zatwierdzenia tekstów oraz pozostałe dane konta i dane firmy: tak długo, jak istnieje konto; następnie są usuwane, chyba że musimy je przechowywać ze względów prawnych (np. faktury przez 8 do 10 lat).</p>
+<h2>7. Państwa prawa</h2>
+<p>W sekcji „Mój profil” mogą Państwo samodzielnie pobrać swoje dane, zmienić imię i nazwisko oraz usunąć konto.</p>
+<p>Przysługuje Państwu prawo dostępu do danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, przenoszenia danych oraz prawo sprzeciwu wobec przetwarzania na podstawie art. 6 ust. 1 lit. f RODO. W tym celu prosimy o kontakt pod adresem ${mail()}. Mają Państwo również prawo wniesienia skargi do organu nadzorczego ds. ochrony danych, na przykład do Prezesa Urzędu Ochrony Danych Osobowych (UODO, www.uodo.gov.pl)${FIRMA.aufsicht ? ` lub do organu właściwego dla nas: ${escape(FIRMA.aufsicht)}` : ""}.</p>
+<h2>8. Obowiązek podania danych</h2>
+<p>Bez adresu e-mail rejestracja nie jest możliwa. Podanie wszystkich pozostałych danych jest dobrowolne.</p>`;
+}
+
+export function nutzungsbedingungenPl(): string {
+  return `<p class="klein">Stan na: ${FIRMA.stand}</p>
+<h2>1. Usługodawca i zakres obowiązywania</h2>
+<p>Jarvis jest usługą oferowaną przez ${escape(FIRMA.name)}, ${escape(FIRMA.firma)} („my”). Niniejsze warunki obowiązują wszystkie firmy i osoby korzystające z Jarvisa („Klient”). Jarvis jest skierowany wyłącznie do przedsiębiorców w rozumieniu § 14 niemieckiego kodeksu cywilnego (BGB).</p>
+<h2>2. Zakres usługi</h2>
+<ul>
+<li>Jarvis codziennie wyszukuje publiczne przetargi według profilu wyszukiwania Klienta, ocenia je i przygotowuje karty przetargów na podstawie publicznego ogłoszenia.</li>
+<li>Klient może przesyłać dokumenty zamówienia. Jarvis przygotowuje na ich podstawie szczegółową kartę przetargu i pomaga w kalkulacji.</li>
+<li>Firmy mogą zapisywać dokumenty potwierdzające i własne szablony, edytować projekty ofert i pobierać teczkę ofert. Wersje ofert muszą zostać zatwierdzone przez kierownictwo firmy przed pobraniem. Złożenia oferty dokonuje Klient drogą przewidzianą przez zamawiającego; utworzenie lub pobranie teczki nie stanowi złożenia oferty. Przesłane później potwierdzenie wpływu dokumentuje złożenie oferty zgłoszone przez Klienta.</li>
+<li>Jarvis nie pobiera samodzielnie dokumentów zamówienia z platform, których warunki tego zabraniają. Pobrania dokonuje Klient samodzielnie za pomocą linku do platformy.</li>
+</ul>
+<h2>3. Sztuczna inteligencja i brak gwarancji</h2>
+<p>Oceny, karty przetargów i kalkulacje tworzy sztuczna inteligencja. Mogą one być niekompletne lub błędne. Rozstrzygające są wyłącznie oryginalne dokumenty zamawiającego. Przed złożeniem każdej oferty Klient samodzielnie sprawdza terminy, wymagania i ceny. Jarvis nie stanowi doradztwa prawnego ani podatkowego. Nie gwarantujemy, że Jarvis znajdzie każdy pasujący przetarg.</p>
+<h2>4. Obowiązki Klienta</h2>
+<ul>
+<li>Klient przesyła wyłącznie dokumenty, z których ma prawo korzystać, i przestrzega warunków platform zamówień publicznych.</li>
+<li>Klient nie przesyła szczególnych kategorii danych osobowych (art. 9 RODO) i w miarę możliwości żadnych danych swoich pracowników.</li>
+<li>Dostępy mają charakter osobisty. Klient zaprasza wyłącznie osoby, które dla niego pracują, i usuwa je, gdy przestaną dla niego pracować.</li>
+</ul>
+<h2>5. Ceny</h2>
+<p>Ceny i pakiet uzgadniamy indywidualnie z każdą firmą. W okresie wersji zapoznawczej lub okresie próbnym Jarvis jest bezpłatny.</p>
+<h2>6. Dostępność</h2>
+<p>Dokładamy starań, aby usługa działała bez zakłóceń, nie gwarantujemy jednak określonej dostępności. Prace konserwacyjne i awarie u usługodawców mogą powodować przerwy.</p>
+<h2>7. Odpowiedzialność</h2>
+<p>Ponosimy nieograniczoną odpowiedzialność w przypadku winy umyślnej, rażącego niedbalstwa oraz szkód na życiu, ciele lub zdrowiu. W przypadku zwykłego niedbalstwa odpowiadamy wyłącznie za naruszenie istotnych obowiązków umownych, w granicach przewidywalnej, typowej szkody, maksymalnie do wysokości wynagrodzenia za ostatnie 12 miesięcy. Nie odpowiadamy za niedotrzymane terminy, nieznalezione przetargi ani przegrane postępowania o udzielenie zamówienia, o ile wynikają one z informacji przygotowanych przez sztuczną inteligencję, które Klient zgodnie z pkt 3 musi samodzielnie sprawdzić.</p>
+<h2>8. Ochrona danych</h2>
+<p>W zakresie, w jakim przetwarzamy dane osobowe w imieniu Klienta, obowiązuje <a href="/avv">umowa powierzenia przetwarzania danych</a>. Więcej informacji w <a href="/datenschutz">polityce prywatności</a>.</p>
+<h2>9. Okres obowiązywania i wypowiedzenie</h2>
+<p>Każda ze stron może w dowolnym momencie wypowiedzieć umowę ze skutkiem na koniec miesiąca, o ile nie uzgodniono inaczej. Po zakończeniu umowy usuwamy dane firmy w ciągu 30 dni.</p>
+<h2>10. Postanowienia końcowe</h2>
+<p>Obowiązuje prawo niemieckie. Sądem właściwym jest, w zakresie dopuszczalnym prawem, sąd właściwy dla naszej siedziby. O zmianach niniejszych warunków informujemy e-mailem; jeżeli Klient nie wyrazi sprzeciwu w ciągu 4 tygodni, uważa się je za przyjęte. O tym skutku informujemy w powiadomieniu.</p>`;
+}
+
+export function avvPl(): string {
+  return `<p>Umowa zgodnie z art. 28 RODO między firmą korzystającą z Jarvisa („administrator”) a ${escape(FIRMA.name)}, ${escape(FIRMA.firma)} („podmiot przetwarzający”). Obowiązuje z chwilą rozpoczęcia korzystania z Jarvisa. Stan na: ${FIRMA.stand}.</p>
+<h2>1. Przedmiot</h2>
+<p>Podmiot przetwarzający prowadzi dla administratora serwis powiadomień o przetargach Jarvis zgodnie z <a href="/nutzungsbedingungen">warunkami korzystania</a>. Czas trwania: tak długo, jak Jarvis jest używany.</p>
+<h2>2. Rodzaj danych i osoby, których dane dotyczą</h2>
+<ul>
+<li>Dane: imiona, nazwiska i adresy e-mail użytkowników, role, dane firmy i lokalizacji, notatki i statusy opracowania, przesłane dokumenty zamówienia (zawierające ewentualnie dane kontaktowe osób kontaktowych zamawiających).</li>
+<li>Osoby, których dane dotyczą: pracownicy administratora, osoby kontaktowe zamawiających.</li>
+<li>Cel: wyszukiwanie, ocena i analiza przetargów, współpraca w zespole.</li>
+</ul>
+<h2>3. Obowiązki podmiotu przetwarzającego</h2>
+<ul>
+<li>Przetwarza dane wyłącznie na udokumentowane polecenie administratora; korzystanie z funkcji Jarvisa uznaje się za polecenie.</li>
+<li>Osoby mające dostęp są zobowiązane do zachowania poufności.</li>
+<li>Stosuje środki techniczne i organizacyjne określone w pkt 6.</li>
+<li>Wspiera administratora w realizacji żądań osób, których dane dotyczą, oraz w wywiązywaniu się z obowiązków określonych w art. 32–36 RODO.</li>
+<li>Zgłasza naruszenia ochrony danych osobowych niezwłocznie, w miarę możliwości w ciągu 24 godzin.</li>
+<li>Po zakończeniu świadczenia usług usuwa dane w ciągu 30 dni lub na życzenie wcześniej je zwraca.</li>
+<li>Udostępnia wszelkie informacje niezbędne do wykazania spełnienia tych obowiązków i umożliwia przeprowadzanie audytów po wcześniejszym zgłoszeniu.</li>
+</ul>
+<h2>4. Dalsze podmioty przetwarzające</h2>
+<p>Administrator wyraża zgodę na korzystanie z tych dalszych podmiotów przetwarzających. O nowych dalszych podmiotach przetwarzających podmiot przetwarzający informuje z wyprzedzeniem e-mailem; administrator może z ważnego powodu wnieść sprzeciw w ciągu 14 dni.</p>
+${tabelle()}
+<h2>5. Państwa trzecie</h2>
+<p>Przekazywanie danych do USA odbywa się wyłącznie na podstawie gwarancji wskazanych w tabeli (art. 44 i nast. RODO).</p>
+<h2>6. Środki techniczne i organizacyjne</h2>
+<ul>
+<li>Szyfrowana transmisja (HTTPS), przechowywanie dokumentów w centrach danych w UE.</li>
+<li>Logowanie za pomocą hasła (przechowywanego wyłącznie w postaci zaszyfrowanej, co najmniej 8 znaków) lub linku e-mail; pliki cookie sesji wyłącznie przez HTTPS i niedostępne dla skryptów.</li>
+<li>Uprawnienia na poziomie bazy danych: każdy widzi wyłącznie dane swojej firmy i swoich obszarów.</li>
+<li>Przesłane dokumenty są automatycznie usuwane po 30 dniach.</li>
+<li>Dziennik zmian: zmiany dotyczące personelu, lokalizacji, dostępów i przetargów są rejestrowane wraz z osobą i czasem, są widoczne wyłącznie dla właściciela i są usuwane po 12 miesiącach.</li>
+<li>Dostęp do usługodawców jest ograniczony do podmiotu przetwarzającego i chroniony silnym uwierzytelnianiem.</li>
+<li>Kopie zapasowe bazy danych wykonywane przez dostawcę.</li>
+</ul>
+<h2>7. Postanowienia końcowe</h2>
+<p>W razie sprzeczności niniejsza umowa ma pierwszeństwo przed warunkami korzystania w zakresie dotyczącym ochrony danych. Osoby potrzebujące podpisanej umowy prosimy o kontakt pod adresem ${mail()}.</p>`;
+}
+
+export const RECHT_PL: Record<string, [string, () => string]> = {
+  "/impressum": ["Nota prawna", impressumPl],
+  "/datenschutz": ["Polityka prywatności", datenschutzPl],
+  "/nutzungsbedingungen": ["Warunki korzystania", nutzungsbedingungenPl],
+  "/avv": ["Umowa powierzenia przetwarzania danych", avvPl],
+};

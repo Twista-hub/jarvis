@@ -32,7 +32,7 @@ ${FIRMA.ustId ? `<h2>Umsatzsteuer</h2><p>Umsatzsteuer-Identifikationsnummer gem�
 <h2>Verbraucherstreitbeilegung</h2>
 <p>Jarvis richtet sich nur an Unternehmen. Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
 <h2>Quellen</h2>
-<p>Ausschreibungen: Bekanntmachungsservice des Bundes (oeffentlichevergabe.de), Lizenz CC0; BOAMP, DILA (Frankreich), Licence Ouverte 2.0. Förderprogramme: Förderdatenbank des Bundes, Lizenz CC BY-ND 4.0 DE (nur Titel und Link). Die Bewertungen und Steckbriefe erstellt Jarvis selbst.</p>`;
+<p>Ausschreibungen: Bekanntmachungsservice des Bundes (oeffentlichevergabe.de), Lizenz CC0; BOAMP, DILA (Frankreich), Licence Ouverte 2.0; TED, Amt für Veröffentlichungen der EU (Weiterverwendung mit Quellenangabe); Biuletyn Zamówień Publicznych, UZP (Polen); Plataforma de serveis de contractació pública, Generalitat de Catalunya (Spanien), Llicència oberta d'ús d'informació – Catalunya; SAM.gov (USA, öffentliche Daten der US-Bundesregierung). Förderprogramme: Förderdatenbank des Bundes, Lizenz CC BY-ND 4.0 DE (nur Titel und Link). Die Bewertungen und Steckbriefe erstellt Jarvis selbst.</p>`;
 }
 
 const DIENSTLEISTER = [
