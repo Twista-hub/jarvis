@@ -1,0 +1,27 @@
+# Quality comparison for cheaper AI scoring: re-rates already rated notices with Haiku 5.5 (identical prompt) and
+# compares with the stored Sonnet ratings. Saves nothing; hard cost cap 0.50 $ inside the script.
+name: KI-Vergleich
+on:
+  workflow_dispatch:
+    inputs:
+      anzahl:
+        description: "Ausschreibungen pro Firma (8–160)"
+        default: "80"
+permissions:
+  contents: read
+jobs:
+  vergleichen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q anthropic "psycopg[binary]" cryptography
+      - name: Vergleichen
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          ANZAHL: ${{ inputs.anzahl || '80' }}
+        run: cd alarm && python ki_vergleich.py "$ANZAHL"
