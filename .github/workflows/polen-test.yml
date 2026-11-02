@@ -1,5 +1,5 @@
-# Read-only check of the Polish national tender source (BZP API on e-Zamówienia): robots.txt, API rules, one small
-# sample response. Nothing is stored. Docs: docs/polen.md
+# Read-only check of the Polish national tender source (BZP API on e-Zamówienia): robots.txt, API rules, fields in the
+# notice text. Nothing is stored. Docs: docs/polen.md
 name: Polen-Test
 on:
   workflow_dispatch:
@@ -10,40 +10,43 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: robots.txt und Regeln
+      - name: robots.txt genau
         run: |
           UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
-          for h in ezamowienia.gov.pl www.uzp.gov.pl dane.gov.pl; do
-            echo "== https://$h/robots.txt"; curl -sS -m 20 -A "$UA" "https://$h/robots.txt" | head -60; echo
+          curl -sS -m 20 -A "$UA" -D - -o r.txt "https://ezamowienia.gov.pl/robots.txt" | head -20
+          echo "--- Inhalt (hex, Anfang):"; xxd r.txt | head -10; echo "--- Text:"; cat r.txt; echo
+          echo "--- ohne eigenen User-Agent:"; curl -sS -m 20 "https://ezamowienia.gov.pl/robots.txt" | head -40
+      - name: API-Regeln (PDF)
+        run: |
+          pip install -q pypdf
+          UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+          for u in https://media.ezamowienia.gov.pl/pod/2023/02/Regulamin-korzystania-z-API-1.pdf https://media.ezamowienia.gov.pl/pod/2023/01/Regulamin-korzystania-z-API.pdf; do
+            echo "== $u"; curl -sS -m 30 -A "$UA" -o reg.pdf -w "HTTP %{http_code}\n" "$u" || continue
+            python3 -c "
+          from pypdf import PdfReader
+          try:
+              r = PdfReader('reg.pdf'); print('\n'.join(p.extract_text() or '' for p in r.pages)[:6000])
+          except Exception as e: print('kein PDF', e)"
           done
-          echo "== Integrationsseite"; curl -sS -m 20 -A "$UA" "https://ezamowienia.gov.pl/pl/integracja/" | sed -e 's/<[^>]*>/ /g' | tr -s ' \n' | grep -iE "api|webserv|regulamin|limit|notice|board" | head -40
-      - name: Beispielantwort (gestern, 3 Bekanntmachungen)
+          echo "== Integrationsseite"; curl -sS -m 20 -A "$UA" "https://ezamowienia.gov.pl/pl/integracja/" -o i.html -w "HTTP %{http_code}, %{size_download}\n"
+          python3 -c "
+          import re; t=open('i.html',errors='replace').read(); t=re.sub(r'<script[\s\S]*?</script>|<style[\s\S]*?</style>','',t); t=re.sub(r'<[^>]+>',' ',t); t=re.sub(r'\s+',' ',t)
+          for m in re.finditer(r'.{0,300}(API|WebServ|Regulamin|limit|30 zapyta).{0,300}', t): print('…', m.group(0)); print()" | head -60
+      - name: Felder im Volltext (5 Bekanntmachungen)
         run: |
           UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
           D=$(date -u -d yesterday +%F)
-          for url in \
-            "https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T23:59:59&PageSize=3" \
-            "https://ezamowienia.gov.pl/mo-board/api/v1/notice?noticeType=ContractNotice&publicationDateFrom=${D}T00:00:00&publicationDateTo=${D}T23:59:59&pageSize=3"; do
-            echo "== $url"
-            curl -sS -m 30 -A "$UA" -H "Accept: application/json" -o a.json -w "HTTP %{http_code}, %{size_download} Bytes\n" "$url"
-            python3 - <<'PY'
-          import json
-          try:
-              d = json.load(open("a.json"))
-          except Exception as e:
-              print("kein JSON:", open("a.json", errors="replace").read()[:500]); raise SystemExit
-          liste = d if isinstance(d, list) else d.get("items") or d.get("data") or d
-          print("Typ:", type(d).__name__, "Anzahl:", len(liste) if isinstance(liste, list) else "?")
-          if isinstance(liste, list) and liste:
-              x = liste[0]
-              print("Felder:", sorted(x.keys()))
-              for k, v in x.items():
-                  if k != "htmlBody":
-                      print(f"  {k}: {str(v)[:160]}")
-              hb = x.get("htmlBody") or ""
-              import re
-              t = re.sub(r"<[^>]+>", " ", hb); t = re.sub(r"\s+", " ", t)
-              print("htmlBody (Text, Anfang):", t[:1500])
+          curl -sS -m 30 -A "$UA" -o a.json "https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T23:59:59&PageSize=5"
+          sleep 3
+          curl -sS -m 30 -A "$UA" -o b.json -w "PageSize 100: HTTP %{http_code}\n" "https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T23:59:59&PageSize=100"
+          python3 - <<'PY'
+          import json, re
+          b = json.load(open("b.json")); print("Seite mit 100:", len(b), "Einträge; Provinzen:", sorted({x.get('organizationProvince') for x in b}))
+          print("unter EU-Schwelle:", sum(1 for x in b if x.get("isTenderAmountBelowEU")), "orderType:", sorted({x.get("orderType") for x in b}))
+          for x in json.load(open("a.json")):
+              t = re.sub(r"<style[\s\S]*?</style>", "", x.get("htmlBody") or ""); t = re.sub(r"<[^>]+>", "\n", t); t = re.sub(r"\n\s*\n+", "\n", t)
+              print("=====", x["orderObject"][:100])
+              for muster in [r"Kod pocztowy[^\n]*\n?[^\n]*", r"Miejscowość[^\n]*\n?[^\n]*", r"Adres strony internetowej prowadzonego postępowania[^\n]*\n?[^\n]*", r"[Ww]artość[^\n]{0,80}\n?[^\n]{0,80}", r"Termin składania ofert[^\n]*\n?[^\n]*", r"Termin związania[^\n]*\n?[^\n]*", r"Przedmiot zamówienia[^\n]*\n?[^\n]{0,200}", r"(Krótki opis przedmiotu zamówienia|opis przedmiotu)[^\n]*\n?[^\n]{0,300}"]:
+                  m = re.search(muster, t)
+                  print("  ", (m.group(0).replace("\n", " | ")[:300] if m else f"(nicht gefunden: {muster[:30]})"))
           PY
-            sleep 3
-          done
