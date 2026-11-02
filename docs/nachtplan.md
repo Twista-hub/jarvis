@@ -26,7 +26,7 @@ Protokoll unten ergänzen. Ist ein Punkt blockiert, Grund notieren und zum näch
 - [x] 7. Niederlande recherchieren (TenderNed Open Data, Lizenz, robots.txt), nur Lese-Workflow und `docs/niederlande.md`.
 - [x] 7b. **Ideen: Jarvis als komplette Arbeitsoberfläche für Firmen** (Wunsch Benjamin 02.11. nachts): 20–50 Funktionen sammeln (Personal, Buchhaltung/Steuer-Vorbereitung, Angebote und Aufträge anderer Firmen/Marktplatz, Kunden, Dokumente, Fuhrpark …). Erst Bestand prüfen (vieles gibt es schon: Personal, Kalkulation, Angebote, Abrechnung, Stempeluhr), dann Lücken. Pro Idee: Nutzen, Aufwand (S/M/L), Abhängigkeiten, rechtliche Hinweise (z. B. Steuer nur Vorbereitung/Export, keine Steuerberatung; GoBD). Priorisierte Liste in `docs/ideen-arbeitsoberflaeche.md`. Nur Konzept, nichts bauen.
 - [x] 7c. **Abo-Modelle** (Wunsch Benjamin, „wenn alles fertig ist“): Vorschlag in `docs/abos.md` auf Basis von `web/src/plaene.ts` (Free/Basis/Pro/Erfolg), KI-Kosten pro Firma (aus Punkt 1b), Wettbewerberpreise (öffentliche Preisseiten), Länder, Kleinunternehmerregelung § 19 UStG. Mit Rechenbeispiel Marge pro Plan. Nur Vorschlag, Entscheidung bei Benjamin.
-- [ ] 8. Morgenbericht für Benjamin: unten unter „Morgenbericht“, kurz, Wichtigstes zuerst, was er testen/entscheiden muss.
+- [x] 8. Morgenbericht für Benjamin: unten unter „Morgenbericht“, kurz, Wichtigstes zuerst, was er testen/entscheiden muss.
 
 ## Protokoll
 - 23:05 UTC 1b fertig: Prompt-Caching (gleicher Text) und Haiku-Vorfilter (Schwelle 3, Sonnet bewertet endgültig) live. Vergleich auf 285 bewerteten Ausschreibungen: 51/51 Treffer erhalten, ca. 40–45 % billiger. Details `docs/ki-kosten.md`. Batch-API vorgeschlagen (weitere 50 %), braucht früheren Alarm-Start → Entscheidung Benjamin.
@@ -34,6 +34,8 @@ Protokoll unten ergänzen. Ist ein Punkt blockiert, Grund notieren und zum näch
 - Punkte 3 und 4 (Italien KI/Mail, Regionen) umgesetzt und gepusht (32c5759). Punkt 2 (Wörterbuch) läuft über 4 Helfer.
 
 - 23:25 UTC Punkte 1–7c fertig: Italien komplett (Oberfläche 2.350 Einträge, KI/Mail, Regionen, ANAC-Quelle CC BY 4.0, Gewerke-Seiten /it/gare-d-appalto mit Live-Zahlen, Rechtsseiten mit Garante), Länder-Durchlauf it ALLES OK (0,074 $). Niederlande: TenderNed-Daten CC0, aber robots.txt sperrt → weiter TED. Ideenliste (50 Ideen) und Abo-Vorschlag geschrieben. Nebenbei: Rechte-Test schlug zwischen 23 und 24 Uhr UTC fehl (Ausfall-Tag Berliner Zeit) → behoben.
+
+- 23:55 UTC Batch-Schalter gebaut und live geprüft; Italien-CPV aus der Bezeichnung zugeordnet, Live-Zahlen da; Morgenbericht fertig. **Nachtplan abgeschlossen.**
 
 ## Morgenbericht
 
@@ -43,10 +45,13 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
 ### Fertig und live
 1. **KI-Kosten:** Firmenbeschreibung im Prompt-Cache + Haiku-Vorfilter (Sonnet bewertet weiter endgültig).
    Vergleich auf 285 echten Bewertungen: 51/51 Treffer erhalten. Batch-API (weitere 50 %) ist eingebaut, aber AUS
-   (`KI_BATCH=1`). Details: `docs/ki-kosten.md`.
+   (`KI_BATCH=1`), Live-Probe: 16/16 Ergebnisse nach knapp 8 Minuten, halber Preis. Details: `docs/ki-kosten.md`.
 2. **Italien:** Oberfläche, KI-Texte, Morgenmail, Regionen, Quelle ANAC (alle Ausschreibungen, CC BY 4.0),
    Gewerke-Seiten https://app.wpdigitalranger.com/it/gare-d-appalto mit Live-Zahlen, Rechtsseiten (Garante).
    Länder-Durchlauf Mailänder Reinigungsfirma: ALLES OK (0,074 $).
+   Live-Zahlen (30 Tage, Run 41547344792): Reinigung 34 (30 offen), Grünpflege 20, Sicherheit 11, Arbeitnehmerüberlassung 8,
+   Elektro 5, Sanitär/Heizung 5, Dach 2, Maler/Tischler je 1. Bauleistungen sind niedrig, weil ANAC den CPV nur als
+   Bezeichnung liefert und wir nur unsere Gewerke-Bezeichnungen zuordnen (`alarm/cpv_it.json`).
 3. **Niederlande:** TenderNed-Daten frei (CC0), aber robots.txt sperrt → nicht genutzt, weiter TED.
 4. **Behoben:** Datenbank-Test schlug abends zwischen 23 und 24 Uhr UTC fehl (Berliner Datum) – Prüfungen wieder grün.
 
