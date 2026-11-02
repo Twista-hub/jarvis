@@ -35,12 +35,14 @@ test("Englisch: Sprache aus Cookie oder Land, Umschalter im Fuß, Wechsel-Route"
   const anfrage = (cookie = "", land = "DE", url = "https://x/konto") => new Request(url, { headers: { cookie, "cf-ipcountry": land } });
   assert.equal(appSprache(anfrage("", "DE")), "de");
   assert.equal(appSprache(anfrage("", "US")), "en");
-  assert.equal(appSprache(anfrage("", "IT")), "en", "ohne eigene App-Sprache Englisch");
+  assert.equal(appSprache(anfrage("", "IT")), "it", "Italien hat eine eigene App-Sprache");
+  assert.equal(appSprache(anfrage("", "NL")), "en", "ohne eigene App-Sprache Englisch");
   assert.equal(appSprache(anfrage("jv_psprache=de", "US")), "de");
   assert.equal(appSprache(anfrage("jv_psprache=en", "DE")), "en");
   assert.equal(appSprache(anfrage("", "FR")), "fr");
   assert.equal(appSprache(anfrage("jv_psprache=fr", "DE")), "fr");
-  assert.equal(appSprache(anfrage("jv_psprache=it", "FR")), "en", "Italienisch hat keine App-Sprache");
+  assert.equal(appSprache(anfrage("jv_psprache=it", "FR")), "it");
+  assert.equal(appSprache(anfrage("jv_psprache=nl", "FR")), "en", "Niederländisch hat keine App-Sprache");
   const fuss = sprachFuss(seite("x", "<p>y</p>"), "de", "/konto/treffer?stand=neu");
   assert.match(fuss, /href="\/sprache\?zu=en&amp;weiter=%2Fkonto%2Ftreffer%3Fstand%3Dneu"[^>]*>🌐 English<\/a>/);
   assert.match(fuss, /zu=fr[^>]*>Français<\/a>/);
