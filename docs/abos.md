@@ -32,7 +32,7 @@
 | Büro-Nutzer (Inhaber, Admin, Bearbeiter) | 1 | 3 | 5 inkl. (+12 €) | 15 inkl. (+9 €) |
 | Einsatzkräfte mit eigenem Zugang | – | – | 25 inkl. (+2 €) | 100 inkl. (+1,50 €) |
 | Leser | – | unbegrenzt | unbegrenzt | unbegrenzt |
-| KI-Bewertung neuer Ausschreibungen | ja (bis 150/Monat) | ja | ja | ja |
+| KI-Bewertung neuer Ausschreibungen | ja (bis 300/Monat) | ja | ja | ja |
 | Benachrichtigung | Wochenmail | täglich Mail + Handy, Fristen-Erinnerung | wie Basis | wie Basis |
 | Kurzüberblick aus der Bekanntmachung | ja | ja | ja | ja |
 | Steckbrief aus hochgeladenen Unterlagen | – | 5 / Monat | 30 / Monat | 100 / Monat |

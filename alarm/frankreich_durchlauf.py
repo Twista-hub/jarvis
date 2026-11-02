@@ -45,12 +45,12 @@ LAENDER = {
                             "limpieza de cristales y limpiezas tras obras en Cataluña. Sin limpieza industrial ni hospitalaria.")},
     "it": {"quelle": anac, "name": "Pulizie Rossi S.r.l. (Test)", "plz": "20121", "zone": mail.ROM, "betreff": "Nuove gare",
            "sprache": re.compile(r"\b(il|lo|la|gli|le|di|del|della|per|con|e|servizio|pulizia|appalto)\b", re.IGNORECASE),
-           "gebiet": ("regioni", ["ITC4", "ITH3"]),
-           "einstellungen": {"laender": ["ITA"], "regioni": ["ITC4", "ITH3"],
+           "gebiet": ("regioni", ["ITC4", "ITF3", "ITH3", "ITI4"]),
+           "einstellungen": {"laender": ["ITA"], "regioni": ["ITC4", "ITH3", "ITI4", "ITF3"],
                              "leistungen": [{"name": "Pulizia di edifici e vetri", "cpv": ["90910000", "90911200", "90911300", "90919200"],
-                                             "woerter": ["pulizia", "pulizie", "servizio di pulizia", "sanificazione", "igiene ambientale", "vetri"]}]},
+                                             "woerter": ["pulizia", "pulizie", "servizio di pulizia", "servizi di pulizia", "sanificazione", "igiene ambientale", "vetri", "facility management"]}]},
            "beschreibung": ("Impresa di pulizie di Milano, 45 dipendenti. Pulizia di uffici, scuole ed edifici pubblici, pulizia vetri "
-                            "e pulizie dopo lavori in Lombardia e Veneto. Niente pulizie industriali né ospedaliere.")},
+                            "e pulizie dopo lavori in Lombardia, Veneto, Lazio e Campania. Niente pulizie industriali né ospedaliere.")},
 }
 L = LAENDER["fr"]
 
