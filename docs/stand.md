@@ -79,6 +79,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Rechtsseiten auf Französisch)
+- `web/src/rechtliches-fr.ts`: Mentions légales, Datenschutz, Nutzungsbedingungen und AVV auf Französisch für App-Sprache fr, oben der Hinweis „Traduction à titre d'information, seule la version allemande fait foi“ mit Link zur deutschen Fassung. Datenschutz nennt zusätzlich die CNIL als mögliche Beschwerdestelle. Test vergleicht den Aufbau (Überschriften, Punkte, Tabellenzeilen, Links) mit der deutschen Fassung: jede Änderung am deutschen Text muss auch dort rein.
+- Deutsche Fassung ergänzt: Cookie-Liste vollständig (Sprache, Land, Darstellung, Ansicht, zuletzt geöffnet, Einführung), Quelle BOAMP im Impressum. Datenschutz-Stand 02.11.2026 (eigenes Feld `standDatenschutz`, Nutzungsbedingungen unverändert 30.10.2026).
+- Sitemap: Google findet sie über die robots.txt (`Sitemap:`-Zeile); Einreichen in der Search Console ist nicht nötig.
+
 ### 02.11.2026 – Claude (Frankreich: Départements und Gewerke-Seiten)
 - Suchgebiet: Französische Firmen wählen Départements statt Umkreis (`web/src/departements.ts`, Liste `alarm/departements.json`, 101 inkl. Übersee). Start: ganze Region aus der PLZ der Firma, wenn nur Frankreich gesucht wird. Ohne Auswahl ganz Frankreich. Alarm filtert BOAMP nach Veröffentlichungs-Département (`profile_db.im_suchgebiet`); deutsche Suchorte und Umkreis gelten für französische Bekanntmachungen nicht mehr (PLZ-Kollision 75… Pforzheim/Paris). Änderung kostet keine Neubewertung (`katalog.NUR_FILTER`). Bei reiner Frankreich-Suche sind Umkreis und deutsche Suchorte im Formular ausgeblendet.
 - Google: 10 französische Gewerke-Seiten unter `/fr/appels-d-offres/…` (`web/src/gewerke-fr.ts`), immer Französisch (Kopfzeile `x-jv-sprache`), hreflang de↔fr mit den deutschen Seiten, FAQ-Daten, Quelle BOAMP/DILA, in der Sitemap. Startseite /fr verlinkt sie. Noch ohne Live-Zahlen (BOAMP liegt nicht im gemeinsamen Katalog).

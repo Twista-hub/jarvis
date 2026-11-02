@@ -13,6 +13,7 @@ export const FIRMA = {
   kleinunternehmer: true, // true: § 19 UStG
   aufsicht: "Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen, Kavalleriestraße 2–4, 40213 Düsseldorf, www.ldi.nrw.de", // data protection authority of the state, e.g. "Landesbeauftragte für Datenschutz ..., https://..."
   stand: "30.10.2026",
+  standDatenschutz: "02.11.2026", // cookie list completed, BOAMP
 };
 
 const fehlt = (wert: string, was: string) => (wert ? escape(wert) : `<span class="fehler">[${was} fehlt]</span>`);
@@ -31,7 +32,7 @@ ${FIRMA.ustId ? `<h2>Umsatzsteuer</h2><p>Umsatzsteuer-Identifikationsnummer gem�
 <h2>Verbraucherstreitbeilegung</h2>
 <p>Jarvis richtet sich nur an Unternehmen. Wir sind nicht bereit und nicht verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
 <h2>Quellen</h2>
-<p>Ausschreibungen: Bekanntmachungsservice des Bundes (oeffentlichevergabe.de), Lizenz CC0. Förderprogramme: Förderdatenbank des Bundes, Lizenz CC BY-ND 4.0 DE (nur Titel und Link). Die Bewertungen und Steckbriefe erstellt Jarvis selbst.</p>`;
+<p>Ausschreibungen: Bekanntmachungsservice des Bundes (oeffentlichevergabe.de), Lizenz CC0; BOAMP, DILA (Frankreich), Licence Ouverte 2.0. Förderprogramme: Förderdatenbank des Bundes, Lizenz CC BY-ND 4.0 DE (nur Titel und Link). Die Bewertungen und Steckbriefe erstellt Jarvis selbst.</p>`;
 }
 
 const DIENSTLEISTER = [
@@ -46,7 +47,7 @@ const dienstleisterTabelle = () =>
   `<table><tr><th>Dienstleister</th><th>Wofür</th><th>Grundlage für die Übermittlung</th></tr>${DIENSTLEISTER.map((z) => `<tr>${z.map((x) => `<td>${escape(x)}</td>`).join("")}</tr>`).join("")}</table>`;
 
 export function datenschutz(): string {
-  return `<p class="klein">Stand: ${FIRMA.stand}</p>
+  return `<p class="klein">Stand: ${FIRMA.standDatenschutz}</p>
 <h2>1. Verantwortlicher</h2>
 <p>${anschrift()}<br>E-Mail: <a href="mailto:${FIRMA.email}">${FIRMA.email}</a></p>
 <h2>2. Was Jarvis macht</h2>
@@ -71,7 +72,7 @@ export function datenschutz(): string {
 <li><strong>Einladungen:</strong> E-Mail-Adresse der eingeladenen Person, damit wir den Einladungs-Link schicken können (bei Links für Einsatzkräfte nur Name und Verknüpfung zur Personalakte).</li>
 </ul>
 <h2>4. Cookies</h2>
-<p>Wir setzen nur technisch nötige Cookies: für die Anmeldung (jv_at, jv_rt, jv_pkce) und die zuletzt gewählte Firma (jv_firma). Es gibt keine Werbung, keine Analyse und kein Tracking. Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TDDDG.</p>
+<p>Wir setzen nur technisch nötige Cookies: für die Anmeldung (jv_at, jv_rt, jv_pkce), die zuletzt gewählte Firma (jv_firma) sowie für deine Auswahl und Bedienung: Sprache, Land, Darstellung und Ansicht (jv_psprache, jv_sprache, jv_land, jv_darstellung, jv_ansicht), zuletzt geöffnete Ausschreibungen und letzter Besuch (jv_zuletzt, jv_gesehen) und ob die Einführung schon gezeigt wurde (jv_einfuehrung). Es gibt keine Werbung, keine Analyse und kein Tracking. Rechtsgrundlage: § 25 Abs. 2 Nr. 2 TDDDG.</p>
 <h2>5. Dienstleister</h2>
 <p>Wir nutzen diese Dienstleister als Auftragsverarbeiter (Art. 28 DSGVO). Einige sitzen in den USA. Die Übermittlung ist durch die genannten Garantien abgesichert.</p>
 ${dienstleisterTabelle()}

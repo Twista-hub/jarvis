@@ -60,6 +60,7 @@ import { betreiber } from "./loeschen.ts";
 import { demo } from "./demo.ts";
 import { gewerke } from "./gewerke.ts";
 import { metiers } from "./gewerke-fr.ts";
+import { hinweisDeutsch, RECHT_FR } from "./rechtliches-fr.ts";
 import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
@@ -260,6 +261,13 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       if ((url.pathname === "/" && titel === null) || (lp && ISO2[lp[1].toUpperCase()])) return landesStart(request, url, lp?.[1]);
       if (url.pathname === "/" || url.pathname === "/hochladen") return html(formular("", titel ?? ""));
       const recht = RECHT[url.pathname];
+      if (recht && appSprache(request) === "fr") {
+        // French translation (for information, the German text is binding); fixed French so the dictionary stays out.
+        const [titel, inhalt] = RECHT_FR[url.pathname];
+        const r = html(seite(titel, hinweisDeutsch(url.pathname) + inhalt()));
+        r.headers.set("x-jv-sprache", "fr");
+        return r;
+      }
       if (recht) return html(seite(recht[0], recht[1]()));
     }
     if (url.pathname === "/hochladen" && request.method === "POST") return hochladen(request, env);
