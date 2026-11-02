@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (USA: Preisvergleich, Vorgänger, Auslauf-Radar, SAM-Anleitung)
+- `web/src/usaspending.ts`: USAspending.gov-API (offene Daten des US-Finanzministeriums, kein Schlüssel; robots.txt sperrt nur *.php und Abfrageparameter der Website, die API ist dafür gedacht). Größte Bundesverträge der letzten 3 Jahre je NAICS + Bundesstaat, Median, Vorgänger (gleiche Behörde, `gleicheBehoerde()` gleicht SAM- und USAspending-Schreibweise ab), Link zur Vertragsseite. Cache 1 Tag pro NAICS/Staat/Monat (`caches.default`).
+- Kasten „Preisvergleich und Vorgänger“ unter dem Ampel-Kasten bei US-Treffern (braucht `us.naics` und `us.staat`; `alarm/usa.py` speichert jetzt auch `us.behoerde`).
+- `/konto/us-radar` (`usprofil.ts` `usRadar`): Verträge einer NAICS in einem Staat, die in 6–18 Monaten enden (Recompete-Radar), mit Hinweis auf Sources Sought und Capability Statement.
+- Öffentliche englische Seite `/us/sam-registration` (`web/src/samanleitung.ts`): Schritt-für-Schritt-Anleitung, Checkliste, Betrugswarnung, FAQ mit FAQPage-JSON-LD, Hinweis „nicht mit der US-Regierung verbunden“; in Sitemap, verlinkt von der US-Startseite.
+- Lese-Workflow `.github/workflows/us-daten-test.yml` zum Ausprobieren der API (Sandbox kommt nicht an api.usaspending.gov).
+- Tests `web/test/usaspending.test.ts`, `web/test/samanleitung.test.ts`.
+
 ### 02.11.2026 – Claude (Entscheidung: altes Design bleibt)
 - Benjamin: „Wir lassen das alte Design.“ Musterseite `/muster`, Schrift Inter, Tabler Icons und Lizenzdateien wieder entfernt (App kleiner, CSP ohne `font-src`). Beide Entwürfe liegen in der Git-Historie (c89851b neues Design, 68958a8 Musterseite).
 

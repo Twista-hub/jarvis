@@ -7,7 +7,7 @@
 import { escape } from "./seite.ts";
 
 export type UsDaten = {
-  notice_id?: string; solicitation?: string; art?: string; naics?: string; psc?: string; set_aside?: string; set_aside_text?: string;
+  notice_id?: string; behoerde?: string; solicitation?: string; art?: string; naics?: string; psc?: string; set_aside?: string; set_aside_text?: string;
   frist?: string; veroeffentlicht?: string; archiv?: string; staat?: string; stadt?: string; plz?: string;
   kontakt?: { name?: string; email?: string; telefon?: string };
   aenderungen?: { feld: string; alt: string; neu: string; gesehen: string }[];

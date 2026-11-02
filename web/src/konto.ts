@@ -38,6 +38,7 @@ import { suchgebietKarte, type Suchpunkt } from "./karte.ts";
 import { ampelChip, usKasten, type UsDaten, type UsProfil } from "./ampel.ts";
 import { appSprache } from "./englisch.ts";
 import { usProfilLaden } from "./usprofil.ts";
+import { marktKasten, vergleichbare } from "./usaspending.ts";
 import { bewertung, daumen, eckdaten, filterLeiste, sortieren, SORTIERUNGEN, suchbegriff } from "./treffer.ts";
 
 export interface KontoEnv {
@@ -994,7 +995,7 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
   const fristKlasse = v.frist ? ampel({ id: v.id, titel: v.titel, frist: v.frist, status: v.status }) : "grau";
   const kopf = `<ul class="kopf-chips">${v.punkte ? `<li class="punkte">${v.punkte}/10</li>` : ""}<li class="frist ${fristKlasse}">⏰ ${v.frist ? `${datum(v.frist)} · ${abstand(v.frist)}` : "Frist unbekannt"}</li><li>${escape(STATUS[v.status] ?? v.status)}</li>${v.entfernung_km != null ? `<li>📍 ${Math.round(v.entfernung_km)} km</li>` : ""}</ul>
 ${portal ? `<a class="knopf portal-knopf" href="${escape(portal)}" rel="noopener" target="_blank">🌐 Zum Vergabeportal</a>` : ""}
-${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}${hinweisText ? `<p role="status"><strong>${escape(hinweisText)}</strong></p>` : ""}${await vorschlagKarte(request, env, s, v, rolle)}${v.us ? usKasten(v, v.us, await usProfilLaden(s, env, v.firma_id), appSprache(request), ["inhaber", "admin"].includes(rolle)) : ""}`;
+${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}${hinweisText ? `<p role="status"><strong>${escape(hinweisText)}</strong></p>` : ""}${await vorschlagKarte(request, env, s, v, rolle)}${v.us ? usKasten(v, v.us, await usProfilLaden(s, env, v.firma_id), appSprache(request), ["inhaber", "admin"].includes(rolle)) : ""}${v.us?.naics && v.us.staat ? marktKasten(v.us.naics, v.us.staat, v.us.behoerde ?? "", await vergleichbare(v.us.naics, v.us.staat, (env as { WARTEN?: (p: Promise<unknown>) => void }).WARTEN), appSprache(request)) : ""}`;
   // Required proofs the firm has not uploaded yet get a ⚠️ with an upload link (only for people with finance access).
   const unterlagen = finanzen ? await Promise.all([db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`), referenzenLaden(s, env, v.firma_id)]).then(([r, refs]) => r.ok ? { ok: true as const, daten: mitReferenzen(r.daten, refs, v.firma_id) } : r) : null;
   const heute = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
