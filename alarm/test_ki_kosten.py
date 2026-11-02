@@ -50,3 +50,47 @@ class KiKosten(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Batch(unittest.TestCase):
+    def test_score_viele_gleiches_ergebnis_wie_einzeln(self):
+        from types import SimpleNamespace as N
+        import json as j
+        gesendet = []
+
+        def antwort(model, items):
+            if model == ki.MODEL_VORFILTER:
+                return {"bewertungen": [{"nr": x["nr"], "punkte": 2 if "Bäckerei" in x["titel"] else 7, "kurz": "k", "grund": "Haiku"} for x in items]}
+            return {"bewertungen": [{"nr": x["nr"], "punkte": 9, "kurz": "k", "grund": "Sonnet"} for x in items]}
+
+        class Batches:
+            def create(self, requests):
+                gesendet.append(requests)
+                self.r = requests
+                return N(id="b1", processing_status="ended")
+
+            def retrieve(self, i):
+                return N(id=i, processing_status="ended")
+
+            def results(self, i):
+                for q in self.r:
+                    items = j.loads(q["params"]["messages"][0]["content"][1]["text"].split("\n", 1)[1])
+                    msg = N(usage=N(input_tokens=100, output_tokens=50, cache_creation_input_tokens=0, cache_read_input_tokens=0),
+                            stop_reason="end_turn", content=[N(type="text", text=j.dumps(antwort(q["params"]["model"], items)))])
+                    yield N(custom_id=q["custom_id"], result=N(type="succeeded", message=msg))
+
+        alt = (ki.client, ki._reservieren, ki.katalog.abschliessen, ki.VORFILTER_SCHWELLE)
+        ki.client = N(messages=N(batches=Batches()))
+        ki._reservieren = lambda kwargs: "r"
+        ki.katalog.abschliessen = lambda r, k: None
+        ki.VORFILTER_SCHWELLE = 3
+        try:
+            pakete = [[{"nr": 0, "titel": "Reinigung Schule"}, {"nr": 1, "titel": "Bäckerei Brötchen"}], [{"nr": 0, "titel": "Bäckerei"}]]
+            r = ki.score_viele("Reinigungsfirma", pakete)
+        finally:
+            ki.client, ki._reservieren, ki.katalog.abschliessen, ki.VORFILTER_SCHWELLE = alt
+        self.assertEqual(len(gesendet), 2, "ein Vorfilter-Batch, ein Sonnet-Batch")
+        self.assertEqual([q["params"]["model"] for q in gesendet[1]], [ki.MODEL_BEWERTEN], "Paket 2 braucht kein Sonnet")
+        self.assertNotIn("fallbacks", gesendet[0][0]["params"], "Batch kennt keine Ersatzmodell-Regel")
+        self.assertEqual({k: v["grund"] for k, v in r[0].items()}, {0: "Sonnet", 1: "Haiku"})
+        self.assertEqual({k: v["grund"] for k, v in r[1].items()}, {0: "Haiku"})

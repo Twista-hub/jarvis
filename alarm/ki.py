@@ -4,6 +4,7 @@ Uses the official Anthropic SDK; the key comes from ANTHROPIC_API_KEY.
 """
 import json
 import os
+import time
 from pathlib import Path
 import katalog
 
@@ -21,6 +22,12 @@ CACHE_SCHREIBEN = 1.25
 # it gives at least VORFILTER_SCHWELLE points go to Sonnet, whose rating stays the final one. Clear misfits keep Haiku's
 # rating. 0 switches the pre-filter off.
 VORFILTER_SCHWELLE = int(os.environ.get("KI_VORFILTER", "3"))
+# Message Batches (50 % price on every token): the daily rating of all batches of one profile goes out as one batch and is
+# collected when ready. Off by default (results can take minutes to hours; the alarm must start early enough before the
+# morning mail). KI_BATCH=1 switches it on; after KI_BATCH_MINUTEN without a result the run falls back to direct calls.
+BATCH = os.environ.get("KI_BATCH", "0") == "1"
+BATCH_MINUTEN = int(os.environ.get("KI_BATCH_MINUTEN", "50"))
+BATCH_RABATT = 0.5
 LIMIT = float(os.environ.get("KI_LIMIT_DOLLAR", "3"))  # hard stop per run
 client = anthropic.Anthropic(max_retries=0)
 _kosten = [0.0]
@@ -37,8 +44,8 @@ def cache_stand() -> str:
     return f"Prompt-Cache: {_cache[0]} Tokens gelesen, {_cache[1]} geschrieben"
 
 
-def _zaehlen(usage, model: str = MODEL) -> None:
-    preis = PREISE[model]
+def _zaehlen(usage, model: str = MODEL, faktor: float = 1.0) -> None:
+    preis = tuple(x * faktor for x in PREISE[model])
     eingabe = usage.input_tokens * preis[0] + (usage.cache_creation_input_tokens or 0) * preis[0] * CACHE_SCHREIBEN \
         + (usage.cache_read_input_tokens or 0) * preis[2]
     _kosten[0] += (eingabe + usage.output_tokens * preis[1]) / 1e6
@@ -144,6 +151,73 @@ def _bewerten(model: str, beschreibung: str, items: list[dict], sprache: str) ->
         return None
     text = next(b.text for b in response.content if b.type == "text")
     return {b["nr"]: b for b in json.loads(text)["bewertungen"]}
+
+
+def _anfrage(model: str, beschreibung: str, items: list[dict], sprache: str) -> dict:
+    return {"model": model, "max_tokens": min(16000, max(1024, len(items) * 280 + 256)), "system": score_system(sprache),
+            "output_config": {"effort": "low", "format": {"type": "json_schema", "schema": SCORE_SCHEMA}},
+            "messages": [{"role": "user", "content": bewertung_inhalt(beschreibung, items)}]}
+
+
+def _batch(model: str, beschreibung: str, pakete: list[list[dict]], sprache: str) -> list[dict[int, dict] | None] | None:
+    """One Message Batch for several packages of the same profile; per package the ratings (None = declined/failed).
+    None for the whole call when the budget, the batch or the waiting time fails (the caller then rates directly)."""
+    anfragen = [_anfrage(model, beschreibung, items, sprache) for items in pakete]
+    reservierung = _reservieren({"max_tokens": sum(a["max_tokens"] for a in anfragen), "messages": [a["messages"] for a in anfragen],
+                                 "system": anfragen[0]["system"] if anfragen else ""})
+    if not reservierung:
+        return None
+    vorher = kosten()
+    try:
+        b = client.messages.batches.create(requests=[{"custom_id": f"p{i}", "params": a} for i, a in enumerate(anfragen)])
+        ende = time.monotonic() + BATCH_MINUTEN * 60
+        while b.processing_status != "ended":
+            if time.monotonic() > ende:
+                client.messages.batches.cancel(b.id)
+                print(f"Batch {b.id} nach {BATCH_MINUTEN} Minuten nicht fertig: abgebrochen, direkte Bewertung.")
+                katalog.abschliessen(reservierung, kosten() - vorher)
+                return None
+            time.sleep(30)
+            b = client.messages.batches.retrieve(b.id)
+        ergebnis: list[dict[int, dict] | None] = [None] * len(anfragen)
+        for r in client.messages.batches.results(b.id):
+            if r.result.type != "succeeded":
+                continue
+            m = r.result.message
+            _zaehlen(m.usage, model, BATCH_RABATT)
+            if m.stop_reason == "refusal":
+                continue
+            text = next((x.text for x in m.content if x.type == "text"), "")
+            ergebnis[int(r.custom_id[1:])] = {x["nr"]: x for x in json.loads(text)["bewertungen"]}
+    except Exception as e:  # noqa: BLE001 – the direct path still works
+        print(f"Batch nicht möglich ({type(e).__name__}), direkte Bewertung.")
+        katalog.abschliessen(reservierung, kosten() - vorher)
+        return None
+    katalog.abschliessen(reservierung, kosten() - vorher)
+    return ergebnis
+
+
+def score_viele(beschreibung: str, pakete: list[list[dict]], sprache: str = "de") -> list[dict[int, dict]]:
+    """Like score() for many packages at once via the Batch API (pre-filter batch, then Sonnet batch). Packages whose
+    batch result is missing are rated directly, so the outcome equals score() per package."""
+    if not pakete or _bremse():
+        return [{} for _ in pakete]
+    vorab = _batch(MODEL_VORFILTER, beschreibung, pakete, sprache) if VORFILTER_SCHWELLE else [{} for _ in pakete]
+    if vorab is None:
+        return [score(beschreibung, items, sprache) for items in pakete]
+    weiter = [[x for x in items if (v or {}).get(x["nr"], {}).get("punkte", 10) >= VORFILTER_SCHWELLE] for items, v in zip(pakete, vorab)]
+    nummern = [i for i, w in enumerate(weiter) if w]
+    neu = _batch(MODEL_BEWERTEN, beschreibung, [[dict(x, nr=j) for j, x in enumerate(weiter[i])] for i in nummern], sprache) if nummern else []
+    ergebnisse = []
+    for i, items in enumerate(pakete):
+        e = {nr: dict(b, vorfilter=True) for nr, b in (vorab[i] or {}).items() if b.get("punkte", 10) < VORFILTER_SCHWELLE}
+        if weiter[i]:
+            antwort = neu[nummern.index(i)] if neu is not None else None
+            if antwort is None:  # no batch result: rate the remaining notices directly (renumbered back inside score)
+                antwort = _bewerten(MODEL_BEWERTEN, beschreibung, [dict(x, nr=j) for j, x in enumerate(weiter[i])], sprache) or {}
+            e.update({weiter[i][j]["nr"]: dict(b, nr=weiter[i][j]["nr"]) for j, b in antwort.items() if 0 <= j < len(weiter[i])})
+        ergebnisse.append(e)
+    return ergebnisse
 
 
 def score_system(sprache: str = "de") -> str:

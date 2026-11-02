@@ -488,7 +488,17 @@ def run(days: list[str]) -> str:
         zwischenstand(name, profile, alle, cache, gespeichert, namen)
         # Small batches fit within the remaining budget more often than a reservation
         # for 40 notices and 16,000 output tokens. The global hard limits still apply.
-        if ki:
+        if ki and getattr(ki, "BATCH", False) is True and neu:
+            # Batch API (50 % price): all packages of this profile in one batch, then saved like the direct path.
+            pakete = [neu[a:a + 8] for a in range(0, len(neu), 8)]
+            for stapel, neue_bewertung in zip(pakete, ki.score_viele(profile["beschreibung"], [[item(i, r[2]) for i, r in enumerate(s)] for s in pakete], **sprach_arg(profile))):
+                for i, ergebnis in neue_bewertung.items():
+                    if 0 <= i < len(stapel):
+                        rel = stapel[i][2]
+                        katalog.bewertung_speichern(profile, rel, ergebnis)
+                        cache[katalog.schluessel(rel)] = ergebnis
+            zwischenstand(name, profile, alle, cache, gespeichert, namen)
+        elif ki:
             for anfang in range(0, len(neu), 8):
                 stapel = neu[anfang:anfang + 8]
                 neue_bewertung = ki.score(profile["beschreibung"], [item(i, r[2]) for i, r in enumerate(stapel)], **sprach_arg(profile))
