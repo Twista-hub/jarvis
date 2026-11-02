@@ -46,3 +46,21 @@ class BzpTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BlaetternTest(unittest.TestCase):
+    def test_vorwaerts_ueber_die_startzeit(self):
+        from unittest import mock
+        def eintrag(n, minute):
+            return {"bzpNumber": f"2026/BZP {n}", "orderObject": f"Auftrag {n}", "publicationDate": f"2026-11-02T{minute // 60:02d}:{minute % 60:02d}:00.1234567Z"}
+        alle = [eintrag(i, i * 5) for i in range(250)] + [{**eintrag(999, 1), "publicationDate": "2026-11-03T00:01:00Z"}]  # next day
+        aufrufe = []
+        def holen(params):
+            aufrufe.append(params["PublicationDateFrom"])
+            von = bzp.datetime.fromisoformat(params["PublicationDateFrom"])
+            return [x for x in alle if bzp._zeit(x) >= von][: params["PageSize"]]
+        with mock.patch.object(bzp, "_holen", side_effect=holen):
+            liste = bzp.bekanntmachungen("2026-11-02")
+        self.assertEqual(len(liste), 250)
+        self.assertEqual(len(aufrufe), 3)
+        self.assertEqual(aufrufe[0], "2026-11-02T00:00:00.000")
