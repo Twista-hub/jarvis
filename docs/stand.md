@@ -79,6 +79,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Polen-Quelle BZP, Spanien)
+- Polen: `alarm/bzp.py` liest die nationalen Ausschreibungen aus dem BZP (e-Zamówienia-API, Lesen ohne Antrag laut Integrationsseite, robots.txt ohne Regeln, 20 Abrufe/Minute, Zeitfenster-Teilung bei vollen Seiten). Über den EU-Schwellen weiter TED. Woiwodschaften als Suchgebiet (`alarm/woiwodschaften.json`: TERYT für BZP, NUTS für TED; Achtung PL22 = Pomorskie in TERYT, Śląskie in NUTS). Länder-Durchlauf (`frankreich-durchlauf.yml`, Eingabe `land`) auch für Polen.
+- Spanien: Oberfläche (`web/src/spanisch/`, 2.245 Einträge), KI-Texte (`alarm/sprache-es.txt`), Mail (Zeitzone Madrid), Regionen als Suchgebiet (Comunidades Autónomas, NUTS-2, `alarm/comunidades.json`). **PLACSP nicht automatisch**: robots.txt sperrt alles (`Disallow: /`), obwohl die Lizenz kommerzielle Nutzung erlaubt. Spanien daher vorerst nur über TED. Anfrage-Entwurf an PLACSP: `docs/anfragen/placsp-anfrage.md` (Versand nur nach OK). Nächster Kandidat für Spanien national: Open-Data-Portal Katalonien.
+
 ### 02.11.2026 – Claude (Polnisch, Recherche Polen und Spanien)
 - Polnische Oberfläche: Wörterbuch `web/src/polnisch/*.json` (2.242 Einträge, 7 Teile per Agent), App-Sprache pl aus Land PL oder Cookie, Fuß bietet Polski. KI-Steckbriefe/Bewertungen auf Polnisch (`alarm/sprache-pl.txt`, polnische Vergabebegriffe), Morgenmail/Handy auf Polnisch mit Zeitzone Warschau. Sprache aus Ländern: nur POL → pl (Liste `profile_db.LANDESSPRACHE`).
 - Recherche `docs/polen.md`: BZP-API e-Zamówienia (`/mo-board/api/v1/notice`, JSON, ohne Anmeldung, 30 Abrufe/Minute, ab 11.01.2027 max. 100 pro Seite), ca. 520 Ausschreibungen pro Werktag, Weiterverwendung nach polnischem Open-Data-Gesetz frei. robots.txt und Beispielantwort: Lese-Workflow `polen-test.yml`.

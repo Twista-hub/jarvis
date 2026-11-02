@@ -113,6 +113,7 @@ jobs:
           curl -fsS -H "cookie: jv_psprache=fr" "$URL/registrieren" -o reg_fr.html && grep -q "Créez le compte de votre entreprise" reg_fr.html && grep -q "🌐 Deutsch" reg_fr.html
           curl -fsS -H "cookie: jv_psprache=de" "$URL/fr/appels-d-offres/nettoyage" -o metier.html && grep -q "Source : BOAMP, DILA" metier.html && grep -q '<html lang="fr"' metier.html
           curl -fsS -H "cookie: jv_psprache=pl" "$URL/registrieren" -o reg_pl.html && grep -q '<html lang="pl"' reg_pl.html && grep -q "Polski\|Deutsch" reg_pl.html
+          curl -fsS -H "cookie: jv_psprache=es" "$URL/registrieren" -o reg_es.html && grep -q '<html lang="es"' reg_es.html
           curl -fsS -H "cookie: jv_psprache=fr" "$URL/datenschutz" -o ds_fr.html && grep -q "fait foi" ds_fr.html && grep -q "CNIL" ds_fr.html
           curl -fsS "$URL/impressum" -o impressum.html && grep -q "Rochusstraße" impressum.html
           curl -fsS "$URL/app.js" -o app.js && grep -q "push-test" app.js
