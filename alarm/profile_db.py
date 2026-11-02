@@ -188,6 +188,9 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         "regionen": {o["bereich_id"]: plz_bereiche(o) for o in standorte if o.get("bereich_id")},
         # Countries to search (ISO3). Germany = Bekanntmachungsservice, others = TED. Default: Germany only.
         "laender": [l for l in e.get("laender") or ["DEU"] if isinstance(l, str) and len(l) == 3] or ["DEU"],
+        # Language of AI texts: chosen at setup (app language), else English when no German-speaking country is searched.
+        # Only set for English, so German profiles keep their version (katalog.profil_version) and are not re-scored.
+        **({"sprache": "en"} if sprache(e) == "en" else {}),
         # Search radius in km and the coordinates of the firm's locations (postal codes via GeoNames).
         "radius_km": min(300, max(10, int(e.get("radius_km")))) if str(e.get("radius_km") or "").isdigit() else None,
         "suchpunkte": suchpunkte(e, firmen_plz),
@@ -224,6 +227,17 @@ def zusatz_profile(key: str, firma_id: str, name: str, beschreibung: str, e: dic
         p.update(zusatz=True, haupt_id=key, **({"bereich_id": bereich} if re.fullmatch(r"[0-9a-f-]{36}", bereich) else {}))
         result[f"{key}#{str(z['id'])[:8]}"] = p
     return result
+
+
+DEUTSCHSPRACHIG = {"DEU", "AUT", "CHE", "LIE", "LUX"}
+
+
+def sprache(e: dict) -> str:
+    """'en' or 'de' for the AI texts of a firm (einstellungen.sprache wins, else derived from the search countries)."""
+    if e.get("sprache") in ("de", "en"):
+        return e["sprache"]
+    laender = [l for l in e.get("laender") or ["DEU"] if isinstance(l, str)]
+    return "de" if any(l in DEUTSCHSPRACHIG for l in laender) else "en"
 
 
 def laden() -> dict:

@@ -86,7 +86,7 @@ export interface Env extends KontoEnv {
   TAGES_LIMIT: string;
 }
 
-export type Job = { id: string; profil: string; kunde: string; titel: string; erstellt: string; vorgang?: string };
+export type Job = { id: string; profil: string; kunde: string; titel: string; erstellt: string; vorgang?: string; sprache?: "en" };
 
 const RECHT: Record<string, [string, () => string]> = {
   "/impressum": ["Impressum", impressum],
@@ -166,7 +166,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       pruefen: (dateien) => pruefenUndZaehlen(dateien, env),
       starten: (dateien, kontext) => {
         const profil = Object.entries(profile as Record<string, { firma_id?: string; name: string }>).find(([, p]) => p.firma_id === kontext.firma);
-        return starten(env, dateien, { profil: profil?.[0] ?? `firma-${kontext.firma}`, kunde: profil?.[1].name ?? "", titel: kontext.titel, vorgang: kontext.vorgang });
+        return starten(env, dateien, { profil: profil?.[0] ?? `firma-${kontext.firma}`, kunde: profil?.[1].name ?? "", titel: kontext.titel, vorgang: kontext.vorgang, ...(appSprache(request) === "en" ? { sprache: "en" as const } : {}) });
       },
       }, form);
     }
@@ -292,6 +292,7 @@ async function unterlagenAmVorgang(id: string, request: Request, env: Env, form?
     kunde: eintrag?.[1].name ?? "",
     titel: [z.v.titel, z.v.link].filter(Boolean).join(" – "),
     vorgang: id,
+    ...(appSprache(request) === "en" ? { sprache: "en" as const } : {}),
   }, vorher, z.v.steckbrief ?? undefined);
   await env.DATEN.put(`auftraege/vorgaenge/${id}.json`, JSON.stringify({ auftrag: job.id, erstellt: job.erstellt }));
   return zurueck();

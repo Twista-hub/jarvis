@@ -86,7 +86,7 @@ def _create(**kwargs):
     return response
 
 
-def score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
+def score(beschreibung: str, items: list[dict], sprache: str = "de") -> dict[int, dict]:
     """items: [{nr, titel, auftraggeber, ort, beschreibung, cpv}] -> {nr: {punkte, kurz, grund}}"""
     if not items or _bremse():
         return {}
@@ -99,7 +99,7 @@ def score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
         "Ein Fliesenbetrieb passt nicht zu Heizung, Lüftung oder Innenputz, nur weil ein Bad saniert wird. "
         "Unter 6 Punkten bei lediglich entferntem oder unklarem Leistungsbezug. "
         "kurz: ein Satz, was gesucht wird. grund: ein Satz, warum es passt oder nicht."
-    )
+    ) + (BEWERTUNG_EN if sprache == "en" else "")
     user = f"Kunde:\n{beschreibung}\n\nAusschreibungen:\n" + json.dumps(items, ensure_ascii=False)
     response = _create(
         max_tokens=min(16000, max(1024, len(items) * 280 + 256)),
@@ -138,12 +138,20 @@ def foerder_score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
 
 # Shared with the upload worker (web/), so both write the same Steckbrief.
 STECKBRIEF_ANLEITUNG = (Path(__file__).parent / "steckbrief-anleitung.txt").read_text(encoding="utf-8")
+# English-speaking customers (profile "sprache": "en"): content in English, the German markers the app parses stay.
+SPRACHE_EN = (Path(__file__).parent / "sprache-en.txt").read_text(encoding="utf-8")
+BEWERTUNG_EN = " Write kurz and grund in English (US)."
 
 
-def steckbrief(beschreibung: str, kopf: str, dokumente: str) -> str:
+def anleitung(sprache: str = "de") -> str:
+    return STECKBRIEF_ANLEITUNG + ("\n" + SPRACHE_EN if sprache == "en" else "")
+
+
+def steckbrief(beschreibung: str, kopf: str, dokumente: str, sprache: str = "de") -> str:
+    system = anleitung(sprache)
     if _bremse():
         return ""
-    reservierung = _reservieren({"max_tokens": 32000, "messages": [beschreibung, kopf, dokumente], "system": STECKBRIEF_ANLEITUNG})
+    reservierung = _reservieren({"max_tokens": 32000, "messages": [beschreibung, kopf, dokumente], "system": system})
     if not reservierung:
         return ""
     vorher = kosten()
@@ -153,7 +161,7 @@ def steckbrief(beschreibung: str, kopf: str, dokumente: str) -> str:
         fallbacks="default",
         max_tokens=32000,
         output_config={"effort": "medium"},
-        system=STECKBRIEF_ANLEITUNG,
+        system=system,
         messages=[{"role": "user", "content": f"Kunde:\n{beschreibung}\n\nAusschreibung:\n{kopf}\n\nVergabeunterlagen:\n{dokumente}"}],
     ) as stream:
         message = stream.get_final_message()
