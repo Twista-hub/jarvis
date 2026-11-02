@@ -83,3 +83,16 @@ test("Französisch: Wörterbuch, ganze Seite, Steckbrief-Marken", () => {
   assert.equal(wort("Arbeit suchen"), "Search work", "feste Einträge gehen vor");
   assert.equal(wort("in\u00a03 Tagen"), "in 3 days", "geschützte Leerzeichen");
 });
+
+test("Polnisch: Wörterbuch, Sprache aus Land, Umschalter", () => {
+  const w = wortschatz("pl");
+  assert.ok(w.genau > 1500, `nur ${w.genau} genaue Einträge`);
+  assert.equal(wort("Steckbrief: Sprzątanie biur", "pl"), "Karta przetargu: Sprzątanie biur");
+  const pl = uebersetzen(seite("x", "<h2>Mein Profil</h2>"), "pl");
+  assert.match(pl, /<html lang="pl"/);
+  assert.doesNotMatch(pl, /Mein Profil/);
+  const anfrage = (cookie = "", land = "PL") => new Request("https://x/konto", { headers: { cookie, "cf-ipcountry": land } });
+  assert.equal(appSprache(anfrage()), "pl");
+  assert.equal(appSprache(anfrage("jv_psprache=pl", "DE")), "pl");
+  assert.match(sprachFuss(seite("x", "<p>y</p>"), "de", "/"), /zu=pl[^>]*>Polski<\/a>/);
+});

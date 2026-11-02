@@ -68,7 +68,7 @@ import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastr
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { usProfil, usRadar } from "./usprofil.ts";
 import { samAnleitungSeite } from "./samanleitung.ts";
-import { appSprache, sprachFuss, sprachWechsel, uebersetzen } from "./englisch.ts";
+import { appSprache, sprachFuss, sprachWechsel, uebersetzen, type AppSprache } from "./englisch.ts";
 import { ISO2, SPRACHEN_OEFFENTLICH, besucher, keineBehoerde, kopfZeile, landWahl, landesSeite, wahlCookies, type Sprache } from "./besucher.ts";
 import { escape, markdown, seite, stapeln } from "./seite";
 import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
@@ -90,9 +90,9 @@ export interface Env extends KontoEnv {
   TAGES_LIMIT: string;
 }
 
-export type Job = { id: string; profil: string; kunde: string; titel: string; erstellt: string; vorgang?: string; sprache?: "en" | "fr" };
+export type Job = { id: string; profil: string; kunde: string; titel: string; erstellt: string; vorgang?: string; sprache?: Exclude<AppSprache, "de"> };
 /** Language of the AI fact sheet for an upload: only set when not German (German jobs stay exactly as before). */
-function kiSprache(request: Request): { sprache?: "en" | "fr" } {
+function kiSprache(request: Request): { sprache?: Exclude<AppSprache, "de"> } {
   const s = appSprache(request);
   return s === "de" ? {} : { sprache: s };
 }
