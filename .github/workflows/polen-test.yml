@@ -1,0 +1,49 @@
+# Read-only check of the Polish national tender source (BZP API on e-Zamówienia): robots.txt, API rules, one small
+# sample response. Nothing is stored. Docs: docs/polen.md
+name: Polen-Test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: robots.txt und Regeln
+        run: |
+          UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+          for h in ezamowienia.gov.pl www.uzp.gov.pl dane.gov.pl; do
+            echo "== https://$h/robots.txt"; curl -sS -m 20 -A "$UA" "https://$h/robots.txt" | head -60; echo
+          done
+          echo "== Integrationsseite"; curl -sS -m 20 -A "$UA" "https://ezamowienia.gov.pl/pl/integracja/" | sed -e 's/<[^>]*>/ /g' | tr -s ' \n' | grep -iE "api|webserv|regulamin|limit|notice|board" | head -40
+      - name: Beispielantwort (gestern, 3 Bekanntmachungen)
+        run: |
+          UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+          D=$(date -u -d yesterday +%F)
+          for url in \
+            "https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T23:59:59&PageSize=3" \
+            "https://ezamowienia.gov.pl/mo-board/api/v1/notice?noticeType=ContractNotice&publicationDateFrom=${D}T00:00:00&publicationDateTo=${D}T23:59:59&pageSize=3"; do
+            echo "== $url"
+            curl -sS -m 30 -A "$UA" -H "Accept: application/json" -o a.json -w "HTTP %{http_code}, %{size_download} Bytes\n" "$url"
+            python3 - <<'PY'
+          import json
+          try:
+              d = json.load(open("a.json"))
+          except Exception as e:
+              print("kein JSON:", open("a.json", errors="replace").read()[:500]); raise SystemExit
+          liste = d if isinstance(d, list) else d.get("items") or d.get("data") or d
+          print("Typ:", type(d).__name__, "Anzahl:", len(liste) if isinstance(liste, list) else "?")
+          if isinstance(liste, list) and liste:
+              x = liste[0]
+              print("Felder:", sorted(x.keys()))
+              for k, v in x.items():
+                  if k != "htmlBody":
+                      print(f"  {k}: {str(v)[:160]}")
+              hb = x.get("htmlBody") or ""
+              import re
+              t = re.sub(r"<[^>]+>", " ", hb); t = re.sub(r"\s+", " ", t)
+              print("htmlBody (Text, Anfang):", t[:1500])
+          PY
+            sleep 3
+          done
