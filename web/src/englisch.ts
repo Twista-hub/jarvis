@@ -32,8 +32,17 @@ import p05 from "./polnisch/teil05.json" with { type: "json" };
 import pZusatz from "./polnisch/zusatz.json" with { type: "json" };
 import pAttribute from "./polnisch/attribute.json" with { type: "json" };
 import pNachtrag from "./polnisch/nachtrag.json" with { type: "json" };
+import s00 from "./spanisch/teil00.json" with { type: "json" };
+import s01 from "./spanisch/teil01.json" with { type: "json" };
+import s02 from "./spanisch/teil02.json" with { type: "json" };
+import s03 from "./spanisch/teil03.json" with { type: "json" };
+import s04 from "./spanisch/teil04.json" with { type: "json" };
+import s05 from "./spanisch/teil05.json" with { type: "json" };
+import sZusatz from "./spanisch/zusatz.json" with { type: "json" };
+import sAttribute from "./spanisch/attribute.json" with { type: "json" };
+import sNachtrag from "./spanisch/nachtrag.json" with { type: "json" };
 
-export type AppSprache = "de" | "en" | "fr" | "pl";
+export type AppSprache = "de" | "en" | "fr" | "pl" | "es";
 type Fremd = Exclude<AppSprache, "de">;
 
 const ZAHL = "(\\d[\\d.,:]*)";
@@ -41,18 +50,21 @@ const TEILE: Record<Fremd, Record<string, string>[]> = {
   en: [t00, t01, t02, t03, t04, t05, tZusatz, tAttribute, tNachtrag],
   fr: [f00, f01, f02, f03, f04, f05, fZusatz, fAttribute, fNachtrag],
   pl: [p00, p01, p02, p03, p04, p05, pZusatz, pAttribute, pNachtrag],
+  es: [s00, s01, s02, s03, s04, s05, sZusatz, sAttribute, sNachtrag],
 };
 /** Fixed labels in front of free text (AI fact sheet title, rating lines). */
 const PRAEFIXE: Record<Fremd, [string, string][]> = {
   en: [["Steckbrief: ", "Fact sheet: "], ["Gesucht: ", "Wanted: "], ["Warum passend: ", "Why it fits: "], ["Empfehlung: ", "Recommendation: "]],
   fr: [["Steckbrief: ", "Fiche synthèse : "], ["Gesucht: ", "Objet : "], ["Warum passend: ", "Pourquoi c'est pertinent : "], ["Empfehlung: ", "Recommandation : "]],
   pl: [["Steckbrief: ", "Karta przetargu: "], ["Gesucht: ", "Przedmiot: "], ["Warum passend: ", "Dlaczego pasuje: "], ["Empfehlung: ", "Rekomendacja: "]],
+  es: [["Steckbrief: ", "Ficha de la licitación: "], ["Gesucht: ", "Objeto: "], ["Warum passend: ", "Por qué encaja: "], ["Empfehlung: ", "Recomendación: "]],
 };
 /** Fixed labels after free text (a work or place name the firm typed). */
 const SUFFIXE: Record<Fremd, [string, (frei: string) => string][]> = {
   en: [[" suchen", (f) => `Search for ${f}`], [" als Einsatzort", (f) => `${f} as place of work`]],
   fr: [[" suchen", (f) => `Rechercher : ${f}`], [" als Einsatzort", (f) => `${f} comme lieu d'intervention`]],
   pl: [[" suchen", (f) => `Szukaj: ${f}`], [" als Einsatzort", (f) => `${f} jako miejsce pracy`]],
+  es: [[" suchen", (f) => `Buscar: ${f}`], [" als Einsatzort", (f) => `${f} como lugar de trabajo`]],
 };
 type Muster = { re: RegExp; ziel: string };
 type Woerterbuch = { genau: Map<string, string>; muster: Muster[] };
@@ -144,7 +156,7 @@ export function uebersetzen(seite: string, sprache: AppSprache): string {
   }).join("");
 }
 
-const APP_SPRACHEN: readonly AppSprache[] = ["de", "en", "fr", "pl"];
+const APP_SPRACHEN: readonly AppSprache[] = ["de", "en", "fr", "pl", "es"];
 const zuApp = (s: string): AppSprache => (APP_SPRACHEN as readonly string[]).includes(s) ? s as AppSprache : "en";
 
 /** Office language of this visitor: the cookie decides, otherwise country and browser (besucher.ts). German, English
@@ -154,7 +166,7 @@ export function appSprache(request: Request): AppSprache {
   return zuApp(c ?? besucher(request).sprache);
 }
 
-const NAMEN: Record<AppSprache, string> = { de: "Deutsch", en: "English", fr: "Français", pl: "Polski" };
+const NAMEN: Record<AppSprache, string> = { de: "Deutsch", en: "English", fr: "Français", pl: "Polski", es: "Español" };
 const FUSS = '<p class="klein">WP Digital Ranger · ';
 /** Adds the language switch (the two other languages) to the page footer. */
 export function sprachFuss(seite: string, sprache: AppSprache, pfad: string): string {
