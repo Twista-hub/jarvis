@@ -14,8 +14,13 @@
 >   (live gelesen 02.11.2026): Weiterverwendung, Verbreitung, Bearbeitung weltweit; Quelle mit Aktualisierungsdatum
 >   nennen, keine Logos. contractaciopublica.cat robots.txt: `Allow: /`, Crawl-delay 1, 60/min. TED-Kopien
 >   katalanischer Aufträge (NUTS ES51) werden ausgefiltert.
+>- **Länder-Durchlauf Spanien** (Testfirma Limpiezas Puig S.L., Barcelona, Reinigung)
+>   https://github.com/Twista-hub/jarvis/actions/runs/41533751200: **ALLES OK**, KI-Kosten 0,066 $. Katalanische
+>   Ausschreibungen gefunden und auf ES51 gefiltert, Bewertungen auf Spanisch (Schulreinigung Institut Margarida Xirgu
+>   9/10, Krankenhausreinigung richtig 1/10), Steckbrief auf Spanisch (subrogación, PCAP, PPT), Mail-Betreff
+>   „Nuevas licitaciones: 8 – Limpiezas Puig S.L. (Test)“.
 
-Status: nur Recherche, noch nichts eingebaut. **Wichtig:** Aus dieser Cloud-Sitzung waren `contrataciondelestado.es`
+Status der Recherche unten (vor den Lese-Tests geschrieben). **Wichtig:** Aus dieser Cloud-Sitzung waren `contrataciondelestado.es`
 und `hacienda.gob.es` gesperrt (Netzwerkfreigabe der Sitzung). robots.txt, Aviso legal und Feed konnte ich deshalb
 **nicht selbst abrufen**. Die Angaben unten stammen aus der Websuche (Hacienda-, datos.gob.es-Seiten) und aus dem
 öffentlichen Open-Source-Projekt BquantFinance/licitaciones-espana (Stand 02.11.2026), das die Feeds seit Jahren
