@@ -42,6 +42,15 @@ class AnacTest(unittest.TestCase):
         finally:
             anac.bekanntmachungen = alt
 
+    def test_cpv_aus_bezeichnung(self):
+        self.assertEqual(anac.cpv_code("Servizi di pulizia"), "90910000")
+        self.assertEqual(anac.cpv_code("Servizi di fornitura di personale, compreso personale temporaneo"), "79620000")
+        self.assertEqual(anac.cpv_code("Servizi di pulizia e manutenzione di edifici scolastici"), "90910000", "Wortregel")
+        self.assertIsNone(anac.cpv_code("Servizi di pulizia delle strade"), "Straßenreinigung ist keine Gebäudereinigung")
+        self.assertIsNone(anac.cpv_code("Dispositivi e prodotti medici vari"))
+        self.assertEqual(anac.cpv_code("Lavori di installazione di impianti di riscaldamento, ventilazione e condizionamento d'aria"), "45331000")
+        self.assertEqual(anac.cpv_code("90911200-8 Servizi di pulizia di edifici"), "90911200")
+
     def test_regionen(self):
         self.assertEqual(anac._region("Reggio di Calabria"), "ITF6")
         self.assertEqual(anac._region("ITI43"), "ITI4")

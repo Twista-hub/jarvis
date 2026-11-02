@@ -23,6 +23,23 @@ QUELLE = "Fonte: ANAC – Piattaforma Pubblicità a valore legale (CC BY 4.0)"
 SEITE = 100
 PAUSE = 3.0
 PROVINZEN = json.loads((Path(__file__).parent / "province_it.json").read_text(encoding="utf-8"))
+# ANAC gives the CPV only as its official Italian label ("Servizi di pulizia", checked 03.11.2026, italien-cpv.yml).
+# Exact labels of the trades we track (alarm/cpv_it.json), then careful word rules; anything else stays without code
+# (the AI still reads the label in the description).
+CPV_IT = json.loads((Path(__file__).parent / "cpv_it.json").read_text(encoding="utf-8"))
+CPV_REGELN = [
+    (r"fornitura di personale", "79620000"),
+    (r"\bpulizi[ae]\b(?!.*(strad|fogn|caditoi|spurgo|rifiut|condott|serbato|camin|navi|veicol))", "90910000"),
+    (r"\b(vigilanza|guardia|pattugliamento)\b|servizi di sorveglianza|servizi di sicurezza", "79710000"),
+    (r"zone verdi|giardin|\bparchi\b|taglio alberi|manutenzione alberi", "77310000"),
+    (r"^lavori.*(installazione elettric|impianti elettrici|cablaggio)", "45311000"),
+    (r"^lavori.*(idraulic|riscaldamento|ventilazione|condizionamento)", "45330000"),
+    (r"^lavori di (verniciatura|tinteggiatura)", "45442100"),
+    (r"^lavori di intonac", "45410000"),
+    (r"^lavori.*falegnameria|installazione di porte e finestre", "45421000"),
+    (r"^lavori.*(copertur|tetti)", "45261000"),
+    (r"^lavori.*(piastrell|rivestimento di pavimenti|pavimentazione e rivestimento)", "45432000"),
+]
 _letzter = [0.0]
 
 
@@ -86,6 +103,15 @@ def _region(ort: str) -> str | None:
     return PROVINZEN.get(o.lower())
 
 
+def cpv_code(etikett: str) -> str | None:
+    e = (etikett or "").strip()
+    if m := re.search(r"\b(\d{8})", e):
+        return m.group(1)
+    if code := CPV_IT.get(e.lower()):
+        return code
+    return next((c for muster, c in CPV_REGELN if re.search(muster, e.lower())), None)
+
+
 def lesen(x: dict) -> dict:
     tpl = _template(x)
     meta = tpl.get("metadata") or {}
@@ -94,10 +120,10 @@ def lesen(x: dict) -> dict:
     orte = [str(l.get(k) or "") for l in lose for k in ("luogo_nuts", "luogo_istat") if l.get(k)]
     regioni = sorted({r for o in orte if (r := _region(o))})
     cpv_namen = list(dict.fromkeys(str(l.get("cpv")) for l in lose if l.get("cpv")))
-    cpv_codes = list(dict.fromkeys(c for n in cpv_namen for c in re.findall(r"\b(\d{8})", n)))
+    cpv_codes = list(dict.fromkeys(c for n in cpv_namen if (c := cpv_code(n))))
     werte = [l.get("valore_complessivo_stimato") for l in lose if l.get("valore_complessivo_stimato")]
     link = felder.get("documenti_di_gara_link") or next((l.get("documenti_di_gara_link") for l in lose if l.get("documenti_di_gara_link")), "")
-    lose_text = [f"Lotto {l.get('cig') or i + 1}: {l.get('oggetto') or l.get('descrizione') or ''} ({l.get('natura_principale') or ''}, {l.get('cpv') or ''})".strip()
+    lose_text = [f"Lotto {l.get('cig') or i + 1}: {l.get('descrizione') or l.get('oggetto') or ''} ({l.get('natura_principale') or ''}, {l.get('cpv') or ''})".strip()
                  for i, l in enumerate(lose)]
     return {
         "id": x.get("idAvviso") or "",
