@@ -1,3 +1,4 @@
+import { INTER_LATIN, INTER_LATIN_EXT } from "./schrift.ts";
 // The small amount of browser code: start the upload as soon as a file is chosen, switch on phone
 // notifications, and the service worker that shows them and opens the right page on tap.
 // Served from our own origin, so the content security policy only needs script-src 'self'.
@@ -354,6 +355,8 @@ const DATEIEN: Record<string, [string, string | (() => Uint8Array)]> = {
   "/manifest.webmanifest": ["application/manifest+json", MANIFEST],
   "/icon-192.png": ["image/png", () => Uint8Array.from(atob(ICON_192), (c) => c.charCodeAt(0))],
   "/icon-512.png": ["image/png", () => Uint8Array.from(atob(ICON_512), (c) => c.charCodeAt(0))],
+  "/schrift/inter-latin.woff2": ["font/woff2", () => Uint8Array.from(atob(INTER_LATIN), (c) => c.charCodeAt(0))],
+  "/schrift/inter-latin-ext.woff2": ["font/woff2", () => Uint8Array.from(atob(INTER_LATIN_EXT), (c) => c.charCodeAt(0))],
 };
 
 /** Static files of the app, or null. */
@@ -362,8 +365,8 @@ export function statisch(pfad: string): Response | null {
   if (!d) return null;
   const inhalt = typeof d[1] === "string" ? d[1] : d[1]();
   // Scripts and manifest: always check for the newest version; icons may be cached.
-  const cache = pfad.endsWith(".png") ? "public, max-age=86400" : "no-cache";
+  const cache = pfad.endsWith(".woff2") ? "public, max-age=31536000, immutable" : pfad.endsWith(".png") ? "public, max-age=86400" : "no-cache";
   return new Response(inhalt, { headers: { "content-type": d[0], "cache-control": cache, "x-content-type-options": "nosniff" } });
 }
 
-export const CSP = "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; manifest-src 'self'; worker-src 'self'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";
+export const CSP = "default-src 'none'; script-src 'self'; connect-src 'self'; img-src 'self'; manifest-src 'self'; worker-src 'self'; font-src 'self'; style-src 'unsafe-inline'; form-action 'self'; base-uri 'none'; frame-ancestors 'none'";

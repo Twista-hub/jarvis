@@ -79,6 +79,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Designmuster mit freien Vorlagen)
+- Musterseite `/muster` (nicht verlinkt, noindex; `?dunkel=1` für dunkel), `web/src/muster.ts`: Übersicht mit Zahlenkarten und Kacheln, Treffer-Karte, Knöpfe, Eingaben, Schalter, Tabs, Abzeichen, Hinweise, Liste, Tabelle, Fortschritt, Leerzustand, Farben, Schrift, untere Leiste.
+- Freie Vorlagen (Lizenzen in `docs/lizenzen.md`): Tabler Icons 3.50 (MIT, `web/src/tabler.ts`), Schrift Inter (OFL, selbst ausgeliefert unter `/schrift/…woff2`, CSP `font-src 'self'`), Farbabstufungen Radix Colors (MIT), Gestaltung nach shadcn/ui (MIT).
+- Die App selbst ist unverändert (altes Design). Übertragung auf alle Seiten erst nach Freigabe durch Benjamin.
+
 ### 02.11.2026 – Claude (Design zurückgesetzt)
 - Auf Wunsch von Benjamin das neue Design (c89851b) wieder entfernt; App wie vorher (Stand design-alt-2026-11-02). Nächster Schritt: Musterseite mit Tabler Icons (MIT), Schrift Inter (OFL, selbst gehostet), Gestaltung nach shadcn/ui (MIT) und Radix Colors (MIT) zum Anschauen, erst nach Freigabe auf die App übertragen. Der Entwurf von c89851b bleibt in der Git-Historie.
 
