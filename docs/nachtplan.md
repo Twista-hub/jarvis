@@ -13,7 +13,7 @@ Protokoll unten ergänzen. Ist ein Punkt blockiert, Grund notieren und zum näch
 
 ## Punkte
 - [ ] 1. Italien recherchieren: nationale Quelle (ANAC, Banca Dati Nazionale dei Contratti Pubblici / Open Data, ggf. Pubblicità a valore legale), Lizenz, robots.txt, Schnittstelle, Mengen. Lese-Workflow `italien-test.yml`. Ergebnis in `docs/italien.md`.
-- [ ] 1b. **KI-Kosten senken bei gleicher oder besserer Qualität** (Wunsch Benjamin 02.11. abends). Erst messen, dann ändern:
+- [x] 1b. **KI-Kosten senken bei gleicher oder besserer Qualität** (Wunsch Benjamin 02.11. abends). Erst messen, dann ändern:
   - Ist-Stand erfassen: welche Aufrufe (Suchprofil, Bewertung, Steckbrief, Kalkulation), welches Modell, Tokens und Kosten pro Lauf (`alarm/ki.py`, `web/src/workflow.ts`, Budgettabellen).
   - Kandidaten: Prompt-Caching für die langen festen Anleitungen; Batch-API (50 % günstiger) für die nächtliche Bewertung, die nicht sofort fertig sein muss; schärfere Vorfilter (CPV, Ort, Ausschlusswörter) vor der KI; Bewertung einer Bekanntmachung einmal zusammenfassen und für alle Firmen wiederverwenden; kürzere, strukturierte Antworten; günstiges Modell nur für die Vorauswahl, starkes Modell für die echten Kandidaten.
   - Qualität absichern: feste Vergleichsmenge (bekannte Treffer und Nicht-Treffer aus PerLease, Frankreich-, Polen-, Spanien-Durchlauf), alte und neue Variante gegeneinander, Abweichungen der Punkte notieren. Nur übernehmen, was gleich gut oder besser ist.
@@ -29,5 +29,8 @@ Protokoll unten ergänzen. Ist ein Punkt blockiert, Grund notieren und zum näch
 - [ ] 8. Morgenbericht für Benjamin: unten unter „Morgenbericht“, kurz, Wichtigstes zuerst, was er testen/entscheiden muss.
 
 ## Protokoll
+- 23:05 UTC 1b fertig: Prompt-Caching (gleicher Text) und Haiku-Vorfilter (Schwelle 3, Sonnet bewertet endgültig) live. Vergleich auf 285 bewerteten Ausschreibungen: 51/51 Treffer erhalten, ca. 40–45 % billiger. Details `docs/ki-kosten.md`. Batch-API vorgeschlagen (weitere 50 %), braucht früheren Alarm-Start → Entscheidung Benjamin.
+- 23:10 UTC Punkt 1 Italien: Lese-Test (Run 41542963808) ok: ANAC-PVL-Schnittstelle erreichbar, robots.txt sperrt nichts (PVL liefert keine echte robots.txt, www.anticorruzione.it `Allow: /`), ca. 100 Ausschreibungen am 02.11. dati.anticorruzione.it sperrt GitHub-Rechenzentren (403). Lizenzwortlaut der „Note legali“ noch genauer lesen.
+- Punkte 3 und 4 (Italien KI/Mail, Regionen) umgesetzt und gepusht (32c5759). Punkt 2 (Wörterbuch) läuft über 4 Helfer.
 
 ## Morgenbericht
