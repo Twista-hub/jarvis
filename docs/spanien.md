@@ -9,7 +9,11 @@
 > - Bis dahin: Spanien nur über TED (Aufträge über den EU-Schwellen), Regionen über NUTS-2 (Comunidades Autónomas).
 > - Regionalportale: datos.comunidad.madrid und contratosdegalicia.gal sperren alles; Euskadi und Andalucía sperren
 >   nur Teilbereiche; Kataloniens Open-Data-Portal (analisi.transparenciacatalunya.cat, Socrata) sperrt nur
->   Such-/Listenseiten. **Nächster Kandidat: Katalonien** (Lizenz und API-Pfad prüfen).
+>   Such-/Listenseiten. **Katalonien eingebaut** (`alarm/katalonien.py`, Datensatz ybgg-dgi6, Phase „Anunci de licitació“,
+>   ca. 120 neue Ausschreibungen pro Tag, alle Schwellen). Lizenz „Llicència oberta d'ús d'informació – Catalunya“
+>   (live gelesen 02.11.2026): Weiterverwendung, Verbreitung, Bearbeitung weltweit; Quelle mit Aktualisierungsdatum
+>   nennen, keine Logos. contractaciopublica.cat robots.txt: `Allow: /`, Crawl-delay 1, 60/min. TED-Kopien
+>   katalanischer Aufträge (NUTS ES51) werden ausgefiltert.
 
 Status: nur Recherche, noch nichts eingebaut. **Wichtig:** Aus dieser Cloud-Sitzung waren `contrataciondelestado.es`
 und `hacienda.gob.es` gesperrt (Netzwerkfreigabe der Sitzung). robots.txt, Aviso legal und Feed konnte ich deshalb
