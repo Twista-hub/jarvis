@@ -79,8 +79,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Spanien: Katalonien, Länder-Durchläufe Polen und Spanien)
+- Polen: BZP-Abruf läuft jetzt vorwärts ab der letzten gelesenen Veröffentlichungszeit (die API ignoriert Seitenzahlen und rechnet das Ende nur tageweise; die Zeitfenster-Teilung hing). Länder-Durchlauf Warschau: https://github.com/Twista-hub/jarvis/actions/runs/41532921559 ALLES OK, 0,06 $.
+- Spanien: Katalonien vollständig aus dem Open-Data-Portal der Generalitat (`alarm/katalonien.py`, Socrata ybgg-dgi6, ca. 120 Ausschreibungen/Tag, alle Schwellen, Lizenz „Llicència oberta“ live geprüft, Quellenangabe). TED-Kopien katalanischer Aufträge (ES51) werden ausgefiltert; übriges Spanien weiter über TED. Madrid und Galicien sperren per robots.txt alles, PLACSP ebenso (Anfrage-Entwurf wartet auf Benjamins OK).
+- Länder-Durchlauf Barcelona: https://github.com/Twista-hub/jarvis/actions/runs/41533751200 ALLES OK, 0,066 $, Bewertungen und Steckbrief auf Spanisch.
+
 ### 02.11.2026 – Claude (Polen-Quelle BZP, Spanien)
-- Polen: `alarm/bzp.py` liest die nationalen Ausschreibungen aus dem BZP (e-Zamówienia-API, Lesen ohne Antrag laut Integrationsseite, robots.txt ohne Regeln, 20 Abrufe/Minute, Zeitfenster-Teilung bei vollen Seiten). Über den EU-Schwellen weiter TED. Woiwodschaften als Suchgebiet (`alarm/woiwodschaften.json`: TERYT für BZP, NUTS für TED; Achtung PL22 = Pomorskie in TERYT, Śląskie in NUTS). Länder-Durchlauf (`frankreich-durchlauf.yml`, Eingabe `land`) auch für Polen.
+- Polen: `alarm/bzp.py` liest die nationalen Ausschreibungen aus dem BZP (e-Zamówienia-API, Lesen ohne Antrag laut Integrationsseite, robots.txt ohne Regeln, 20 Abrufe/Minute, Abruf vorwärts ab letzter Zeit). Über den EU-Schwellen weiter TED. Woiwodschaften als Suchgebiet (`alarm/woiwodschaften.json`: TERYT für BZP, NUTS für TED; Achtung PL22 = Pomorskie in TERYT, Śląskie in NUTS). Länder-Durchlauf (`frankreich-durchlauf.yml`, Eingabe `land`) auch für Polen.
 - Spanien: Oberfläche (`web/src/spanisch/`, 2.245 Einträge), KI-Texte (`alarm/sprache-es.txt`), Mail (Zeitzone Madrid), Regionen als Suchgebiet (Comunidades Autónomas, NUTS-2, `alarm/comunidades.json`). **PLACSP nicht automatisch**: robots.txt sperrt alles (`Disallow: /`), obwohl die Lizenz kommerzielle Nutzung erlaubt. Spanien daher vorerst nur über TED. Anfrage-Entwurf an PLACSP: `docs/anfragen/placsp-anfrage.md` (Versand nur nach OK). Nächster Kandidat für Spanien national: Open-Data-Portal Katalonien.
 
 ### 02.11.2026 – Claude (Polnisch, Recherche Polen und Spanien)
