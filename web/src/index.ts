@@ -64,6 +64,7 @@ import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
+import { appSprache, englisch, sprachFuss, sprachWechsel } from "./englisch.ts";
 import { ISO2, SPRACHEN_OEFFENTLICH, besucher, keineBehoerde, kopfZeile, landWahl, landesSeite, wahlCookies, type Sprache } from "./besucher.ts";
 import { escape, markdown, seite, stapeln } from "./seite";
 import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
@@ -125,21 +126,33 @@ export default {
   },
 };
 
-/** The user's display choice (cookie jv_darstellung, e.g. "dark-gross") goes onto <html> before the page is drawn. */
+/** After rendering: display choice (cookie jv_darstellung, e.g. "dark-gross") onto <html>, office language (English
+ *  dictionary, see englisch.ts) and the language switch in the footer. Non-HTML answers pass through untouched. */
 function darstellen(request: Request, r: Response): Response {
-  const wahl = /(?:^|;\s*)jv_darstellung=([a-z-]{1,20})/.exec(request.headers.get("cookie") ?? "")?.[1];
-  if (!wahl || !(r.headers.get("content-type") ?? "").startsWith("text/html")) return r;
+  if (!(r.headers.get("content-type") ?? "").startsWith("text/html") || !r.body) return r;
+  const wahl = /(?:^|;\s*)jv_darstellung=([a-z-]{1,20})/.exec(request.headers.get("cookie") ?? "")?.[1] ?? "";
   const theme = wahl.includes("dark") ? "dark" : wahl.includes("light") ? "light" : "";
   const attribute = `${theme ? ` data-theme="${theme}"` : ""}${wahl.includes("gross") ? ' data-schrift="gross"' : ""}`;
-  if (!attribute) return r;
-  const body = r.body ? new Response(r.body).text() : Promise.resolve("");
+  const sprache = appSprache(request);
+  const url = new URL(request.url);
+  const pfad = `${url.pathname}${url.search}`;
+  const body = new Response(r.body).text();
   const h = new Headers(r.headers);
-  return new Response(new ReadableStream({ async start(c) { c.enqueue(new TextEncoder().encode((await body).replace(/<html lang="([a-z]{2})"/, `<html lang="$1"${attribute}`))); c.close(); } }), { status: r.status, statusText: r.statusText, headers: h });
+  h.append("vary", "cookie");
+  return new Response(new ReadableStream({ async start(c) {
+    let t = await body;
+    if (sprache === "en") t = englisch(t);
+    t = sprachFuss(t, sprache, pfad);
+    if (attribute) t = t.replace(/<html lang="([a-z]{2})"/, `<html lang="$1"${attribute}`);
+    c.enqueue(new TextEncoder().encode(t)); c.close();
+  } }), { status: r.status, statusText: r.statusText, headers: h });
 }
 
 async function verarbeiten(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/__intern/db-check" && request.method === "POST") return datenbankPruefen(request, env);
+    const sw = sprachWechsel(request);
+    if (sw) return sw;
     const datei = request.method === "GET" ? statisch(url.pathname) : null;
     if (datei) return datei;
     const u = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/unterlagen$/);

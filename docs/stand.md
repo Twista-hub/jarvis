@@ -79,6 +79,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Englische Oberfläche)
+- `web/src/englisch.ts`: Jede HTML-Antwort wird nach dem Rendern Textknoten für Textknoten übersetzt (auch placeholder, aria-label, title, alt), Wörterbuch `web/src/englisch/*.json` mit rund 1.900 Einträgen (`#` = Zahl/Datum, wird in Reihenfolge übernommen; Einträge ohne gleiche `#`-Zahl werden ignoriert). Unbekannte Texte bleiben Deutsch (Namen, Kundentexte, KI-Steckbriefe). `<style>`, `<script>`, `<textarea>`, `<code>` bleiben unangetastet.
+- Sprache: Cookie `jv_psprache` (de/en), sonst aus dem Land des Besuchers (`besucher.ts`; alles außer Deutsch → Englisch). Umschalter „🌐 English/Deutsch“ im Fuß jeder Seite (`/sprache?zu=en&weiter=…`, Cookie 1 Jahr). `index.ts` `darstellen()` macht Darstellung, Übersetzung und Fuß in einem Schritt, `vary: cookie`.
+- Wörterbuch entstand aus den gerenderten Kernseiten (Startseite, Registrieren, Konto, Einrichtung, Suchprofil, Treffer, Vorgang, Fristen, Hilfe, Einstellungen, Profil, Firmenprofil, Unterlagen, Angebote, Kalkulation, Team …), Übersetzung durch sechs parallele Hilfs-Agenten mit festem Glossar (Ausschreibung = tender, Angebot = bid, Steckbrief = fact sheet, Treffer = matches, Vorgang = tender file, Zuschlag = award, Nachweis = supporting document).
+- Kontrolle: Konto-Übersicht, Treffer, Fristen, Registrieren vollständig Englisch; im Vorgang bleiben KI-Steckbrief und Namen Deutsch. Tests `web/test/englisch.test.ts`.
+- Noch offen: KI-Texte (Steckbriefe, Bewertungen, Kurzfassungen) und Mails auf Englisch für US-Firmen (Sprache an `alarm/` übergeben); seltener genutzte Seiten (Lohn, Spesen, Disposition …) nur teilweise im Wörterbuch; Rechtstexte (AGB, Datenschutz) bleiben Deutsch, englische Fassung braucht Prüfung.
+
 ### 02.11.2026 – Claude (Länder- und Spracherkennung auf der Startseite)
 - `web/src/besucher.ts`: Land des Besuchers aus Adresse `/xx` → Cookie `jv_land` → Cloudflare-Geo (`cf.country`/`cf-ipcountry`) → Deutschland. Sprache passend zum Land (de/en/fr/es/it/nl/pl/pt; BE/CH/LU nach Browsersprache; Länder ohne eigene Sprache Englisch), Wahl per `?sprache=` (Cookie `jv_psprache`).
 - Startseite `/` zeigt die Seite des erkannten Landes; feste Adressen `/de`, `/us`, `/es`, `/fr` … für alle 33 Suchländer (in Sitemap, hreflang, canonical). Text, Kopfzeile, Datenquelle (Bekanntmachungsservice/TED/Find a Tender/SAM.gov), Länder- und Sprachauswahl, Hinweis „keine Behörde“. US-Seite mit Set-asides/NAICS-Hinweis. Deutschland behält die bisherige Startseite mit Gewerke-Links und Beispiel-Steckbrief.
