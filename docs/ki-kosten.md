@@ -52,6 +52,11 @@ mit Caching zusammen 40–45 %.
 (`ki.score_viele`). Kein Ergebnis nach `KI_BATCH_MINUTEN` (Standard 50) → Batch wird abgebrochen und direkt bewertet;
 fehlende Einzelergebnisse werden direkt nachbewertet. Gleiche Anleitung, gleiche Modelle → gleiche Qualität.
 Einschalten erst, wenn der Alarm früh genug vor der Morgenmail startet (Entscheidung Benjamin).
+**Live-Probe 03.11.2026** (`ki-vergleich.yml` mit `batch`, Run 41545607165): 2 Pakete à 8 schon bewerteter Ausschreibungen,
+Batch nach 461 s fertig, 16/16 Ergebnisse, Kosten 0,018 $ (halber Preis). 13 von 15 Sonnet-Bewertungen lagen innerhalb
+±1 Punkt der gespeicherten; zwei wichen stärker ab (8→5, 7→3). Das ist die normale Streuung zwischen zwei Läufen bei
+niedrigem Aufwand, kein Batch-Effekt (gleiches Modell, gleicher Text), sollte aber vor dem Einschalten an einer größeren
+Stichprobe beobachtet werden.
 
 ## 3. Weitere Hebel (Entscheidung Benjamin)
 
