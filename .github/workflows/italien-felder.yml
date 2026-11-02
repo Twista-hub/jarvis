@@ -15,15 +15,17 @@ jobs:
       - name: Ein Bando komplett (Struktur)
         run: |
           set +e
-          D=$(date -u -d yesterday +%d/%m/%Y)
+          # last publication day before today (the API lists them; weekends have none)
+          D=$(curl -sS -m 30 -A "$UA" "$PVL/api/v0/date" | python3 -c "
+          import json,sys; from datetime import datetime, date
+          print(max(x for x in json.load(sys.stdin) if datetime.strptime(x,'%d/%m/%Y').date() < date.today()))")
+          echo "Tag: $D"; sleep 3
           curl -sS -m 60 -A "$UA" -H "Accept: application/json" -o b.json "$PVL/api/v0/avvisi?dataPubblicazioneStart=$D&dataPubblicazioneEnd=$D&sortField=dataPubblicazione&sortDirection=ASC&page=0&size=5&codiceScheda=2,4"
-          sleep 3
-          D2=$(date -u -d '3 days ago' +%d/%m/%Y)
-          curl -sS -m 60 -A "$UA" -H "Accept: application/json" -o c.json "$PVL/api/v0/avvisi?dataPubblicazioneStart=$D2&dataPubblicazioneEnd=$D&page=0&size=1&codiceScheda=2,4"
+          echo '{}' > c.json
           python3 - <<'PY'
           import json, re
           b = json.load(open("b.json")); rows = b.get("content") or []
-          print("totalElements (gestern):", b.get("totalElements"), "| 3 Tage:", json.load(open("c.json")).get("totalElements"))
+          print("totalElements:", b.get("totalElements"))
           def kurz(x, tiefe=0):
               # structure with sample values, names of persons removed
               if isinstance(x, dict):
