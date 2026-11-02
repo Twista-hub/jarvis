@@ -263,17 +263,21 @@ def zusatz_profile(key: str, firma_id: str, name: str, beschreibung: str, e: dic
 
 DEUTSCHSPRACHIG = {"DEU", "AUT", "CHE", "LIE", "LUX"}
 FRANZOESISCHSPRACHIG = {"FRA", "BEL", "MCO"}
+# Language of the AI texts when a firm searches only countries of one language (besides German, which always wins).
+LANDESSPRACHE = {**{l: "fr" for l in FRANZOESISCHSPRACHIG}, "POL": "pl"}
+SPRACHEN = ("de", "en", "fr", "pl")
 
 
 def sprache(e: dict) -> str:
-    """'de', 'en' or 'fr' for the AI texts of a firm (einstellungen.sprache wins, else derived from the search
-    countries: any German-speaking country → German, only French-speaking countries → French, otherwise English)."""
-    if e.get("sprache") in ("de", "en", "fr"):
+    """Language of the AI texts of a firm: einstellungen.sprache wins, else derived from the search countries (any
+    German-speaking country → German, only countries of one other language → that language, otherwise English)."""
+    if e.get("sprache") in SPRACHEN:
         return e["sprache"]
     laender = [l for l in e.get("laender") or ["DEU"] if isinstance(l, str)]
     if any(l in DEUTSCHSPRACHIG for l in laender):
         return "de"
-    return "fr" if laender and all(l in FRANZOESISCHSPRACHIG for l in laender) else "en"
+    eigene = {LANDESSPRACHE.get(l) for l in laender}
+    return eigene.pop() if len(eigene) == 1 and None not in eigene else "en"
 
 
 def laden() -> dict:

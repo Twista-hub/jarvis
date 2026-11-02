@@ -138,13 +138,12 @@ def foerder_score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
 
 # Shared with the upload worker (web/), so both write the same Steckbrief.
 STECKBRIEF_ANLEITUNG = (Path(__file__).parent / "steckbrief-anleitung.txt").read_text(encoding="utf-8")
-# English-speaking customers (profile "sprache": "en"): content in English, the German markers the app parses stay.
-SPRACHE_EN = (Path(__file__).parent / "sprache-en.txt").read_text(encoding="utf-8")
+# Customers in another language (profile "sprache"): content in that language, the German markers the app parses
+# stay (alarm/sprache-<code>.txt). A new language = one file here plus one line in BEWERTUNG.
 BEWERTUNG_EN = " Write kurz and grund in English (US)."
-# French-speaking customers (profile "sprache": "fr"): same rule, French content.
-SPRACHE_FR = (Path(__file__).parent / "sprache-fr.txt").read_text(encoding="utf-8")
-BEWERTUNG = {"en": BEWERTUNG_EN, "fr": " Rédige kurz et grund en français."}
-SPRACHE_ZUSATZ = {"en": SPRACHE_EN, "fr": SPRACHE_FR}
+BEWERTUNG = {"en": BEWERTUNG_EN, "fr": " Rédige kurz et grund en français.", "pl": " Napisz kurz i grund po polsku."}
+SPRACHE_ZUSATZ = {s: (Path(__file__).parent / f"sprache-{s}.txt").read_text(encoding="utf-8") for s in BEWERTUNG}
+SPRACHE_EN = SPRACHE_ZUSATZ["en"]
 
 
 def anleitung(sprache: str = "de") -> str:
