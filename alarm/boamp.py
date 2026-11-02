@@ -137,21 +137,21 @@ def als_release(a: dict, tag: str) -> dict:
     }
 
 
+def bekanntmachungen(tag: str) -> list[dict]:
+    """Fields (lesen) of all calls for tenders published on BOAMP on this day. Raises when the server is unreachable."""
+    urls = dateien(tag)
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        inhalte = list(pool.map(lambda u: _holen(u), urls))
+    return [a for a in map(lesen, inhalte) if a and a["idweb"] and a["objet"]]
+
+
 def releases(tag: str) -> list[dict]:
     """Calls for tenders published on BOAMP on this day; [] when the server is unreachable."""
     try:
-        urls = dateien(tag)
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            inhalte = list(pool.map(lambda u: _holen(u), urls))
+        return [als_release(a, tag) for a in bekanntmachungen(tag)]
     except Exception as e:  # noqa: BLE001 – a BOAMP outage must not stop the alarm
         print(f"BOAMP nicht erreichbar ({tag}): {type(e).__name__}")
         return []
-    aus = []
-    for xml in inhalte:
-        a = lesen(xml)
-        if a and a["idweb"] and a["objet"]:
-            aus.append(als_release(a, tag))
-    return aus
 
 
 if __name__ == "__main__":

@@ -1,0 +1,28 @@
+# Twice a day: French tender stock from the BOAMP open data (DILA, Licence Ouverte 2.0) for the live numbers of the
+# public French trade pages. Reads only public files; first run with "tage" = 31 fills the last month.
+name: BOAMP-Bestand
+on:
+  schedule:
+    - cron: "23 7,19 * * *"
+  workflow_dispatch:
+    inputs:
+      tage:
+        description: "Wie viele Tage zurück lesen (1–95)"
+        default: "2"
+permissions:
+  contents: read
+jobs:
+  lesen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q "psycopg[binary]"
+      - name: BOAMP lesen und Zahlen berechnen
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          TAGE: ${{ inputs.tage || '2' }}
+        run: cd alarm && python boamp_bestand.py "$TAGE"

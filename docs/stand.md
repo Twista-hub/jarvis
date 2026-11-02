@@ -79,6 +79,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Live-Zahlen auf den französischen Gewerke-Seiten)
+- Neuer interner Bestand `jarvis_intern.boamp_avis` (Migration `20261102130000_boamp_bestand.sql`): nur öffentliche BOAMP-Angaben (Titel, Käufer, Départements, CPV, Frist, Link), 90 Tage. Befüllt zweimal täglich von `alarm/boamp_bestand.py` (Workflow `boamp-bestand.yml`, 07:23/19:23 UTC; Erstbefüllung mit `tage` = 31).
+- Zahlen über denselben Hintergrund-Cache wie die deutschen Seiten (`gewerk_cache`, Schlüssel `fr:…`, `gewerk_aktualisieren` rechnet beide Länder), öffentlich lesbar über `rpc/metier_statistik`. Seiten zeigen „appels d'offres sur les 30 derniers jours“, „encore ouverts“ und bis zu 8 offene Beispiele mit Link zum BOAMP-Avis. Gezählt werden Avis mit CPV-Code des Métiers.
+- Rechte-Test: anon/authenticated lesen und schreiben den Bestand nicht, Zahlen nur über die Funktion.
+
 ### 02.11.2026 – Claude (Rechtsseiten auf Französisch)
 - `web/src/rechtliches-fr.ts`: Mentions légales, Datenschutz, Nutzungsbedingungen und AVV auf Französisch für App-Sprache fr, oben der Hinweis „Traduction à titre d'information, seule la version allemande fait foi“ mit Link zur deutschen Fassung. Datenschutz nennt zusätzlich die CNIL als mögliche Beschwerdestelle. Test vergleicht den Aufbau (Überschriften, Punkte, Tabellenzeilen, Links) mit der deutschen Fassung: jede Änderung am deutschen Text muss auch dort rein.
 - Deutsche Fassung ergänzt: Cookie-Liste vollständig (Sprache, Land, Darstellung, Ansicht, zuletzt geöffnet, Einführung), Quelle BOAMP im Impressum. Datenschutz-Stand 02.11.2026 (eigenes Feld `standDatenschutz`, Nutzungsbedingungen unverändert 30.10.2026).
