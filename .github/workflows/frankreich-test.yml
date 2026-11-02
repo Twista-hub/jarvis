@@ -13,8 +13,10 @@ jobs:
         run: |
           D=https://echanges.dila.gouv.fr/OPENDATA/BOAMP
           echo "== 2026/11"; curl -s $D/2026/11/ | grep -oE 'href="[^"?/][^"]*"' | head -20
-          f=$(curl -s $D/2026/11/ | grep -oE 'href="[^"?/][^"]*"' | head -1 | cut -d'"' -f2); echo "Datei: $f"
-          curl -s -o probe "$D/2026/11/$f"; ls -la probe; file probe
-          mkdir x && (tar xzf probe -C x 2>/dev/null || tar xf probe -C x 2>/dev/null || unzip -q probe -d x); find x -type f | head -5; find x -type f | wc -l
+          echo "== 2026/11/01"; curl -s $D/2026/11/01/ | grep -oE 'href="[^"?/][^"]*"' | head -8; curl -s $D/2026/11/01/ | grep -oE 'href="[^"?/][^"]*"' | wc -l
+          curl -s $D/2026/11/01/ | grep -oE '[0-9]{2}-[A-Za-z]{3}-[0-9]{4} [0-9:]+ +[0-9.]+[KMG]?' | head -5
+          f=$(curl -s $D/2026/11/01/ | grep -oE 'href="[^"?/][^"]*"' | head -1 | cut -d'"' -f2); echo "Datei: $f"
+          curl -s -o probe "$D/2026/11/01/$f"; ls -la probe; file probe
+          mkdir x && (tar xzf probe -C x 2>/dev/null || tar xf probe -C x 2>/dev/null || unzip -q probe -d x || cp probe x/probe.xml || true); find x -type f | head -5; find x -type f | wc -l
           one=$(find x -type f -name '*.xml' | head -1); echo "== $one"; head -c 3000 "$one"; echo
           echo "== Dokumentation"; curl -s $D/Documentation/ | grep -oE 'href="[^"?/][^"]*"' | head
