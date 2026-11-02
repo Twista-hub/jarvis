@@ -191,7 +191,7 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         "laender": [l for l in e.get("laender") or ["DEU"] if isinstance(l, str) and len(l) == 3] or ["DEU"],
         # Language of AI texts: chosen at setup (app language), else English when no German-speaking country is searched.
         # Only set for English, so German profiles keep their version (katalog.profil_version) and are not re-scored.
-        **({"sprache": "en"} if sprache(e) == "en" else {}),
+        **({"sprache": sprache(e)} if sprache(e) != "de" else {}),
         # Search radius in km and the coordinates of the firm's locations (postal codes via GeoNames).
         "radius_km": min(300, max(10, int(e.get("radius_km")))) if str(e.get("radius_km") or "").isdigit() else None,
         "suchpunkte": suchpunkte(e, firmen_plz),
@@ -231,14 +231,18 @@ def zusatz_profile(key: str, firma_id: str, name: str, beschreibung: str, e: dic
 
 
 DEUTSCHSPRACHIG = {"DEU", "AUT", "CHE", "LIE", "LUX"}
+FRANZOESISCHSPRACHIG = {"FRA", "BEL", "MCO"}
 
 
 def sprache(e: dict) -> str:
-    """'en' or 'de' for the AI texts of a firm (einstellungen.sprache wins, else derived from the search countries)."""
-    if e.get("sprache") in ("de", "en"):
+    """'de', 'en' or 'fr' for the AI texts of a firm (einstellungen.sprache wins, else derived from the search
+    countries: any German-speaking country → German, only French-speaking countries → French, otherwise English)."""
+    if e.get("sprache") in ("de", "en", "fr"):
         return e["sprache"]
     laender = [l for l in e.get("laender") or ["DEU"] if isinstance(l, str)]
-    return "de" if any(l in DEUTSCHSPRACHIG for l in laender) else "en"
+    if any(l in DEUTSCHSPRACHIG for l in laender):
+        return "de"
+    return "fr" if laender and all(l in FRANZOESISCHSPRACHIG for l in laender) else "en"
 
 
 def laden() -> dict:

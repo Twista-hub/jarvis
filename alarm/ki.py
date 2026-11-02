@@ -99,7 +99,7 @@ def score(beschreibung: str, items: list[dict], sprache: str = "de") -> dict[int
         "Ein Fliesenbetrieb passt nicht zu Heizung, Lüftung oder Innenputz, nur weil ein Bad saniert wird. "
         "Unter 6 Punkten bei lediglich entferntem oder unklarem Leistungsbezug. "
         "kurz: ein Satz, was gesucht wird. grund: ein Satz, warum es passt oder nicht."
-    ) + (BEWERTUNG_EN if sprache == "en" else "")
+    ) + BEWERTUNG.get(sprache, "")
     user = f"Kunde:\n{beschreibung}\n\nAusschreibungen:\n" + json.dumps(items, ensure_ascii=False)
     response = _create(
         max_tokens=min(16000, max(1024, len(items) * 280 + 256)),
@@ -141,10 +141,14 @@ STECKBRIEF_ANLEITUNG = (Path(__file__).parent / "steckbrief-anleitung.txt").read
 # English-speaking customers (profile "sprache": "en"): content in English, the German markers the app parses stay.
 SPRACHE_EN = (Path(__file__).parent / "sprache-en.txt").read_text(encoding="utf-8")
 BEWERTUNG_EN = " Write kurz and grund in English (US)."
+# French-speaking customers (profile "sprache": "fr"): same rule, French content.
+SPRACHE_FR = (Path(__file__).parent / "sprache-fr.txt").read_text(encoding="utf-8")
+BEWERTUNG = {"en": BEWERTUNG_EN, "fr": " Rédige kurz et grund en français."}
+SPRACHE_ZUSATZ = {"en": SPRACHE_EN, "fr": SPRACHE_FR}
 
 
 def anleitung(sprache: str = "de") -> str:
-    return STECKBRIEF_ANLEITUNG + ("\n" + SPRACHE_EN if sprache == "en" else "")
+    return STECKBRIEF_ANLEITUNG + ("\n" + SPRACHE_ZUSATZ[sprache] if sprache in SPRACHE_ZUSATZ else "")
 
 
 def steckbrief(beschreibung: str, kopf: str, dokumente: str, sprache: str = "de") -> str:

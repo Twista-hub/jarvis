@@ -18,12 +18,21 @@ class SpracheTest(unittest.TestCase):
         self.assertEqual(profile_db.sprache({}), "de")
         self.assertEqual(profile_db.sprache({"sprache": "en", "laender": ["DEU"]}), "en")
         self.assertEqual(profile_db.sprache({"sprache": "de", "laender": ["USA"]}), "de")
+        self.assertEqual(profile_db.sprache({"laender": ["FRA"]}), "fr")
+        self.assertEqual(profile_db.sprache({"laender": ["FRA", "BEL"]}), "fr")
+        self.assertEqual(profile_db.sprache({"laender": ["FRA", "DEU"]}), "de")
+        self.assertEqual(profile_db.sprache({"laender": ["FRA", "ESP"]}), "en")
+        self.assertEqual(profile_db.sprache({"sprache": "fr", "laender": ["DEU"]}), "fr")
 
     def test_steckbrief_anleitung(self):
         self.assertEqual(ki.anleitung("de"), ki.STECKBRIEF_ANLEITUNG)
         en = ki.anleitung("en")
         self.assertIn("Englisch (US)", en)
         self.assertIn("„nicht angegeben“", en)
+        fr = ki.anleitung("fr")
+        self.assertIn("Französisch", fr)
+        self.assertIn("„non précisé“", fr)
+        self.assertIn("„nicht angegeben“", fr)
 
     def test_bewertung_englisch_nur_wenn_gewuenscht(self):
         gesehen = []
@@ -34,13 +43,17 @@ class SpracheTest(unittest.TestCase):
         with mock.patch.object(ki, "_create", side_effect=create):
             ki.score("Firma", [{"nr": 0, "titel": "x"}])
             ki.score("Firma", [{"nr": 0, "titel": "x"}], "en")
+            ki.score("Firma", [{"nr": 0, "titel": "x"}], "fr")
         self.assertNotIn("English", gesehen[0])
+        self.assertNotIn("français", gesehen[0])
         self.assertIn("in English (US)", gesehen[1])
+        self.assertIn("en français", gesehen[2])
 
     def test_aufruf_deutscher_profile_unveraendert(self):
         self.assertEqual(alarm.sprach_arg({"sprache": "de"}), {})
         self.assertEqual(alarm.sprach_arg({}), {})
         self.assertEqual(alarm.sprach_arg({"sprache": "en"}), {"sprache": "en"})
+        self.assertEqual(alarm.sprach_arg({"sprache": "fr"}), {"sprache": "fr"})
 
 
 if __name__ == "__main__":

@@ -81,3 +81,10 @@ test("D1–D5: Tagesfilter, eigene Termine, Fragefristen, Zeitleiste und Kalende
   assert.equal(berlinZuUtc("2026-11-05T14:00"), "2026-11-05T13:00:00.000Z");
   assert.equal(berlinZuUtc("2026-07-05T14:00"), "2026-07-05T12:00:00.000Z");
 });
+
+test("Eckdaten aus französischem Steckbrief (Marken deutsch, Inhalt französisch)", () => {
+  const md = "## Auf einen Blick\n| | |\n|---|---|\n| **Umfang** | 3 lots, environ 1 200 heures par an, valeur estimée : 450 000 € HT |\n| **Laufzeit** | 12 mois, reconductible 3 fois |\n";
+  const f = eckdaten(md);
+  assert.deepEqual(f.map((x) => x.wert), ["3 Lose", "ca. 1 200", "ca. 450 000 €", "12 mois"]);
+  assert.deepEqual(eckdaten("## Auf einen Blick\n| **Umfang** | non précisé |\n| **Laufzeit** | non précisé |\n"), []);
+});
