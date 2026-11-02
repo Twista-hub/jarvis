@@ -45,21 +45,32 @@ def _holen(params: dict, versuche: int = 3) -> list[dict]:
     return []
 
 
-def _fenster(von: datetime, bis: datetime, tiefe: int = 0) -> list[dict]:
-    """Notices of one time window; a full page is split in halves (paging is unreliable on this API)."""
-    f = "%Y-%m-%dT%H:%M:%S"
-    liste = _holen({"NoticeType": "ContractNotice", "PublicationDateFrom": von.strftime(f), "PublicationDateTo": bis.strftime(f), "PageSize": SEITE})
-    if len(liste) < SEITE or tiefe >= 8 or bis - von <= timedelta(minutes=5):
-        return liste
-    mitte = von + (bis - von) / 2
-    return _fenster(von, mitte, tiefe + 1) + _fenster(mitte + timedelta(seconds=1), bis, tiefe + 1)
+def _zeit(x: dict) -> datetime:
+    return datetime.fromisoformat(re.sub(r"(\.\d{6})\d*", r"\1", (x.get("publicationDate") or "1970-01-01T00:00:00").replace("Z", "")))
 
 
 def bekanntmachungen(tag: str) -> list[dict]:
-    """All contract notices published in BZP on this day (UTC), without duplicates. Raises when unreachable."""
+    """All contract notices published in BZP on this day (UTC), without duplicates. Raises when unreachable.
+
+    The API ignores page numbers and treats PublicationDateTo as a whole day, but PublicationDateFrom is exact and the
+    results come oldest first: we walk forward from the last publication time read (checked 02.11.2026)."""
     start = datetime.fromisoformat(tag)
-    roh = _fenster(start, start + timedelta(hours=23, minutes=59, seconds=59))
-    return list({x.get("bzpNumber") or x.get("objectId"): x for x in roh if x.get("orderObject")}.values())
+    ende = start + timedelta(days=1)
+    von, gesehen = start, {}
+    for _ in range(60):  # at most 6,000 notices per day
+        liste = _holen({"NoticeType": "ContractNotice", "PublicationDateFrom": von.strftime("%Y-%m-%dT%H:%M:%S.%f")[:-3],
+                        "PublicationDateTo": start.strftime("%Y-%m-%dT23:59:59"), "PageSize": SEITE})
+        neu = 0
+        for x in liste:
+            if start <= _zeit(x) < ende and x.get("orderObject"):
+                schluessel = x.get("bzpNumber") or x.get("objectId")
+                neu += schluessel not in gesehen
+                gesehen[schluessel] = x
+        zeiten = [_zeit(x) for x in liste]
+        if len(liste) < SEITE or not zeiten or max(zeiten) >= ende or not neu:
+            break
+        von = max(zeiten) + timedelta(milliseconds=1)
+    return list(gesehen.values())
 
 
 def _text(html: str) -> str:
