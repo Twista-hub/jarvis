@@ -1,6 +1,7 @@
 // Public trade pages for search engines: /ausschreibungen and /ausschreibungen/<gewerk>. Each page shows live numbers
 // and recent examples from the tender catalogue (public notice data via gewerk_statistik), what Jarvis does for this
 // trade and links to the demo and registration. Plus robots.txt and sitemap.xml.
+import { ISO2 } from "./besucher.ts";
 import { escape, seite } from "./seite.ts";
 
 type Gewerk = { slug: string; name: string; h1: string; cpv: string[]; intro: string; vorteile: string[]; fragen: [string, string][] };
@@ -83,7 +84,7 @@ export function uebersichtGewerke(): string {
 const meta = (html: string, beschreibung: string, url: string) => html.replace("</title>", `</title>\n<meta name="description" content="${escape(beschreibung)}">\n<link rel="canonical" href="${escape(url)}">`);
 
 export function sitemap(adresse: string): string {
-  const pfade = ["/", "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), "/demo", "/datenschutz", "/impressum"];
+  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), "/demo", "/datenschutz", "/impressum"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pfade.map((p) => `<url><loc>${adresse}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
 }
 export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /einladung\nDisallow: /auftrag/\nSitemap: ${adresse}/sitemap.xml\n`;
@@ -98,6 +99,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   if (url.pathname === "/ausschreibungen" || url.pathname === "/ausschreibungen/") {
     const r = antwort(meta(seite("Ausschreibungen nach Gewerk", uebersichtGewerke()), "Öffentliche Ausschreibungen für Handwerk, Reinigung, Sicherheitsdienst und Zeitarbeit: Jarvis findet täglich die passenden Aufträge für deine Firma.", `${adresse}/ausschreibungen`));
     r.headers.set("cache-control", "public, max-age=3600");
+    r.headers.delete("x-robots-tag");
     return r;
   }
   const m = url.pathname.match(/^\/ausschreibungen\/([a-z-]+)\/?$/);
@@ -105,7 +107,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   if (!m) return null;
   if (!g) return new Response(null, { status: 301, headers: { location: "/ausschreibungen" } });
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
-  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}?cache=2`);
+  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}?cache=3`);
   const alt = await cache?.match(schluessel).catch(() => undefined);
   if (alt) return alt;
   let s: Statistik | null = null;
@@ -115,6 +117,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   } catch { s = null; }
   const r = antwort(meta(seite(g.h1, gewerkSeite(g, s)), `${g.h1}: ${s ? `${zahl(s.monat)} Ausschreibungen in den letzten 30 Tagen. ` : ""}Jarvis findet täglich die passenden Aufträge für deinen Betrieb – kostenlos registrieren.`, `${adresse}/ausschreibungen/${g.slug}`));
   r.headers.set("cache-control", "public, max-age=3600");
+  r.headers.delete("x-robots-tag");
   if (cache && s) env.WARTEN?.(cache.put(schluessel, r.clone()).catch(() => undefined));
   return r;
 }

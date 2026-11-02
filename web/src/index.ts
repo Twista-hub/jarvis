@@ -64,6 +64,7 @@ import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
+import { ISO2, SPRACHEN_OEFFENTLICH, besucher, keineBehoerde, kopfZeile, landWahl, landesSeite, wahlCookies, type Sprache } from "./besucher.ts";
 import { escape, markdown, seite, stapeln } from "./seite";
 import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
 import { loseLesen } from "./lose";
@@ -224,7 +225,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (k) return k;
     if (request.method === "GET") {
       const titel = url.searchParams.get("titel");
-      if (url.pathname === "/" && titel === null) return html(seite("Jarvis", startseite(markdown(MUSTER.replace(/^>.*\n/m, "")))));
+      const lp = url.pathname.match(/^\/([a-z]{2})\/?$/);
+      if ((url.pathname === "/" && titel === null) || (lp && ISO2[lp[1].toUpperCase()])) return landesStart(request, url, lp?.[1]);
       if (url.pathname === "/" || url.pathname === "/hochladen") return html(formular("", titel ?? ""));
       const recht = RECHT[url.pathname];
       if (recht) return html(seite(recht[0], recht[1]()));
@@ -560,6 +562,23 @@ function formular(fehler = "", titel = ""): string {
       <button>Prüfen lassen</button>
     </form>
     <p class="klein">Die Unterlagen werden nur für diesen Steckbrief gelesen und nach 30 Tagen gelöscht.</p>`);
+}
+
+/** Public start page for the visitor's country and language (see besucher.ts). */
+function landesStart(request: Request, url: URL, ausAdresse?: string): Response {
+  const b = besucher(request, ausAdresse);
+  const gewaehlt = url.searchParams.get("sprache");
+  if (gewaehlt && (SPRACHEN_OEFFENTLICH as readonly string[]).includes(gewaehlt)) b.sprache = gewaehlt as Sprache;
+  const deutsch = b.land === "DE" && b.sprache === "de";
+  const zusatz = startseite(markdown(MUSTER.replace(/^>.*\n/m, "")));
+  const l = landesSeite(b, ADRESSE, "");
+  const body = deutsch ? `${zusatz}${landWahl(b)}<p class="klein">${keineBehoerde("de")}</p>` : l.inhalt;
+  const r = html(kopfZeile(seite(deutsch ? "Jarvis" : l.titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}`));
+  r.headers.delete("x-robots-tag");
+  r.headers.set("vary", "cookie, accept-language");
+  r.headers.set("cache-control", "private, no-store");
+  for (const c of wahlCookies(ausAdresse ?? null, gewaehlt)) r.headers.append("set-cookie", c);
+  return r;
 }
 
 function html(body: string, status = 200): Response {
