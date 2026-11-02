@@ -151,11 +151,11 @@ jobs:
         run: |
           args=()
           for f in *.pdf *.docx *.xlsx; do [ -e "$f" ] && args+=(-F "dateien=@$f"); done
-          loc=$(curl -fsS -o /dev/null -w '%{redirect_url}' -F "code=$TEST_CODE" -F "titel=Test: Bundesbank Leihpersonal Gastronomie" "${args[@]}" "$URL/hochladen")
+          loc=$(curl -fsS -b "jv_psprache=de" -o /dev/null -w '%{redirect_url}' -F "code=$TEST_CODE" -F "titel=Test: Bundesbank Leihpersonal Gastronomie" "${args[@]}" "$URL/hochladen")
           echo "Auftrag: $loc"
           for i in $(seq 1 60); do
             sleep 20
-            page=$(curl -fsS "$loc")
+            page=$(curl -fsS -b "jv_psprache=de" "$loc")
             if ! grep -q "Wird geprüft" <<<"$page"; then break; fi
             echo "läuft noch ($i)"
           done
@@ -163,7 +163,7 @@ jobs:
           { echo "## Test-Steckbrief"; echo; echo "$loc"; echo; echo '```'; cat steckbrief.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "Fristen" steckbrief.txt
           # Calculation: German number input, result table with price per hour
-          kalk=$(curl -fsSL -d "lohn=15,50" -d "nebenkosten=23" -d "ausfall=20" -d "zuschlaege=5" -d "gemeinkosten=15" -d "gewinn=8" -d "sonstiges=0" "$loc/kalkulation")
+          kalk=$(curl -fsSL -b "jv_psprache=de" -d "lohn=15,50" -d "nebenkosten=23" -d "ausfall=20" -d "zuschlaege=5" -d "gemeinkosten=15" -d "gewinn=8" -d "sonstiges=0" "$loc/kalkulation")
           python3 -c "import html,re,sys;t=sys.stdin.read();i=t.find('Kalkulation');print(html.unescape(re.sub(r'<[^>]+>',' ',t[i:i+6000])))" <<<"$kalk" | tr -s ' ' | tee kalkulation.txt
           { echo "## Test-Kalkulation"; echo '```'; cat kalkulation.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           grep -q "Angebotspreis pro Stunde" kalkulation.txt
