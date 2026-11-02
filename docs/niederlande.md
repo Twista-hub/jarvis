@@ -1,5 +1,15 @@
 # Niederlande: Datenquelle für nationale Ausschreibungen (Recherche 02.11.2026)
 
+> **Live geprüft 03.11.2026 (Workflow `niederlande-test.yml`, Run 41544678631):**
+> - **robots.txt von www.tenderned.nl sperrt** alle geprüften Pfade, auch die Schnittstelle `/papi/tenderned-rs-tns/…`,
+>   den RSS-Feed, die Nutzungsbedingungen und die Datensatzseite. Der Workflow hat dort deshalb **nichts** abgerufen.
+> - **Lizenz:** data.overheid.nl (erlaubt, live gelesen): Datensatz „Aankondigingen van overheidsopdrachten – TenderNed“,
+>   Eigentümer PIANOo, **CC-0 (1.0)**; nennt TNS-Webservice und RSS als Zugang („Alle aankondigingen op TenderNed zijn
+>   openbaar“). Die eigentliche XML-API braucht Zugangsdaten (Anfrage an functioneelbeheer@tenderned.nl).
+> - **Ergebnis:** Wegen der robots.txt nutzen wir TenderNed **nicht automatisch** (Hausregel). Niederlande weiter über TED
+>   (Aufträge über den EU-Schwellen). Möglicher Weg: schriftliche Erlaubnis oder XML-API-Zugang bei TenderNed anfragen –
+>   nur nach OK von Benjamin (Entwurf kann wie bei PLACSP vorbereitet werden).
+
 > **Stand 02.11.2026, NICHT live geprüft.** Aus dieser Cloud-Sitzung waren alle niederländischen Hosts gesperrt
 > (`www.tenderned.nl`, `data.overheid.nl`, auch `data.europa.eu`, `data.open-contracting.org`, `en.wikipedia.org`).
 > Alles unten stammt aus Suchergebnissen (mit Auszügen der Seiten) und aus öffentlichem Quellcode auf GitHub
