@@ -79,6 +79,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (KI-Texte auf Englisch für englischsprachige Firmen)
+- Sprache der KI-Texte pro Firma: `einstellungen.sprache` (beim Speichern des Suchprofils = App-Sprache des Speichernden), sonst Englisch, wenn kein deutschsprachiges Land (DEU/AUT/CHE/LIE/LUX) gesucht wird (`alarm/profile_db.py` `sprache()`). Das Profil bekommt den Schlüssel `sprache` nur bei Englisch, damit deutsche Profile ihre Profilversion behalten (keine bezahlte Neubewertung nach dem Deploy).
+- `alarm/ki.py`: `score(..., sprache)` lässt kurz/grund englisch schreiben, `steckbrief(..., sprache)` hängt `alarm/sprache-en.txt` an die Steckbrief-Anleitung. Upload-Steckbrief (`web/src/workflow.ts`) nutzt dieselbe Datei, Sprache kommt aus dem Hochladenden (`Job.sprache`). Deutsche Aufrufe sind unverändert (`alarm.sprach_arg`).
+- Feste Marken (Überschriften, fette Tabellen-Beschriftungen, „nicht angegeben“, „Gesucht:“, „Warum passend:“) bleiben im gespeicherten Text deutsch, weil App-Teile sie auslesen; die englische Oberfläche übersetzt sie beim Anzeigen (Wörterbuch + Präfixe „Steckbrief: “ usw.). Download-Hinweis erkennt auch „not specified/estimated/probably“; Trefferkarten lesen „lots“, „hours“ und $-Werte.
+- Tests: `alarm/test_sprache.py` (in Prüfen, dafür `anthropic` installiert), `web/test/englisch.test.ts`.
+- Nicht live geprüft: Ein echter englischer Steckbrief entsteht erst, wenn eine englischsprachige Firma einen Treffer bekommt oder Unterlagen hochlädt. Noch offen: Morgenmail und Push-Texte auf Englisch, Förderprogramme bleiben deutsch (nur deutsche Programme).
+
 ### 02.11.2026 – Claude (Englische Oberfläche)
 - `web/src/englisch.ts`: Jede HTML-Antwort wird nach dem Rendern Textknoten für Textknoten übersetzt (auch placeholder, aria-label, title, alt), Wörterbuch `web/src/englisch/*.json` mit rund 1.900 Einträgen (`#` = Zahl/Datum, wird in Reihenfolge übernommen; Einträge ohne gleiche `#`-Zahl werden ignoriert). Unbekannte Texte bleiben Deutsch (Namen, Kundentexte, KI-Steckbriefe). `<style>`, `<script>`, `<textarea>`, `<code>` bleiben unangetastet.
 - Sprache: Cookie `jv_psprache` (de/en), sonst aus dem Land des Besuchers (`besucher.ts`; alles außer Deutsch → Englisch). Umschalter „🌐 English/Deutsch“ im Fuß jeder Seite (`/sprache?zu=en&weiter=…`, Cookie 1 Jahr). `index.ts` `darstellen()` macht Darstellung, Übersetzung und Fuß in einem Schritt, `vary: cookie`.

@@ -15,6 +15,7 @@ import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type 
 import { vorschauBox, vorschauZaehlen } from "./vorschau.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
 import { startLaender } from "./besucher.ts";
+import { appSprache } from "./englisch.ts";
 import { AUSSERHALB, LAENDER, NACHBARN, WEITERE, laenderBereinigen } from "./laender.ts";
 import { websiteKontext, websiteNormalisieren } from "./webseite.ts";
 const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 0, "einstellungen");
@@ -59,7 +60,7 @@ export async function einrichtung(request: Request, env: EinrichtungEnv, vorlage
   if (url.pathname === "/konto/einrichtung" && !post) antwort = await anzeigen(s, env, firma, f.name, f.website, url.searchParams.get("neu") === "1", vorlage, url.searchParams.get("automatisch") === "1", f.plz, f.ort);
   else if (url.pathname === "/konto/einrichtung/automatisch" && post) antwort = await automatischEinrichten(s, env, firma, f.name, f.website, f.rolle, f.plz, f.ort, (form!.set("laender_start", startLaender(request).join(",")), form!), dienste);
   else if (url.pathname === "/konto/einrichtung/vorschlag" && post) antwort = await vorschlagen(env, firma, f.name, form!);
-  else if (url.pathname === "/konto/einrichtung/speichern" && post) antwort = await speichern(s, env, firma, f.name, f.website, f.rolle, form!);
+  else if (url.pathname === "/konto/einrichtung/speichern" && post) antwort = await speichern(s, env, firma, f.name, f.website, f.rolle, (form!.set("sprache_app", appSprache(request)), form!));
   else if (url.pathname === "/konto/einrichtung/vorschau" && post) antwort = await vorschauZeigen(s, env, firma, f.name, f.website, form!);
   else if (url.pathname === "/konto/einrichtung/starten" && post) antwort = await gespeicherteSucheStarten(s, env, firma);
   else return null;
@@ -477,7 +478,8 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     woerter: [...new Set(v.leistungen.flatMap((l) => l.woerter))].join(", "),
     ausschluss: v.ausschluss.join(", "),
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
-    einstellungen: { radius_km: v.radius_km ?? 50, min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender, auftraggeber_bevorzugt: v.auftraggeber_bevorzugt, auftraggeber_aus: v.auftraggeber_aus, wert_min: v.wert_min ?? null, wert_max: v.wert_max ?? null, wert_unbekannt: v.wert_unbekannt } as Record<string, unknown>,
+    // Language of the AI texts (fact sheets, ratings): the language the profile was saved in.
+    einstellungen: { sprache: form.get("sprache_app") === "en" ? "en" : "de", radius_km: v.radius_km ?? 50, min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender, auftraggeber_bevorzugt: v.auftraggeber_bevorzugt, auftraggeber_aus: v.auftraggeber_aus, wert_min: v.wert_min ?? null, wert_max: v.wert_max ?? null, wert_unbekannt: v.wert_unbekannt } as Record<string, unknown>,
   };
   const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean; zusatzprofile?: unknown; ausschluss_schnell?: unknown }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zusatzprofile:einstellungen->zusatzprofile,ausschluss_schnell:einstellungen->ausschluss_schnell&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.

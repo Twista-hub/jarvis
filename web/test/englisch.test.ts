@@ -47,3 +47,13 @@ test("Englisch: Sprache aus Cookie oder Land, Umschalter im Fuß, Wechsel-Route"
   assert.equal(sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=en&weiter=//boese.de"))!.headers.get("location"), "/");
   assert.equal(sprachWechsel(anfrage("", "DE", "https://x/konto")), null);
 });
+
+test("Englisch: feste Steckbrief-Marken aus der KI werden übersetzt, Inhalt bleibt", () => {
+  assert.equal(wort("Passt das zum Kunden? 7/10"), "Good fit for you? 7/10");
+  assert.equal(wort("Steckbrief: Janitorial services, VA clinic"), "Fact sheet: Janitorial services, VA clinic");
+  assert.equal(wort("nicht angegeben"), "not specified");
+  const en = englisch(seite("x", "<h2>⏰ Fristen</h2><table><tr><td><strong>Auftraggeber</strong></td><td>Department of Veterans Affairs</td></tr></table><p><strong>Gesucht:</strong> Janitorial services</p>"));
+  assert.match(en, /<h2>⏰ Deadlines<\/h2>/);
+  assert.match(en, /<strong>Contracting authority<\/strong>/);
+  assert.match(en, /<strong>Wanted:<\/strong> Janitorial services/);
+});

@@ -10,14 +10,16 @@ function ausTabelle(steckbrief: string): Eckdatum[] {
   const zeile = (name: string) => steckbrief.match(new RegExp(`\\|\\s*\\*\\*${name}\\*\\*\\s*\\|\\s*([^|\\n]+)`))?.[1]?.trim() ?? "";
   const umfang = zeile("Umfang");
   const fakten: Eckdatum[] = [];
-  const lose = umfang.match(/(\d+)\s+Lose?\b/)?.[1];
+  const lose = umfang.match(/(\d+)\s+(?:Lose?|lots?)\b/i)?.[1];
   if (lose) fakten.push({ label: "", wert: `${lose} ${lose === "1" ? "Los" : "Lose"}` });
-  const stunden = umfang.match(/(?:ca\.\s*)?([\d.]+)\s*Stunden/)?.[1];
+  const stunden = umfang.match(/(?:ca\.\s*|approx\.\s*)?([\d.,]+)\s*(?:Stunden|hours)/i)?.[1];
   if (stunden) fakten.push({ label: "Stunden", wert: `ca. ${stunden}` });
   const wert = umfang.match(/Auftragswert[^.;]*?([\d.,]+(?:[–-][\d.,]+)?\s*(?:Mio\.\s*)?€)/)?.[1] ?? umfang.match(/Schätzung:?\*?\*?\s*(?:ca\.\s*)?([\d.,]+(?:[–-][\d.,]+)?\s*(?:Mio\.\s*)?€)/)?.[1];
+  const dollar = !wert ? umfang.match(/(?:value|amount|ceiling|estimate)[^;|]*?(\$\s?[\d.,]+(?:\s*(?:million|M|k))?)/i)?.[1] : undefined;
+  if (dollar) fakten.push({ label: "Wert", wert: /estimat/i.test(umfang) ? `ca. ${dollar}` : dollar });
   if (wert) fakten.push({ label: "Wert", wert: /Schätzung/.test(umfang) && !/Auftragswert[^.;]*\d/.test(umfang) ? `ca. ${wert}` : wert });
   const laufzeit = zeile("Laufzeit").split(/[,;(]| je /)[0].trim();
-  if (laufzeit && !/^nicht angegeben/i.test(laufzeit)) fakten.push({ label: "Laufzeit", wert: laufzeit.slice(0, 40) });
+  if (laufzeit && !/^(nicht angegeben|not specified)/i.test(laufzeit)) fakten.push({ label: "Laufzeit", wert: laufzeit.slice(0, 40) });
   return fakten;
 }
 

@@ -192,6 +192,11 @@ def eforms_text(rel: dict) -> str:
     return "\n".join(z for z in zeilen if "UBLExtension" not in z)[:50000]
 
 
+def sprach_arg(profile: dict) -> dict:
+    """Language for the AI only when it is not German (German profiles call the AI exactly as before)."""
+    return {"sprache": "en"} if profile.get("sprache") == "en" else {}
+
+
 def kurzbrief(rel: dict, day: str) -> str:
     """Always retain the notice facts, even when the AI budget is exhausted."""
     t = rel.get("tender") or {}
@@ -315,7 +320,7 @@ def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str)
         quelle = "aus der vollständigen Bekanntmachung (die Vergabeunterlagen selbst hat Jarvis nicht gelesen)"
     if not dokumente.strip():
         return None
-    text = ki.steckbrief(profile["beschreibung"], kopf, dokumente)
+    text = ki.steckbrief(profile["beschreibung"], kopf, dokumente, **sprach_arg(profile))
     if not text:
         return None
     out.parent.mkdir(exist_ok=True)
@@ -444,7 +449,7 @@ def run(days: list[str]) -> str:
         if ki:
             for anfang in range(0, len(neu), 8):
                 stapel = neu[anfang:anfang + 8]
-                neue_bewertung = ki.score(profile["beschreibung"], [item(i, r[2]) for i, r in enumerate(stapel)])
+                neue_bewertung = ki.score(profile["beschreibung"], [item(i, r[2]) for i, r in enumerate(stapel)], **sprach_arg(profile))
                 if not neue_bewertung:
                     break
                 for i, ergebnis in neue_bewertung.items():

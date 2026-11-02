@@ -3,6 +3,7 @@ import { apiClient, firmaVonProfil } from "./api-budget.ts";
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
 import ANLEITUNG from "../../alarm/steckbrief-anleitung.txt";
+import SPRACHE_EN from "../../alarm/sprache-en.txt";
 import profile from "../../alarm/profile.json";
 import { baseName, bundle, mimeType, wanted, type Text } from "./bundle";
 import type { Env, Job } from "./index";
@@ -88,7 +89,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
           fallbacks: "default",
           max_tokens: 32000,
           output_config: { effort: "medium" },
-          system: ANLEITUNG,
+          system: job.sprache === "en" ? `${ANLEITUNG}\n${SPRACHE_EN}` : ANLEITUNG,
           messages: [{
             role: "user",
             content: `Kunde:\n${kunde.beschreibung}\n\nAusschreibung (Angaben des Kunden):\n${job.titel || "nicht angegeben"}\n\nVergabeunterlagen:\n${dokumente}${bisher}`,

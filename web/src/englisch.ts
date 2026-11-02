@@ -16,6 +16,7 @@ import tZusatz from "./englisch/zusatz.json" with { type: "json" };
 export type AppSprache = "de" | "en";
 
 const ZAHL = "(\\d[\\d.,:]*)";
+const PRAEFIXE: [string, string][] = [["Steckbrief: ", "Fact sheet: "], ["Gesucht: ", "Wanted: "], ["Warum passend: ", "Why it fits: "], ["Empfehlung: ", "Recommendation: "]];
 type Muster = { re: RegExp; ziel: string };
 let genau: Map<string, string> | null = null;
 let muster: Muster[] = [];
@@ -51,6 +52,8 @@ export function wort(text: string): string | null {
   const g = laden();
   const direkt = g.get(text);
   if (direkt !== undefined) return direkt;
+  // Fixed labels in front of free text (AI fact sheet title, rating lines): translate only the label.
+  for (const [de, en] of PRAEFIXE) if (text.startsWith(de) && text.length > de.length) return en + text.slice(de.length);
   if (!/\d/.test(text)) return null;
   for (const m of muster) {
     const t = m.re.exec(text);
