@@ -79,6 +79,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Frankreich: BOAMP angebunden)
+- Quelle BOAMP über die offiziellen DILA-Tagesdateien (Licence Ouverte 2.0, keine robots-Sperre); Opendatasoft-API wegen robots.txt-Sperre bewusst nicht genutzt. Details `docs/frankreich.md`.
+- `alarm/boamp.py` liest Aufrufe zum Wettbewerb (ca. 120–250 pro Tag, rund achtmal mehr als TED), `alarm.py` nimmt Frankreich aus BOAMP statt TED; Quelle im Kurzüberblick genannt. Umkreis in km nur noch für deutsche PLZ. Echttest 01./02.11. erfolgreich.
+
 ### 02.11.2026 – Claude (Europa-Marktanalyse)
 - `alarm/europa_markt.py` + Workflow „Europa-Marktanalyse“ (nur lesen) zählen TED-Auftragsbekanntmachungen pro Land und Gewerk. Ergebnis 60 Tage in `docs/europa-markt.md`: in unseren 10 Gewerken DE 3.915, PL 2.477, FR 2.379, ES 566, CZ 421, NL 343, RO 266, BE 244 … (nur oberhalb der EU-Schwellen; nationale Portale haben deutlich mehr).
 
