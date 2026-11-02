@@ -3,6 +3,7 @@
 // trade and links to the demo and registration. Plus robots.txt and sitemap.xml.
 import { ISO2 } from "./besucher.ts";
 import { escape, seite } from "./seite.ts";
+import { FR_PFADE, frZuDe, sprachPaar } from "./gewerke-fr.ts";
 
 type Gewerk = { slug: string; name: string; h1: string; cpv: string[]; intro: string; vorteile: string[]; fragen: [string, string][] };
 export type Statistik = { monat: number; offen: number; beispiele: { titel: string; auftraggeber: string; ort: string; frist: string | null; link: string }[]; stand?: string };
@@ -81,10 +82,10 @@ export function uebersichtGewerke(): string {
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">Kostenlos registrieren</a><a class="knopf zweit" href="/demo">🎬 Demo ansehen</a></div>`;
 }
 
-const meta = (html: string, beschreibung: string, url: string) => html.replace("</title>", `</title>\n<meta name="description" content="${escape(beschreibung)}">\n<link rel="canonical" href="${escape(url)}">`);
+const meta = (html: string, beschreibung: string, url: string, paar = "") => html.replace("</title>", `</title>\n<meta name="description" content="${escape(beschreibung)}">\n<link rel="canonical" href="${escape(url)}">${paar ? `\n${paar}` : ""}`);
 
 export function sitemap(adresse: string): string {
-  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), "/demo", "/us/sam-registration", "/datenschutz", "/impressum"];
+  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...FR_PFADE, "/demo", "/us/sam-registration", "/datenschutz", "/impressum"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pfade.map((p) => `<url><loc>${adresse}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
 }
 export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /einladung\nDisallow: /auftrag/\nSitemap: ${adresse}/sitemap.xml\n`;
@@ -97,7 +98,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   if (url.pathname === "/robots.txt") return new Response(ROBOTS(adresse), { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } });
   if (url.pathname === "/sitemap.xml") return new Response(sitemap(adresse), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=86400" } });
   if (url.pathname === "/ausschreibungen" || url.pathname === "/ausschreibungen/") {
-    const r = antwort(meta(seite("Ausschreibungen nach Gewerk", uebersichtGewerke()), "Öffentliche Ausschreibungen für Handwerk, Reinigung, Sicherheitsdienst und Zeitarbeit: Jarvis findet täglich die passenden Aufträge für deine Firma.", `${adresse}/ausschreibungen`));
+    const r = antwort(meta(seite("Ausschreibungen nach Gewerk", uebersichtGewerke()), "Öffentliche Ausschreibungen für Handwerk, Reinigung, Sicherheitsdienst und Zeitarbeit: Jarvis findet täglich die passenden Aufträge für deine Firma.", `${adresse}/ausschreibungen`, sprachPaar(adresse, "/ausschreibungen", "/fr/appels-d-offres")));
     r.headers.set("cache-control", "public, max-age=3600");
     r.headers.delete("x-robots-tag");
     return r;
@@ -107,7 +108,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   if (!m) return null;
   if (!g) return new Response(null, { status: 301, headers: { location: "/ausschreibungen" } });
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
-  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}?cache=3`);
+  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}?cache=4`);
   const alt = await cache?.match(schluessel).catch(() => undefined);
   if (alt) return alt;
   let s: Statistik | null = null;
@@ -115,7 +116,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
     const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/gewerk_statistik`, { method: "POST", headers: { apikey: env.SUPABASE_KEY, "content-type": "application/json" }, body: JSON.stringify({ praefixe: g.cpv }) });
     if (r.ok) s = (await r.json()) as Statistik | null;
   } catch { s = null; }
-  const r = antwort(meta(seite(g.h1, gewerkSeite(g, s)), `${g.h1}: ${s ? `${zahl(s.monat)} Ausschreibungen in den letzten 30 Tagen. ` : ""}Jarvis findet täglich die passenden Aufträge für deinen Betrieb – kostenlos registrieren.`, `${adresse}/ausschreibungen/${g.slug}`));
+  const r = antwort(meta(seite(g.h1, gewerkSeite(g, s)), `${g.h1}: ${s ? `${zahl(s.monat)} Ausschreibungen in den letzten 30 Tagen. ` : ""}Jarvis findet täglich die passenden Aufträge für deinen Betrieb – kostenlos registrieren.`, `${adresse}/ausschreibungen/${g.slug}`, frZuDe(g.slug) ? sprachPaar(adresse, `/ausschreibungen/${g.slug}`, `/fr/appels-d-offres/${frZuDe(g.slug)}`) : ""));
   r.headers.set("cache-control", "public, max-age=3600");
   r.headers.delete("x-robots-tag");
   if (cache && s) env.WARTEN?.(cache.put(schluessel, r.clone()).catch(() => undefined));

@@ -79,6 +79,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Frankreich: Départements und Gewerke-Seiten)
+- Suchgebiet: Französische Firmen wählen Départements statt Umkreis (`web/src/departements.ts`, Liste `alarm/departements.json`, 101 inkl. Übersee). Start: ganze Region aus der PLZ der Firma, wenn nur Frankreich gesucht wird. Ohne Auswahl ganz Frankreich. Alarm filtert BOAMP nach Veröffentlichungs-Département (`profile_db.im_suchgebiet`); deutsche Suchorte und Umkreis gelten für französische Bekanntmachungen nicht mehr (PLZ-Kollision 75… Pforzheim/Paris). Änderung kostet keine Neubewertung (`katalog.NUR_FILTER`). Bei reiner Frankreich-Suche sind Umkreis und deutsche Suchorte im Formular ausgeblendet.
+- Google: 10 französische Gewerke-Seiten unter `/fr/appels-d-offres/…` (`web/src/gewerke-fr.ts`), immer Französisch (Kopfzeile `x-jv-sprache`), hreflang de↔fr mit den deutschen Seiten, FAQ-Daten, Quelle BOAMP/DILA, in der Sitemap. Startseite /fr verlinkt sie. Noch ohne Live-Zahlen (BOAMP liegt nicht im gemeinsamen Katalog).
+- Übersetzung: freie Namen mit festem Zusatz („X suchen“, „X als Einsatzort“) werden jetzt übersetzt.
+
 ### 02.11.2026 – Claude (Französisch: Oberfläche, KI-Texte, Mails)
 - Oberfläche: Wörterbuch `web/src/franzoesisch/*.json` (gleiche deutsche Schlüssel wie Englisch, 1.974 Einträge) plus neu `attribute.json` (104 Platzhalter und Tooltips, auch für Englisch). `englisch.ts` übersetzt jetzt nach Sprache (`uebersetzen(seite, "en"|"fr")`), App-Sprache de/en/fr aus Cookie, sonst Land und Browser (Frankreich, frz. Belgien/Schweiz → fr). Fuß bietet die zwei anderen Sprachen. Platzhalter in Textfeldern werden mitübersetzt. US-Kästen bleiben für fr englisch.
 - KI: `profile_db.sprache()` liefert "fr", wenn nur französischsprachige Länder (FRA, BEL, MCO) gesucht werden oder die Einstellung fr ist; deutsche Profile unverändert (keine Neubewertung). `alarm/sprache-fr.txt`: Inhalt französisch, Marken deutsch, französische Vergabebegriffe (DCE, RC, BPU, DPGF, DUME …). Upload-Steckbriefe aus der App ebenfalls französisch.

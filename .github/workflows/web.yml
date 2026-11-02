@@ -111,6 +111,7 @@ jobs:
           curl -fsS -H "cookie: jv_psprache=de" "$URL/de" -o start.html && grep -q "Jarvis findet passende Ausschreibungen" start.html && curl -fsS "$URL/us" -o us.html && grep -q "right public tenders" us.html && curl -fsS -H "cookie: jv_psprache=en" "$URL/registrieren" -o reg.html && grep -q "Sign up" reg.html && curl -fsS "$URL/hochladen" -o hochladen_en.html && grep -q "🌐 Deutsch" hochladen_en.html
           curl -fsS -H "cookie: jv_psprache=de" "$URL/hochladen" -o hochladen.html && grep -q "Unterlagen prüfen lassen" hochladen.html
           curl -fsS -H "cookie: jv_psprache=fr" "$URL/registrieren" -o reg_fr.html && grep -q "Créez le compte de votre entreprise" reg_fr.html && grep -q "🌐 Deutsch" reg_fr.html
+          curl -fsS -H "cookie: jv_psprache=de" "$URL/fr/appels-d-offres/nettoyage" -o metier.html && grep -q "Source : BOAMP, DILA" metier.html && grep -q '<html lang="fr"' metier.html
           curl -fsS "$URL/impressum" -o impressum.html && grep -q "Rochusstraße" impressum.html
           curl -fsS "$URL/app.js" -o app.js && grep -q "push-test" app.js
           echo "Upload-Seite: $URL" >> "$GITHUB_STEP_SUMMARY"

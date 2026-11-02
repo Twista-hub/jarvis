@@ -18,11 +18,13 @@
 ## Eingebaut
 - `alarm/boamp.py`: Tagesliste lesen, XML einlesen, nur Aufrufe (`NATURE=APPEL_OFFRE`, `STATUT=INITIAL`), Umwandlung in
   das Release-Format wie TED. `alarm/alarm.py`: Frankreich kommt jetzt aus BOAMP statt aus TED (keine Doppelten).
-- `alarm/profile_db.py`: Umkreis in km nur für deutsche Postleitzahlen (Koordinaten sind nur für DE vorhanden);
-  im Ausland zählen Ortsnamen und zweistellige Präfixe (in Frankreich = Département).
+- `alarm/profile_db.py`: Umkreis in km nur für deutsche Postleitzahlen (Koordinaten sind nur für DE vorhanden).
+  Französische Bekanntmachungen filtert nur die Départements-Auswahl der Firma (`departements`, aus `<DEP_PUBLICATION>`,
+  sonst aus der PLZ); ohne Auswahl ganz Frankreich. Deutsche Suchorte gelten dort nicht.
+- Oberfläche, KI-Texte und Mails auf Französisch (`web/src/franzoesisch/`, `alarm/sprache-fr.txt`, `mail.py`).
+- Gewerke-Seiten `/fr/appels-d-offres/…` (`web/src/gewerke-fr.ts`).
 - Test `alarm/test_boamp.py`, Lese-Workflow `.github/workflows/frankreich-test.yml`.
 
 ## Offen
-- Französische App-Oberfläche (Wörterbuch wie Englisch), KI-Texte auf Französisch (`sprache: fr`), Mail.
-- Französische Gewerke-Seiten (Zahlen brauchen einen Katalog für Frankreich oder eine Zählung aus den Tagesdateien).
-- Suchgebiet für französische Firmen (Départements statt PLZ-Radius).
+- Live-Zahlen auf den Gewerke-Seiten (brauchen einen Katalog für Frankreich oder eine Zählung aus den Tagesdateien).
+- Französische Rechtsseiten (Mentions légales, Datenschutz) und Preise in Euro für Frankreich.
