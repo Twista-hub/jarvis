@@ -60,6 +60,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261102080000_fehler_alarm.sql
 \ir ../migrations/20261102090000_gewerk_statistik.sql
 \ir ../migrations/20261102100000_gewerk_cache.sql
+\ir ../migrations/20261102110000_gewerk_offen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 

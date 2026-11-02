@@ -62,9 +62,9 @@ export function gewerkSeite(g: Gewerk, s: Statistik | null): string {
   const jsonld = JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: fragen.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }).replace(/</g, "\\u003c");
   return `<h1>${escape(g.h1)}</h1>
 <p>${escape(g.intro)}</p>
-${s ? `<div class="gewerk-zahlen"><div><strong>${zahl(s.monat)}</strong><span>Ausschreibungen in den letzten 30 Tagen</span></div><div><strong>${zahl(s.offen)}</strong><span>davon mit Abgabefrist in der Zukunft</span></div></div>` : ""}
+${s ? `<div class="gewerk-zahlen"><div><strong>${zahl(s.monat)}</strong><span>Ausschreibungen in den letzten 30 Tagen</span></div>${s.offen ? `<div><strong>${zahl(s.offen)}</strong><span>davon noch offen</span></div>` : ""}</div>` : ""}
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">Kostenlos passende Aufträge finden</a><a class="knopf zweit" href="/demo">🎬 Demo ansehen</a></div>
-${s?.beispiele.length ? `<h2>Aktuelle Ausschreibungen (Auswahl)</h2><ul class="kontakt-liste gewerk-beispiele">${s.beispiele.map((b) => `<li><div><strong>${escape(b.titel)}</strong><span class="klein">${escape([b.auftraggeber, b.ort].filter(Boolean).join(" · "))} · Frist ${datum(b.frist)}</span></div></li>`).join("")}</ul><p class="klein">Quelle: amtliche Bekanntmachungen. In Jarvis bekommst du nur die Ausschreibungen, die zu deiner Firma und deinem Gebiet passen, mit Bewertung und Steckbrief.</p>` : ""}
+${s?.beispiele.length ? `<h2>Aktuelle Ausschreibungen (Auswahl)</h2><ul class="kontakt-liste gewerk-beispiele">${s.beispiele.map((b) => `<li><div><strong>${escape(b.titel)}</strong><span class="klein">${escape([b.auftraggeber, b.ort].filter(Boolean).join(" · "))} ${b.frist ? ` · Frist ${datum(b.frist)}` : ""}</span></div></li>`).join("")}</ul><p class="klein">Quelle: amtliche Bekanntmachungen. In Jarvis bekommst du nur die Ausschreibungen, die zu deiner Firma und deinem Gebiet passen, mit Bewertung und Steckbrief.</p>` : ""}
 <h2>So hilft Jarvis ${escape(g.name === "Elektro" ? "Elektrobetrieben" : `im Bereich ${g.name}`)}</h2>
 <ul>${g.vorteile.map((v) => `<li>${escape(v)}</li>`).join("")}<li>Jeden Morgen die neuen Treffer mit Punkten von 1 bis 10 und einem Satz, warum sie passen</li></ul>
 <h2>Häufige Fragen</h2>
@@ -105,7 +105,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   if (!m) return null;
   if (!g) return new Response(null, { status: 301, headers: { location: "/ausschreibungen" } });
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
-  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}`);
+  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}?cache=2`);
   const alt = await cache?.match(schluessel).catch(() => undefined);
   if (alt) return alt;
   let s: Statistik | null = null;
