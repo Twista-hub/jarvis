@@ -17,4 +17,8 @@ jobs:
           echo "== felder boamp"; curl -s "$B/api/explore/v2.1/catalog/datasets/boamp" | jq -r '.metas.default.license, .metas.default.license_url, (.fields[] | "\(.name)\t\(.type)\t\(.label)")' 2>&1 | head -80
           echo "== beispiel"; curl -s "$B/api/explore/v2.1/catalog/datasets/boamp/records?limit=2&order_by=dateparution%20desc" | jq '.total_count, (.results[0] | with_entries(.value |= (tostring | .[0:300])))' 2>&1 | head -120
           echo "== zaehlen 60 Tage"; curl -s "$B/api/explore/v2.1/catalog/datasets/boamp/records?limit=0&where=dateparution%3E%3D%222026-09-03%22" | jq '.total_count'
+          echo "== DILA opendata robots"; curl -s https://echanges.dila.gouv.fr/robots.txt | head -20
+          echo "== DILA BOAMP liste"; curl -s https://echanges.dila.gouv.fr/OPENDATA/BOAMP/ | grep -oE 'href="[^"]+"' | head -40
+          echo "== DILA BOAMP 2026"; curl -s https://echanges.dila.gouv.fr/OPENDATA/BOAMP/2026/ | grep -oE 'href="[^"]+"' | tail -15
+          echo "== data.gouv boamp dataset"; curl -s "https://www.data.gouv.fr/api/1/datasets/boamp/" | jq -r '.license, .title, (.resources[:8][] | "\(.title)\t\(.url)\t\(.last_modified)")' 2>&1 | head -20
           echo "== data.gouv api-boamp"; curl -s "https://www.data.gouv.fr/api/1/datasets/api-boamp/" | jq -r '.license, .title, .description' 2>&1 | head -30
