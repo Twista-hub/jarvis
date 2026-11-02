@@ -17,13 +17,54 @@ from email.utils import formataddr, make_msgid
 from zoneinfo import ZoneInfo
 
 import push
-from profile_db import verbinden
+from profile_db import sprache as profil_sprache, verbinden
 
 APP = "https://app.wpdigitalranger.com"
 ABSENDER = ("Jarvis", "kontakt@wpdigitalranger.com")
 BERLIN = ZoneInfo("Europe/Berlin")
 ERINNERN = (7, 2)  # days before the deadline
 MORGENS = 7  # hour of the phone notification on the deadline day
+NEW_YORK = ZoneInfo("America/New_York")
+_firmen: dict[str, tuple[str, ZoneInfo]] = {}
+
+# Texts of mail and phone messages; English for firms whose AI texts are English (profile_db.sprache).
+T = {
+    "de": {"top1": "⭐ Top-Treffer {p}/10", "topn": "⭐ {n} Top-Treffer für {f}", "weitere": " · und {n} weitere", "frist": "⏰ Frist {d}",
+           "neu1": "Neue Ausschreibung", "neun": "{n} neue Ausschreibungen für {f}", "fristen_bald": " · und {n} Fristen bald",
+           "heute": "⏰ Heute {was} · {art} {z}", "heute1": "Frist", "heuten": "{n} Fristen", "Abgabe": "Abgabe", "Fragen": "Fragen", "Termin": "Termin",
+           "uhr": "%d.%m.%Y, %H:%M Uhr", "zeit": "%H:%M Uhr", "unbekannt": "unbekannt", "tag": "%d.%m.%Y",
+           "h_fristen": "⏰ Fristen bald", "abgabe": "Abgabe", "h_neu": "🔎 {n} neue Ausschreibungen", "frist_kl": "Frist",
+           "h_nachweise": "📄 Firmen-Nachweise laufen bald ab", "gueltig": "gültig bis", "in_tagen": "in {n} Tagen",
+           "fuss": "Uhrzeit ändern oder Mails abschalten: {app}/konto#mail", "b_neu": "{n} neue Ausschreibungen", "b_fristen": "Fristen-Erinnerung",
+           "b_nachweise": "Nachweise laufen bald ab", "fuer": " für {f}", "oeffnen": "Alle Treffer in Jarvis öffnen", "impressum": "Impressum"},
+    "en": {"top1": "⭐ Top match {p}/10", "topn": "⭐ {n} top match{es} for {f}", "weitere": " · and {n} more", "frist": "⏰ Deadline {d}",
+           "neu1": "New tender", "neun": "{n} new tender{s} for {f}", "fristen_bald": " · and {n} deadline{s} soon",
+           "heute": "⏰ Today: {was} · {art} {z}", "heute1": "deadline", "heuten": "{n} deadlines", "Abgabe": "Bid due", "Fragen": "Questions due", "Termin": "Appointment",
+           "uhr": "%b %d, %Y, %I:%M %p {tz}", "zeit": "%I:%M %p {tz}", "unbekannt": "unknown", "tag": "%b %d, %Y",
+           "h_fristen": "⏰ Deadlines coming up", "abgabe": "due", "h_neu": "🔎 {n} new tender{s}", "frist_kl": "deadline",
+           "h_nachweise": "📄 Company documents expiring soon", "gueltig": "valid until", "in_tagen": "in {n} day{s}",
+           "fuss": "Change the time or turn off emails: {app}/konto#mail", "b_neu": "{n} new tender{s}", "b_fristen": "Deadline reminder",
+           "b_nachweise": "Documents expiring soon", "fuer": " for {f}", "oeffnen": "Open all matches in Jarvis", "impressum": "Legal notice"},
+}
+
+
+def pl(n: int) -> str:
+    """English plural ending."""
+    return "" if n == 1 else "s"
+
+
+def firma_sprache(con, firma_id: str) -> tuple[str, ZoneInfo]:
+    """(language, time zone) of a firm: English firms that search the USA get US Eastern time, everyone else Berlin."""
+    if firma_id not in _firmen:
+        zeile = con.execute("select einstellungen from public.suchprofile where firma_id = %s limit 1", (firma_id,)).fetchone()
+        e = zeile[0] if zeile and isinstance(zeile[0], dict) else {}
+        sprache = profil_sprache(e) if e else "de"
+        _firmen[firma_id] = (sprache, NEW_YORK if sprache == "en" and "USA" in (e.get("laender") or []) else BERLIN)
+    return _firmen[firma_id]
+
+
+def ortsstunde(zone: ZoneInfo) -> int:
+    return datetime.now(zone).hour
 
 
 def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tuple]:
@@ -40,7 +81,9 @@ def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tupl
         where b.stunde is not null and """
     if sofort:  # first hit list right after the setup assistant: everyone of this firm who wants news
         return con.execute(basis + "b.firma_id = %s", (sofort,)).fetchall()
-    return con.execute(basis + "b.stunde = %s and (b.letzte_mail is null or b.letzte_mail < now() - interval '20 hours')", (stunde,)).fetchall()
+    # The chosen hour counts in the firm's time zone (US firms: Eastern time); the run is hourly, so compare per firm.
+    zeilen = con.execute(basis.replace("b.fristen\n", "b.fristen, b.stunde\n") + "(b.letzte_mail is null or b.letzte_mail < now() - interval '20 hours')").fetchall()
+    return [z[:7] for z in zeilen if z[7] == (stunde if firma_sprache(con, z[0])[1] == BERLIN else ortsstunde(firma_sprache(con, z[0])[1]))]
 
 
 def vertretung_heute(con, firma_id: str, user_id: str) -> tuple[bool, bool]:
@@ -60,22 +103,23 @@ def regel(abwesend: bool, vertritt: bool, fristen_an: bool) -> tuple[bool, bool]
     return True, fristen_an or vertritt
 
 
-def handy(con, schl, user_id: str, firma_id: str, firma: str, neu: list, fristen: list, sofort: bool = False) -> int:
+def handy(con, schl, user_id: str, firma_id: str, firma: str, neu: list, fristen: list, sofort: bool = False, sprache: str = "de", zone: ZoneInfo = BERLIN) -> int:
     """Phone notification: one tap opens the hit (one new) or the list (several)."""
+    t = T[sprache]
     if sofort and neu:
         vid, titel, punkte, _ = neu[0]
-        kopf = f"⭐ Top-Treffer {punkte}/10" if len(neu) == 1 else f"⭐ {len(neu)} Top-Treffer für {firma}"
-        text = titel + (f" · und {len(neu) - 1} weitere" if len(neu) > 1 else "")
+        kopf = t["top1"].format(p=punkte) if len(neu) == 1 else t["topn"].format(n=len(neu), f=firma, es="es")
+        text = titel + (t["weitere"].format(n=len(neu) - 1) if len(neu) > 1 else "")
         url = f"/konto/vorgang/{vid}" if len(neu) == 1 else f"/konto/treffer?firma={firma_id}"
     elif fristen and not neu:
         vid, titel, frist = fristen[0]
-        kopf, text, url = f"⏰ Frist {datum(frist)}", titel, f"/konto/vorgang/{vid}"
+        kopf, text, url = t["frist"].format(d=datum(frist, sprache, zone)), titel, f"/konto/vorgang/{vid}"
     elif len(neu) == 1:
         vid, titel, punkte, _ = neu[0]
-        kopf, text, url = f"Neue Ausschreibung{f' · {punkte}/10' if punkte else ''}", titel, f"/konto/vorgang/{vid}"
+        kopf, text, url = f"{t['neu1']}{f' · {punkte}/10' if punkte else ''}", titel, f"/konto/vorgang/{vid}"
     else:
-        kopf = f"{len(neu)} neue Ausschreibungen für {firma}"
-        text = neu[0][1] + (f" · und {len(fristen)} Fristen bald" if fristen else "")
+        kopf = t["neun"].format(n=len(neu), s=pl(len(neu)), f=firma)
+        text = neu[0][1] + (t["fristen_bald"].format(n=len(fristen), s=pl(len(fristen))) if fristen else "")
         url = f"/konto/treffer?firma={firma_id}"
     return senden_an_geraete(con, schl, user_id, kopf, text, url)
 
@@ -175,6 +219,9 @@ def sofort_melden(con, firma_id: str, vorgang_ids: list[str]) -> int:
         join public.mitglieder m on m.firma_id = b.firma_id and m.user_id = b.user_id and m.aktiv
         join public.firmen f on f.id = b.firma_id
         where b.firma_id = %s and b.sofort_ab is not null and b.kanal in ('push', 'beides')""", (firma_id,)).fetchall()
+    sprache, zone = firma_sprache(con, firma_id)
+    if zone != BERLIN:
+        stunde = ortsstunde(zone)
     leute = [p for p in leute if not in_ruhezeit(stunde, p[2], p[3])]
     if not leute:
         return 0
@@ -184,7 +231,7 @@ def sofort_melden(con, firma_id: str, vorgang_ids: list[str]) -> int:
         treffer = als_person(con, user_id, """select id::text, titel, punkte, frist from public.vorgaenge
             where firma_id = %s and id::text = any(%s) and punkte >= %s order by punkte desc""", (firma_id, vorgang_ids, ab))
         if treffer:
-            gesendet += handy(con, schl, user_id, firma_id, firma, treffer, [], sofort=True)
+            gesendet += handy(con, schl, user_id, firma_id, firma, treffer, [], sofort=True, sprache=sprache, zone=zone)
     return gesendet
 
 
@@ -203,14 +250,16 @@ def heute_faellig(con, firma_id: str, user_id: str) -> list[tuple]:
         order by zeit limit 20""", (firma_id, heute, firma_id, heute, firma_id, heute))
 
 
-def morgen_push(con, schl, user_id: str, firma_id: str, termine: list) -> int:
+def morgen_push(con, schl, user_id: str, firma_id: str, termine: list, sprache: str = "de", zone: ZoneInfo = BERLIN) -> int:
     """One phone notification in the morning of a deadline day; at most once a day per person."""
-    if not termine or con.execute("""select 1 from public.push_nachrichten where user_id = %s and titel like '⏰ Heute%%'
+    if not termine or con.execute("""select 1 from public.push_nachrichten where user_id = %s and (titel like '⏰ Heute%%' or titel like '⏰ Today%%')
             and erstellt > now() - interval '20 hours'""", (user_id,)).fetchone():
         return 0
+    t = T[sprache]
     vid, titel, zeit, art = termine[0]
-    kopf = f"⏰ Heute {'Frist' if len(termine) == 1 else f'{len(termine)} Fristen'} · {art} {zeit.astimezone(BERLIN):%H:%M} Uhr"
-    text = titel + (f" · und {len(termine) - 1} weitere" if len(termine) > 1 else "")
+    was = t["heute1"] if len(termine) == 1 else t["heuten"].format(n=len(termine))
+    kopf = t["heute"].format(was=was, art=t.get(art, art), z=uhrzeit(zeit, sprache, zone))
+    text = titel + (t["weitere"].format(n=len(termine) - 1) if len(termine) > 1 else "")
     url = f"/konto/vorgang/{vid}" if vid and len(termine) == 1 else f"/konto/fristen?firma={firma_id}"
     return senden_an_geraete(con, schl, user_id, kopf, text, url)
 
@@ -229,47 +278,61 @@ def ablaufende_nachweise(con, firma_id: str, user_id: str) -> list[tuple]:
         order by d.gueltig_bis,d.name""", (heute, user_id, firma_id, faellig, heute)).fetchall()
 
 
-def datum(t) -> str:
-    return t.astimezone(BERLIN).strftime("%d.%m.%Y, %H:%M Uhr") if t else "unbekannt"
+def zonen_kuerzel(zone: ZoneInfo, t: datetime) -> str:
+    return "ET" if zone == NEW_YORK else t.astimezone(zone).tzname() or ""
 
 
-def nachricht(an: str, firma: str, neu: list, fristen: list, nachweise: list = ()) -> EmailMessage:
+def datum(t, sprache: str = "de", zone: ZoneInfo = BERLIN) -> str:
+    if not t:
+        return T[sprache]["unbekannt"]
+    return t.astimezone(zone).strftime(T[sprache]["uhr"].replace("{tz}", zonen_kuerzel(zone, t)))
+
+
+def uhrzeit(t, sprache: str = "de", zone: ZoneInfo = BERLIN) -> str:
+    return t.astimezone(zone).strftime(T[sprache]["zeit"].replace("{tz}", zonen_kuerzel(zone, t)))
+
+
+def nachricht(an: str, firma: str, neu: list, fristen: list, nachweise: list = (), sprache: str = "de", zone: ZoneInfo = BERLIN) -> EmailMessage:
+    t = T[sprache]
+    d = lambda x: datum(x, sprache, zone)  # noqa: E731
     zeilen, html_teile = [], []
     if fristen:
-        zeilen.append("⏰ Fristen bald:")
-        html_teile.append("<h2>⏰ Fristen bald</h2><ul>")
+        zeilen.append(f"{t['h_fristen']}:")
+        html_teile.append(f"<h2>{t['h_fristen']}</h2><ul>")
         for vid, titel, frist in fristen:
-            zeilen.append(f"- {titel} – Abgabe {datum(frist)}\n  {APP}/konto/vorgang/{vid}")
-            html_teile.append(f'<li><a href="{APP}/konto/vorgang/{vid}">{html.escape(titel)}</a> – Abgabe <strong>{datum(frist)}</strong></li>')
+            zeilen.append(f"- {titel} – {t['abgabe']} {d(frist)}\n  {APP}/konto/vorgang/{vid}")
+            html_teile.append(f'<li><a href="{APP}/konto/vorgang/{vid}">{html.escape(titel)}</a> – {t["abgabe"]} <strong>{d(frist)}</strong></li>')
         html_teile.append("</ul>")
     if neu:
-        zeilen.append(f"\n🔎 {len(neu)} neue Ausschreibungen:")
-        html_teile.append(f"<h2>🔎 {len(neu)} neue Ausschreibungen</h2><ul>")
+        kopf = t["h_neu"].format(n=len(neu), s=pl(len(neu)))
+        zeilen.append(f"\n{kopf}:")
+        html_teile.append(f"<h2>{kopf}</h2><ul>")
         for vid, titel, punkte, frist in neu:
             p = f"{punkte}/10 · " if punkte else ""
-            zeilen.append(f"- {p}{titel} (Frist {datum(frist)})\n  {APP}/konto/vorgang/{vid}")
-            html_teile.append(f'<li>{p}<a href="{APP}/konto/vorgang/{vid}">{html.escape(titel)}</a> <small>(Frist {datum(frist)})</small></li>')
+            zeilen.append(f"- {p}{titel} ({t['frist_kl']} {d(frist)})\n  {APP}/konto/vorgang/{vid}")
+            html_teile.append(f'<li>{p}<a href="{APP}/konto/vorgang/{vid}">{html.escape(titel)}</a> <small>({t["frist_kl"]} {d(frist)})</small></li>')
         html_teile.append("</ul>")
     if nachweise:
-        zeilen.append("\n📄 Firmen-Nachweise laufen bald ab:")
-        html_teile.append("<h2>📄 Firmen-Nachweise laufen bald ab</h2><ul>")
+        zeilen.append(f"\n{t['h_nachweise']}:")
+        html_teile.append(f"<h2>{t['h_nachweise']}</h2><ul>")
         for _id, name, gueltig_bis, tage in nachweise:
-            zeilen.append(f"- {name} – gültig bis {gueltig_bis:%d.%m.%Y} (in {tage} Tagen)\n  {APP}/konto/firmenunterlagen")
-            html_teile.append(f'<li><a href="{APP}/konto/firmenunterlagen">{html.escape(name)}</a> – gültig bis <strong>{gueltig_bis:%d.%m.%Y}</strong> (in {tage} Tagen)</li>')
+            bis = gueltig_bis.strftime(t["tag"])
+            zeilen.append(f"- {name} – {t['gueltig']} {bis} ({t['in_tagen'].format(n=tage, s=pl(tage))})\n  {APP}/konto/firmenunterlagen")
+            html_teile.append(f'<li><a href="{APP}/konto/firmenunterlagen">{html.escape(name)}</a> – {t["gueltig"]} <strong>{bis}</strong> ({t["in_tagen"].format(n=tage, s=pl(tage))})</li>')
         html_teile.append("</ul>")
-    fuss = f"Uhrzeit ändern oder Mails abschalten: {APP}/konto#mail"
+    fuss = t["fuss"].format(app=APP)
     m = EmailMessage()
     m["From"] = formataddr(ABSENDER)
     m["To"] = an
-    betreff = f"{len(neu)} neue Ausschreibungen" if neu else "Fristen-Erinnerung" if fristen else "Nachweise laufen bald ab"
-    m["Subject"] = betreff + f" für {firma}"[:150]
+    betreff = t["b_neu"].format(n=len(neu), s=pl(len(neu))) if neu else t["b_fristen"] if fristen else t["b_nachweise"]
+    m["Subject"] = betreff + t["fuer"].format(f=firma)[:150]
     m["Message-ID"] = make_msgid(domain="wpdigitalranger.com")
     # Lets mail programs show an "unsubscribe" button; both lead to switching the mail off.
     m["List-Unsubscribe"] = f"<mailto:{ABSENDER[1]}?subject=Jarvis-Mail%20abbestellen>, <{APP}/konto#mail>"
     m.set_content("\n".join(zeilen) + f"\n\n{fuss}\n")
     m.add_alternative(f"""<div style="font-family:system-ui,sans-serif;max-width:640px">{''.join(html_teile)}
-<p><a href="{APP}/konto">Alle Treffer in Jarvis öffnen</a></p>
-<p style="color:#666;font-size:13px">{html.escape(fuss)}<br>Jarvis · WP Digital Ranger · <a href="{APP}/impressum">Impressum</a></p></div>""", subtype="html")
+<p><a href="{APP}/konto">{t['oeffnen']}</a></p>
+<p style="color:#666;font-size:13px">{html.escape(fuss)}<br>Jarvis · WP Digital Ranger · <a href="{APP}/impressum">{t['impressum']}</a></p></div>""", subtype="html")
     return m
 
 
@@ -295,11 +358,12 @@ def main() -> None:
             nachweise = [] if test or sofort or kanal not in ("mail", "beides") else ablaufende_nachweise(con, firma_id, user_id)
             if not (neu or fristen or nachweise):
                 continue
+            sprache, zone = firma_sprache(con, firma_id)
             if kanal in ("mail", "beides"):
-                smtp.send_message(nachricht(email, firma, neu, fristen, nachweise))
+                smtp.send_message(nachricht(email, firma, neu, fristen, nachweise, sprache, zone))
                 mails += 1
             if kanal in ("push", "beides"):
-                pushs += handy(con, schl, user_id, firma_id, firma, neu, fristen)
+                pushs += handy(con, schl, user_id, firma_id, firma, neu, fristen, sprache=sprache, zone=zone)
             if not test:
                 con.execute("update public.benachrichtigungen set letzte_mail = now() where firma_id = %s and user_id = %s", (firma_id, user_id))
                 for dokument_id, _name, _gueltig_bis, tage in nachweise:
@@ -314,8 +378,9 @@ def main() -> None:
                                                  and (now() at time zone 'Europe/Berlin')::date between v.von and v.bis))
                       and not exists(select 1 from public.vertretungen v where v.firma_id = b.firma_id and v.user_id = b.user_id
                                        and (now() at time zone 'Europe/Berlin')::date between v.von and v.bis)""").fetchall():
-                if stunde == morgen_stunde(von, bis):
-                    pushs += morgen_push(con, schl, user_id, firma_id, heute_faellig(con, firma_id, user_id))
+                sprache, zone = firma_sprache(con, firma_id)
+                if (stunde if zone == BERLIN else ortsstunde(zone)) == morgen_stunde(von, bis):
+                    pushs += morgen_push(con, schl, user_id, firma_id, heute_faellig(con, firma_id, user_id), sprache, zone)
     print(f"{stunde} Uhr: {mails} Mails, {pushs} Handy-Benachrichtigungen")
 
 
