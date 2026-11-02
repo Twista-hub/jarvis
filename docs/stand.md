@@ -79,6 +79,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Europa-Marktanalyse)
+- `alarm/europa_markt.py` + Workflow „Europa-Marktanalyse“ (nur lesen) zählen TED-Auftragsbekanntmachungen pro Land und Gewerk. Ergebnis 60 Tage in `docs/europa-markt.md`: in unseren 10 Gewerken DE 3.915, PL 2.477, FR 2.379, ES 566, CZ 421, NL 343, RO 266, BE 244 … (nur oberhalb der EU-Schwellen; nationale Portale haben deutlich mehr).
+
 ### 02.11.2026 – Claude (USA: Preisvergleich, Vorgänger, Auslauf-Radar, SAM-Anleitung)
 - `web/src/usaspending.ts`: USAspending.gov-API (offene Daten des US-Finanzministeriums, kein Schlüssel; robots.txt sperrt nur *.php und Abfrageparameter der Website, die API ist dafür gedacht). Größte Bundesverträge der letzten 3 Jahre je NAICS + Bundesstaat, Median, Vorgänger (gleiche Behörde, `gleicheBehoerde()` gleicht SAM- und USAspending-Schreibweise ab), Link zur Vertragsseite. Cache 1 Tag pro NAICS/Staat/Monat (`caches.default`).
 - Kasten „Preisvergleich und Vorgänger“ unter dem Ampel-Kasten bei US-Treffern (braucht `us.naics` und `us.staat`; `alarm/usa.py` speichert jetzt auch `us.behoerde`).
