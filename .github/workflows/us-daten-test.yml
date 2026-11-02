@@ -1,0 +1,25 @@
+# Read only: tries the public USAspending.gov API (no key) and prints a short sample plus robots.txt.
+name: US-Daten-Test
+on:
+  workflow_dispatch:
+    inputs:
+      naics: { description: "NAICS", default: "561720" }
+      staat: { description: "Bundesstaat (2 Buchstaben)", default: "FL" }
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Abrufen
+        env:
+          NAICS: ${{ inputs.naics }}
+          STAAT: ${{ inputs.staat }}
+        run: |
+          echo "== robots.txt"; curl -s https://api.usaspending.gov/robots.txt | head -20; curl -s https://www.usaspending.gov/robots.txt | head -20
+          heute=$(date +%F); von=$(date -d '-2 years' +%F)
+          body=$(jq -n --arg n "$NAICS" --arg s "$STAAT" --arg v "$von" --arg h "$heute" '{filters:{award_type_codes:["A","B","C","D"],naics_codes:{require:[$n]},place_of_performance_locations:[{country:"USA",state:$s}],time_period:[{start_date:$v,end_date:$h}]},fields:["Award ID","Recipient Name","Award Amount","Start Date","End Date","Awarding Agency","Awarding Sub Agency","Description","generated_internal_id","Place of Performance City Code"],sort:"Award Amount",order:"desc",limit:5,page:1}')
+          echo "== spending_by_award"; curl -s -X POST https://api.usaspending.gov/api/v2/search/spending_by_award/ -H 'content-type: application/json' -d "$body" | head -c 4000; echo
+          # contracts ending in 6-18 months (recompete radar): filter by end date via time_period with date_type
+          body2=$(jq -n --arg n "$NAICS" --arg s "$STAAT" --arg v "$(date -d '+6 months' +%F)" --arg h "$(date -d '+18 months' +%F)" '{filters:{award_type_codes:["A","B","C","D"],naics_codes:{require:[$n]},place_of_performance_locations:[{country:"USA",state:$s}],time_period:[{start_date:$v,end_date:$h,date_type:"end_date"}]},fields:["Award ID","Recipient Name","Award Amount","Start Date","End Date","Awarding Agency"],sort:"End Date",order:"asc",limit:5,page:1}')
+          echo "== auslaufend"; curl -s -X POST https://api.usaspending.gov/api/v2/search/spending_by_award/ -H 'content-type: application/json' -d "$body2" | head -c 3000; echo
