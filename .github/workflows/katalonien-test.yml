@@ -13,11 +13,14 @@ jobs:
           UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
           echo "== robots.txt"; curl -sS -m 20 -A "$UA" https://analisi.transparenciacatalunya.cat/robots.txt | head -40
           echo "== contractaciopublica.cat robots"; curl -sS -m 20 -A "$UA" https://contractaciopublica.cat/robots.txt | head -40
-          echo "== Suche nach Datensätzen"; curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/api/catalog/v1?q=contractació%20pública&limit=10" -o c.json
+          echo "== Suche nach Datensätzen"
+          curl -sS -m 30 -A "$UA" "https://api.eu.socrata.com/api/catalog/v1?domains=analisi.transparenciacatalunya.cat&q=contractacio&limit=15" -o c.json || true
           python3 -c "
-          import json; d=json.load(open('c.json'))
+          import json
+          try: d=json.load(open('c.json'))
+          except Exception as e: print('keine Antwort', open('c.json',errors='replace').read()[:300]); raise SystemExit
           for r in d.get('results',[]):
-              x=r['resource']; print(x['id'], '|', x['name'][:90], '| updated', x.get('data_updated_at'), '|', r.get('metadata',{}).get('license'))"
+              x=r['resource']; print(x['id'], '|', x['name'][:100], '| updated', x.get('data_updated_at'), '|', r.get('metadata',{}).get('license'))" || true
           for id in ybgg-dgi6 a23c-d6vp; do
             echo "== Metadaten $id"; curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/api/views/$id.json" -o m.json
             python3 -c "
