@@ -47,13 +47,19 @@ Haiku allein (ohne Sonnet) wäre nicht gleich gut: 33 von 234 Nicht-Treffern hä
 vorher 0,0034 $ (Sonnet) → jetzt 0,0001 $ (Haiku) + 55 % × 0,0034 $ (Sonnet) ≈ 0,0020 $ → **rund 40 % weniger**,
 mit Caching zusammen 40–45 %.
 
-## 3. Weitere Hebel (noch nicht umgesetzt, Entscheidung Benjamin)
+### c) Batch-API als Schalter (eingebaut, standardmäßig AUS)
+`KI_BATCH=1` schickt alle 8er-Pakete einer Firma als **einen** Batch (erst Haiku-Vorfilter, dann Sonnet) zum halben Preis
+(`ki.score_viele`). Kein Ergebnis nach `KI_BATCH_MINUTEN` (Standard 50) → Batch wird abgebrochen und direkt bewertet;
+fehlende Einzelergebnisse werden direkt nachbewertet. Gleiche Anleitung, gleiche Modelle → gleiche Qualität.
+Einschalten erst, wenn der Alarm früh genug vor der Morgenmail startet (Entscheidung Benjamin).
+
+## 3. Weitere Hebel (Entscheidung Benjamin)
 
 | Hebel | Ersparnis | Qualität | Haken |
 |---|---|---|---|
-| **Batch-API** für den täglichen Alarm | weitere 50 % auf alle verbleibenden Bewertungen | identisch (gleiches Modell, gleicher Text) | Ergebnisse kommen verzögert (meist < 1 h, bis 24 h); der Lauf muss vor der Mailzeit fertig sein → Alarm früher starten (z. B. 03:00 statt 06:00). Die serverseitige Ersatzmodell-Regel bei Ablehnungen gibt es im Batch nicht; seltene Ablehnungen würden einzeln nachbewertet. |
+| **Batch-API einschalten** (`KI_BATCH=1`, Code fertig) | weitere 50 % auf alle verbleibenden Bewertungen | identisch (gleiches Modell, gleicher Text) | Ergebnisse kommen verzögert (meist < 1 h, bis 24 h); der Lauf muss vor der Mailzeit fertig sein → Alarm früher starten (z. B. 03:00 statt 06:00). Die serverseitige Ersatzmodell-Regel bei Ablehnungen gibt es im Batch nicht; seltene Ablehnungen würden einzeln nachbewertet. |
 | Steckbrief Opus → Sonnet | ca. 50 % beim Steckbrief | **nicht** ohne Vergleich: Steckbriefe lesen lange Unterlagen, Qualität entscheidend | erst mit Vergleich wie oben (5–10 echte Unterlagen) |
 | Firmenrecherche: weniger Websuchen | gering | Risiko für die Profilqualität | lohnt sich bei wenigen Neuanmeldungen nicht |
 
-Empfehlung: Batch-API als Nächstes, sobald der Alarm-Zeitplan angepasst werden darf. Steckbrief-Modell erst testen,
+Empfehlung: Batch-API einschalten, sobald der Alarm-Zeitplan angepasst werden darf (Schalter liegt bereit). Steckbrief-Modell erst testen,
 wenn das Max-Guthaben da ist (dann ist Opus ohnehin bezahlbar).
