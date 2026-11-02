@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import boamp
 import bzp
+import anac
 import katalonien
 import ki
 import mail
@@ -42,6 +43,14 @@ LAENDER = {
                                              "woerter": ["limpieza", "neteja", "netejа", "servei de neteja", "servicio de limpieza", "cristales", "vidres"]}]},
            "beschreibung": ("Empresa de limpieza de Barcelona, 60 trabajadores. Limpieza de oficinas, escuelas y edificios públicos, "
                             "limpieza de cristales y limpiezas tras obras en Cataluña. Sin limpieza industrial ni hospitalaria.")},
+    "it": {"quelle": anac, "name": "Pulizie Rossi S.r.l. (Test)", "plz": "20121", "zone": mail.ROM, "betreff": "Nuove gare",
+           "sprache": re.compile(r"\b(il|lo|la|gli|le|di|del|della|per|con|e|servizio|pulizia|appalto)\b", re.IGNORECASE),
+           "gebiet": ("regioni", ["ITC4", "ITH3"]),
+           "einstellungen": {"laender": ["ITA"], "regioni": ["ITC4", "ITH3"],
+                             "leistungen": [{"name": "Pulizia di edifici e vetri", "cpv": ["90910000", "90911200", "90911300", "90919200"],
+                                             "woerter": ["pulizia", "pulizie", "servizio di pulizia", "sanificazione", "igiene ambientale", "vetri"]}]},
+           "beschreibung": ("Impresa di pulizie di Milano, 45 dipendenti. Pulizia di uffici, scuole ed edifici pubblici, pulizia vetri "
+                            "e pulizie dopo lavori in Lombardia e Veneto. Niente pulizie industriali né ospedaliere.")},
 }
 L = LAENDER["fr"]
 
@@ -70,7 +79,7 @@ def main(tage: int, code: str = "fr") -> None:
         r = L["quelle"].releases(tag)
         print(f"{tag}: {len(r)} Aufrufe zum Wettbewerb")
         alle += [(tag, x) for x in r]
-    pruefe(len(alle) > 0, "BOAMP liefert Bekanntmachungen", fehler)
+    pruefe(len(alle) > 0, "Quelle liefert Bekanntmachungen", fehler)
     im_gebiet = [(t, r) for t, r in alle if im_suchgebiet(profil, r)]
     kandidaten = []
     for tag, rel in im_gebiet:
