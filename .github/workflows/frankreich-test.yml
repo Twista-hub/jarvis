@@ -14,12 +14,12 @@ jobs:
         with: { python-version: "3.12" }
       - name: BOAMP lesen
         run: |
-          python3 alarm/boamp.py "$(date -d yesterday +%F)" | head -c 6000
+          python3 alarm/boamp.py "$(date +%F)" | head -c 1500
           python3 - <<'PY'
           import sys, collections, datetime
           sys.path.insert(0, "alarm")
           import boamp
-          tag = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+          tag = datetime.date.today().isoformat()
           r = boamp.releases(tag)
           print("Aufrufe:", len(r), "mit CPV:", sum(1 for x in r if any("classification" in i for i in x["tender"]["items"])), "mit Frist:", sum(1 for x in r if x["tender"]["tenderPeriod"]))
           print(collections.Counter(x["_boamp"]["famille"] for x in r))
