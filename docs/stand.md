@@ -97,7 +97,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ### 01.11.2026 – Claude (Löschen sauber, Betreiber-Seite, Suchlauf-Absicherung)
 - Kontolöschung räumt jetzt alle Dateien der gelöschten Firmen in R2 auf: bibliothek, personal-fotos, importe, angebotsabgaben, personal_nachweise, spesen, unterschriften, nachweis, bewerber, firmenlogo, kunden/firma-…, dazu Unterlagenprüfungen der Ausschreibungen (`auftraege/<id>/`). Gemeinsame Funktion `dateienLoeschen` in `web/src/loeschen.ts`.
-- Betreiber-Seite `/konto/betreiber` (nur `jarvis_intern.betreiber`, eingetragen: benschiffer79@gmail.com): Kundenzugang per E-Mail suchen, Firmen mit Rolle und Mitgliederzahl sehen, mit Bestätigung (Adresse erneut eintippen) löschen; optional auch Firmen, deren einziger Inhaber er ist. RPCs `ist_betreiber`, `betreiber_konto_suchen`, `betreiber_konto_loeschen` (Migration `20261101210000_betreiber_konto_loeschen.sql`, Rechte-Test: nur Betreiber, eigenes Konto und letzter Inhaber geschützt, Kollege bleibt).
+- Betreiber-Seite `/konto/betreiber` (nur `jarvis_intern.betreiber`, eingetragen: benschiffer79@gmail.com, von Benjamin am 02.11. bestätigt): Kundenzugang per E-Mail suchen, Firmen mit Rolle und Mitgliederzahl sehen, mit Bestätigung (Adresse erneut eintippen) löschen; optional auch Firmen, deren einziger Inhaber er ist. RPCs `ist_betreiber`, `betreiber_konto_suchen`, `betreiber_konto_loeschen` (Migration `20261101210000_betreiber_konto_loeschen.sql`, Rechte-Test: nur Betreiber, eigenes Konto und letzter Inhaber geschützt, Kollege bleibt).
 - `alarm.yml` „Bericht speichern“: bei gleichzeitigen Läufen gewinnt der neuere (`git pull --rebase -X theirs`), bis zu 4 Versuche.
 
 ### 01.11.2026 – Claude (Rechte sicher vergeben)
