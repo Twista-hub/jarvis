@@ -1,0 +1,41 @@
+# Read-only: AI spend per purpose and day from jarvis_katalog.ki_kosten (no changes, no AI calls).
+name: KI-Kosten-Auswertung
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  auswerten:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q "psycopg[binary]"
+      - name: Auswerten
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          cd alarm
+          python - <<'PY'
+          from profile_db import verbinden
+          with verbinden() as c:
+              c.execute("set transaction read only")
+              print("Zweck | Anfragen | verbraucht $ | Ø $ | reserviert $ (letzte 14 Tage)")
+              for z in c.execute("""select zweck, count(*), round(sum(coalesce(verbraucht,0)),4), round(avg(verbraucht),5), round(sum(reserviert),4)
+                                    from jarvis_katalog.ki_kosten where zeit > now() - interval '14 days' group by zweck order by 3 desc""").fetchall():
+                  print(*z, sep=" | ")
+              print("\nTag | Anfragen | verbraucht $")
+              for z in c.execute("""select zeit::date, count(*), round(sum(coalesce(verbraucht,0)),4) from jarvis_katalog.ki_kosten
+                                    where zeit > now() - interval '14 days' group by 1 order by 1""").fetchall():
+                  print(*z, sep=" | ")
+              print("\nMonat | reserviert | Limit")
+              for z in c.execute("select monat, reserviert, limit_usd from jarvis_katalog.ki_budget order by monat desc limit 3").fetchall():
+                  print(*z, sep=" | ")
+              print("\nProfil-Beschreibungen: Anzahl, Ø Zeichen, max Zeichen")
+              try:
+                  print(c.execute("select count(*), round(avg(length(beschreibung))), max(length(beschreibung)) from public.suchprofile").fetchone())
+              except Exception as e:
+                  print("nicht lesbar:", type(e).__name__)
+          PY
