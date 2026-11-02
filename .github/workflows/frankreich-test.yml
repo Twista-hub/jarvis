@@ -9,19 +9,18 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - name: Abrufen
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - name: BOAMP lesen
         run: |
-          D=https://echanges.dila.gouv.fr/OPENDATA/BOAMP/2026/11/02
-          for f in $(curl -s $D/ | grep -oE 'href="[0-9][^"]*\.xml"' | cut -d'"' -f2 | sed -n '1p;40p;80p;120p'); do
-            curl -s -o a.xml "$D/$f"
-            python3 - <<'PY'
-          import re
-          s=open("a.xml",encoding="utf-8").read()
-          g=re.search(r"<GESTION>.*?</GESTION>",s,re.S)
-          print("=====", len(s), "Zeichen")
-          print(re.sub(r"\s+"," ",g.group(0))[:1800] if g else "keine GESTION")
-          d=re.search(r"<DONNEES>\s*<(\w+)",s); print("DONNEES-Typ:", d.group(1) if d else "?")
-          if d and d.group(1)!="EFORMS":
-              print(re.sub(r"\s+"," ",s[d.start():d.start()+2500]))
+          python3 alarm/boamp.py "$(date -d yesterday +%F)" | head -c 6000
+          python3 - <<'PY'
+          import sys, collections, datetime
+          sys.path.insert(0, "alarm")
+          import boamp
+          tag = (datetime.date.today() - datetime.timedelta(days=1)).isoformat()
+          r = boamp.releases(tag)
+          print("Aufrufe:", len(r), "mit CPV:", sum(1 for x in r if any("classification" in i for i in x["tender"]["items"])), "mit Frist:", sum(1 for x in r if x["tender"]["tenderPeriod"]))
+          print(collections.Counter(x["_boamp"]["famille"] for x in r))
           PY
-          done

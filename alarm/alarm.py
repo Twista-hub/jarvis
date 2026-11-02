@@ -208,6 +208,7 @@ def kurzbrief(rel: dict, day: str) -> str:
             + (f"**Land:** {(rel.get('buyer') or {}).get('address', {}).get('countryName', '')} · Quelle: TED (Amt für Veröffentlichungen der EU)\n\n" if rel.get("_quelle") == "TED" else "")
             + ("**Land:** Großbritannien · Quelle: Find a Tender. Contains public sector information licensed under the Open Government Licence v3.0.\n\n" if rel.get("_quelle") == "Find a Tender" else "")
             + ("**Land:** USA (Bundesbehörde) · Quelle: SAM.gov\n\n" if rel.get("_quelle") == "SAM.gov" else "")
+            + ("**Land:** Frankreich · Quelle: BOAMP, DILA (Licence Ouverte 2.0)\n\n" if rel.get("_quelle") == "BOAMP" else "")
             + f"**Angebotsfrist:** {frist(t) or 'nicht angegeben'}\n\n"
             + eckdaten(t)
             + f"{beschreibung or 'Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.'}\n\n"
@@ -387,7 +388,10 @@ def run(days: list[str]) -> str:
     ausland = sorted({l for p in profiles.values() for l in p.get("laender", ["DEU"]) if l != "DEU"})
     if ausland:
         import ted
-        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in ted.releases(day, [l for l in ausland if l not in ("GBR", "USA")])))
+        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in ted.releases(day, [l for l in ausland if l not in ("GBR", "USA", "FRA")])))
+    if "FRA" in ausland:  # France from BOAMP (includes the EU notices of TED plus national ones from 90 k€)
+        import boamp
+        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in boamp.releases(day)))
     if "GBR" in ausland:  # not in TED since Brexit
         import uk
         inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in uk.releases(day)))
