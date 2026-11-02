@@ -32,6 +32,22 @@ jobs:
           python3 -c "
           import re; t=open('i.html',errors='replace').read(); t=re.sub(r'<script[\s\S]*?</script>|<style[\s\S]*?</style>','',t); t=re.sub(r'<[^>]+>',' ',t); t=re.sub(r'\s+',' ',t)
           for m in re.finditer(r'.{0,300}(API|WebServ|Regulamin|limit|30 zapyta).{0,300}', t): print('…', m.group(0)); print()" | head -60
+      - name: Blättern und Zeitfenster
+        run: |
+          UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+          D=$(date -u -d "2 days ago" +%F)
+          B="https://ezamowienia.gov.pl/mo-board/api/v1/notice?NoticeType=ContractNotice&PageSize=100"
+          zeige() { python3 -c "
+          import json,sys; d=json.load(open('x.json')); ids=[x.get('bzpNumber') for x in d]
+          print(sys.argv[1], len(d), 'erste:', ids[:2], 'letzte:', ids[-1:], 'Zeiten:', d[0].get('publicationDate') if d else '', '…', d[-1].get('publicationDate') if d else '')" "$1"; sleep 3; }
+          curl -sS -m 60 -A "$UA" -o x.json "$B&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T23:59:59"; zeige "ganzer Tag:"
+          curl -sS -m 60 -A "$UA" -o x.json "$B&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T09:00:00"; zeige "00-09 Uhr:"
+          curl -sS -m 60 -A "$UA" -o x.json "$B&PublicationDateFrom=${D}T12:00:00&PublicationDateTo=${D}T23:59:59"; zeige "12-24 Uhr:"
+          curl -sS -m 60 -A "$UA" -o x.json "$B&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T23:59:59&PageNumber=2"; zeige "PageNumber=2:"
+          curl -sS -m 60 -A "$UA" -o x.json "$B&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T23:59:59&pageNumber=2"; zeige "pageNumber=2:"
+          L=$(python3 -c "import json; d=json.load(open('x.json')); print(d[-1].get('objectId',''))" 2>/dev/null || true)
+          curl -sS -m 60 -A "$UA" -o x.json "$B&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T23:59:59&SearchAfter=$L"; zeige "SearchAfter:"
+          curl -sS -m 60 -A "$UA" -o x.json "https://ezamowienia.gov.pl/mo-board/api/v1/notice/stats?NoticeType=ContractNotice&PublicationDateFrom=${D}T00:00:00&PublicationDateTo=${D}T23:59:59" || true; head -c 600 x.json; echo
       - name: Felder im Volltext (5 Bekanntmachungen)
         run: |
           UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
