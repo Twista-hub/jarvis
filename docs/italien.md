@@ -18,6 +18,9 @@
 >   https://github.com/Twista-hub/jarvis/actions/runs/41544733109: **ALLES OK**, 0,074 $. Zwei kommunale
 >   Reinigungsaufträge 9/10 (Bacoli, Kampanien), Rovigo 8/10, Kanal-/Klärschlamm-Reinigung richtig 1–2/10; Steckbrief und
 >   Mail („Nuove gare: 7 – Pulizie Rossi S.r.l.“) auf Italienisch.
+>   **CPV:** ANAC liefert den CPV nur als amtliche italienische Bezeichnung („Servizi di pulizia“, Probe `italien-cpv.yml`).
+>   Zuordnung zum Code über `alarm/cpv_it.json` (Bezeichnungen unserer Gewerke) und Wortregeln in `anac.cpv_code`.
+>   Live-Zahlen /it/gare-d-appalto (30 Tage): Reinigung 34, Grünpflege 20, Sicherheit 11, Personal 8, Elektro 5, Sanitär 5.
 
 > **Recherche-Stand 02.11.2026 (vor den Lese-Tests):** Aus dieser Cloud-Sitzung waren alle italienischen Hosts gesperrt
 > (`pubblicitalegale.anticorruzione.it`, `dati.anticorruzione.it`, `www.anticorruzione.it`, `www.gazzettaufficiale.it`,
