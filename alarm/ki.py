@@ -14,9 +14,13 @@ import anthropic
 MODEL = "claude-opus-5-5"
 MODEL_BEWERTEN = "claude-sonnet-5-5"
 PREISE = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0)}  # $ per million input / output tokens
+# Prompt caching (5-minute entries): writes cost 1.25x input, reads $0.20 per million on both models.
+CACHE_SCHREIBEN = 1.25
+CACHE_LESEN = 0.20
 LIMIT = float(os.environ.get("KI_LIMIT_DOLLAR", "3"))  # hard stop per run
 client = anthropic.Anthropic(max_retries=0)
 _kosten = [0.0]
+_cache = [0, 0]  # tokens read from / written to the prompt cache in this run (log line at the end of alarm.py)
 # The firm the next requests are for (N6: AI costs per firm in the app); set by alarm.py per search profile.
 FIRMA: list = [None]
 
@@ -25,10 +29,17 @@ def kosten() -> float:
     return _kosten[0]
 
 
+def cache_stand() -> str:
+    return f"Prompt-Cache: {_cache[0]} Tokens gelesen, {_cache[1]} geschrieben"
+
+
 def _zaehlen(usage, model: str = MODEL) -> None:
     preis = PREISE[model]
-    eingabe = usage.input_tokens + (usage.cache_creation_input_tokens or 0) + (usage.cache_read_input_tokens or 0)
-    _kosten[0] += (eingabe * preis[0] + usage.output_tokens * preis[1]) / 1e6
+    eingabe = usage.input_tokens * preis[0] + (usage.cache_creation_input_tokens or 0) * preis[0] * CACHE_SCHREIBEN \
+        + (usage.cache_read_input_tokens or 0) * CACHE_LESEN
+    _kosten[0] += (eingabe + usage.output_tokens * preis[1]) / 1e6
+    _cache[0] += usage.cache_read_input_tokens or 0
+    _cache[1] += usage.cache_creation_input_tokens or 0
 
 
 def _bremse() -> bool:
@@ -86,6 +97,13 @@ def _create(**kwargs):
     return response
 
 
+def bewertung_inhalt(beschreibung: str, items: list[dict]) -> list[dict]:
+    """Same text as before, split in two blocks: the customer part (identical for every batch of one profile) is cached,
+    so batches 2, 3, … of a run read system prompt and customer description at a tenth of the price."""
+    return [{"type": "text", "text": f"Kunde:\n{beschreibung}\n\n", "cache_control": {"type": "ephemeral"}},
+            {"type": "text", "text": "Ausschreibungen:\n" + json.dumps(items, ensure_ascii=False)}]
+
+
 def score(beschreibung: str, items: list[dict], sprache: str = "de") -> dict[int, dict]:
     """items: [{nr, titel, auftraggeber, ort, beschreibung, cpv}] -> {nr: {punkte, kurz, grund}}"""
     if not items or _bremse():
@@ -100,12 +118,11 @@ def score(beschreibung: str, items: list[dict], sprache: str = "de") -> dict[int
         "Unter 6 Punkten bei lediglich entferntem oder unklarem Leistungsbezug. "
         "kurz: ein Satz, was gesucht wird. grund: ein Satz, warum es passt oder nicht."
     ) + BEWERTUNG.get(sprache, "")
-    user = f"Kunde:\n{beschreibung}\n\nAusschreibungen:\n" + json.dumps(items, ensure_ascii=False)
     response = _create(
         max_tokens=min(16000, max(1024, len(items) * 280 + 256)),
         system=system,
         output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCORE_SCHEMA}},
-        messages=[{"role": "user", "content": user}],
+        messages=[{"role": "user", "content": bewertung_inhalt(beschreibung, items)}],
     )
     if response is None or response.stop_reason == "refusal":
         return {}
