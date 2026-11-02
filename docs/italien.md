@@ -1,6 +1,19 @@
 # Italien: Datenquelle für nationale Ausschreibungen (Recherche 02.11.2026)
 
-> **Stand 02.11.2026, NICHT live geprüft.** Aus dieser Cloud-Sitzung waren alle italienischen Hosts gesperrt
+> **Live geprüft 02./03.11.2026 (Workflows `italien-test.yml` Run 41542963808, `italien-felder.yml`):**
+> - **robots.txt:** `pubblicitalegale.anticorruzione.it` liefert keine robots.txt (die Web-App antwortet mit ihrer
+>   Startseite) → keine Regeln; `www.anticorruzione.it/robots.txt`: `User-Agent: * / Allow: /`. `dati.anticorruzione.it`
+>   sperrt GitHub-Rechenzentren (HTTP 403, F5) – wird nicht gebraucht.
+> - **Lizenz:** www.anticorruzione.it/copyright (live gelesen): „I dati pubblicati sul presente sito sono messi a
+>   disposizione con licenza **CC-BY 4.0** … liberamente distribuibili e riutilizzabili, a patto che sia sempre citata
+>   la fonte e – ove possibile – riportato l'indirizzo web della pagina originale.“ Zusätzlich CAD Art. 52 Abs. 2.
+>   Quellenangabe: „Fonte: ANAC – Piattaforma Pubblicità a valore legale (CC BY 4.0)“ plus Link zur Bekanntmachung.
+> - **Schnittstelle:** `/api/v0/date` und `/api/v0/avvisi` antworten ohne Anmeldung (HTTP 200, < 1 s). Am 02.11.2026
+>   100 Bandi (codiceScheda 2,4; 81 Erstveröffentlichungen, 19 Berichtigungen), insgesamt 3.826 Einträge aller Arten.
+>   `codiceScheda=5` (Indagini) liefert HTTP 500 → später andere Kennung prüfen.
+> - **Ergebnis: grünes Licht** für den Einbau (`alarm/anac.py`).
+
+> **Recherche-Stand 02.11.2026 (vor den Lese-Tests):** Aus dieser Cloud-Sitzung waren alle italienischen Hosts gesperrt
 > (`pubblicitalegale.anticorruzione.it`, `dati.anticorruzione.it`, `www.anticorruzione.it`, `www.gazzettaufficiale.it`,
 > auch `apify.com`, `data.open-contracting.org`, `web.archive.org`). Alles unten stammt aus Suchergebnissen und aus
 > öffentlichem Quellcode auf GitHub (vier unabhängige Projekte, die die Schnittstelle 2026 nutzen).
