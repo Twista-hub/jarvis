@@ -9,7 +9,7 @@ import { alternativen, LISTEN, SLUGS } from "./gewerke-sprachen.ts";
 
 type Branche = { de: string; name: string; h1: string; cpv: string[]; praefixe: string[]; intro: string; vorteile: string[]; fragen: [string, string][] };
 type Land = {
-  code: "pl" | "es"; locale: string; zone: string; titel: string; einleitung: string; beschreibung: string; quelle: string;
+  code: "pl" | "es" | "it"; locale: string; zone: string; titel: string; einleitung: string; beschreibung: string; quelle: string;
   registrieren: string; demo: string; monat: string; offen: string; auswahl: string; auswahlHinweis: string; frist: string; link: RegExp;
   hilfe: (name: string) => string; immer: string[]; cpvText: string; fragenTitel: string; andere: string; allgemein: [string, string][];
   meta: (h1: string, monat: string) => string; branchen: Branche[];
@@ -160,7 +160,72 @@ const ES: Land = {
   ],
 };
 
-export const LAENDER: Land[] = [PL, ES];
+const IT: Land = {
+  code: "it", locale: "it-IT", zone: "Europe/Rome",
+  titel: "Gare d'appalto pubbliche per settore",
+  einleitung: "Jarvis legge ogni giorno tutti i nuovi bandi pubblicati sulla piattaforma Pubblicità a valore legale dell'ANAC, sopra e sotto soglia, e mostra a imprese edili, di servizi e agenzie per il lavoro quelli adatti a loro, nelle loro regioni. Scegli il tuo settore:",
+  beschreibung: "Gare d'appalto pubbliche per edilizia, pulizie, vigilanza e somministrazione: Jarvis trova ogni giorno sulla piattaforma ANAC i bandi adatti alla tua impresa, nelle tue regioni.",
+  quelle: `<p class="klein">Fonte: ANAC – Piattaforma Pubblicità a valore legale (licenza CC BY 4.0). Jarvis è un servizio privato di WP Digital Ranger, non un ente pubblico.</p>`,
+  registrieren: "Trova gratis le gare adatte", demo: "🎬 Guarda la demo",
+  monat: "bandi negli ultimi 30 giorni", offen: "ancora aperti",
+  auswahl: "Gare aperte (selezione)",
+  auswahlHinweis: "Bandi della piattaforma ANAC con un codice CPV di questo settore. In Jarvis ricevi solo le gare adatte alla tua impresa e alle tue regioni, con un punteggio e una frase di spiegazione.",
+  frist: "scadenza", link: /^https:\/\/pubblicitalegale\.anticorruzione\.it\//,
+  hilfe: (n) => `Come Jarvis aiuta le imprese del settore ${n.toLowerCase()}`,
+  immer: ["Ogni mattina le nuove gare con un punteggio da 1 a 10 e una frase che spiega perché sono adatte", "Ricerca per regioni, all'inizio quella della tua sede"],
+  cpvText: "Codici CPV seguiti, tra cui:", fragenTitel: "Domande frequenti", andere: "Altri settori",
+  allgemein: [
+    ["Quanto costa Jarvis?", "La registrazione è gratuita. Vedi subito le gare adatte alla tua impresa e puoi provare tutto con calma."],
+    ["Da dove vengono le gare?", "Dalla piattaforma Pubblicità a valore legale dell'ANAC, dove dal 2024 vengono pubblicati per legge tutti i bandi italiani, sopra e sotto soglia europea. Jarvis legge ogni giorno lavorativo tutti i nuovi bandi, circa 100–120 al giorno."],
+    ["Posso limitare la ricerca alle mie regioni?", "Sì. Scegli le tue regioni, all'inizio quella della tua sede. Jarvis mostra solo le gare con luogo di esecuzione in quelle regioni."],
+    ["Jarvis è un servizio pubblico?", "No. Jarvis è un servizio privato di WP Digital Ranger, non un ente pubblico."],
+  ],
+  meta: (h1, monat) => `${h1}: ${monat}Jarvis legge ogni giorno i bandi ANAC e ti invia quelli adatti alla tua impresa, nelle tue regioni. Registrazione gratuita.`,
+  branchen: [
+    b("gebaeudereinigung", "Pulizie", "Gare d'appalto pubbliche per servizi di pulizia e sanificazione",
+      "Scuole, comuni, ospedali e aziende pubbliche affidano regolarmente la pulizia dei locali, dei vetri e le pulizie di fine cantiere. Gli appalti sono spesso divisi in lotti per edificio, accessibili anche a piccole imprese di pulizie. Jarvis trova quelli adatti alla tua impresa e alle tue regioni.",
+      ["Pulizia ordinaria, vetri e sanificazione riconosciuti separatamente", "Scheda con lotti, superfici, frequenze, durata, clausola sociale e sopralluogo", "Turni delle squadre, registro ore e attestazioni del servizio nei siti aggiudicati"],
+      [["Le gare di pulizia sono accessibili alle piccole imprese?", "Spesso sì. Molte stazioni appaltanti dividono l'appalto in lotti per sede. Jarvis mostra lotti, durata, clausola sociale e scadenza per decidere in fretta."]]),
+    b("sicherheitsdienst", "Vigilanza", "Gare d'appalto pubbliche per vigilanza armata, portierato e servizi fiduciari",
+      "Vigilanza di edifici, portierato, ronde, sicurezza per eventi e servizi fiduciari per comuni, ospedali ed enti pubblici. Jarvis trova le gare e riassume i requisiti: licenza prefettizia, numero di addetti, CCNL applicato.",
+      ["Vigilanza, portierato, ronde e servizi fiduciari riconosciuti", "Scheda con orari, addetti e documentazione richiesta", "Turni degli addetti con turni liberi che la squadra può prendere da sola"],
+      [["Jarvis aiuta a organizzare gli addetti?", "Sì. Vedi chi è disponibile e quali abilitazioni sono valide, pianifichi i turni e gli addetti prendono i turni liberi dall'app."]]),
+    b("garten-landschaftsbau-winterdienst", "Manutenzione del verde", "Gare d'appalto pubbliche per manutenzione del verde e potature",
+      "Manutenzione di parchi e giardini, sfalcio, potature e servizio neve: comuni, province e aziende pubbliche bandiscono questi appalti ogni anno, spesso a lotti. Jarvis ti mostra quelli delle tue regioni.",
+      ["Manutenzione, potature, nuovi impianti e servizio neve riconosciuti", "Promemoria per scadenze e sopralluoghi", "Turni e registro ore per le squadre"],
+      [["Quando i comuni pubblicano le gare per il verde?", "Tutto l'anno, con un picco a fine inverno per la stagione successiva. Jarvis ti avvisa ogni mattina dei nuovi bandi."]]),
+    b("elektro", "Impianti elettrici", "Gare d'appalto pubbliche per impianti elettrici e speciali",
+      "Impianti elettrici, illuminazione, fotovoltaico, impianti speciali e manutenzione in scuole, palestre ed edifici pubblici. Jarvis trova la categoria impianti elettrici anche dentro un grande appalto di lavori.",
+      ["Lavorazioni elettriche riconosciute negli appalti di lavori completi", "Scheda con lotti, computo, tempi e qualificazione richiesta (es. SOA OS30)", "Scadenze e quesiti alla stazione appaltante nel calendario"],
+      [["Le gare pubbliche convengono a un piccolo elettricista?", "Sì. Molti appalti sono divisi in lotti o riguardano un solo edificio. Jarvis mostra importo, luogo e scadenza a colpo d'occhio."]]),
+    b("sanitaer-heizung-lueftung", "Idraulica e riscaldamento", "Gare d'appalto pubbliche per impianti idraulici, termici e di climatizzazione",
+      "Sostituzione di caldaie, ventilazione, impianti idrico-sanitari e manutenzione HVAC negli edifici pubblici: uno dei settori più messi a gara. Jarvis ordina gli appalti secondo le tue regioni.",
+      ["Impianti idraulici e termici riconosciuti negli appalti di costruzione e ristrutturazione", "Promemoria prima di ogni scadenza", "Scheda con oggetto, durata e requisiti (es. SOA OS28)"],
+      [["Come trovo gare per impianti vicino a me?", "Alla registrazione Jarvis prende la regione della tua sede come area di ricerca. Puoi aggiungere o togliere regioni in qualsiasi momento, senza costi."]]),
+    b("maler-trockenbau", "Tinteggiatura e cartongesso", "Gare d'appalto pubbliche per tinteggiature, intonaci e cartongesso",
+      "Tinteggiature, intonaci, pareti in cartongesso e controsoffitti fanno parte di quasi ogni ristrutturazione di edifici pubblici. Jarvis trova queste lavorazioni, anche dentro un grande intervento.",
+      ["Tinteggiature, intonaci e controsoffitti riconosciuti", "Luogo e scadenza a colpo d'occhio", "Scheda con quantità e tempi di esecuzione"],
+      [["Si tratta solo di grandi cantieri?", "No. Molti appalti riguardano una scuola, un asilo o pochi alloggi e sono accessibili a imprese con pochi dipendenti."]]),
+    b("tischler-schreiner", "Falegnameria", "Gare d'appalto pubbliche per serramenti, porte e arredi su misura",
+      "Porte, finestre, arredi e opere in legno su misura vengono affidati in lotti separati in quasi ogni intervento pubblico. Jarvis trova i lotti adatti alla tua bottega.",
+      ["Lavorazioni di falegnameria riconosciute nei grandi interventi", "Scheda con requisiti richiesti e criteri di aggiudicazione", "Scadenze e sopralluoghi nel calendario"],
+      [["Devo leggere tutto il disciplinare per ogni gara?", "No. Jarvis riassume il bando. Se carichi i documenti di gara, Jarvis li legge tutti e scrive una scheda dettagliata."]]),
+    b("dach-zimmerer", "Coperture", "Gare d'appalto pubbliche per coperture, strutture in legno e impermeabilizzazioni",
+      "Rifacimento di coperture, strutture in legno e impermeabilizzazioni per scuole e strutture pubbliche: Jarvis trova le gare delle tue regioni e indica scadenza, oggetto e documenti.",
+      ["Coperture, strutture in legno e impermeabilizzazioni riconosciute", "Scadenze e quesiti alla stazione appaltante nel calendario", "Scheda con criteri di aggiudicazione"],
+      [["Con quale frequenza cerca Jarvis?", "Ogni giorno. Ricevi le nuove gare per e-mail o notifica all'orario che scegli."]]),
+    b("bodenbelaege-fliesen", "Pavimenti e piastrelle", "Gare d'appalto pubbliche per pavimentazioni e rivestimenti",
+      "Pavimenti in resina, linoleum e piastrelle vengono affidati separatamente nelle ristrutturazioni e costruzioni pubbliche. Jarvis trova i lotti adatti nelle tue regioni.",
+      ["Pavimenti e rivestimenti riconosciuti negli appalti di lavori", "Promemoria per scadenze e sopralluoghi", "Scheda con superfici e tempi"],
+      [["Quanto velocemente vedo le nuove gare?", "Ogni mattina, per e-mail o notifica sul telefono, all'orario che preferisci."]]),
+    b("zeitarbeit-personaldienstleister", "Somministrazione di lavoro", "Gare d'appalto pubbliche per somministrazione di lavoro a tempo determinato",
+      "Ospedali, comuni e mense cercano personale in somministrazione per cucina, pulizie, amministrazione o assistenza, spesso con accordi quadro pluriennali. Molti di questi appalti sono pubblicati con il nome del servizio e non come «somministrazione». Jarvis li trova comunque.",
+      ["Riconosce il fabbisogno di personale anche negli appalti di ristorazione, pulizie e accoglienza", "Pianificazione delle missioni e registro ore", "Approvazione online delle ore da parte del cliente"],
+      [["Jarvis trova gare che non parlano di somministrazione?", "Sì. Jarvis analizza il fabbisogno reale descritto nel bando, per esempio personale di mensa, e non solo la parola chiave."]]),
+  ],
+};
+
+export const LAENDER: Land[] = [PL, ES, IT];
 
 const slug = (l: Land, br: Branche) => SLUGS[br.de][l.code];
 const knoepfe = (l: Land) => `<div class="knopf-zeile"><a class="knopf" href="/sprache?zu=${l.code}&amp;weiter=%2Fregistrieren">${escape(l.registrieren)}</a><a class="knopf zweit" href="/sprache?zu=${l.code}&amp;weiter=%2Fdemo">${escape(l.demo)}</a></div>`;

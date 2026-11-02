@@ -120,6 +120,7 @@ jobs:
           curl -fsS -H "cookie: jv_psprache=pl" "$URL/datenschutz" -o ds_pl.html && grep -q "UODO" ds_pl.html && curl -fsS -H "cookie: jv_psprache=es" "$URL/datenschutz" -o ds_es.html && grep -q "AEPD" ds_es.html
           curl -fsS -H "cookie: jv_psprache=it" "$URL/registrieren" -o reg_it.html && grep -q '<html lang="it"' reg_it.html && grep -q "Registrati" reg_it.html
           curl -fsS -H "cookie: jv_psprache=it" "$URL/datenschutz" -o ds_it.html && grep -q "Garante" ds_it.html
+          curl -fsS -H "cookie: jv_psprache=de" "$URL/it/gare-d-appalto/pulizie" -o gara.html && grep -q "Pubblicità a valore legale" gara.html && grep -q '<html lang="it"' gara.html
           curl -fsS "$URL/impressum" -o impressum.html && grep -q "Rochusstraße" impressum.html
           curl -fsS "$URL/app.js" -o app.js && grep -q "push-test" app.js
           echo "Upload-Seite: $URL" >> "$GITHUB_STEP_SUMMARY"

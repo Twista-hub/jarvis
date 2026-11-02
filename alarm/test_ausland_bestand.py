@@ -24,5 +24,16 @@ class AuslandBestand(unittest.TestCase):
         self.assertIsNone(ab.zeile_es({**a, "link": ""}, "2026-11-02"))
 
 
+    def test_italien_zeile(self):
+        a = {"id": "c9aa", "titel": "Servizio di pulizia", "auftraggeber": "COMUNE DI MILANO", "regioni": ["ITC4"], "orte": ["Milano"],
+             "cpv": ["90911200"], "frist": "2026-11-30T14:00:00.000+00:00", "veroeffentlicht": "2026-10-30", "aktiv": True}
+        z = ab.zeile_it(a, "2026-10-30")
+        self.assertEqual(z[0:2], ("it", "anac-c9aa"))
+        self.assertEqual(z[5], "ITC4")
+        self.assertEqual(z[7], "2026-11-30T14:00:00+00:00")
+        self.assertEqual(z[8], "https://pubblicitalegale.anticorruzione.it/bandi/c9aa")
+        self.assertIsNone(ab.zeile_it(dict(a, aktiv=False), "2026-10-30"))
+
+
 if __name__ == "__main__":
     unittest.main()
