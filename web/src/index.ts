@@ -60,7 +60,10 @@ import { betreiber } from "./loeschen.ts";
 import { demo } from "./demo.ts";
 import { gewerke } from "./gewerke.ts";
 import { metiers } from "./gewerke-fr.ts";
+import { landGewerke } from "./gewerke-land.ts";
 import { hinweisDeutsch, RECHT_FR } from "./rechtliches-fr.ts";
+import { hinweisDeutschPl, RECHT_PL } from "./rechtliches-pl.ts";
+import { hinweisDeutschEs, RECHT_ES } from "./rechtliches-es.ts";
 import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
@@ -68,7 +71,7 @@ import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastr
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { usProfil, usRadar } from "./usprofil.ts";
 import { samAnleitungSeite } from "./samanleitung.ts";
-import { appSprache, sprachFuss, sprachWechsel, uebersetzen, type AppSprache } from "./englisch.ts";
+import { APP_SPRACHEN, appSprache, sprachFuss, sprachWechsel, uebersetzen, type AppSprache } from "./englisch.ts";
 import { ISO2, SPRACHEN_OEFFENTLICH, besucher, keineBehoerde, kopfZeile, landWahl, landesSeite, wahlCookies, type Sprache } from "./besucher.ts";
 import { escape, markdown, seite, stapeln } from "./seite";
 import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
@@ -142,9 +145,9 @@ function darstellen(request: Request, r: Response): Response {
   const wahl = /(?:^|;\s*)jv_darstellung=([a-z-]{1,20})/.exec(request.headers.get("cookie") ?? "")?.[1] ?? "";
   const theme = wahl.includes("dark") ? "dark" : wahl.includes("light") ? "light" : "";
   const attribute = `${theme ? ` data-theme="${theme}"` : ""}${wahl.includes("gross") ? ' data-schrift="gross"' : ""}`;
-  // Pages written in one language (French trade pages) say so; everything else follows the visitor's choice.
+  // Pages written in one language (foreign trade and legal pages) say so; everything else follows the visitor's choice.
   const fest = r.headers.get("x-jv-sprache");
-  const sprache = fest === "de" || fest === "en" || fest === "fr" ? fest : appSprache(request);
+  const sprache = (APP_SPRACHEN as readonly string[]).includes(fest ?? "") ? fest as AppSprache : appSprache(request);
   const url = new URL(request.url);
   const pfad = `${url.pathname}${url.search}`;
   const body = new Response(r.body).text();
@@ -185,6 +188,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (gw) return gw;
     const fr = await metiers(request, env, ADRESSE, (h) => html(h));
     if (fr) return fr;
+    const lg = await landGewerke(request, env, ADRESSE, (h) => html(h));
+    if (lg) return lg;
     const sam = samAnleitungSeite(request, ADRESSE, (h) => html(h));
     if (sam) return sam;
     const dm = await demo(request, MUSTER.replace(/^>.*\n/m, ""));
@@ -261,11 +266,13 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       if ((url.pathname === "/" && titel === null) || (lp && ISO2[lp[1].toUpperCase()])) return landesStart(request, url, lp?.[1]);
       if (url.pathname === "/" || url.pathname === "/hochladen") return html(formular("", titel ?? ""));
       const recht = RECHT[url.pathname];
-      if (recht && appSprache(request) === "fr") {
-        // French translation (for information, the German text is binding); fixed French so the dictionary stays out.
-        const [titel, inhalt] = RECHT_FR[url.pathname];
-        const r = html(seite(titel, hinweisDeutsch(url.pathname) + inhalt()));
-        r.headers.set("x-jv-sprache", "fr");
+      const rs = appSprache(request);
+      const uebersetzt = rs === "fr" ? [RECHT_FR, hinweisDeutsch] as const : rs === "pl" ? [RECHT_PL, hinweisDeutschPl] as const : rs === "es" ? [RECHT_ES, hinweisDeutschEs] as const : null;
+      if (recht && uebersetzt) {
+        // Translation (for information, the German text is binding); the page keeps its language.
+        const [titel, inhalt] = uebersetzt[0][url.pathname];
+        const r = html(seite(titel, uebersetzt[1](url.pathname) + inhalt()));
+        r.headers.set("x-jv-sprache", rs);
         return r;
       }
       if (recht) return html(seite(recht[0], recht[1]()));

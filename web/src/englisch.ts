@@ -156,7 +156,7 @@ export function uebersetzen(seite: string, sprache: AppSprache): string {
   }).join("");
 }
 
-const APP_SPRACHEN: readonly AppSprache[] = ["de", "en", "fr", "pl", "es"];
+export const APP_SPRACHEN: readonly AppSprache[] = ["de", "en", "fr", "pl", "es"];
 const zuApp = (s: string): AppSprache => (APP_SPRACHEN as readonly string[]).includes(s) ? s as AppSprache : "en";
 
 /** Office language of this visitor: the cookie decides, otherwise country and browser (besucher.ts). German, English

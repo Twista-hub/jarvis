@@ -1,0 +1,28 @@
+# Twice a day: Polish (BZP, UZP) and Catalan (Generalitat de Catalunya, open data) tender stock for the live numbers of
+# the public Polish and Spanish trade pages. Reads only public data; first run with "tage" = 31 fills the last month.
+name: Auslands-Bestand
+on:
+  schedule:
+    - cron: "47 6,18 * * *"
+  workflow_dispatch:
+    inputs:
+      tage:
+        description: "Wie viele Tage zurück lesen (1–95)"
+        default: "2"
+permissions:
+  contents: read
+jobs:
+  lesen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q "psycopg[binary]"
+      - name: BZP und Katalonien lesen, Zahlen berechnen
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          TAGE: ${{ inputs.tage || '2' }}
+        run: cd alarm && python ausland_bestand.py "$TAGE"
