@@ -33,3 +33,10 @@ test("Betreiber-Seite: Firmen, Haken nur bei Team-Firma, Bestätigung", () => {
   assert.match(s, /name="bestaetigung" required/);
   assert.doesNotMatch(betreiberSeite("kunde@weg.de", [t[0]]), /firmen_mit/);
 });
+
+import { fehlerText } from "../src/fehler.ts";
+test("Fehlermeldung an den Betreiber ohne persönliche Daten", () => {
+  const t = fehlerText(new TypeError("Kunde max.mustermann@firma.de, Telefon 017112345678 nicht gefunden"));
+  assert.equal(t, "TypeError: Kunde …@…, Telefon … nicht gefunden");
+  assert.ok(fehlerText("x".repeat(500)).length <= 220);
+});

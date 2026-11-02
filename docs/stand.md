@@ -79,6 +79,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Datensicherung und Fehler-Alarm)
+- Datensicherung `.github/workflows/sicherung.yml`: jede Nacht 01:23 UTC pg_dump 17 (Schemas public, jarvis_intern, jarvis_katalog; Daten von auth.users/auth.identities), Vollständigkeit geprüft, mit `BACKUP_PASSWORT` verschlüsselt (AES-256/PBKDF2), Entschlüsseln geprüft, in R2 `jarvis-auftraege/sicherung/` abgelegt; 14 Tage plus Monatssicherung für ein Jahr. Anleitung und Wiederherstellung: `docs/sicherung.md`. **Offen: Benjamin legt das Secret `BACKUP_PASSWORT` an**, danach Testlauf.
+- Fehler-Alarm (Migration `20261102080000_fehler_alarm.sql`): `public.fehler_melden(art, text)` (auch ohne Login; gleiche Meldung höchstens alle 30 Min., höchstens 20 pro Tag) → Handy-Nachricht an den Betreiber. Meldet: unerwartete Fehler in der App (`web/src/index.ts`, freundliche Fehlerseite, Pfad ohne IDs, Text ohne E-Mails/Nummern, `web/src/fehler.ts`), gescheiterte Firmenprüfung (außer Budget), gescheiterte Abläufe (`.github/workflows/fehler-melden.yml` für Alarm, Datenbank, Prüfen, Upload-Seite, Katalog, Mail, Sicherung) und KI-Budget bei 80 % und 100 % (Trigger auf `ki_budget`). Datenschutz ergänzt.
+
 ### 02.11.2026 – Claude (Handy-Nachricht an den Betreiber bei neuer Anmeldung)
 - Migration `20261101220000_betreiber_push_anmeldung.sql`: Trigger auf `auth.users` (neue Anmeldung, mit Firmenname aus der Registrierung) und `public.firmen` (neue Firma) legen eine Nachricht in `push_warteschlange` für alle Betreiber (`jarvis_intern.betreiber`); Versand stündlich 6–21 Uhr über `alarm/mail.py`. Link öffnet `/konto/betreiber`. Rechte-Test ergänzt.
 - Diagnose `einrichtung-diagnose.yml` zeigt neue Anmeldungen der letzten 14 Tage (E-Mail gekürzt). Stand 02.11.: 1 Zugang (Benjamin), Test-Konto „Perlease GmbH“ gelöscht.

@@ -1,0 +1,32 @@
+# Phone notification to the operator when an important run fails (via the push queue, function fehler_melden).
+name: Fehler melden
+on:
+  workflow_run:
+    workflows: ["Ausschreibungs-Alarm", "Datenbank", "Prüfen", "Upload-Seite ausrollen", "Zentralen Vergabekatalog ausrollen", "Tägliche Mail", "Datensicherung"]
+    types: [completed]
+permissions:
+  contents: read
+jobs:
+  melden:
+    if: github.event.workflow_run.conclusion == 'failure'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q "psycopg[binary]"
+      - name: Melden
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          NAME: ${{ github.event.workflow_run.name }}
+          LINK: ${{ github.event.workflow_run.html_url }}
+        run: |
+          cd alarm
+          python - <<'PY'
+          import os
+          from profile_db import verbinden
+          with verbinden() as c:
+              c.execute("select public.fehler_melden('github', %s)", (f"„{os.environ['NAME']}“ ist fehlgeschlagen. {os.environ['LINK']}",))
+          print("gemeldet")
+          PY

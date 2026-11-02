@@ -57,6 +57,7 @@ import { spesen } from "./spesen.ts";
 import { zeitkontoRoute } from "./zeitkonto.ts";
 import { kraefteEinladen } from "./kraefte.ts";
 import { betreiber } from "./loeschen.ts";
+import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
@@ -103,7 +104,15 @@ export default {
     // The app lives at app.wpdigitalranger.com; the old workers.dev address forwards there (links in older mails keep working).
     const alt = new URL(request.url);
     if (alt.hostname.endsWith(".workers.dev")) return Response.redirect(`${ADRESSE}${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
-    const r = darstellen(request, await verarbeiten(request,env));
+    let antwort: Response;
+    try { antwort = await verarbeiten(request, env); }
+    catch (e) {
+      // Unexpected error: phone notification to the operator (path without query, no personal data) and a friendly page.
+      console.error(e);
+      await fehlerMelden(env, "app", `${request.method} ${alt.pathname.replace(/[0-9a-f-]{36}/g, ":id").slice(0, 80)} · ${fehlerText(e)}`);
+      antwort = html(seite("Fehler", `<p>Da ist leider etwas schiefgegangen. Bitte versuche es gleich noch einmal.</p><p class="klein">Wir haben eine Nachricht bekommen und kümmern uns darum.</p><p><a href="/konto">Zur Übersicht</a></p>`), 500);
+    }
+    const r = darstellen(request, antwort);
     if (!new URL(request.url).pathname.startsWith("/auftrag/")) return r;
     const s = await sitzung(request,env);
     const headers = new Headers(r.headers);
