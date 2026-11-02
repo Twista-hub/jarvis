@@ -58,7 +58,7 @@ import { zeitkontoRoute } from "./zeitkonto.ts";
 import { kraefteEinladen } from "./kraefte.ts";
 import { betreiber } from "./loeschen.ts";
 import { demo } from "./demo.ts";
-import { gewerke } from "./gewerke.ts";
+import { GEWERKE, gewerke } from "./gewerke.ts";
 import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
@@ -586,11 +586,11 @@ function landesStart(request: Request, url: URL, ausAdresse?: string): Response 
   const b = besucher(request, ausAdresse);
   const gewaehlt = url.searchParams.get("sprache");
   if (gewaehlt && (SPRACHEN_OEFFENTLICH as readonly string[]).includes(gewaehlt)) b.sprache = gewaehlt as Sprache;
-  const deutsch = b.land === "DE" && b.sprache === "de";
-  const zusatz = startseite(markdown(MUSTER.replace(/^>.*\n/m, "")));
-  const l = landesSeite(b, ADRESSE, "");
-  const body = deutsch ? `${zusatz}${landWahl(b)}<p class="klein">${keineBehoerde("de")}</p>` : l.inhalt;
-  const r = html(kopfZeile(seite(deutsch ? "Jarvis" : l.titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}`));
+  // Germany: trade pages (numbers from the German catalogue) and the sample fact sheet below the steps.
+  const zusatzDe = `<h2>Ausschreibungen nach Gewerk</h2><ul class="start-gewerke">${GEWERKE.map((g) => `<li><a href="/ausschreibungen/${g.slug}">${escape(g.name)}</a></li>`).join("")}<li><a href="/ausschreibungen">alle</a></li></ul>
+<h2>Beispiel-Steckbrief</h2><details class="start-steckbrief"><summary>Leihpersonal für die Gastronomie der Deutschen Bundesbank (aufklappen)</summary>${markdown(MUSTER.replace(/^>.*\n/m, ""))}</details>`;
+  const l = landesSeite(b, ADRESSE, zusatzDe);
+  const r = html(kopfZeile(seite(l.titel, l.inhalt), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}`));
   r.headers.delete("x-robots-tag");
   r.headers.set("vary", "cookie, accept-language");
   r.headers.set("cache-control", "private, no-store");

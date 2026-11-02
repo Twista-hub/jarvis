@@ -1,3 +1,4 @@
+import { symbol, symboleEinsetzen } from "./symbole.ts";
 import { marked } from "marked";
 
 // Page frame: plain HTML (the only script is /app.js, see app.ts), readable on a phone, light and dark.
@@ -997,20 +998,94 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .nur-drucken { display: none; }
   @media print { .nicht-drucken, .konto-zurueck { display: none !important; } .nur-drucken { display: block; } .einladungen-karten { grid-template-columns: 1fr 1fr; } .einladung-karte { border: 1px solid #999; } .einladung-qr svg { width: 150px; height: 150px; } .einladung-karte { grid-template-columns: 150px 1fr; } }
   html[dir="rtl"] .konto-zurueck a { transform: scaleX(-1); display: inline-block; }
+  /* Design 2026-11 (Rückweg: Branch design-alt-2026-11-02): brand colours from the logo (navy + orange), calmer cards
+     with depth, tighter type, line icons instead of emojis in tiles and navigation, big numbers for "Heute wichtig". */
+  :root { --bg: #f4f5f2; --text: #14181d; --muted: #5b6470; --card: #fff; --line: #e3e5e0; --accent: #15324b; --accent2: #ff6b35; --soft: #eef3f7; --error: #c0392b; --schatten: 0 1px 2px #14181d0d, 0 4px 14px #15324b0a; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --bg: #101317; --text: #eceef0; --muted: #a2a9b2; --card: #1a1f25; --line: #2d343c; --accent: #8cc4ee; --accent2: #ff8a5c; --soft: #1f2a35; --error: #f0907c; --schatten: 0 1px 2px #0006; } }
+  :root[data-theme="dark"] { --bg: #101317; --text: #eceef0; --muted: #a2a9b2; --card: #1a1f25; --line: #2d343c; --accent: #8cc4ee; --accent2: #ff8a5c; --soft: #1f2a35; --error: #f0907c; --schatten: 0 1px 2px #0006; }
+  body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; -webkit-font-smoothing: antialiased; letter-spacing: -.003em; }
+  h1 { font-size: 1.7rem; line-height: 1.15; letter-spacing: -.022em; font-weight: 800; }
+  h2 { font-size: 1.08rem; letter-spacing: -.01em; font-weight: 750; margin: 30px 0 12px; }
+  form, .steckbrief-karte, .treffer-karte, .konto-kachel, fieldset { box-shadow: var(--schatten); }
+  form { border-radius: 16px; }
+  .treffer-karte { border-radius: 18px; }
+  button, .knopf { border-radius: 12px; letter-spacing: -.005em; }
+  .knopf { font-size: 1.02rem; }
+  .knopf:not(.zweit) { background: var(--accent2); color: #fff; box-shadow: 0 6px 16px #ff6b3533; }
+  input, select, textarea { border-radius: 10px; background: var(--card); }
+  .konto-kacheln { gap: 10px; }
+  .konto-kachel { min-height: 0; gap: 4px; padding: 14px 30px 14px 14px; border-radius: 16px; }
+  .konto-kachel strong { font-size: .98rem; letter-spacing: -.01em; line-height: 1.25; overflow-wrap: normal; word-break: normal; hyphens: auto; }
+  .konto-kachel { overflow-wrap: break-word; }
+  .konto-kachel .klein { line-height: 1.35; }
+  .konto-icon { display: grid; place-items: center; width: 40px; height: 40px; margin-bottom: 8px; border-radius: 12px; background: var(--soft); color: var(--accent); font-size: 1.3rem; }
+  .konto-icon .symbol { width: 22px; height: 22px; }
+  .standort-kacheln .konto-icon { width: 34px; height: 34px; margin-bottom: 4px; }
+  .konto-pfeil { top: 14px; right: 12px; font-size: 1.2rem; color: var(--muted); }
+  .heute-wichtig { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+  .heute-wichtig a { display: block; height: 100%; padding: 14px; border-radius: 16px; font-size: .85rem; font-weight: 500; color: var(--muted); box-shadow: var(--schatten); line-height: 1.35; }
+  .heute-wichtig a strong { display: block; margin-bottom: 2px; font-size: 1.65rem; line-height: 1.1; letter-spacing: -.03em; color: var(--accent); }
+  .heute-wichtig a.dringend strong { color: var(--error); }
+  .konto-nav { background: color-mix(in srgb, var(--card) 92%, transparent); backdrop-filter: blur(10px); }
+  .konto-nav a { color: var(--muted); }
+  .konto-nav a[aria-current] { color: var(--accent); }
+  .konto-nav .symbol { width: 24px; height: 24px; }
+  .kopf-chips li { border-radius: 999px; }
+  /* Start page (design 2026-11) */
+  main:has(.start-hero) > header, main:has(.start-hero) > .seiten-titel { display: none; }
+  .start-hero { position: relative; overflow: hidden; margin: 0 -4px; padding: 24px 22px; border-radius: 22px; background: linear-gradient(160deg, #15324b 0%, #1d4a6e 60%, #245b86 100%); color: #fff; }
+  .start-hero::after { content: ""; position: absolute; right: -70px; top: -70px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, #ff6b3533, transparent 70%); pointer-events: none; }
+  .start-marke { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; font-weight: 750; }
+  .start-marke svg { width: 34px; height: 34px; }
+  .start-marke small { display: block; font-size: .7rem; font-weight: 500; opacity: .7; }
+  .start-hero h1 { margin: 0 0 12px; color: #fff; font-size: 2rem; line-height: 1.12; }
+  .start-hero .seiten-titel { display: block; }
+  .start-hero p { margin: 0 0 20px; color: #d6e2ec; font-size: 1.02rem; }
+  .start-hinweis { background: #ffffff1a; border-radius: 12px; padding: 10px 12px; }
+  .start-cta { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 15px 18px; border-radius: 14px; background: #ff6b35; color: #fff; font-size: 1.05rem; font-weight: 750; text-decoration: none; box-shadow: 0 8px 20px #ff6b3540; }
+  .start-cta .symbol { width: 20px; height: 20px; }
+  .start-demo { display: block; margin-top: 12px; text-align: center; color: #fff; font-weight: 600; text-decoration: none; opacity: .92; }
+  .start-fakten { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; list-style: none; margin: 18px 0 0; padding: 0; }
+  .start-fakten li { padding: 10px 6px; border: 1px solid #ffffff22; border-radius: 12px; background: #ffffff14; text-align: center; }
+  .start-fakten strong { display: block; font-size: 1.15rem; color: #fff; }
+  .start-fakten span { font-size: .72rem; color: #c5d4e1; }
+  .start-konto { margin: 14px 2px 0; color: var(--muted); font-size: .9rem; }
+  .start-beispiel { padding: 16px; border: 1px solid var(--line); border-radius: 18px; background: var(--card); box-shadow: 0 10px 30px #15324b14; }
+  .start-beispiel-kopf { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+  .start-punkte { padding: 4px 10px; border-radius: 999px; background: #e8f5ee; color: #1f8a4c; font-size: .8rem; font-weight: 750; }
+  .start-beispiel h3 { margin: 0 0 10px; font-size: 1.02rem; line-height: 1.35; }
+  .start-chips { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 0 10px; padding: 0; }
+  .start-chips li { padding: 4px 9px; border-radius: 8px; background: var(--bg); color: var(--muted); font-size: .82rem; }
+  .start-frist { display: flex; align-items: center; gap: 8px; margin: 0; color: #b7791f; font-size: .9rem; font-weight: 650; }
+  .start-frist .symbol, .start-wahl .symbol { width: 20px; height: 20px; flex: none; }
+  .start-schritte { display: grid; gap: 10px; list-style: none; margin: 0; padding: 0; }
+  .start-schritte li { display: flex; gap: 14px; padding: 16px; border: 1px solid var(--line); border-radius: 16px; background: var(--card); box-shadow: var(--schatten); }
+  .start-nr { display: grid; place-items: center; flex: none; width: 38px; height: 38px; border-radius: 11px; background: var(--soft); color: var(--accent); }
+  .start-nr .symbol { width: 22px; height: 22px; }
+  .start-schritte strong { display: block; margin-bottom: 2px; }
+  .start-schritte span { color: var(--muted); font-size: .93rem; }
+  .start-gewerke { display: flex; flex-wrap: wrap; gap: 8px; list-style: none; margin: 0; padding: 0; }
+  .start-gewerke a { display: block; padding: 8px 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--text); font-size: .92rem; font-weight: 550; text-decoration: none; }
+  .start-wahl { margin-top: 26px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .start-wahl > summary { display: flex; align-items: center; gap: 8px; padding: 12px 14px; color: var(--muted); font-size: .92rem; cursor: pointer; }
+  .start-wahl > summary b { color: var(--text); }
+  .start-wahl .land-wahl { margin: 0; padding: 0 14px 12px; }
+  .start-fuss { text-align: center; }
+  @media (min-width: 700px) { .start-hero { padding: 40px; } .start-hero h1 { font-size: 2.6rem; } .start-schritte { grid-template-columns: repeat(3, minmax(0, 1fr)); } .start-schritte li { flex-direction: column; } }
 </style>
 </head>
 <body><main>
 ${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto"><svg viewBox="0 0 128 128" aria-hidden="true"><rect x="2" y="2" width="124" height="124" rx="30" fill="#15324b"/><circle cx="64" cy="64" r="43" fill="none" stroke="#fff" stroke-opacity=".52" stroke-width="2"/><circle cx="64" cy="64" r="4" fill="#fff"/><path d="M64 18 77 62 64 56 51 62Z" fill="#ff6b35"/><path d="m64 110-13-44 13 6 13-6z" fill="#168aad"/><path d="m18 64 44-13-6 13 6 13zM110 64 66 77l6-13-6-13z" fill="#fff"/></svg><span><strong>Jarvis</strong><small>WP Digital Ranger</small></span></a><div class="konto-aktionen"><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>`}
 ${eigenerZurueck || (kontoBereich ? `<p class="konto-zurueck"><a href="/konto" aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←</span></a></p>` : "")}
 ${kopf}
-${inhalt.replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace(/<\/table>/g, "</table></div>")}
+${symboleEinsetzen(inhalt).replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace(/<\/table>/g, "</table></div>")}
 <p class="klein">WP Digital Ranger · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> · <a href="/avv">Auftragsverarbeitung</a></p>
 </main>${kontoBereich !== undefined ? kontoNavigation(kontoBereich) : ""}</body>
 </html>`;
 }
 
 export function kontoNavigation(aktiv: string): string {
-  return `<nav class="konto-nav" aria-label="Konto-Navigation">${[["", "🏠", "Übersicht"], ["treffer", "🔎", "Treffer"], ["fristen", "⏰", "Fristen"], ["einstellungen", "⚙️", "Mehr"]].map(([pfad, icon, text]) => `<a href="/konto${pfad ? `/${pfad}` : ""}"${aktiv === pfad ? ' aria-current="page"' : ""}><span aria-hidden="true">${icon}</span><span>${text}</span></a>`).join("")}</nav>`;
+  return `<nav class="konto-nav" aria-label="Konto-Navigation">${[["", "haus", "Übersicht"], ["treffer", "lupe", "Treffer"], ["fristen", "uhr", "Fristen"], ["einstellungen", "zahnrad", "Mehr"]].map(([pfad, icon, text]) => `<a href="/konto${pfad ? `/${pfad}` : ""}"${aktiv === pfad ? ' aria-current="page"' : ""}><span aria-hidden="true">${symbol(icon)}</span><span>${text}</span></a>`).join("")}</nav>`;
 }
 
 export function escape(s: string): string {

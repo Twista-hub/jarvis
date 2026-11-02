@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Neues Design)
+- Rückweg: altes Design als Branch `design-alt-2026-11-02` auf GitHub (Stand 3f0e77d). Zurück: Dateien `web/src/seite.ts`, `besucher.ts`, `index.ts` von dort übernehmen und `symbole.ts` entfernen.
+- Farben aus dem Logo (Dunkelblau #15324b, Orange #ff6b35 für Hauptknöpfe), ruhigere Karten mit Schatten, straffere Schrift; Dunkelmodus angepasst (Block „Design 2026-11“ am Ende des CSS in `seite.ts`).
+- `web/src/symbole.ts`: Strich-Symbole statt Emojis in allen Kacheln (`konto-icon`, automatisch in `seite()` ersetzt) und in der unteren Leiste.
+- „Heute wichtig“ als Zahlenkarten (große Zahl, rot bei Dringendem).
+- Startseite und alle 33 Länderseiten neu (`besucher.ts` `landesSeite`): dunkelblauer Kopfbereich mit Logo, Überschrift, orangem Knopf, drei Fakten, Beispiel-Treffer als Karte, Schritte als Karten, Gewerke als Schaltflächen (DE), Land/Sprache zusammengeklappt. Texte in 8 Sprachen; US mit eigenem Beispiel (Set-aside, NAICS).
+- Ausroll-Kontrolle prüft die neuen Überschriften.
+
 ### 02.11.2026 – Claude (USA: „Darf ich bieten?“-Ampel und Fristen-Tracker)
 - Migration `20261102120000_us_bieterprofil.sql`: Tabelle `us_bieterprofil` (UEI, CAGE, SAM gültig bis, NAICS, „small“ für welche NAICS, SBA-Zertifikate 8a/HUBZone/WOSB/EDWOSB/VOSB/SDVOSB/IEE, Ø-Umsatz, Mitarbeiter; lesen Büroteam, ändern Inhaber/Admin) und Spalte `vorgaenge.us` (jsonb). Rechte-Test ergänzt.
 - `alarm/usa.py` speichert pro SAM.gov-Treffer `_us`: Notice-ID, Solicitation-Nr., Art, NAICS, PSC, Set-aside (Code + Text), Frist mit Zeitzone, Ort, Ansprechpartner. `alarm/speichern.py` `us_zusammenfuehren()`: geänderte Frist, Set-aside oder Art bei späteren Läufen landen als Amendment in `us.aenderungen` (Test in `test_speichern_sql`).
