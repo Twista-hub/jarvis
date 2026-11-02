@@ -1,5 +1,16 @@
 # Spanien: Datenquelle PLACSP (Recherche 02.11.2026)
 
+> **Stand 02.11.2026 (Lese-Tests `spanien-test.yml`, `spanien-regionen-test.yml`):**
+> - `contrataciondelsectorpublico.gob.es/robots.txt` und `contrataciondelestado.es/robots.txt`: **`User-agent: * / Disallow: /`**.
+>   Die PLACSP-Feeds wären technisch erreichbar (643: 25 Einträge/Seite, 0,8 MB; 1044: 350 Einträge, 4,5 MB) und die
+>   Lizenz (Aviso legal Hacienda, live gelesen) erlaubt kommerzielle Nutzung mit „Origen de los datos: Ministerio de
+>   Hacienda“. **Wegen der robots.txt nutzen wir PLACSP nicht automatisch**, bis das Ministerium es schriftlich erlaubt
+>   (Entwurf: `docs/anfragen/placsp-anfrage.md`, Versand nur nach OK von Benjamin).
+> - Bis dahin: Spanien nur über TED (Aufträge über den EU-Schwellen), Regionen über NUTS-2 (Comunidades Autónomas).
+> - Regionalportale: datos.comunidad.madrid und contratosdegalicia.gal sperren alles; Euskadi und Andalucía sperren
+>   nur Teilbereiche; Kataloniens Open-Data-Portal (analisi.transparenciacatalunya.cat, Socrata) sperrt nur
+>   Such-/Listenseiten. **Nächster Kandidat: Katalonien** (Lizenz und API-Pfad prüfen).
+
 Status: nur Recherche, noch nichts eingebaut. **Wichtig:** Aus dieser Cloud-Sitzung waren `contrataciondelestado.es`
 und `hacienda.gob.es` gesperrt (Netzwerkfreigabe der Sitzung). robots.txt, Aviso legal und Feed konnte ich deshalb
 **nicht selbst abrufen**. Die Angaben unten stammen aus der Websuche (Hacienda-, datos.gob.es-Seiten) und aus dem

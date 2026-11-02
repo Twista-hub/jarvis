@@ -92,6 +92,13 @@ def suchpunkte(e: dict, firmen_plz: str = "") -> list[dict]:
 
 DEPARTEMENTS = {c for r in json.loads((ROOT / "departements.json").read_text(encoding="utf-8")).values() for c in r}
 WOIWODSCHAFTEN = set(json.loads((ROOT / "woiwodschaften.json").read_text(encoding="utf-8")))
+COMUNIDADES = set(json.loads((ROOT / "comunidades.json").read_text(encoding="utf-8")))
+
+
+def nuts_der_bekanntmachung(rel: dict, land: str) -> set[str]:
+    """NUTS-2 regions (e.g. ES30) named in the places of a notice (TED gives NUTS-3 codes such as ES300)."""
+    texte = " ".join(str((i.get("deliveryLocation") or {}).get("description") or "") for i in (rel.get("tender") or {}).get("items") or [])
+    return {c[:4] for c in re.findall(rf"\b{land}\d{{2,3}}\b", texte)}
 
 
 def departement_aus_plz(plz: str) -> str | None:
@@ -118,6 +125,10 @@ def im_suchgebiet(profile: dict, rel: dict) -> bool:
     """Limit app profiles to tender delivery locations; profiles without places stay nationwide."""
     # France: the chosen départements decide (no choice = all of France). German search places and the km radius do
     # not apply to French notices: their postal codes would collide with German ones (75… Pforzheim vs. 75… Paris).
+    if rel.get("_land") == "ESP":
+        gewaehlt = set(profile.get("comunidades") or [])
+        bekannt = nuts_der_bekanntmachung(rel, "ES") & COMUNIDADES
+        return not gewaehlt or not bekannt or bool(gewaehlt & bekannt)
     if rel.get("_land") == "POL":
         from bzp import woiwodschaften_der_bekanntmachung
         gewaehlt = set(profile.get("woiwodschaften") or [])
@@ -231,6 +242,8 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         **({"departements": deps} if (deps := sorted({str(d).upper() for d in e.get("departements") or []} & DEPARTEMENTS)) else {}),
         # Polish voivodeships (search area for Polish notices), only when chosen.
         **({"woiwodschaften": woj} if (woj := sorted({str(w) for w in e.get("woiwodschaften") or []} & WOIWODSCHAFTEN)) else {}),
+        # Spanish autonomous communities (NUTS-2), only when chosen.
+        **({"comunidades": com} if (com := sorted({str(c).upper() for c in e.get("comunidades") or []} & COMUNIDADES)) else {}),
         # Search radius in km and the coordinates of the firm's locations (postal codes via GeoNames).
         "radius_km": min(300, max(10, int(e.get("radius_km")))) if str(e.get("radius_km") or "").isdigit() else None,
         "suchpunkte": suchpunkte(e, firmen_plz),
@@ -272,8 +285,8 @@ def zusatz_profile(key: str, firma_id: str, name: str, beschreibung: str, e: dic
 DEUTSCHSPRACHIG = {"DEU", "AUT", "CHE", "LIE", "LUX"}
 FRANZOESISCHSPRACHIG = {"FRA", "BEL", "MCO"}
 # Language of the AI texts when a firm searches only countries of one language (besides German, which always wins).
-LANDESSPRACHE = {**{l: "fr" for l in FRANZOESISCHSPRACHIG}, "POL": "pl"}
-SPRACHEN = ("de", "en", "fr", "pl")
+LANDESSPRACHE = {**{l: "fr" for l in FRANZOESISCHSPRACHIG}, "POL": "pl", "ESP": "es"}
+SPRACHEN = ("de", "en", "fr", "pl", "es")
 
 
 def sprache(e: dict) -> str:

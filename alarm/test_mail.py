@@ -183,6 +183,10 @@ class Polnisch(unittest.TestCase):
         self.assertIn("oferty do 20.11.2026, godz. 14:00", text)
         self.assertNotIn("Ausschreibung", text)
         self.assertEqual(set(mail.T["pl"]), set(mail.T["de"]))
+        self.assertEqual(set(mail.T["es"]), set(mail.T["de"]))
+        m = mail.nachricht("jefe@example.test", "Limpiezas García S.L.", [("v1", "Limpieza del ayuntamiento", 8, frist)], [], [], "es", mail.MADRID)
+        self.assertEqual(m["Subject"], "Nuevas licitaciones: 1 – Limpiezas García S.L.")
+        self.assertIn("plazo 20/11/2026, 14:00 h", m.get_body(preferencelist=("plain",)).get_content())
 
     def test_zeitzone_polen(self):
         from unittest.mock import MagicMock

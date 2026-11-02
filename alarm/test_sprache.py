@@ -26,6 +26,7 @@ class SpracheTest(unittest.TestCase):
         self.assertEqual(profile_db.sprache({"laender": ["POL"]}), "pl")
         self.assertEqual(profile_db.sprache({"laender": ["POL", "FRA"]}), "en", "zwei Fremdsprachen: Englisch")
         self.assertEqual(profile_db.sprache({"laender": ["POL", "AUT"]}), "de")
+        self.assertEqual(profile_db.sprache({"laender": ["ESP"]}), "es")
 
     def test_steckbrief_anleitung(self):
         self.assertEqual(ki.anleitung("de"), ki.STECKBRIEF_ANLEITUNG)
