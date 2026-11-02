@@ -1,0 +1,55 @@
+# Read-only: field structure of one ANAC PVL call for tenders and the reuse/copyright wording of anticorruzione.it.
+# 4 requests, 3 s apart. robots.txt was checked in italien-test.yml (PVL: no rules, www.anticorruzione.it: Allow /).
+name: Italien-Felder
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lesen:
+    runs-on: ubuntu-latest
+    env:
+      UA: "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+      PVL: "https://pubblicitalegale.anticorruzione.it"
+    steps:
+      - name: Ein Bando komplett (Struktur)
+        run: |
+          set +e
+          D=$(date -u -d yesterday +%d/%m/%Y)
+          curl -sS -m 60 -A "$UA" -H "Accept: application/json" -o b.json "$PVL/api/v0/avvisi?dataPubblicazioneStart=$D&dataPubblicazioneEnd=$D&sortField=dataPubblicazione&sortDirection=ASC&page=0&size=5&codiceScheda=2,4"
+          sleep 3
+          D2=$(date -u -d '3 days ago' +%d/%m/%Y)
+          curl -sS -m 60 -A "$UA" -H "Accept: application/json" -o c.json "$PVL/api/v0/avvisi?dataPubblicazioneStart=$D2&dataPubblicazioneEnd=$D&page=0&size=1&codiceScheda=2,4"
+          python3 - <<'PY'
+          import json, re
+          b = json.load(open("b.json")); rows = b.get("content") or []
+          print("totalElements (gestern):", b.get("totalElements"), "| 3 Tage:", json.load(open("c.json")).get("totalElements"))
+          def kurz(x, tiefe=0):
+              # structure with sample values, names of persons removed
+              if isinstance(x, dict):
+                  return {k: ("<entfernt>" if re.search(r"rup|responsabile|nome|cognome|email|telefono|pec", k, re.I) else kurz(v, tiefe + 1)) for k, v in x.items()}
+              if isinstance(x, list):
+                  return [kurz(v, tiefe + 1) for v in x[:2]] + ([f"... {len(x)} insgesamt"] if len(x) > 2 else [])
+              return x if not isinstance(x, str) else x[:160]
+          for r in rows[:2]:
+              print(json.dumps(kurz(r), ensure_ascii=False, indent=1)[:9000])
+              print("=" * 60)
+          PY
+      - name: Note legali und Copyright (Wiederverwendung)
+        run: |
+          set +e
+          sleep 3
+          for u in "https://www.anticorruzione.it/note-legali" "https://www.anticorruzione.it/copyright"; do
+            echo "== $u"
+            curl -sSL -m 30 -A "$UA" -o p.html -w "HTTP %{http_code}\n" "$u"
+            python3 - <<'PY'
+          import re
+          t = open("p.html", errors="replace").read()
+          t = re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", "", t); t = re.sub(r"<[^>]+>", "\n", t)
+          t = "\n".join(l.strip() for l in t.splitlines() if l.strip())
+          i = max(t.find("Note Legali\nPremessa"), t.find("Copyright\n"), 0)
+          ende = t.find("CONTATTI", i)
+          print(t[i:ende if ende > i else i + 6000][:6000])
+          PY
+            sleep 3
+          done
