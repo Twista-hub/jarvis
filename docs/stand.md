@@ -79,6 +79,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Marktanalyse und 10 Gewerke-Seiten für Google)
+- Marktanalyse (`.github/workflows/marktanalyse.yml`, nur lesend): 36.677 Ausschreibungen 31.08.–01.11.2026. Je Gewerk in 2 Monaten: Straßen-/Tiefbau 1.670, Elektro 1.006, Tischler 952, SHK 857, Gebäudereinigung 602 (237 mit Losen), Trockenbau/Putz 518, Dach/Zimmerer 455, Abbruch 414, Bodenbeläge 378, Maler 377, GaLaBau 271, Sicherheitsdienst 237, Fliesen 216, Metallbau 195, Glasreinigung 189, Gerüst 186, Winterdienst 168, Hausmeister 120, Hostessen 89, Catering 83, Pflege 81, Umzüge 52, Arbeitnehmerüberlassung (CPV 7962x) 35.
+- Öffentliche Seiten `/ausschreibungen` und `/ausschreibungen/<gewerk>` (`web/src/gewerke.ts`) für Elektro, SHK, Tischler, Gebäudereinigung, Maler/Trockenbau, Dach/Zimmerer, GaLaBau/Winterdienst, Sicherheitsdienst, Bodenbeläge/Fliesen, Zeitarbeit: Live-Zahlen der letzten 30 Tage und Beispiele mit offener Frist (RPC `gewerk_statistik`, ohne Login, nur Katalogdaten; Migration `20261102090000_gewerk_statistik.sql`), Vorteile, FAQ mit FAQPage-JSON-LD, Meta-Beschreibung, Canonical, Cache 1 Stunde. Dazu `/robots.txt` und `/sitemap.xml`; Startseite verlinkt die Gewerke.
+- Datensicherung läuft (erste Sicherung 02.11. in R2, EU-Bucket braucht `--jurisdiction eu`).
+
 ### 02.11.2026 – Claude (Demo ohne Registrierung)
 - `/demo` (`web/src/demo.ts`): echte Seiten mit Beispieldaten der erfundenen „Muster Gebäudeservice GmbH“, ganz ohne Datenbank: Ausschreibungen (4 Treffer), Steckbrief aus Unterlagen (Muster-Steckbrief) und aus Bekanntmachung (mit Download-Symbolen), Firma & Team, Schichtplan, Stundenzettel, Leistungsnachweis, App der Einsatzkräfte (mit Sprachwahl). Links ins Konto werden auf die Demo umgeschrieben, Formulare im Browser gesperrt (`body[data-demo]` in app.js). Startseite: Knopf „🎬 Erst ansehen (Demo ohne Anmeldung)“. Test `web/test/demo.test.ts`.
 

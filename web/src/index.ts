@@ -58,6 +58,7 @@ import { zeitkontoRoute } from "./zeitkonto.ts";
 import { kraefteEinladen } from "./kraefte.ts";
 import { betreiber } from "./loeschen.ts";
 import { demo } from "./demo.ts";
+import { gewerke } from "./gewerke.ts";
 import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
@@ -155,6 +156,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       },
       }, form);
     }
+    const gw = await gewerke(request, env, ADRESSE, (h) => html(h));
+    if (gw) return gw;
     const dm = await demo(request, MUSTER.replace(/^>.*\n/m, ""));
     if (dm) return dm;
     const am = await angebote(request, env);
