@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { appSprache, englisch, sprachFuss, sprachWechsel, wort, wortschatz } from "../src/englisch.ts";
+import { appSprache, englisch, sprachFuss, sprachWechsel, uebersetzen, wort, wortschatz } from "../src/englisch.ts";
 import { seite } from "../src/seite.ts";
 
 test("Englisch: Wörterbuch geladen, genaue Treffer und Platzhalter", () => {
@@ -23,6 +23,7 @@ test("Englisch: ganze Seite, Attribute, geschützte Bereiche, Entities", () => {
   assert.match(en, /title="Back to overview"/);
   assert.match(en, /<code>Speichern<\/code>/);
   assert.match(en, /<textarea>Speichern<\/textarea>/);
+  assert.match(englisch('<textarea name="n" placeholder="z. B. Muster GmbH">Speichern</textarea>'), /placeholder="e\.g\. Acme Ltd">Speichern<\/textarea>/);
   assert.match(en, /Perlease GmbH &amp; Co/);
   assert.match(en, /Müller &#38; Söhne/);
   assert.match(en, /<span>Overview<\/span>/, "Konto-Navigation");
@@ -37,9 +38,16 @@ test("Englisch: Sprache aus Cookie oder Land, Umschalter im Fuß, Wechsel-Route"
   assert.equal(appSprache(anfrage("", "ES")), "en", "ohne eigene App-Sprache Englisch");
   assert.equal(appSprache(anfrage("jv_psprache=de", "US")), "de");
   assert.equal(appSprache(anfrage("jv_psprache=en", "DE")), "en");
+  assert.equal(appSprache(anfrage("", "FR")), "fr");
+  assert.equal(appSprache(anfrage("jv_psprache=fr", "DE")), "fr");
+  assert.equal(appSprache(anfrage("jv_psprache=es", "FR")), "en", "Spanisch hat keine App-Sprache");
   const fuss = sprachFuss(seite("x", "<p>y</p>"), "de", "/konto/treffer?stand=neu");
   assert.match(fuss, /href="\/sprache\?zu=en&amp;weiter=%2Fkonto%2Ftreffer%3Fstand%3Dneu"[^>]*>🌐 English<\/a>/);
+  assert.match(fuss, /zu=fr[^>]*>Français<\/a>/);
   assert.match(sprachFuss(seite("x", "<p>y</p>"), "en", "/"), /zu=de[^>]*>🌐 Deutsch</);
+  assert.match(sprachFuss(seite("x", "<p>y</p>"), "fr", "/"), /zu=de[^>]*>🌐 Deutsch<\/a> · <a[^>]*zu=en[^>]*>English</);
+  assert.match(sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=fr&weiter=/"))!.headers.get("set-cookie") ?? "", /jv_psprache=fr;/);
+  assert.match(sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=xx&weiter=/"))!.headers.get("set-cookie") ?? "", /jv_psprache=de;/);
   const r = sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=en&weiter=/konto/fristen"))!;
   assert.equal(r.status, 303);
   assert.equal(r.headers.get("location"), "/konto/fristen");
@@ -56,4 +64,18 @@ test("Englisch: feste Steckbrief-Marken aus der KI werden übersetzt, Inhalt ble
   assert.match(en, /<h2>⏰ Deadlines<\/h2>/);
   assert.match(en, /<strong>Contracting authority<\/strong>/);
   assert.match(en, /<strong>Wanted:<\/strong> Janitorial services/);
+});
+
+test("Französisch: Wörterbuch, ganze Seite, Steckbrief-Marken", () => {
+  const w = wortschatz("fr");
+  assert.ok(w.genau > 1200, `nur ${w.genau} genaue Einträge`);
+  assert.ok(w.muster > 50, `nur ${w.muster} Muster`);
+  assert.match(wort("in 3 Tagen", "fr") ?? "", /3/);
+  assert.equal(wort("Perlease GmbH", "fr"), null);
+  assert.equal(wort("Steckbrief: Nettoyage des locaux", "fr"), "Fiche synthèse : Nettoyage des locaux");
+  const fr = uebersetzen(seite("x", "<h2>Mein Profil</h2><p><strong>Gesucht:</strong> Nettoyage</p><input placeholder=\"E-Mail-Adresse\">"), "fr");
+  assert.match(fr, /<html lang="fr"/);
+  assert.doesNotMatch(fr, /Mein Profil|E-Mail-Adresse/);
+  assert.match(fr, /<strong>Objet :<\/strong> Nettoyage/);
+  assert.equal(uebersetzen("<p>Mein Profil</p>", "de"), "<p>Mein Profil</p>");
 });

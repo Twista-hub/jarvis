@@ -25,9 +25,10 @@ BERLIN = ZoneInfo("Europe/Berlin")
 ERINNERN = (7, 2)  # days before the deadline
 MORGENS = 7  # hour of the phone notification on the deadline day
 NEW_YORK = ZoneInfo("America/New_York")
+PARIS = ZoneInfo("Europe/Paris")
 _firmen: dict[str, tuple[str, ZoneInfo]] = {}
 
-# Texts of mail and phone messages; English for firms whose AI texts are English (profile_db.sprache).
+# Texts of mail and phone messages in the language of the firm's AI texts (profile_db.sprache).
 T = {
     "de": {"top1": "⭐ Top-Treffer {p}/10", "topn": "⭐ {n} Top-Treffer für {f}", "weitere": " · und {n} weitere", "frist": "⏰ Frist {d}",
            "neu1": "Neue Ausschreibung", "neun": "{n} neue Ausschreibungen für {f}", "fristen_bald": " · und {n} Fristen bald",
@@ -45,21 +46,32 @@ T = {
            "h_nachweise": "📄 Company documents expiring soon", "gueltig": "valid until", "in_tagen": "in {n} day{s}",
            "fuss": "Change the time or turn off emails: {app}/konto#mail", "b_neu": "{n} new tender{s}", "b_fristen": "Deadline reminder",
            "b_nachweise": "Documents expiring soon", "fuer": " for {f}", "oeffnen": "Open all matches in Jarvis", "impressum": "Legal notice"},
+    # French: plural only where a plain "s" is enough ({s}); "Nouveau :" as a label avoids nouvel/nouveaux agreement.
+    "fr": {"top1": "⭐ Meilleur résultat {p}/10", "topn": "⭐ {n} meilleurs résultats pour {f}", "weitere": " · et {n} de plus", "frist": "⏰ Date limite {d}",
+           "neu1": "Nouvel appel d'offres", "neun": "Nouveau : {n} appel{s} d'offres pour {f}", "fristen_bald": " · et {n} échéance{s} proche{s}",
+           "heute": "⏰ Aujourd'hui : {was} · {art} {z}", "heute1": "échéance", "heuten": "{n} échéances", "Abgabe": "remise des offres", "Fragen": "questions", "Termin": "rendez-vous",
+           "uhr": "%d/%m/%Y à %Hh%M", "zeit": "%Hh%M", "unbekannt": "inconnue", "tag": "%d/%m/%Y",
+           "h_fristen": "⏰ Échéances proches", "abgabe": "remise", "h_neu": "🔎 Nouveau : {n} appel{s} d'offres", "frist_kl": "date limite",
+           "h_nachweise": "📄 Justificatifs de l'entreprise bientôt expirés", "gueltig": "valable jusqu'au", "in_tagen": "dans {n} jour{s}",
+           "fuss": "Changer l'heure ou désactiver les e-mails : {app}/konto#mail", "b_neu": "Nouveau : {n} appel{s} d'offres", "b_fristen": "Rappel d'échéance",
+           "b_nachweise": "Justificatifs bientôt expirés", "fuer": " pour {f}", "oeffnen": "Ouvrir tous les résultats dans Jarvis", "impressum": "Mentions légales"},
 }
 
 
 def pl(n: int) -> str:
-    """English plural ending."""
+    """Plural ending (English, and French where a plain "s" is enough)."""
     return "" if n == 1 else "s"
 
 
 def firma_sprache(con, firma_id: str) -> tuple[str, ZoneInfo]:
-    """(language, time zone) of a firm: English firms that search the USA get US Eastern time, everyone else Berlin."""
+    """(language, time zone) of a firm: English firms that search the USA get US Eastern time, French firms Paris
+    (same hours as Berlin, French zone names), everyone else Berlin."""
     if firma_id not in _firmen:
         zeile = con.execute("select einstellungen from public.suchprofile where firma_id = %s limit 1", (firma_id,)).fetchone()
         e = zeile[0] if zeile and isinstance(zeile[0], dict) else {}
         sprache = profil_sprache(e) if e else "de"
-        _firmen[firma_id] = (sprache, NEW_YORK if sprache == "en" and "USA" in (e.get("laender") or []) else BERLIN)
+        zone = NEW_YORK if sprache == "en" and "USA" in (e.get("laender") or []) else PARIS if sprache == "fr" else BERLIN
+        _firmen[firma_id] = (sprache, zone)
     return _firmen[firma_id]
 
 
@@ -252,7 +264,7 @@ def heute_faellig(con, firma_id: str, user_id: str) -> list[tuple]:
 
 def morgen_push(con, schl, user_id: str, firma_id: str, termine: list, sprache: str = "de", zone: ZoneInfo = BERLIN) -> int:
     """One phone notification in the morning of a deadline day; at most once a day per person."""
-    if not termine or con.execute("""select 1 from public.push_nachrichten where user_id = %s and (titel like '⏰ Heute%%' or titel like '⏰ Today%%')
+    if not termine or con.execute("""select 1 from public.push_nachrichten where user_id = %s and (titel like '⏰ Heute%%' or titel like '⏰ Today%%' or titel like '⏰ Aujourd%%')
             and erstellt > now() - interval '20 hours'""", (user_id,)).fetchone():
         return 0
     t = T[sprache]

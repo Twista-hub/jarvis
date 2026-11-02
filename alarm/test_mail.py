@@ -141,6 +141,38 @@ class Warteschlange(unittest.TestCase):
         self.assertTrue(any("set gesendet" in q and a == (["1", "2", "3"],) for q, a in con.sql))
 
 
+class Franzoesisch(unittest.TestCase):
+    def test_mail_auf_franzoesisch(self):
+        from datetime import datetime, timezone
+        frist = datetime(2026, 11, 20, 13, 0, tzinfo=timezone.utc)  # 14h00 Paris
+        m = mail.nachricht("chef@example.test", "Nettoyage Dupont SARL", [("v1", "Nettoyage des locaux", 8, frist), ("v3", "Vitrerie", 7, None)], [("v2", "Espaces verts", frist)],
+                           [("d1", "Attestation URSSAF.pdf", date(2026, 12, 1), 1)], "fr", mail.PARIS)
+        self.assertEqual(m["Subject"], "Nouveau : 2 appels d'offres pour Nettoyage Dupont SARL")
+        text = m.get_body(preferencelist=("plain",)).get_content()
+        self.assertIn("Échéances proches", text)
+        self.assertIn("remise 20/11/2026 à 14h00", text)
+        self.assertIn("date limite inconnue", text)
+        self.assertIn("valable jusqu'au 01/12/2026 (dans 1 jour)", text)
+        self.assertNotIn("Ausschreibung", text)
+        self.assertIn("Ouvrir tous les résultats dans Jarvis", m.get_body(preferencelist=("html",)).get_content())
+
+    def test_handy_auf_franzoesisch(self):
+        from unittest.mock import MagicMock, patch
+        from datetime import datetime, timezone
+        with patch.object(mail, "senden_an_geraete", return_value=1) as senden:
+            mail.handy(MagicMock(), ("a", "b"), "u1", "f1", "Dupont", [("v1", "A", 7, None), ("v2", "B", 6, None)], [("v3", "C", None), ("v4", "D", None)], sprache="fr")
+            self.assertEqual(senden.call_args.args[3], "Nouveau : 2 appels d'offres pour Dupont")
+            self.assertEqual(senden.call_args.args[4], "A · et 2 échéances proches")
+            con = MagicMock()
+            con.execute.return_value.fetchone.return_value = None
+            mail.morgen_push(con, ("a", "b"), "u1", "f1", [("v1", "X", datetime(2026, 11, 2, 13, 0, tzinfo=timezone.utc), "Abgabe")], "fr", mail.PARIS)
+            self.assertEqual(senden.call_args.args[3], "⏰ Aujourd'hui : échéance · remise des offres 14h00")
+
+    def test_gleiche_schluessel(self):
+        self.assertEqual(set(mail.T["fr"]), set(mail.T["de"]))
+        self.assertEqual(set(mail.T["en"]), set(mail.T["de"]))
+
+
 class Englisch(unittest.TestCase):
     def test_mail_auf_englisch_mit_ostkuestenzeit(self):
         from datetime import datetime, timezone
@@ -180,4 +212,8 @@ class Englisch(unittest.TestCase):
         self.assertEqual(mail.firma_sprache(con, "ohne"), ("de", mail.BERLIN))
         self.assertEqual(mail.firma_sprache(con, "ie"), ("en", mail.BERLIN))
         self.assertEqual(mail.firma_sprache(con, "us"), ("en", mail.NEW_YORK), "zwischengespeichert")
+        mail._firmen.clear()
+        con.execute.return_value.fetchone.side_effect = [({"laender": ["FRA"]},), ({"laender": ["FRA", "DEU"]},)]
+        self.assertEqual(mail.firma_sprache(con, "fr"), ("fr", mail.PARIS))
+        self.assertEqual(mail.firma_sprache(con, "fr-de"), ("de", mail.BERLIN))
         mail._firmen.clear()

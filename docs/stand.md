@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Französisch: Oberfläche, KI-Texte, Mails)
+- Oberfläche: Wörterbuch `web/src/franzoesisch/*.json` (gleiche deutsche Schlüssel wie Englisch, 1.974 Einträge) plus neu `attribute.json` (104 Platzhalter und Tooltips, auch für Englisch). `englisch.ts` übersetzt jetzt nach Sprache (`uebersetzen(seite, "en"|"fr")`), App-Sprache de/en/fr aus Cookie, sonst Land und Browser (Frankreich, frz. Belgien/Schweiz → fr). Fuß bietet die zwei anderen Sprachen. Platzhalter in Textfeldern werden mitübersetzt. US-Kästen bleiben für fr englisch.
+- KI: `profile_db.sprache()` liefert "fr", wenn nur französischsprachige Länder (FRA, BEL, MCO) gesucht werden oder die Einstellung fr ist; deutsche Profile unverändert (keine Neubewertung). `alarm/sprache-fr.txt`: Inhalt französisch, Marken deutsch, französische Vergabebegriffe (DCE, RC, BPU, DPGF, DUME …). Upload-Steckbriefe aus der App ebenfalls französisch.
+- Mails/Handy: `mail.py` T["fr"], Zeitzone Europe/Paris, Datum 20/11/2026 à 14h00. App erkennt französische Unsicherheiten („non précisé“, „estimé“) und Eckdaten (heures, valeur/montant €).
+- Startseite: Hinweis „App nur auf Deutsch“ für en/fr entfernt, andere Sprachen nennen jetzt Englisch. Deploy-Prüfung: /registrieren mit Cookie fr.
+
 ### 02.11.2026 – Claude (Frankreich: BOAMP angebunden)
 - Quelle BOAMP über die offiziellen DILA-Tagesdateien (Licence Ouverte 2.0, keine robots-Sperre); Opendatasoft-API wegen robots.txt-Sperre bewusst nicht genutzt. Details `docs/frankreich.md`.
 - `alarm/boamp.py` liest Aufrufe zum Wettbewerb (ca. 120–250 pro Tag, rund achtmal mehr als TED), `alarm.py` nimmt Frankreich aus BOAMP statt TED; Quelle im Kurzüberblick genannt. Umkreis in km nur noch für deutsche PLZ. Echttest 01./02.11. erfolgreich.

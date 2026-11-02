@@ -66,7 +66,7 @@ import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastr
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { usProfil, usRadar } from "./usprofil.ts";
 import { samAnleitungSeite } from "./samanleitung.ts";
-import { appSprache, englisch, sprachFuss, sprachWechsel } from "./englisch.ts";
+import { appSprache, sprachFuss, sprachWechsel, uebersetzen } from "./englisch.ts";
 import { ISO2, SPRACHEN_OEFFENTLICH, besucher, keineBehoerde, kopfZeile, landWahl, landesSeite, wahlCookies, type Sprache } from "./besucher.ts";
 import { escape, markdown, seite, stapeln } from "./seite";
 import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
@@ -88,7 +88,12 @@ export interface Env extends KontoEnv {
   TAGES_LIMIT: string;
 }
 
-export type Job = { id: string; profil: string; kunde: string; titel: string; erstellt: string; vorgang?: string; sprache?: "en" };
+export type Job = { id: string; profil: string; kunde: string; titel: string; erstellt: string; vorgang?: string; sprache?: "en" | "fr" };
+/** Language of the AI fact sheet for an upload: only set when not German (German jobs stay exactly as before). */
+function kiSprache(request: Request): { sprache?: "en" | "fr" } {
+  const s = appSprache(request);
+  return s === "de" ? {} : { sprache: s };
+}
 
 const RECHT: Record<string, [string, () => string]> = {
   "/impressum": ["Impressum", impressum],
@@ -143,7 +148,7 @@ function darstellen(request: Request, r: Response): Response {
   h.append("vary", "cookie");
   return new Response(new ReadableStream({ async start(c) {
     let t = await body;
-    if (sprache === "en") t = englisch(t);
+    t = uebersetzen(t, sprache);
     t = sprachFuss(t, sprache, pfad);
     if (attribute) t = t.replace(/<html lang="([a-z]{2})"/, `<html lang="$1"${attribute}`);
     c.enqueue(new TextEncoder().encode(t)); c.close();
@@ -168,7 +173,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       pruefen: (dateien) => pruefenUndZaehlen(dateien, env),
       starten: (dateien, kontext) => {
         const profil = Object.entries(profile as Record<string, { firma_id?: string; name: string }>).find(([, p]) => p.firma_id === kontext.firma);
-        return starten(env, dateien, { profil: profil?.[0] ?? `firma-${kontext.firma}`, kunde: profil?.[1].name ?? "", titel: kontext.titel, vorgang: kontext.vorgang, ...(appSprache(request) === "en" ? { sprache: "en" as const } : {}) });
+        return starten(env, dateien, { profil: profil?.[0] ?? `firma-${kontext.firma}`, kunde: profil?.[1].name ?? "", titel: kontext.titel, vorgang: kontext.vorgang, ...kiSprache(request) });
       },
       }, form);
     }
@@ -300,7 +305,7 @@ async function unterlagenAmVorgang(id: string, request: Request, env: Env, form?
     kunde: eintrag?.[1].name ?? "",
     titel: [z.v.titel, z.v.link].filter(Boolean).join(" – "),
     vorgang: id,
-    ...(appSprache(request) === "en" ? { sprache: "en" as const } : {}),
+    ...kiSprache(request),
   }, vorher, z.v.steckbrief ?? undefined);
   await env.DATEN.put(`auftraege/vorgaenge/${id}.json`, JSON.stringify({ auftrag: job.id, erstellt: job.erstellt }));
   return zurueck();

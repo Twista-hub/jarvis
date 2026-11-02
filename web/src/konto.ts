@@ -36,7 +36,7 @@ import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchs
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
 import { suchgebietKarte, type Suchpunkt } from "./karte.ts";
 import { ampelChip, usKasten, type UsDaten, type UsProfil } from "./ampel.ts";
-import { appSprache } from "./englisch.ts";
+import { usSprache } from "./englisch.ts";
 import { usProfilLaden } from "./usprofil.ts";
 import { marktKasten, vergleichbare } from "./usaspending.ts";
 import { bewertung, daumen, eckdaten, filterLeiste, sortieren, SORTIERUNGEN, suchbegriff } from "./treffer.ts";
@@ -402,7 +402,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const vorschlagV = admin && /^[0-9a-f-]{36}$/.test(vorschlagId) ? liste.find((v) => v.id === vorschlagId) : undefined;
     const aktuellesProfil = profil.ok ? profil.daten[0] : undefined;
     const karte = vorschlagV ? ausschlussKarte(vorschlagV, m.firma_id, (aktuellesProfil?.leistungen ?? []).flatMap((l) => l.woerter ?? []), aktuellesProfil?.ausschluss_schnell ?? [], link(reiter)) : "";
-    inhalt = rahmen(`${karte}${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${umschalter}${abgelaufen}${massen}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q, { kompakt, seit: gesehen, darfAendern, us: liste.some((v) => v.us) ? { profil: await usProfilLaden(s, env, m.firma_id), sprache: appSprache(request) } : undefined })}`);
+    inhalt = rahmen(`${karte}${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${umschalter}${abgelaufen}${massen}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q, { kompakt, seit: gesehen, darfAendern, us: liste.some((v) => v.us) ? { profil: await usProfilLaden(s, env, m.firma_id), sprache: usSprache(request) } : undefined })}`);
   } else if (unterseite === "fristen") {
     const mitFrist = liste.filter((v) => v.frist || v.fragefrist);
     const kalk = mitFrist.length ? await db<{ vorgang_id: string }[]>(s, env, `kalkulationen?firma_id=eq.${m.firma_id}&vorgang_id=in.(${mitFrist.map((v) => v.id).join(",")})&select=vorgang_id`) : { ok: true as const, daten: [] };
@@ -768,7 +768,7 @@ function leistungsTreffer(leistungen: { name: string; woerter: string[] }[], lis
 }
 
 /** Words in a Steckbrief from the public notice that mark missing or guessed facts. */
-const UNSICHER = /(?<![\p{L}])(nicht angegeben|nicht genannt|nicht bekannt|vermutlich|geschätzte[rnms]?|Schätzung|not specified|not stated|not known|unknown|probably|estimated|estimate)(?![\p{L}])/giu;
+const UNSICHER = /(?<![\p{L}])(nicht angegeben|nicht genannt|nicht bekannt|vermutlich|geschätzte[rnms]?|Schätzung|not specified|not stated|not known|unknown|probably|estimated|estimate|non précisée?s?|non communiquée?s?|non connue?s?|inconnue?s?|probablement|estimée?s?|estimation)(?![\p{L}])/giu;
 /** Small line-drawn download symbol (arrow into a tray). */
 export const DL_ICON = `<svg class="dl-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v7M4.8 6.6 8 9.8l3.2-3.2M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 /** Small "?" after each missing or guessed fact (opens the shared pop-up); only in text, not inside links or buttons. */
@@ -785,7 +785,7 @@ export function frageMarken(html: string): { html: string; anzahl: number } {
 
 /** Pop-up for the "?" marks: lots, quantities and hours often stand only in the tender documents. */
 export function unterlagenHinweis(steckbrief: string | null | undefined, portal: string | null | undefined, kannHochladen: boolean): string {
-  const fehlt = (steckbrief?.match(/nicht angegeben|not specified/gi) ?? []).length;
+  const fehlt = (steckbrief?.match(/nicht angegeben|not specified|non précisé/gi) ?? []).length;
   const ohneLose = !/\|\s*Los\b|\*\*Lose:\*\*/i.test(steckbrief ?? "");
   const text = `${fehlt ? `In dieser Bekanntmachung fehlen ${fehlt === 1 ? "eine Angabe" : `${fehlt} Angaben`}${ohneLose ? ", auch zu den Losen" : ""}. ` : ohneLose ? "Die Bekanntmachung nennt keine Lose. " : ""}Was mit ${DL_ICON} markiert ist, steht nicht oder nur geschätzt in der öffentlichen Bekanntmachung. Lose, Mengen und Stunden stehen meist erst in den Vergabeunterlagen (PDF oder ZIP), die es kostenlos beim Vergabeportal gibt. Lädst du sie hier hoch, liest Jarvis daraus die Lose mit Mengen und Stunden, welches Personal je Los gebraucht wird, Eignungsnachweise, Fristen und das Preisblatt. Danach verschwinden die Symbole.`;
   const knoepfe = `${portal ? `<a class="knopf zweit" href="${escape(portal)}" rel="noopener" target="_blank">⬇️ Unterlagen beim Portal holen</a>` : ""}${kannHochladen ? `<a class="knopf" href="#unterlagen">📥 Hier hochladen</a>` : ""}`;
@@ -995,7 +995,7 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
   const fristKlasse = v.frist ? ampel({ id: v.id, titel: v.titel, frist: v.frist, status: v.status }) : "grau";
   const kopf = `<ul class="kopf-chips">${v.punkte ? `<li class="punkte">${v.punkte}/10</li>` : ""}<li class="frist ${fristKlasse}">⏰ ${v.frist ? `${datum(v.frist)} · ${abstand(v.frist)}` : "Frist unbekannt"}</li><li>${escape(STATUS[v.status] ?? v.status)}</li>${v.entfernung_km != null ? `<li>📍 ${Math.round(v.entfernung_km)} km</li>` : ""}</ul>
 ${portal ? `<a class="knopf portal-knopf" href="${escape(portal)}" rel="noopener" target="_blank">🌐 Zum Vergabeportal</a>` : ""}
-${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}${hinweisText ? `<p role="status"><strong>${escape(hinweisText)}</strong></p>` : ""}${await vorschlagKarte(request, env, s, v, rolle)}${v.us ? usKasten(v, v.us, await usProfilLaden(s, env, v.firma_id), appSprache(request), ["inhaber", "admin"].includes(rolle)) : ""}${v.us?.naics && v.us.staat ? marktKasten(v.us.naics, v.us.staat, v.us.behoerde ?? "", await vergleichbare(v.us.naics, v.us.staat, (env as { WARTEN?: (p: Promise<unknown>) => void }).WARTEN), appSprache(request)) : ""}`;
+${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}${hinweisText ? `<p role="status"><strong>${escape(hinweisText)}</strong></p>` : ""}${await vorschlagKarte(request, env, s, v, rolle)}${v.us ? usKasten(v, v.us, await usProfilLaden(s, env, v.firma_id), usSprache(request), ["inhaber", "admin"].includes(rolle)) : ""}${v.us?.naics && v.us.staat ? marktKasten(v.us.naics, v.us.staat, v.us.behoerde ?? "", await vergleichbare(v.us.naics, v.us.staat, (env as { WARTEN?: (p: Promise<unknown>) => void }).WARTEN), usSprache(request)) : ""}`;
   // Required proofs the firm has not uploaded yet get a ⚠️ with an upload link (only for people with finance access).
   const unterlagen = finanzen ? await Promise.all([db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`), referenzenLaden(s, env, v.firma_id)]).then(([r, refs]) => r.ok ? { ok: true as const, daten: mitReferenzen(r.daten, refs, v.firma_id) } : r) : null;
   const heute = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
