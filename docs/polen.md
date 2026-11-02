@@ -1,5 +1,11 @@
 # Polen: Datenquelle für nationale Ausschreibungen (Recherche 02.11.2026)
 
+> **Stand 02.11.2026, live geprüft:** robots.txt von ezamowienia.gov.pl ohne Regeln; Integrationsseite: „Odczyt ogłoszeń
+> … nie wymaga przejścia procedury integracyjnej“, Limit 30/min. Eingebaut als `alarm/bzp.py`. Die API ignoriert
+> Seitenzahlen und behandelt `PublicationDateTo` als ganzen Tag; `PublicationDateFrom` ist genau und die Liste ist alt →
+> neu sortiert: Abruf läuft vorwärts ab der letzten gelesenen Zeit. Länder-Durchlauf (Warschauer Reinigungsfirma)
+> https://github.com/Twista-hub/jarvis/actions/runs/41532921559: ALLES OK, 0,06 $.
+
 **Kurz:** Es gibt eine offizielle, kostenlose JSON-Schnittstelle ohne Anmeldung für den Biuletyn Zamówień Publicznych
 (BZP) auf der Plattform e-Zamówienia: `https://ezamowienia.gov.pl/mo-board/api/v1/notice`. Grenze: 30 Abrufe pro Minute
 und IP (seit 06.10.2026). Ab 11.01.2027 höchstens 100 Datensätze pro Seite. Das reicht für einen täglichen Abruf.

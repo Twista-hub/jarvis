@@ -10,6 +10,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import boamp
 import bzp
+import katalonien
 import ki
 import mail
 from alarm import cpv_codes, item, kurzbrief, score, sprach_arg
@@ -33,6 +34,14 @@ LAENDER = {
                                              "woerter": ["sprzątanie", "utrzymanie czystości", "mycie okien", "usługi porządkowe", "sprzątania"]}]},
            "beschreibung": ("Firma sprzątająca z Warszawy, 40 pracowników. Sprzątanie biur, szkół i budynków publicznych, mycie okien "
                             "i sprzątanie po remontach w województwie mazowieckim i łódzkim. Bez sprzątania przemysłowego i szpitali.")},
+    "es": {"quelle": katalonien, "name": "Limpiezas Puig S.L. (Test)", "plz": "08013", "zone": mail.MADRID, "betreff": "Nuevas licitaciones",
+           "sprache": re.compile(r"\b(el|la|los|las|de|del|para|con|en|y|servicio|limpieza|contrato)\b", re.IGNORECASE),
+           "gebiet": ("comunidades", ["ES51"]),
+           "einstellungen": {"laender": ["ESP"], "comunidades": ["ES51"],
+                             "leistungen": [{"name": "Limpieza de edificios y cristales", "cpv": ["90910000", "90911200", "90911300", "90919200"],
+                                             "woerter": ["limpieza", "neteja", "netejа", "servei de neteja", "servicio de limpieza", "cristales", "vidres"]}]},
+           "beschreibung": ("Empresa de limpieza de Barcelona, 60 trabajadores. Limpieza de oficinas, escuelas y edificios públicos, "
+                            "limpieza de cristales y limpiezas tras obras en Cataluña. Sin limpieza industrial ni hospitalaria.")},
 }
 L = LAENDER["fr"]
 
