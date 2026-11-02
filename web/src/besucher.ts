@@ -2,7 +2,6 @@
 // Public start page per country: /de, /us, /fr … ; "/" shows the page of the detected country. The app inside stays German for now.
 import { escape } from "./seite.ts";
 import { LAENDER } from "./laender.ts";
-import { symbol } from "./symbole.ts";
 
 /** ISO 3166 alpha-2 → alpha-3 for every country we search (same list as laender.ts). */
 export const ISO2: Record<string, string> = {
@@ -88,7 +87,7 @@ const T: Record<Sprache, Texte> = {
     registrieren: "Jetzt registrieren", demo: "🎬 Erst ansehen (Demo ohne Anmeldung)", konto: "Schon ein Konto?", anmelden: "Anmelden", quelle: "Quelle", landWechseln: "Land", sprache: "Sprache", hinweisApp: "", keineBehoerde: "Privater Dienst von WP Digital Ranger, keine Behörde.", nichtAbgedeckt: "In deinem Land suchen wir noch nicht. Wähle ein Land aus der Liste." },
   en: { titel: "Jarvis finds the right public tenders for your business", intro: (l) => `Every morning Jarvis reads all new public tenders in ${l} and shows you only the ones that fit your company.`,
     schritte: [["Matches every morning", "Each tender gets a score from 1 to 10 and one sentence on why it fits or not."], ["Fact sheet at a glance", "Deadlines, lots, quantities, required documents, award criteria and a clear recommendation."], ["Check documents and price your bid", "Jarvis reads the tender documents and calculates your bid price with your own wages."]],
-    registrieren: "Sign up now", demo: "🎬 Try the demo first (no sign-up)", konto: "Already have an account?", anmelden: "Log in", quelle: "Source", landWechseln: "Country", sprache: "Language", hinweisApp: "", keineBehoerde: "Private service by WP Digital Ranger, not a government agency.", nichtAbgedeckt: "We don't cover your country yet. Please pick a country from the list." },
+    registrieren: "Sign up now", demo: "🎬 Try the demo first (no sign-up)", konto: "Already have an account?", anmelden: "Log in", quelle: "Source", landWechseln: "Country", sprache: "Language", hinweisApp: "The app itself is currently in German; the English version is on its way.", keineBehoerde: "Private service by WP Digital Ranger, not a government agency.", nichtAbgedeckt: "We don't cover your country yet. Please pick a country from the list." },
   fr: { titel: "Jarvis trouve les appels d'offres adaptés à votre entreprise", intro: (l) => `Chaque matin, Jarvis lit tous les nouveaux appels d'offres publics en ${l} et vous montre uniquement ceux qui correspondent à votre entreprise.`,
     schritte: [["Résultats chaque matin", "Chaque appel d'offres reçoit une note de 1 à 10 et une phrase qui explique pourquoi il convient ou non."], ["Fiche synthétique", "Délais, lots, quantités, pièces exigées, critères d'attribution et une recommandation claire."], ["Analyser les documents et chiffrer", "Jarvis lit le dossier de consultation et calcule votre prix avec vos propres salaires."]],
     registrieren: "S'inscrire", demo: "🎬 Voir la démo (sans inscription)", konto: "Déjà un compte ?", anmelden: "Se connecter", quelle: "Source", landWechseln: "Pays", sprache: "Langue", hinweisApp: "L'application est pour l'instant en allemand ; la version française est en préparation.", keineBehoerde: "Service privé de WP Digital Ranger, pas un organisme public.", nichtAbgedeckt: "Nous ne couvrons pas encore votre pays. Choisissez un pays dans la liste." },
@@ -108,32 +107,6 @@ const T: Record<Sprache, Texte> = {
     schritte: [["Resultados todas as manhãs", "Cada concurso recebe de 1 a 10 pontos e uma frase que explica porque serve ou não."], ["Ficha resumo", "Prazos, lotes, quantidades, documentos exigidos, critérios de adjudicação e uma recomendação clara."], ["Analisar peças e orçamentar", "O Jarvis lê as peças do procedimento e calcula o preço da proposta com os seus salários."]],
     registrieren: "Registar", demo: "🎬 Ver a demonstração (sem registo)", konto: "Já tem conta?", anmelden: "Entrar", quelle: "Fonte", landWechseln: "País", sprache: "Idioma", hinweisApp: "Por enquanto a aplicação está em alemão; a versão portuguesa está a caminho.", keineBehoerde: "Serviço privado da WP Digital Ranger, não é uma entidade pública.", nichtAbgedeckt: "Ainda não cobrimos o seu país. Escolha um país da lista." },
 };
-
-
-/** Texts of the new start page (design 2026-11): hero, three facts, example hit. */
-type Held = { hero: string; cta: string; demo: string; fakten: [string, string][]; beispielH: string; wieH: string; gewerkeH: string; bsp: { titel: string; punkte: string; lose: string; wert: string; laufzeit: string; frist: string; neu: string } };
-const HELD: Record<Sprache, Held> = {
-  de: { hero: "Öffentliche Aufträge, die zu deiner Firma passen.", cta: "Kostenlos starten", demo: "Erst die Demo ansehen", fakten: [["1–10", "Punkte pro Treffer"], ["33", "Länder"], ["6 Uhr", "jeden Morgen"]], beispielH: "So sieht ein Treffer aus", wieH: "So funktioniert's", gewerkeH: "Ausschreibungen nach Gewerk",
-    bsp: { titel: "Unterhaltsreinigung Schulen und Verwaltung, Stadt Musterstadt", punkte: "9/10 passt sehr gut", lose: "3 Lose", wert: "Wert 1,4 Mio. €", laufzeit: "48 Monate", frist: "Abgabe in 18 Tagen", neu: "neu" } },
-  en: { hero: "Public contracts that fit your business.", cta: "Start for free", demo: "See the demo first", fakten: [["1–10", "score per match"], ["33", "countries"], ["6 am", "every morning"]], beispielH: "What a match looks like", wieH: "How it works", gewerkeH: "Tenders by trade",
-    bsp: { titel: "Janitorial services for schools and offices", punkte: "9/10 great fit", lose: "3 lots", wert: "Value €1.4M", laufzeit: "48 months", frist: "Due in 18 days", neu: "new" } },
-  fr: { hero: "Des marchés publics adaptés à votre entreprise.", cta: "Commencer gratuitement", demo: "Voir la démo", fakten: [["1–10", "points par résultat"], ["33", "pays"], ["6 h", "chaque matin"]], beispielH: "À quoi ressemble un résultat", wieH: "Comment ça marche", gewerkeH: "Appels d'offres par métier",
-    bsp: { titel: "Nettoyage d'écoles et de bâtiments administratifs", punkte: "9/10 très adapté", lose: "3 lots", wert: "Valeur 1,4 M€", laufzeit: "48 mois", frist: "Remise dans 18 jours", neu: "nouveau" } },
-  es: { hero: "Contratos públicos a la medida de tu empresa.", cta: "Empezar gratis", demo: "Ver la demo", fakten: [["1–10", "puntos por resultado"], ["33", "países"], ["6 h", "cada mañana"]], beispielH: "Así se ve un resultado", wieH: "Cómo funciona", gewerkeH: "Licitaciones por oficio",
-    bsp: { titel: "Limpieza de colegios y edificios administrativos", punkte: "9/10 encaja muy bien", lose: "3 lotes", wert: "Valor 1,4 M€", laufzeit: "48 meses", frist: "Plazo en 18 días", neu: "nuevo" } },
-  it: { hero: "Appalti pubblici adatti alla tua impresa.", cta: "Inizia gratis", demo: "Guarda la demo", fakten: [["1–10", "punti per risultato"], ["33", "paesi"], ["6:00", "ogni mattina"]], beispielH: "Ecco un risultato", wieH: "Come funziona", gewerkeH: "Gare per settore",
-    bsp: { titel: "Pulizie di scuole e uffici pubblici", punkte: "9/10 molto adatta", lose: "3 lotti", wert: "Valore 1,4 mln €", laufzeit: "48 mesi", frist: "Scadenza tra 18 giorni", neu: "nuovo" } },
-  nl: { hero: "Overheidsopdrachten die bij jouw bedrijf passen.", cta: "Gratis beginnen", demo: "Eerst de demo bekijken", fakten: [["1–10", "punten per match"], ["33", "landen"], ["6 uur", "elke ochtend"]], beispielH: "Zo ziet een match eruit", wieH: "Zo werkt het", gewerkeH: "Aanbestedingen per vak",
-    bsp: { titel: "Schoonmaak van scholen en kantoren", punkte: "9/10 past heel goed", lose: "3 percelen", wert: "Waarde € 1,4 mln", laufzeit: "48 maanden", frist: "Inschrijven binnen 18 dagen", neu: "nieuw" } },
-  pl: { hero: "Zamówienia publiczne dopasowane do Twojej firmy.", cta: "Zacznij za darmo", demo: "Zobacz demo", fakten: [["1–10", "punktów za wynik"], ["33", "kraje"], ["6:00", "każdego ranka"]], beispielH: "Tak wygląda wynik", wieH: "Jak to działa", gewerkeH: "Przetargi według branży",
-    bsp: { titel: "Sprzątanie szkół i budynków urzędów", punkte: "9/10 bardzo pasuje", lose: "3 części", wert: "Wartość 1,4 mln €", laufzeit: "48 miesięcy", frist: "Termin za 18 dni", neu: "nowy" } },
-  pt: { hero: "Contratos públicos à medida da sua empresa.", cta: "Começar grátis", demo: "Ver a demonstração", fakten: [["1–10", "pontos por resultado"], ["33", "países"], ["6h", "todas as manhãs"]], beispielH: "Assim é um resultado", wieH: "Como funciona", gewerkeH: "Concursos por setor",
-    bsp: { titel: "Limpeza de escolas e edifícios públicos", punkte: "9/10 muito adequado", lose: "3 lotes", wert: "Valor 1,4 M€", laufzeit: "48 meses", frist: "Prazo em 18 dias", neu: "novo" } },
-};
-const US_BEISPIEL = { titel: "Janitorial Services – VA Medical Center", punkte: "9/10 great fit", lose: "Total Small Business set-aside", wert: "NAICS 561720", laufzeit: "Base + 4 option years", frist: "Due in 18 days", neu: "new" };
-
-const LOGO_HELL = '<svg viewBox="0 0 128 128" aria-hidden="true"><rect x="2" y="2" width="124" height="124" rx="30" fill="#fff"/><circle cx="64" cy="64" r="43" fill="none" stroke="#15324b" stroke-opacity=".3" stroke-width="2"/><circle cx="64" cy="64" r="4" fill="#15324b"/><path d="M64 18 77 62 64 56 51 62Z" fill="#ff6b35"/><path d="m64 110-13-44 13 6 13-6z" fill="#168aad"/><path d="m18 64 44-13-6 13 6 13zM110 64 66 77l6-13-6-13z" fill="#15324b"/></svg>';
-const SCHRITT_SYMBOL = ["lupe", "dokument", "rechner"];
 
 /** Extra lines for the US page: federal set-asides etc. (more once the US research is built in). */
 const US_EXTRA = `<h2>Built for small businesses bidding on government contracts</h2>
@@ -163,32 +136,19 @@ export function landesSeite(b: Besucher, adresse: string, zusatzDe: string): { t
   const abgedeckt = Boolean(b.iso3);
   const land = landName(b.land, b.sprache);
   const wahl = landWahl(b);
-  const h = HELD[b.sprache];
-  const bsp = b.land === "US" && b.sprache === "en" ? US_BEISPIEL : h.bsp;
-  const inhalt = `<section class="start-hero">
-<div class="start-marke">${LOGO_HELL}<span>Jarvis<small>WP Digital Ranger</small></span></div>
-<h1>${escape(h.hero)}</h1>
-${abgedeckt ? `<p>${escape(t.intro(land))}</p>` : `<p class="start-hinweis">${escape(t.nichtAbgedeckt)}</p>`}
-<a class="start-cta" href="/registrieren">${escape(h.cta)} ${symbol("pfeil")}</a>
-<a class="start-demo" href="/demo">${escape(h.demo)}</a>
-<ul class="start-fakten">${h.fakten.map(([z, l]) => `<li><strong>${escape(z)}</strong><span>${escape(l)}</span></li>`).join("")}</ul>
-</section>
-<p class="start-konto">${escape(t.konto)} <a href="/anmelden">${escape(t.anmelden)}</a>${abgedeckt ? ` · <span>${escape(t.quelle)}: ${escape(quelle(b.land))}</span>` : ""}</p>
-<h2>${escape(h.beispielH)}</h2>
-<div class="start-beispiel"><div class="start-beispiel-kopf"><span class="start-punkte">${escape(bsp.punkte)}</span><span class="klein">${escape(bsp.neu)}</span></div>
-<h3>${escape(bsp.titel)}</h3>
-<ul class="start-chips"><li>${escape(bsp.lose)}</li><li>${escape(bsp.wert)}</li><li>${escape(bsp.laufzeit)}</li></ul>
-<p class="start-frist">${symbol("uhr")} ${escape(bsp.frist)}</p></div>
-<h2>${escape(h.wieH)}</h2>
-<ol class="start-schritte">${t.schritte.map(([k, v], i) => `<li><span class="start-nr">${symbol(SCHRITT_SYMBOL[i] ?? "haken")}</span><div><strong>${escape(k)}</strong><span>${escape(v)}</span></div></li>`).join("")}</ol>
+  const inhalt = `<h1>${escape(t.titel)}</h1>
+${abgedeckt ? `<p>${escape(t.intro(land))}</p><p class="klein">${escape(t.quelle)}: ${escape(quelle(b.land))}</p>` : `<p class="hinweis">${escape(t.nichtAbgedeckt)}</p>`}
+<ol>${t.schritte.map(([k, v]) => `<li><strong>${escape(k)}:</strong> ${escape(v)}</li>`).join("")}</ol>
 ${b.land === "US" && b.sprache === "en" ? US_EXTRA : ""}
+<div class="knopf-zeile"><a class="knopf" href="/registrieren">${escape(t.registrieren)}</a><a class="knopf zweit" href="/demo">${escape(t.demo)}</a></div>
+<p>${escape(t.konto)} <a href="/anmelden">${escape(t.anmelden)}</a></p>
 ${t.hinweisApp ? `<p class="klein">${escape(t.hinweisApp)}</p>` : ""}
 ${b.land === "DE" && b.sprache === "de" ? zusatzDe : ""}
-<details class="start-wahl"><summary>${symbol("globus")} <span>${escape(t.landWechseln)}: <b>${escape(landName(b.land, b.sprache).replace(/^the /, ""))}</b> · ${escape(t.sprache)}: <b>${b.sprache.toUpperCase()}</b></span></summary>${wahl}</details>
-<p class="klein start-fuss">${escape(t.keineBehoerde)}</p>`;
+${wahl}
+<p class="klein">${escape(t.keineBehoerde)}</p>`;
   const alle = Object.keys(ISO2).map((l) => `<link rel="alternate" hreflang="${HAUPTSPRACHE[l] ?? "en"}-${l}" href="${adresse}/${l.toLowerCase()}">`).join("");
   const kopf = `<link rel="canonical" href="${adresse}/${b.iso3 ? b.land.toLowerCase() : ""}">${alle}<link rel="alternate" hreflang="x-default" href="${adresse}/">`;
-  return { titel: h.hero, inhalt, kopf };
+  return { titel: t.titel, inhalt, kopf };
 }
 
 /** Cookies that remember an explicit choice (country from /xx, language from ?sprache=). One year. */
