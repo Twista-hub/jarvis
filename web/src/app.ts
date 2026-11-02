@@ -164,6 +164,8 @@ document.querySelectorAll("canvas[data-unterschrift]").forEach(function (c) {
     else if (c.hasAttribute("data-pflicht") && !(e.submitter && e.submitter.hasAttribute("data-ohne-unterschrift"))) { e.preventDefault(); alert("Bitte zuerst unterschreiben."); }
   });
 });
+// Demo: nothing is saved; forms show a short note instead.
+if (document.body && document.body.hasAttribute("data-demo")) document.addEventListener("submit", function (e) { e.preventDefault(); e.stopImmediatePropagation(); alert("Das ist die Demo mit Beispieldaten – hier wird nichts gespeichert. Registriere dich kostenlos, um Jarvis mit deiner Firma zu nutzen."); }, true);
 // Links inside a pop-up (e.g. "Hier hochladen") close it before jumping.
 document.querySelectorAll("[popover] a").forEach(function (a) { a.addEventListener("click", function () { var p = a.closest("[popover]"); if (p && p.hidePopover) p.hidePopover(); }); });
 // T41: time clock buttons ask for the position once (only to check "at the site"; the coordinates are not stored).

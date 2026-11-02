@@ -793,7 +793,7 @@ export function bewertungsErklaerung(steckbrief?: string | null): string {
   return inhalt?.replace(/\*\*/g, "").replace(/\s+/g, " ").trim().slice(0, 420) ?? "";
 }
 
-function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefined) => string, bereichWahl: string, weiter: string, rueckmeldungen = new Map<string, string>(), q = "", opts: { kompakt?: boolean; seit?: string; darfAendern?: boolean } = {}): string {
+export function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefined) => string, bereichWahl: string, weiter: string, rueckmeldungen = new Map<string, string>(), q = "", opts: { kompakt?: boolean; seit?: string; darfAendern?: boolean } = {}): string {
   if (!liste.length) return `${bereichWahl}<div class="treffer-leer"><h2>${q ? "Nichts gefunden" : "Noch keine Ausschreibungen"}</h2><p>${q ? `Kein Treffer enthält „${escape(q)}“ im Titel.` : "In diesem Bereich gibt es aktuell keine Treffer. Wähle einen anderen Stand oder Bereich."}</p></div>`;
   const optionen = (aktuell: string) => Object.entries(STATUS).map(([k, t]) => `<option value="${k}"${k === aktuell ? " selected" : ""}>${t}</option>`).join("");
   const istNeu = (v: Vorgang) => !!opts.seit && Date.parse(v.erstellt) > Date.parse(opts.seit);

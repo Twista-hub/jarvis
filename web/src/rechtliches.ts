@@ -165,7 +165,7 @@ export function startseite(beispiel: string): string {
 <li><strong>Steckbrief auf einen Blick:</strong> Fristen, Lose, Mengen, geforderte Nachweise und Referenzen, Zuschlagskriterien und eine klare Empfehlung.</li>
 <li><strong>Unterlagen prüfen und kalkulieren:</strong> Tippe auf „Hier runterladen“, wähle die Datei aus, und Jarvis liest alle Vergabeunterlagen. Danach rechnet er mit deinen Löhnen den Angebotspreis pro Stunde und pro Los aus.</li>
 </ol>
-<p><a class="knopf" href="/registrieren">Jetzt registrieren</a></p>
+<div class="knopf-zeile"><a class="knopf" href="/registrieren">Jetzt registrieren</a><a class="knopf zweit" href="/demo">🎬 Erst ansehen (Demo ohne Anmeldung)</a></div>
 <p>Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
 <p class="klein">Nach der Bestätigung deiner E-Mail-Adresse geht es sofort los. Fragen an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>.</p>
 <h2>Beispiel-Steckbrief</h2>

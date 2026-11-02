@@ -958,6 +958,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .dl-hinweis { color: var(--accent); margin-left: 3px; } .frage-popup .dl-icon { color: var(--accent); }
   .frage-popup { width: min(420px, calc(100vw - 32px)); margin: auto; border: 1px solid var(--line); border-radius: 12px; padding: 14px; background: var(--card); color: var(--text); box-shadow: 0 8px 30px #0004; font-size: 14px; }
   .frage-popup::backdrop { background: #0004; } .frage-popup p { margin: 0 0 8px; } .frage-popup .knopf-zeile { display: flex; flex-wrap: wrap; gap: 8px; } .frage-popup .knopf, .frage-popup button { min-height: 36px; padding: 4px 12px; }
+  .demo-banner { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 0 0 10px; padding: 8px 12px; border: 1px solid #e3c27a; border-radius: 12px; background: color-mix(in srgb, #d68910 10%, var(--card)); font-size: 14px; } .demo-banner .knopf { min-height: 34px; padding: 4px 12px; margin-left: auto; }
   /* T34–T45 */
   .ich-oben { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; } .ich-oben .konto-zurueck { margin: 0; }
   .sprache-wahl { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; align-items: center; font-size: 13px; }
