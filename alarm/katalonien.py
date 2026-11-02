@@ -4,8 +4,9 @@ Catalunya: publicacions a la Plataforma de serveis de contractació pública"). 
 
 API: https://analisi.transparenciacatalunya.cat/resource/ybgg-dgi6.json (SoQL). robots.txt of the portal only blocks
 search/browse pages; contractaciopublica.cat allows robots (crawl-delay 1). Licence: see docs/spanien.md (checked before
-use; the module is only called when KATALONIEN_AKTIV is true). Spain's national platform PLACSP is not used: its
-robots.txt disallows everything.
+use). Licence: "Llicència oberta d'ús d'informació – Catalunya" (checked 02.11.2026): reuse, distribution and
+transformation allowed worldwide; cite the source with the date of the last update, no Generalitat logos. Spain's
+national platform PLACSP is not used: its robots.txt disallows everything.
 Usage (test): python3 alarm/katalonien.py YYYY-MM-DD
 """
 import json
@@ -20,7 +21,7 @@ API = "https://analisi.transparenciacatalunya.cat/resource/ybgg-dgi6.json"
 UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)", "Accept": "application/json"}
 QUELLE = "Font: Plataforma de serveis de contractació pública, Generalitat de Catalunya (dades obertes)"
 SEITE = 1000
-KATALONIEN_AKTIV = False  # switched on once the licence is confirmed (docs/spanien.md)
+KATALONIEN_AKTIV = True  # licence confirmed 02.11.2026 (docs/spanien.md)
 
 
 def _holen(params: dict, versuche: int = 3) -> list[dict]:

@@ -227,6 +227,7 @@ def kurzbrief(rel: dict, day: str) -> str:
             + ("**Land:** USA (Bundesbehörde) · Quelle: SAM.gov\n\n" if rel.get("_quelle") == "SAM.gov" else "")
             + ("**Land:** Frankreich · Quelle: BOAMP, DILA (Licence Ouverte 2.0)\n\n" if rel.get("_quelle") == "BOAMP" else "")
             + ("**Land:** Polen · Quelle: Biuletyn Zamówień Publicznych (UZP)\n\n" if rel.get("_quelle") == "BZP" else "")
+            + ("**Land:** Spanien (Katalonien) · Quelle: Generalitat de Catalunya, Plataforma de serveis de contractació pública (Llicència oberta d'ús d'informació – Catalunya)\n\n" if rel.get("_quelle") == "Katalonien" else "")
             + f"**Angebotsfrist:** {frist_lesbar(frist(t)) or 'nicht angegeben'}\n\n"
             + eckdaten(t)
             + f"{beschreibung or 'Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.'}\n\n"
@@ -406,7 +407,14 @@ def run(days: list[str]) -> str:
     ausland = sorted({l for p in profiles.values() for l in p.get("laender", ["DEU"]) if l != "DEU"})
     if ausland:
         import ted
-        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in ted.releases(day, [l for l in ausland if l not in ("GBR", "USA", "FRA")])))
+        # Catalan notices come complete from the Catalan open data portal (below and above the EU thresholds); TED copies
+        # of them (NUTS ES51) would appear twice.
+        def ohne_katalonien(rel: dict) -> bool:
+            return not ("ESP" in ausland and rel.get("_land") == "ESP" and re.search(r"\bES51\d?\b", place(rel)))
+        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in ted.releases(day, [l for l in ausland if l not in ("GBR", "USA", "FRA")]) if ohne_katalonien(rel)))
+    if "ESP" in ausland:  # Spain: Catalonia complete from its open data portal (PLACSP blocks robots), rest via TED
+        import katalonien
+        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in katalonien.releases(day)))
     if "POL" in ausland:  # Poland: national notices below the EU thresholds from BZP (above them TED, see above)
         import bzp
         inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in bzp.releases(day)))
