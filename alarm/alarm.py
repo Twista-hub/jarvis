@@ -554,7 +554,7 @@ def run(days: list[str]) -> str:
         "profile": {name: {"version": katalog.profil_version(p), "abgelehnt": sorted(abgelehnt[name]), "suchstand": staende[name]} for name, p in profiles.items()},
     }, ensure_ascii=False), encoding="utf-8")
     if ki:
-        lines += [f"_KI-Kosten dieses Laufs: {ki.kosten():.2f} $_", ""]
+        lines += [f"_KI-Kosten dieses Laufs: {ki.kosten():.2f} $ ({ki.cache_stand()})_", ""]
     return "\n".join(lines)
 
 
