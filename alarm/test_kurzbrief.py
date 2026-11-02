@@ -13,7 +13,7 @@ class KurzbriefTest(unittest.TestCase):
             "title": "Beschaffung und Haushalt", "description": "Bürokräfte\n in Bonn",
             "tenderPeriod": {"endDate": "2026-11-11T12:00:00Z"},
         }}, "2026-10-21")
-        for fact in ["ITZBund", "Beschaffung und Haushalt", "Bürokräfte in Bonn", "2026-10-21", "2026-11-11"]:
+        for fact in ["ITZBund", "Beschaffung und Haushalt", "Bürokräfte in Bonn", "2026-10-21", "11.11.2026, 13:00"]:
             self.assertIn(fact, text)
         self.assertIn("Vergabeunterlagen wurden nicht geprüft", text)
 
@@ -50,3 +50,13 @@ class KurzbriefTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FristLesbarTest(unittest.TestCase):
+    def test_frist_lesbar(self):
+        frist_lesbar = alarm_modul.frist_lesbar
+        self.assertEqual(frist_lesbar("2026-11-30T12:00:00+01:00"), "30.11.2026, 12:00")
+        self.assertEqual(frist_lesbar("2026-11-30"), "30.11.2026")
+        self.assertEqual(frist_lesbar("2026-11-30T11:00:00Z"), "30.11.2026, 12:00", "UTC in deutscher Zeit")
+        self.assertEqual(frist_lesbar("bald"), "bald")
+        self.assertIsNone(frist_lesbar(None))

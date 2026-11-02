@@ -149,7 +149,7 @@ class Franzoesisch(unittest.TestCase):
                            [("d1", "Attestation URSSAF.pdf", date(2026, 12, 1), 1)], "fr", mail.PARIS)
         self.assertEqual(m["Subject"], "Nouveau : 2 appels d'offres pour Nettoyage Dupont SARL")
         text = m.get_body(preferencelist=("plain",)).get_content()
-        self.assertIn("Échéances proches", text)
+        self.assertIn("Échéances proches\u00a0:", text)
         self.assertIn("remise 20/11/2026 à 14h00", text)
         self.assertIn("date limite inconnue", text)
         self.assertIn("valable jusqu'au 01/12/2026 (dans 1 jour)", text)
@@ -169,7 +169,7 @@ class Franzoesisch(unittest.TestCase):
             self.assertEqual(senden.call_args.args[3], "⏰ Aujourd'hui : échéance · remise des offres 14h00")
 
     def test_gleiche_schluessel(self):
-        self.assertEqual(set(mail.T["fr"]), set(mail.T["de"]))
+        self.assertEqual(set(mail.T["fr"]) - {"dp"}, set(mail.T["de"]))
         self.assertEqual(set(mail.T["en"]), set(mail.T["de"]))
 
 

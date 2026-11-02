@@ -197,6 +197,23 @@ def sprach_arg(profile: dict) -> dict:
     return {"sprache": profile["sprache"]} if profile.get("sprache") in ("en", "fr") else {}
 
 
+def frist_lesbar(wert: str | None) -> str | None:
+    """Deadline for reading: 2026-11-30T12:00:00+01:00 → 30.11.2026, 12:00 (local time as written by the source;
+    UTC values, as the German notice service writes them, in German time)."""
+    if not wert:
+        return None
+    try:
+        d = datetime.fromisoformat(wert.replace("Z", "+00:00"))
+    except ValueError:
+        return wert
+    if len(wert) <= 10:
+        return d.strftime("%d.%m.%Y")
+    if d.utcoffset() == timedelta(0):
+        from zoneinfo import ZoneInfo
+        d = d.astimezone(ZoneInfo("Europe/Berlin"))
+    return d.strftime("%d.%m.%Y, %H:%M")
+
+
 def kurzbrief(rel: dict, day: str) -> str:
     """Always retain the notice facts, even when the AI budget is exhausted."""
     t = rel.get("tender") or {}
@@ -209,7 +226,7 @@ def kurzbrief(rel: dict, day: str) -> str:
             + ("**Land:** Großbritannien · Quelle: Find a Tender. Contains public sector information licensed under the Open Government Licence v3.0.\n\n" if rel.get("_quelle") == "Find a Tender" else "")
             + ("**Land:** USA (Bundesbehörde) · Quelle: SAM.gov\n\n" if rel.get("_quelle") == "SAM.gov" else "")
             + ("**Land:** Frankreich · Quelle: BOAMP, DILA (Licence Ouverte 2.0)\n\n" if rel.get("_quelle") == "BOAMP" else "")
-            + f"**Angebotsfrist:** {frist(t) or 'nicht angegeben'}\n\n"
+            + f"**Angebotsfrist:** {frist_lesbar(frist(t)) or 'nicht angegeben'}\n\n"
             + eckdaten(t)
             + f"{beschreibung or 'Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.'}\n\n"
             "_Dieser Kurzüberblick enthält Angaben aus der öffentlichen Bekanntmachung. "
