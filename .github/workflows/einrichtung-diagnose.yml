@@ -38,4 +38,11 @@ jobs:
                 from public.firmen f left join public.vorgaenge v on v.firma_id = f.id
                 group by f.id order by f.erstellt desc limit 8""")
               for r in k.fetchall(): print("FIRMA", r)
+              # New logins of the last 14 days; e-mail shortened in the log (private data).
+              k.execute("""select u.created_at, regexp_replace(u.email, '^(.).*(@.*)$', '\\1***\\2'), u.email_confirmed_at is not null,
+                       coalesce(string_agg(f.name || ' (' || m.rolle || ')', ', '), '–')
+                from auth.users u left join public.mitglieder m on m.user_id = u.id left join public.firmen f on f.id = m.firma_id
+                where u.created_at > now() - interval '14 days' group by u.id order by u.created_at desc limit 30""")
+              for r in k.fetchall(): print("NEU", r)
+              k.execute("select count(*) from auth.users"); print("NUTZER GESAMT", k.fetchone()[0])
           PY
