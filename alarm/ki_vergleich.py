@@ -97,5 +97,32 @@ def main(n: int) -> None:
         print(f"Vorfilter Haiku >= {schwelle}: {behalten}/{g['s_treffer']} Sonnet-Treffer behalten, {raus}/{g['rest']} Nicht-Treffer aussortiert")
 
 
+def batch_probe() -> None:
+    """Live check of ki.score_viele (Batch API, pre-filter + Sonnet) on 16 rated notices of the first firm: same final
+    points as the stored Sonnet ratings for the notices Sonnet rates again, duration and cost. Uses the central budget."""
+    import time as zeit
+    profil = next(p for p in profile_db.laden().values() if p.get("firma_id") and not p.get("zusatz"))
+    paare = stichprobe(profil, 16)
+    pakete = [[item(i, p[1]) for i, p in enumerate(paare[a:a + 8])] for a in range(0, len(paare), 8)]
+    start = zeit.monotonic()
+    ergebnisse = ki.score_viele(profil["beschreibung"], pakete, **sprach_arg(profil))
+    print(f"Batch fertig nach {zeit.monotonic() - start:.0f} s, Kosten {ki.kosten():.4f} $ (mit 50 % Batch-Rabatt)")
+    gleich = vergleichbar = 0
+    for k, e in enumerate(ergebnisse):
+        for i, b in e.items():
+            alt = paare[k * 8 + i][0].get("punkte")
+            quelle = "Haiku-Vorfilter" if b.get("vorfilter") else "Sonnet"
+            print(f"- gespeichert {alt}, Batch {b['punkte']} ({quelle})")
+            if not b.get("vorfilter"):
+                vergleichbar += 1
+                gleich += abs(alt - b["punkte"]) <= 1
+    print(f"Sonnet im Batch: {gleich}/{vergleichbar} innerhalb ±1 Punkt der gespeicherten Bewertung; Ergebnisse für {sum(len(e) for e in ergebnisse)}/{len(paare)} Ausschreibungen")
+    if sum(len(e) for e in ergebnisse) < len(paare):
+        sys.exit("Batch lieferte nicht alle Ergebnisse")
+
+
 if __name__ == "__main__":
-    main(max(8, min(160, int(sys.argv[1]) if len(sys.argv) > 1 else 80)))
+    if len(sys.argv) > 1 and sys.argv[1] == "batch":
+        batch_probe()
+    else:
+        main(max(8, min(160, int(sys.argv[1]) if len(sys.argv) > 1 else 80)))
