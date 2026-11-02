@@ -90,8 +90,37 @@ def suchpunkte(e: dict, firmen_plz: str = "") -> list[dict]:
     return punkte
 
 
+DEPARTEMENTS = {c for r in json.loads((ROOT / "departements.json").read_text(encoding="utf-8")).values() for c in r}
+
+
+def departement_aus_plz(plz: str) -> str | None:
+    """Département of a French postal code: 75011 → 75, 20000 → 2A, 20200 → 2B, 97400 → 974."""
+    if not re.fullmatch(r"\d{5}", plz or ""):
+        return None
+    code = ("2A" if int(plz[2]) <= 1 else "2B") if plz.startswith("20") else plz[:3] if plz.startswith("97") else plz[:2]
+    return code if code in DEPARTEMENTS else None
+
+
+def departements_der_bekanntmachung(rel: dict) -> set[str]:
+    """Départements of a French notice: BOAMP publication départements, else the postal codes of the places."""
+    deps = {str(d).strip().upper() for d in (rel.get("_boamp") or {}).get("departements") or []}
+    deps = {d.zfill(2) if d.isdigit() and len(d) == 1 else d[1:] if len(d) == 3 and d.startswith("0") else d for d in deps} & DEPARTEMENTS
+    if deps:
+        return deps
+    texte = [str((i.get("deliveryAddress") or {}).get("postalCode", "")) + " " + str((i.get("deliveryLocation") or {}).get("description") or "")
+             for i in (rel.get("tender") or {}).get("items") or []]
+    texte.append(str(((rel.get("buyer") or {}).get("address") or {}).get("postalCode") or ""))
+    return {d for t in texte for plz in re.findall(r"\b(\d{5})\b", t) if (d := departement_aus_plz(plz))}
+
+
 def im_suchgebiet(profile: dict, rel: dict) -> bool:
     """Limit app profiles to tender delivery locations; profiles without places stay nationwide."""
+    # France: the chosen départements decide (no choice = all of France). German search places and the km radius do
+    # not apply to French notices: their postal codes would collide with German ones (75… Pforzheim vs. 75… Paris).
+    if rel.get("_land") == "FRA":
+        gewaehlt = set(profile.get("departements") or [])
+        bekannt = departements_der_bekanntmachung(rel)
+        return not gewaehlt or not bekannt or bool(gewaehlt & bekannt)
     suchorte = profile.get("suchorte") or []
     if not suchorte:
         return True
@@ -192,6 +221,8 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         # Language of AI texts: chosen at setup (app language), else English when no German-speaking country is searched.
         # Only set for English, so German profiles keep their version (katalog.profil_version) and are not re-scored.
         **({"sprache": sprache(e)} if sprache(e) != "de" else {}),
+        # French départements (search area for French notices); only set when chosen, like the language.
+        **({"departements": deps} if (deps := sorted({str(d).upper() for d in e.get("departements") or []} & DEPARTEMENTS)) else {}),
         # Search radius in km and the coordinates of the firm's locations (postal codes via GeoNames).
         "radius_km": min(300, max(10, int(e.get("radius_km")))) if str(e.get("radius_km") or "").isdigit() else None,
         "suchpunkte": suchpunkte(e, firmen_plz),
