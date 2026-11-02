@@ -1,0 +1,53 @@
+# Read-only check of the Spanish national tender source (PLACSP open data ATOM feeds): robots.txt, legal notice and
+# the head of both feeds. Nothing is stored. Docs: docs/spanien.md
+name: Spanien-Test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: robots.txt und Aviso legal
+        run: |
+          UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+          for h in contrataciondelsectorpublico.gob.es contrataciondelestado.es www.hacienda.gob.es; do
+            echo "== https://$h/robots.txt"; curl -sSL -m 20 -A "$UA" "https://$h/robots.txt" | head -50; echo
+          done
+          for u in https://www.hacienda.gob.es/es-ES/Paginas/Avisolegal.aspx https://contrataciondelestado.es/wps/portal/info/aviso_legal; do
+            echo "== $u"; curl -sSL -m 30 -A "$UA" "$u" -o a.html -w "HTTP %{http_code}, %{size_download}\n"
+            python3 -c "
+          import re; t=open('a.html',errors='replace').read(); t=re.sub(r'<script[\s\S]*?</script>|<style[\s\S]*?</style>','',t); t=re.sub(r'<[^>]+>',' ',t); t=re.sub(r'\s+',' ',t)
+          for m in re.finditer(r'.{0,500}(reutiliza|comercial|Ley 37/2007|condiciones generales).{0,500}', t, re.I): print('…', m.group(0)); print()" | head -40
+          done
+      - name: Kopf der ATOM-Feeds
+        run: |
+          UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+          for u in https://contrataciondelsectorpublico.gob.es/sindicacion/sindicacion_643/licitacionesPerfilesContratanteCompleto3.atom https://contrataciondelsectorpublico.gob.es/sindicacion/sindicacion_1044/PlataformasAgregadasSinMenores.atom; do
+            echo "== $u"
+            curl -sSL -m 120 -A "$UA" -o f.atom -w "HTTP %{http_code}, %{size_download} Bytes, %{time_total}s\n" "$u"
+            python3 - <<'PY'
+          import re
+          from xml.etree import ElementTree as ET
+          raw = open("f.atom", "rb").read()
+          try:
+              root = ET.fromstring(raw)
+          except Exception as e:
+              print("kein XML:", e, raw[:300]); raise SystemExit
+          ns = {"a": "http://www.w3.org/2005/Atom"}
+          entries = root.findall("a:entry", ns)
+          print("Einträge:", len(entries), "updated:", root.findtext("a:updated", namespaces=ns), "next:", [l.get("href") for l in root.findall("a:link", ns) if l.get("rel") == "next"])
+          def lokal(t): return t.rsplit("}", 1)[-1]
+          for e in entries[:2]:
+              print("-----", e.findtext("a:title", namespaces=ns)[:150], "|", e.findtext("a:updated", namespaces=ns), "|", e.findtext("a:id", namespaces=ns))
+              felder = {}
+              for el in e.iter():
+                  n = lokal(el.tag)
+                  if el.text and el.text.strip() and n not in felder and len(felder) < 60:
+                      felder[n] = el.text.strip()[:120]
+              for k, v in felder.items():
+                  print(f"   {k}: {v}")
+          PY
+          done
