@@ -1,0 +1,20 @@
+# Read only: probes the French open data sources for tenders (BOAMP on Opendatasoft, data.gouv.fr) and prints
+# robots.txt, licence information and a few sample records.
+name: Frankreich-Test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Abrufen
+        run: |
+          B=https://boamp-datadila.opendatasoft.com
+          echo "== robots"; curl -s $B/robots.txt | head -20
+          echo "== datasets"; curl -s "$B/api/explore/v2.1/catalog/datasets?limit=20&select=dataset_id,metas" | jq -r '.results[] | [.dataset_id, (.metas.default.title // ""), (.metas.default.license // ""), (.metas.default.records_count|tostring)] | @tsv' 2>&1 | head -20
+          echo "== felder boamp"; curl -s "$B/api/explore/v2.1/catalog/datasets/boamp" | jq -r '.metas.default.license, .metas.default.license_url, (.fields[] | "\(.name)\t\(.type)\t\(.label)")' 2>&1 | head -80
+          echo "== beispiel"; curl -s "$B/api/explore/v2.1/catalog/datasets/boamp/records?limit=2&order_by=dateparution%20desc" | jq '.total_count, (.results[0] | with_entries(.value |= (tostring | .[0:300])))' 2>&1 | head -120
+          echo "== zaehlen 60 Tage"; curl -s "$B/api/explore/v2.1/catalog/datasets/boamp/records?limit=0&where=dateparution%3E%3D%222026-09-03%22" | jq '.total_count'
+          echo "== data.gouv api-boamp"; curl -s "https://www.data.gouv.fr/api/1/datasets/api-boamp/" | jq -r '.license, .title, .description' 2>&1 | head -30
