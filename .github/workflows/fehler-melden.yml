@@ -2,7 +2,7 @@
 name: Fehler melden
 on:
   workflow_run:
-    workflows: ["Ausschreibungs-Alarm", "Datenbank", "Prüfen", "Upload-Seite ausrollen", "Zentralen Vergabekatalog ausrollen", "Tägliche Mail", "Datensicherung"]
+    workflows: ["Ausschreibungs-Alarm", "Datenbank", "Prüfen", "Upload-Seite ausrollen", "Zentralen Vergabekatalog ausrollen", "Tägliche Mail", "Datensicherung", "Gewerk-Zahlen"]
     types: [completed]
 permissions:
   contents: read

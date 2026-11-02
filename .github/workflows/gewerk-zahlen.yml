@@ -1,0 +1,31 @@
+# Every 6 hours: computes the live numbers for the public trade pages (/ausschreibungen/<gewerk>).
+name: Gewerk-Zahlen
+on:
+  schedule:
+    - cron: "37 */6 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  berechnen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q "psycopg[binary]"
+      - name: Berechnen
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          cd alarm
+          python - <<'PY'
+          from profile_db import verbinden
+          with verbinden() as c:
+              c.execute("set statement_timeout = '5min'")
+              n = c.execute("select jarvis_intern.gewerk_aktualisieren()").fetchone()[0]
+              print("Gewerke berechnet:", n)
+              for k, m in c.execute("select schluessel, daten->>'monat' from jarvis_intern.gewerk_cache order by schluessel").fetchall():
+                  print(k, m)
+          PY
