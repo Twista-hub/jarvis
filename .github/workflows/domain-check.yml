@@ -1,0 +1,23 @@
+# Read only: checks whether domain names are already registered (DNS NS record via public resolvers).
+name: Domain-Check
+on:
+  workflow_dispatch:
+    inputs:
+      namen:
+        description: "Domains mit Leerzeichen"
+        required: true
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prüfen
+        env:
+          NAMEN: ${{ inputs.namen }}
+        run: |
+          for d in $NAMEN; do
+            ns=$(dig +short NS "$d" @1.1.1.1 | head -1)
+            st=$(dig NS "$d" @1.1.1.1 | grep -oE 'status: [A-Z]+' | cut -d' ' -f2)
+            if [ "$st" = "NXDOMAIN" ]; then echo "FREI?  $d"; else echo "BELEGT $d ($st ${ns:-ohne NS})"; fi
+          done
