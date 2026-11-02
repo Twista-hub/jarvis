@@ -1,0 +1,185 @@
+# Read-only check of the Dutch national tender source TenderNed (public publication web service "TNS",
+# https://www.tenderned.nl/papi/tenderned-rs-tns/v2/publicaties, JSON, no login) and the open data entry on
+# data.overheid.nl (CC0): robots.txt of both hosts, terms of use / licence pages and, only if robots.txt allows /papi/,
+# the API for the last working day. At most 15 requests, 3 s apart. Nothing is stored, no secrets.
+# Docs: docs/niederlande.md
+name: Niederlande-Test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: TenderNed prüfen (robots.txt, Bedingungen, Schnittstelle)
+        env:
+          UA: "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+        run: |
+          python3 - <<'PY'
+          import collections as C, json, os, re, time, urllib.error, urllib.parse, urllib.request, urllib.robotparser
+          from datetime import datetime, timedelta, timezone
+
+          UA = os.environ["UA"]
+          TN = "https://www.tenderned.nl"
+          TNS = TN + "/papi/tenderned-rs-tns/v2"
+          DO = "https://data.overheid.nl"
+          zaehler = [0]
+
+          def get(url, accept="*/*", limit=15):
+              """One request (max. limit per run), 3 s pause before it. Never raises: returns (status, headers, bytes)."""
+              if zaehler[0] >= limit:
+                  print("   (Limit von", limit, "Abrufen erreicht, übersprungen)"); return 0, {}, b""
+              zaehler[0] += 1
+              time.sleep(3)
+              req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": accept})
+              try:
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      body = r.read(5_000_000)
+                      st, h = r.status, dict(r.headers)
+              except urllib.error.HTTPError as e:
+                  body, st, h = e.read(200_000), e.code, dict(e.headers or {})
+              except Exception as e:  # noqa: BLE001
+                  print(f"   #{zaehler[0]} FEHLER {url}: {e}"); return 0, {}, b""
+              print(f"   #{zaehler[0]} HTTP {st}, {len(body)} Bytes, Typ {h.get('Content-Type')} – {url}")
+              rl = {k: v for k, v in h.items() if re.search(r"rate|retry|limit", k, re.I)}
+              if rl: print("   Limit-Kopfzeilen:", rl)
+              return st, h, body
+
+          def text(b):
+              t = b.decode("utf-8", "replace")
+              t = re.sub(r"<script[\s\S]*?</script>|<style[\s\S]*?</style>", "", t)
+              return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", t))
+
+          def stellen(b, muster, n=12):
+              t = text(b)
+              print("   Text (Anfang):", t[:300])
+              for m in list(re.finditer(r".{0,250}(" + muster + r").{0,250}", t, re.I))[:n]:
+                  print("   …", m.group(0))
+
+          # ---------- 1. robots.txt (2 Abrufe) ----------
+          print("::group::1. robots.txt")
+          robots = {}
+          for host in ("www.tenderned.nl", "data.overheid.nl"):
+              st, h, b = get(f"https://{host}/robots.txt", "text/plain")
+              print(b.decode("utf-8", "replace")[:3000]); print()
+              rp = urllib.robotparser.RobotFileParser()
+              if st == 200:
+                  rp.parse(b.decode("utf-8", "replace").splitlines())
+              elif 400 <= st < 500:
+                  rp.parse([])  # no robots.txt = everything allowed (RFC 9309)
+              else:
+                  rp.parse(["User-agent: *", "Disallow: /"])  # unreachable: be careful, fetch nothing
+              robots[host] = rp
+          def erlaubt(url):
+              ok = robots[urllib.parse.urlparse(url).hostname].can_fetch(UA, url)
+              print(f"   robots.txt {'ERLAUBT' if ok else 'SPERRT'}: {url}")
+              return ok
+          pfade = {
+              "API Liste": TNS + "/publicaties",
+              "API Detail": TNS + "/publicaties/123456",
+              "RSS": TN + "/papi/tenderned-rs-tns/rss/laatste-publicatie.rss",
+              "Swagger": TN + "/info/swagger/",
+              "Nutzungsbedingungen NL": TN + "/cms/nl/over-deze-site/gebruiksvoorwaarden",
+              "Nutzungsbedingungen EN": TN + "/cms/en/english/tenderned-terms-use",
+              "Datensatz-Seite TenderNed": TN + "/cms/nl/aanbesteden-in-cijfers/datasets-aanbestedingen",
+              "data.overheid.nl Datensatz": DO + "/dataset/aankondigingen-van-overheidsopdrachten---tenderned",
+              "data.overheid.nl CKAN-API": DO + "/data/api/3/action/package_show?id=aankondigingen-van-overheidsopdrachten---tenderned",
+          }
+          ok = {k: erlaubt(u) for k, u in pfade.items()}
+          print("::endgroup::")
+
+          # ---------- 2. Lizenz und Nutzungsbedingungen (bis 5 Abrufe) ----------
+          print("::group::2. Lizenz und Nutzungsbedingungen")
+          MUSTER = r"licen|CC.?0|Creative Commons|hergebruik|herbruik|re-?use|scrap|crawl|robot|geautomatiseerd|automated|automatisch|API|webservice|open data|openbaar|bronvermelding|verboden|prohibit|not permitted|niet toegestaan"
+          for k in ("Nutzungsbedingungen NL", "Nutzungsbedingungen EN", "Datensatz-Seite TenderNed", "data.overheid.nl Datensatz"):
+              print(f"== {k}")
+              if not ok[k]: print("   von robots.txt gesperrt: kein Abruf"); continue
+              st, h, b = get(pfade[k], "text/html")
+              if b: stellen(b, MUSTER)
+              print()
+          print("== data.overheid.nl CKAN-API (license_id, Ressourcen)")
+          if ok["data.overheid.nl CKAN-API"]:
+              st, h, b = get(pfade["data.overheid.nl CKAN-API"], "application/json")
+              try:
+                  r = json.loads(b)["result"]
+                  print("  ", {k: r.get(k) for k in ("title", "license_id", "license_title", "license_url", "metadata_modified", "frequency")})
+                  print("   Organisation:", (r.get("organization") or {}).get("title"))
+                  for x in r.get("resources") or []:
+                      print("   Ressource:", x.get("name"), "|", x.get("format"), "|", x.get("url"), "|", (x.get("description") or "")[:200])
+              except Exception as e:  # noqa: BLE001
+                  print("   kein CKAN-JSON:", e, b[:200])
+          print("::endgroup::")
+
+          # ---------- 3. Schnittstelle (bis 7 Abrufe) ----------
+          print("::group::3. Schnittstelle TNS")
+          if not ok["API Liste"]:
+              print("robots.txt sperrt /papi/: KEIN Abruf der Schnittstelle. Nur dokumentieren.")
+          else:
+              tag = datetime.now(timezone.utc).date() - timedelta(days=1)
+              while tag.weekday() >= 5: tag -= timedelta(days=1)  # last working day
+              D = tag.isoformat()
+              print("Veröffentlichungstag für die Proben:", D)
+              def liste(**p):
+                  q = {"publicatieDatumVanaf": D, "publicatieDatumTot": D, "page": 0, "size": 100}
+                  q.update(p)
+                  st, h, b = get(TNS + "/publicaties?" + urllib.parse.urlencode(q), "application/json")
+                  try:
+                      return json.loads(b)
+                  except Exception as e:  # noqa: BLE001
+                      print("   kein JSON:", e, b[:300]); return {}
+              def zeile(r):
+                  return r if isinstance(r, dict) else {}
+              def code(v):
+                  return v.get("code") if isinstance(v, dict) else v
+              alle = liste()
+              print("Alle Arten: totalElements =", alle.get("totalElements"), "| totalPages =", alle.get("totalPages"), "| Schlüssel:", sorted(alle.keys()))
+              rows = [zeile(r) for r in alle.get("content") or []]
+              print("   typePublicatie:", C.Counter(str(code(r.get("typePublicatie")))[:40] for r in rows).most_common())
+              print("   publicatieDatum (Beispiele):", [r.get("publicatieDatum") for r in rows[:3]], "… letzte:", [r.get("publicatieDatum") for r in rows[-2:]])
+              aao = liste(publicatieType="AAO")
+              arows = [zeile(r) for r in aao.get("content") or []]
+              print("AAO (Aankondiging van een opdracht): totalElements =", aao.get("totalElements"), "| Einträge Seite 1:", len(arows))
+              print("   europees:", C.Counter(str(r.get("europees")) for r in arows).most_common(),
+                    "| typeOpdracht:", C.Counter(str(code(r.get("typeOpdracht"))) for r in arows).most_common(),
+                    "| procedure:", C.Counter(str(code(r.get("procedure")))[:30] for r in arows).most_common(8))
+              print("   mit sluitingsDatum:", sum(1 for r in arows if r.get("sluitingsDatum")), "| mit link:", sum(1 for r in arows if r.get("link")))
+              if arows:
+                  print("   Felder der Liste:", sorted(arows[0].keys()))
+              for r in arows[:4]:
+                  print("   =====", r.get("publicatieId"), "|", str(r.get("aanbestedingNaam"))[:110])
+                  print("        ", {k: str(r.get(k))[:90] for k in ("opdrachtgeverNaam", "publicatieDatum", "sluitingsDatum", "typePublicatie", "procedure", "typeOpdracht", "europees", "kenmerk", "link")})
+              # Filter check: unknown parameters are reportedly ignored silently, so compare the totals.
+              na = liste(publicatieType="AAO", nationaalOfEuropees="NA", size=20)
+              eu = liste(publicatieType="AAO", nationaalOfEuropees="EU", size=20)
+              tn, te, ta = na.get("totalElements"), eu.get("totalElements"), aao.get("totalElements")
+              print(f"Filter nationaalOfEuropees: NA={tn}, EU={te}, AAO gesamt={ta}",
+                    "→ Filter wirkt" if isinstance(tn, int) and isinstance(te, int) and tn != ta and tn + te == ta else "→ Filter prüfen (evtl. still ignoriert)")
+              print("   europees bei NA:", C.Counter(str(zeile(r).get("europees")) for r in na.get("content") or []).most_common(),
+                    "| bei EU:", C.Counter(str(zeile(r).get("europees")) for r in eu.get("content") or []).most_common())
+              # Detail of the first national contract notice (or the first one at all)
+              wahl = next((r for r in arows if r.get("europees") is False), arows[0] if arows else None)
+              if wahl and wahl.get("publicatieId"):
+                  st, h, b = get(f"{TNS}/publicaties/{wahl['publicatieId']}", "application/json")
+                  try:
+                      d = json.loads(b)
+                      print("Detail", wahl["publicatieId"], "Felder:", sorted(d.keys()))
+                      for k in ("cpvCodes", "nutsCodes", "nationaalOfEuropeesCode", "aankondigingCode", "procedureCode", "typeOpdrachtCode", "opdrachtAardCode", "sluitingsDatum", "aanvangOpdrachtDatum", "voltooiingOpdrachtDatum", "isDigitaalInschrijvenMogelijk", "publicatieIDLaatsteRectificatie", "formType", "referentieNummer", "kenmerk"):
+                          print(f"   {k}:", json.dumps(d.get(k), ensure_ascii=False)[:300])
+                      print("   Wert/Lose (Schlüssel mit waarde|bedrag|raming|perceel|lot|ted):",
+                            {k: json.dumps(v, ensure_ascii=False)[:200] for k, v in d.items() if re.search(r"waarde|bedrag|raming|perce|lot|ted|url|link", k, re.I)})
+                  except Exception as e:  # noqa: BLE001
+                      print("   kein JSON:", e, b[:300])
+              print("== RSS")
+              if ok["RSS"]:
+                  st, h, b = get(pfade["RSS"], "application/rss+xml, application/atom+xml, application/xml")
+                  if st != 200 and erlaubt(TNS + "/rss/laatste-publicatie.rss"):
+                      st, h, b = get(TNS + "/rss/laatste-publicatie.rss", "application/rss+xml, application/atom+xml, application/xml")
+                  t = b.decode("utf-8", "replace")
+                  print("   Einträge:", len(re.findall(r"<item[ >]|<entry[ >]", t)), "| Anfang:", re.sub(r"\s+", " ", t[:600]))
+              else:
+                  print("   von robots.txt gesperrt: kein Abruf")
+          print("::endgroup::")
+          print("Abrufe insgesamt:", zaehler[0])
+          PY
