@@ -1,4 +1,5 @@
-# Read-only: Catalan open data portal (Socrata) for public procurement – robots.txt, dataset licence, sample rows.
+# Read-only: Catalan open data portal (Socrata) – terms of use / licence text and the publication phases of dataset
+# ybgg-dgi6 (public procurement publications). Nothing is stored.
 name: Katalonien-Test
 on:
   workflow_dispatch:
@@ -11,20 +12,13 @@ jobs:
     steps:
       - run: |
           UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
-          echo "== robots.txt"; curl -sS -m 20 -A "$UA" https://analisi.transparenciacatalunya.cat/robots.txt | head -40
-          echo "== contractaciopublica.cat robots"; curl -sS -m 20 -A "$UA" https://contractaciopublica.cat/robots.txt | head -40
-          echo "== Suche nach Datensätzen"
-          curl -sS -m 30 -A "$UA" "https://api.eu.socrata.com/api/catalog/v1?domains=analisi.transparenciacatalunya.cat&q=contractacio&limit=15" -o c.json || true
-          python3 -c "
-          import json
-          try: d=json.load(open('c.json'))
-          except Exception as e: print('keine Antwort', open('c.json',errors='replace').read()[:300]); raise SystemExit
-          for r in d.get('results',[]):
-              x=r['resource']; print(x['id'], '|', x['name'][:100], '| updated', x.get('data_updated_at'), '|', r.get('metadata',{}).get('license'))" || true
-          for id in ybgg-dgi6 a23c-d6vp; do
-            echo "== Metadaten $id"; curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/api/views/$id.json" -o m.json
-            python3 -c "
-          import json; d=json.load(open('m.json')); print(d.get('name'), '|', d.get('license'), '|', d.get('licenseId'), '| rows updated', d.get('rowsUpdatedAt'))
-          print('Spalten:', [c.get('fieldName') for c in d.get('columns',[])][:60])" || true
-            echo "== Beispiel $id"; curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/resource/$id.json?\$limit=2&\$order=:updated_at%20DESC" | head -c 3000; echo
+          text() { python3 -c "
+          import re,sys; t=open('p.html',errors='replace').read(); t=re.sub(r'<script[\s\S]*?</script>|<style[\s\S]*?</style>','',t); t=re.sub(r'<[^>]+>',' ',t); t=re.sub(r'\s+',' ',t)
+          for m in re.finditer(r'.{0,400}(llicència|licencia|reutilitz|comercial|atribuci|CC BY|Creative Commons).{0,400}', t, re.I): print('…', m.group(0)); print()" | head -30; }
+          for u in https://analisi.transparenciacatalunya.cat/stories/s/Condicions-d-%C3%BAs/yb9e-2f9y https://administraciodigital.gencat.cat/ca/dades/dades-obertes/informacio-practica/llicencies/ https://governobert.gencat.cat/ca/dades_obertes/llicencia/ https://web.gencat.cat/ca/menu-ajuda/ajuda/avis_legal/; do
+            echo "===== $u"; curl -sSL -m 30 -A "$UA" -o p.html -w "HTTP %{http_code}\n" "$u" && text
           done
+          echo "===== Phasen"; curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/resource/ybgg-dgi6.json?\$select=fase_publicacio,count(*)&\$group=fase_publicacio&\$where=data_publicacio_anunci%3E'2026-10-25T00:00:00'"; echo
+          echo "===== Anuncis gestern"; D=$(date -u -d yesterday +%F)
+          curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/resource/ybgg-dgi6.json?\$select=count(*)&\$where=data_publicacio_anunci%3E='${D}T00:00:00'%20AND%20data_publicacio_anunci%3C'${D}T23:59:59'"; echo
+          curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/resource/ybgg-dgi6.json?\$limit=1&\$where=fase_publicacio='Anunci%20de%20licitació'&\$order=data_publicacio_anunci%20DESC" | head -c 2500; echo
