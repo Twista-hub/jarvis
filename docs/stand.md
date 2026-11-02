@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Frankreich-Durchlauf mit Testfirma)
+- `alarm/frankreich_durchlauf.py` + Workflow `frankreich-durchlauf.yml` (manuell, nichts speichern, keine Mail): erfundene Reinigungsfirma Paris, Île-de-France. Lauf https://github.com/Twista-hub/jarvis/actions/runs/41526978782: ERGEBNIS ALLES OK, 0,07 $ KI. 768 BOAMP-Aufrufe (4 Tage) → 173 im Gebiet → 8 Kandidaten → KI-Bewertung auf Französisch (Saint-Mandé, ENSA Paris-La Villette 10/10, Éco-pâturage 1/10), Steckbrief französisch mit deutschen Marken, Morgenmail französisch.
+- Oberfläche: Suche über 75 gerenderte App-Seiten fand 325 deutsche Reste (Funktionen nach dem Wörterbuch). 262 nachgetragen (`englisch/nachtrag.json`, `franzoesisch/nachtrag.json`), Rest sind Beispieldaten. Beträge mit geschützten Leerzeichen werden jetzt erkannt.
+- Kurzüberblick: Angebotsfrist lesbar (30.11.2026, 12:00; UTC-Werte in deutscher Zeit). Französische Mail mit Leerzeichen vor dem Doppelpunkt.
+- Offen: GAEB-Kästen für französische Firmen ausblenden; Live-Sofortlauf mit echtem Konto.
+
 ### 02.11.2026 – Claude (Live-Zahlen auf den französischen Gewerke-Seiten)
 - Neuer interner Bestand `jarvis_intern.boamp_avis` (Migration `20261102130000_boamp_bestand.sql`): nur öffentliche BOAMP-Angaben (Titel, Käufer, Départements, CPV, Frist, Link), 90 Tage. Befüllt zweimal täglich von `alarm/boamp_bestand.py` (Workflow `boamp-bestand.yml`, 07:23/19:23 UTC; Erstbefüllung mit `tage` = 31).
 - Zahlen über denselben Hintergrund-Cache wie die deutschen Seiten (`gewerk_cache`, Schlüssel `fr:…`, `gewerk_aktualisieren` rechnet beide Länder), öffentlich lesbar über `rpc/metier_statistik`. Seiten zeigen „appels d'offres sur les 30 derniers jours“, „encore ouverts“ und bis zu 8 offene Beispiele mit Link zum BOAMP-Avis. Gezählt werden Avis mit CPV-Code des Métiers.

@@ -47,7 +47,7 @@ T = {
            "fuss": "Change the time or turn off emails: {app}/konto#mail", "b_neu": "{n} new tender{s}", "b_fristen": "Deadline reminder",
            "b_nachweise": "Documents expiring soon", "fuer": " for {f}", "oeffnen": "Open all matches in Jarvis", "impressum": "Legal notice"},
     # French: plural only where a plain "s" is enough ({s}); "Nouveau :" as a label avoids nouvel/nouveaux agreement.
-    "fr": {"top1": "⭐ Meilleur résultat {p}/10", "topn": "⭐ {n} meilleurs résultats pour {f}", "weitere": " · et {n} de plus", "frist": "⏰ Date limite {d}",
+    "fr": {"dp": "\u00a0:", "top1": "⭐ Meilleur résultat {p}/10", "topn": "⭐ {n} meilleurs résultats pour {f}", "weitere": " · et {n} de plus", "frist": "⏰ Date limite {d}",
            "neu1": "Nouvel appel d'offres", "neun": "Nouveau : {n} appel{s} d'offres pour {f}", "fristen_bald": " · et {n} échéance{s} proche{s}",
            "heute": "⏰ Aujourd'hui : {was} · {art} {z}", "heute1": "échéance", "heuten": "{n} échéances", "Abgabe": "remise des offres", "Fragen": "questions", "Termin": "rendez-vous",
            "uhr": "%d/%m/%Y à %Hh%M", "zeit": "%Hh%M", "unbekannt": "inconnue", "tag": "%d/%m/%Y",
@@ -309,7 +309,7 @@ def nachricht(an: str, firma: str, neu: list, fristen: list, nachweise: list = (
     d = lambda x: datum(x, sprache, zone)  # noqa: E731
     zeilen, html_teile = [], []
     if fristen:
-        zeilen.append(f"{t['h_fristen']}:")
+        zeilen.append(f"{t['h_fristen']}{t.get('dp', ':')}")
         html_teile.append(f"<h2>{t['h_fristen']}</h2><ul>")
         for vid, titel, frist in fristen:
             zeilen.append(f"- {titel} – {t['abgabe']} {d(frist)}\n  {APP}/konto/vorgang/{vid}")
@@ -317,7 +317,7 @@ def nachricht(an: str, firma: str, neu: list, fristen: list, nachweise: list = (
         html_teile.append("</ul>")
     if neu:
         kopf = t["h_neu"].format(n=len(neu), s=pl(len(neu)))
-        zeilen.append(f"\n{kopf}:")
+        zeilen.append(f"\n{kopf}{t.get('dp', ':')}")
         html_teile.append(f"<h2>{kopf}</h2><ul>")
         for vid, titel, punkte, frist in neu:
             p = f"{punkte}/10 · " if punkte else ""
@@ -325,7 +325,7 @@ def nachricht(an: str, firma: str, neu: list, fristen: list, nachweise: list = (
             html_teile.append(f'<li>{p}<a href="{APP}/konto/vorgang/{vid}">{html.escape(titel)}</a> <small>({t["frist_kl"]} {d(frist)})</small></li>')
         html_teile.append("</ul>")
     if nachweise:
-        zeilen.append(f"\n{t['h_nachweise']}:")
+        zeilen.append(f"\n{t['h_nachweise']}{t.get('dp', ':')}")
         html_teile.append(f"<h2>{t['h_nachweise']}</h2><ul>")
         for _id, name, gueltig_bis, tage in nachweise:
             bis = gueltig_bis.strftime(t["tag"])
