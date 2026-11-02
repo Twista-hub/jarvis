@@ -1,0 +1,25 @@
+# Read only: fetches public pages of the live app and prints status and key numbers.
+name: Live-Prüfung
+on:
+  workflow_dispatch:
+    inputs:
+      pfade:
+        description: "Pfade mit Leerzeichen"
+        default: "/ /ausschreibungen /ausschreibungen/elektro /robots.txt /sitemap.xml /demo"
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Abrufen
+        env:
+          PFADE: ${{ inputs.pfade }}
+        run: |
+          for p in $PFADE; do
+            code=$(curl -s -o seite -w "%{http_code} %{time_total}s" "https://app.wpdigitalranger.com$p")
+            echo "== $p → $code"
+            grep -oE '<strong>[0-9.]+</strong><span>[^<]*' seite | head -2 || true
+            grep -oE '<li><div><strong>[^<]{0,80}' seite | head -3 || true
+            case "$p" in *.txt|*.xml) head -c 600 seite; echo;; esac
+          done
