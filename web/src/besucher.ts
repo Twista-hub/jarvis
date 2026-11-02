@@ -114,6 +114,11 @@ const US_EXTRA = `<h2>Built for small businesses bidding on government contracts
 <li>See set-asides (small business, 8(a), HUBZone, WOSB, SDVOSB), NAICS code and response deadline at a glance.</li>
 <li>Your team, shifts and timesheets in one place once you win.</li></ul>
 <p>New to federal contracting? Read our free <a href="/us/sam-registration">step-by-step guide to SAM.gov registration</a>.</p>`;
+const FR_EXTRA = `<h2>Pour les artisans et entreprises de services</h2>
+<ul><li>Tous les nouveaux avis du BOAMP chaque jour, MAPA et procédures formalisées.</li>
+<li>Recherche par départements, au départ toute votre région.</li>
+<li>Fiche synthèse du DCE, dates limites et questions aux acheteurs au même endroit.</li></ul>
+<p>Voir les <a href="/fr/appels-d-offres">appels d'offres publics par métier</a>.</p>`;
 
 /** Country and language links (shown at the bottom of the public start page). */
 export function landWahl(b: Besucher): string {
@@ -141,6 +146,7 @@ export function landesSeite(b: Besucher, adresse: string, zusatzDe: string): { t
 ${abgedeckt ? `<p>${escape(t.intro(land))}</p><p class="klein">${escape(t.quelle)}: ${escape(quelle(b.land))}</p>` : `<p class="hinweis">${escape(t.nichtAbgedeckt)}</p>`}
 <ol>${t.schritte.map(([k, v]) => `<li><strong>${escape(k)}:</strong> ${escape(v)}</li>`).join("")}</ol>
 ${b.land === "US" && b.sprache === "en" ? US_EXTRA : ""}
+${b.land === "FR" && b.sprache === "fr" ? FR_EXTRA : ""}
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">${escape(t.registrieren)}</a><a class="knopf zweit" href="/demo">${escape(t.demo)}</a></div>
 <p>${escape(t.konto)} <a href="/anmelden">${escape(t.anmelden)}</a></p>
 ${t.hinweisApp ? `<p class="klein">${escape(t.hinweisApp)}</p>` : ""}

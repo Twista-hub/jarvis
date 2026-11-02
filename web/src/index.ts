@@ -59,6 +59,7 @@ import { kraefteEinladen } from "./kraefte.ts";
 import { betreiber } from "./loeschen.ts";
 import { demo } from "./demo.ts";
 import { gewerke } from "./gewerke.ts";
+import { metiers } from "./gewerke-fr.ts";
 import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
@@ -140,7 +141,9 @@ function darstellen(request: Request, r: Response): Response {
   const wahl = /(?:^|;\s*)jv_darstellung=([a-z-]{1,20})/.exec(request.headers.get("cookie") ?? "")?.[1] ?? "";
   const theme = wahl.includes("dark") ? "dark" : wahl.includes("light") ? "light" : "";
   const attribute = `${theme ? ` data-theme="${theme}"` : ""}${wahl.includes("gross") ? ' data-schrift="gross"' : ""}`;
-  const sprache = appSprache(request);
+  // Pages written in one language (French trade pages) say so; everything else follows the visitor's choice.
+  const fest = r.headers.get("x-jv-sprache");
+  const sprache = fest === "de" || fest === "en" || fest === "fr" ? fest : appSprache(request);
   const url = new URL(request.url);
   const pfad = `${url.pathname}${url.search}`;
   const body = new Response(r.body).text();
@@ -179,6 +182,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     }
     const gw = await gewerke(request, env, ADRESSE, (h) => html(h));
     if (gw) return gw;
+    const fr = metiers(request, ADRESSE, (h) => html(h));
+    if (fr) return fr;
     const sam = samAnleitungSeite(request, ADRESSE, (h) => html(h));
     if (sam) return sam;
     const dm = await demo(request, MUSTER.replace(/^>.*\n/m, ""));
