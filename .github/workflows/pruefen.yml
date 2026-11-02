@@ -18,7 +18,7 @@ jobs:
       - run: pip install -q cryptography "psycopg[binary]" anthropic
       - run: python -m py_compile alarm/*.py
       - run: python -m unittest discover -s web/scripts -p 'test_*.py'
-      - run: python -m unittest alarm.test_mail alarm.test_kurzbrief alarm.test_katalog alarm.test_ted alarm.test_suchgebiet alarm.test_suchqualitaet alarm.test_suchfilter alarm.test_sprache alarm.test_boamp
+      - run: python -m unittest alarm.test_mail alarm.test_kurzbrief alarm.test_katalog alarm.test_ted alarm.test_suchgebiet alarm.test_suchqualitaet alarm.test_suchfilter alarm.test_sprache alarm.test_boamp alarm.test_bzp
 
   web:
     runs-on: ubuntu-latest

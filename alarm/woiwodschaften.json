@@ -1,0 +1,115 @@
+{
+ "dolnoslaskie": {
+  "name": "Dolnośląskie",
+  "teryt": "PL02",
+  "nuts": [
+   "PL51"
+  ]
+ },
+ "kujawsko-pomorskie": {
+  "name": "Kujawsko-Pomorskie",
+  "teryt": "PL04",
+  "nuts": [
+   "PL61"
+  ]
+ },
+ "lubelskie": {
+  "name": "Lubelskie",
+  "teryt": "PL06",
+  "nuts": [
+   "PL81"
+  ]
+ },
+ "lubuskie": {
+  "name": "Lubuskie",
+  "teryt": "PL08",
+  "nuts": [
+   "PL43"
+  ]
+ },
+ "lodzkie": {
+  "name": "Łódzkie",
+  "teryt": "PL10",
+  "nuts": [
+   "PL71"
+  ]
+ },
+ "malopolskie": {
+  "name": "Małopolskie",
+  "teryt": "PL12",
+  "nuts": [
+   "PL21"
+  ]
+ },
+ "mazowieckie": {
+  "name": "Mazowieckie",
+  "teryt": "PL14",
+  "nuts": [
+   "PL91",
+   "PL92"
+  ]
+ },
+ "opolskie": {
+  "name": "Opolskie",
+  "teryt": "PL16",
+  "nuts": [
+   "PL52"
+  ]
+ },
+ "podkarpackie": {
+  "name": "Podkarpackie",
+  "teryt": "PL18",
+  "nuts": [
+   "PL82"
+  ]
+ },
+ "podlaskie": {
+  "name": "Podlaskie",
+  "teryt": "PL20",
+  "nuts": [
+   "PL84"
+  ]
+ },
+ "pomorskie": {
+  "name": "Pomorskie",
+  "teryt": "PL22",
+  "nuts": [
+   "PL63"
+  ]
+ },
+ "slaskie": {
+  "name": "Śląskie",
+  "teryt": "PL24",
+  "nuts": [
+   "PL22"
+  ]
+ },
+ "swietokrzyskie": {
+  "name": "Świętokrzyskie",
+  "teryt": "PL26",
+  "nuts": [
+   "PL72"
+  ]
+ },
+ "warminsko-mazurskie": {
+  "name": "Warmińsko-Mazurskie",
+  "teryt": "PL28",
+  "nuts": [
+   "PL62"
+  ]
+ },
+ "wielkopolskie": {
+  "name": "Wielkopolskie",
+  "teryt": "PL30",
+  "nuts": [
+   "PL41"
+  ]
+ },
+ "zachodniopomorskie": {
+  "name": "Zachodniopomorskie",
+  "teryt": "PL32",
+  "nuts": [
+   "PL42"
+  ]
+ }
+}

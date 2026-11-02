@@ -91,6 +91,7 @@ def suchpunkte(e: dict, firmen_plz: str = "") -> list[dict]:
 
 
 DEPARTEMENTS = {c for r in json.loads((ROOT / "departements.json").read_text(encoding="utf-8")).values() for c in r}
+WOIWODSCHAFTEN = set(json.loads((ROOT / "woiwodschaften.json").read_text(encoding="utf-8")))
 
 
 def departement_aus_plz(plz: str) -> str | None:
@@ -117,6 +118,11 @@ def im_suchgebiet(profile: dict, rel: dict) -> bool:
     """Limit app profiles to tender delivery locations; profiles without places stay nationwide."""
     # France: the chosen départements decide (no choice = all of France). German search places and the km radius do
     # not apply to French notices: their postal codes would collide with German ones (75… Pforzheim vs. 75… Paris).
+    if rel.get("_land") == "POL":
+        from bzp import woiwodschaften_der_bekanntmachung
+        gewaehlt = set(profile.get("woiwodschaften") or [])
+        bekannt = woiwodschaften_der_bekanntmachung(rel)
+        return not gewaehlt or not bekannt or bool(gewaehlt & bekannt)
     if rel.get("_land") == "FRA":
         gewaehlt = set(profile.get("departements") or [])
         bekannt = departements_der_bekanntmachung(rel)
@@ -223,6 +229,8 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         **({"sprache": sprache(e)} if sprache(e) != "de" else {}),
         # French départements (search area for French notices); only set when chosen, like the language.
         **({"departements": deps} if (deps := sorted({str(d).upper() for d in e.get("departements") or []} & DEPARTEMENTS)) else {}),
+        # Polish voivodeships (search area for Polish notices), only when chosen.
+        **({"woiwodschaften": woj} if (woj := sorted({str(w) for w in e.get("woiwodschaften") or []} & WOIWODSCHAFTEN)) else {}),
         # Search radius in km and the coordinates of the firm's locations (postal codes via GeoNames).
         "radius_km": min(300, max(10, int(e.get("radius_km")))) if str(e.get("radius_km") or "").isdigit() else None,
         "suchpunkte": suchpunkte(e, firmen_plz),
