@@ -7,7 +7,7 @@ from profile_db import verbinden
 
 BEWERTUNG_METHODE = "score-v2"
 NUR_FILTER = ("exclude_schnell", "auftraggeber_bevorzugt", "auftraggeber_aus", "wert_min", "wert_max", "wert_unbekannt",
-              "zusatz", "haupt_id", "bereich_id", "departements", "woiwodschaften")
+              "zusatz", "haupt_id", "bereich_id", "departements", "woiwodschaften", "comunidades")
 
 
 def offen(rel):

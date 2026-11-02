@@ -27,7 +27,8 @@ MORGENS = 7  # hour of the phone notification on the deadline day
 NEW_YORK = ZoneInfo("America/New_York")
 PARIS = ZoneInfo("Europe/Paris")
 WARSCHAU = ZoneInfo("Europe/Warsaw")
-ZONEN = {"fr": PARIS, "pl": WARSCHAU}
+MADRID = ZoneInfo("Europe/Madrid")
+ZONEN = {"fr": PARIS, "pl": WARSCHAU, "es": MADRID}
 _firmen: dict[str, tuple[str, ZoneInfo]] = {}
 
 # Texts of mail and phone messages in the language of the firm's AI texts (profile_db.sprache).
@@ -66,6 +67,15 @@ T = {
            "h_nachweise": "📄 Dokumenty firmy wkrótce tracą ważność", "gueltig": "ważne do", "in_tagen": "za {n} dni",
            "fuss": "Zmień godzinę lub wyłącz e-maile: {app}/konto#mail", "b_neu": "Nowe przetargi: {n}", "b_fristen": "Przypomnienie o terminie",
            "b_nachweise": "Dokumenty wkrótce tracą ważność", "fuer": " – {f}", "oeffnen": "Otwórz wszystkie wyniki w Jarvis", "impressum": "Nota prawna"},
+    # Spanish: "Nuevas licitaciones: #" as a label avoids singular/plural agreement.
+    "es": {"top1": "⭐ Mejor resultado {p}/10", "topn": "⭐ Mejores resultados ({n}) para {f}", "weitere": " · y {n} más", "frist": "⏰ Plazo {d}",
+           "neu1": "Nueva licitación", "neun": "Nuevas licitaciones para {f}: {n}", "fristen_bald": " · plazos próximos: {n}",
+           "heute": "⏰ Hoy: {was} · {art} {z}", "heute1": "plazo", "heuten": "plazos: {n}", "Abgabe": "presentación de ofertas", "Fragen": "preguntas", "Termin": "cita",
+           "uhr": "%d/%m/%Y, %H:%M h", "zeit": "%H:%M h", "unbekannt": "desconocido", "tag": "%d/%m/%Y",
+           "h_fristen": "⏰ Plazos próximos", "abgabe": "ofertas hasta", "h_neu": "🔎 Nuevas licitaciones: {n}", "frist_kl": "plazo",
+           "h_nachweise": "📄 Documentos de la empresa que caducan pronto", "gueltig": "válido hasta", "in_tagen": "en {n} días",
+           "fuss": "Cambiar la hora o desactivar los correos: {app}/konto#mail", "b_neu": "Nuevas licitaciones: {n}", "b_fristen": "Recordatorio de plazo",
+           "b_nachweise": "Documentos que caducan pronto", "fuer": " – {f}", "oeffnen": "Abrir todos los resultados en Jarvis", "impressum": "Aviso legal"},
 }
 
 
@@ -275,7 +285,7 @@ def heute_faellig(con, firma_id: str, user_id: str) -> list[tuple]:
 
 def morgen_push(con, schl, user_id: str, firma_id: str, termine: list, sprache: str = "de", zone: ZoneInfo = BERLIN) -> int:
     """One phone notification in the morning of a deadline day; at most once a day per person."""
-    if not termine or con.execute("""select 1 from public.push_nachrichten where user_id = %s and (titel like '⏰ Heute%%' or titel like '⏰ Today%%' or titel like '⏰ Aujourd%%' or titel like '⏰ Dziś%%')
+    if not termine or con.execute("""select 1 from public.push_nachrichten where user_id = %s and (titel like '⏰ Heute%%' or titel like '⏰ Today%%' or titel like '⏰ Aujourd%%' or titel like '⏰ Dziś%%' or titel like '⏰ Hoy%%')
             and erstellt > now() - interval '20 hours'""", (user_id,)).fetchone():
         return 0
     t = T[sprache]

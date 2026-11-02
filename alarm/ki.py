@@ -141,7 +141,8 @@ STECKBRIEF_ANLEITUNG = (Path(__file__).parent / "steckbrief-anleitung.txt").read
 # Customers in another language (profile "sprache"): content in that language, the German markers the app parses
 # stay (alarm/sprache-<code>.txt). A new language = one file here plus one line in BEWERTUNG.
 BEWERTUNG_EN = " Write kurz and grund in English (US)."
-BEWERTUNG = {"en": BEWERTUNG_EN, "fr": " Rédige kurz et grund en français.", "pl": " Napisz kurz i grund po polsku."}
+BEWERTUNG = {"en": BEWERTUNG_EN, "fr": " Rédige kurz et grund en français.", "pl": " Napisz kurz i grund po polsku.",
+             "es": " Escribe kurz y grund en español."}
 SPRACHE_ZUSATZ = {s: (Path(__file__).parent / f"sprache-{s}.txt").read_text(encoding="utf-8") for s in BEWERTUNG}
 SPRACHE_EN = SPRACHE_ZUSATZ["en"]
 

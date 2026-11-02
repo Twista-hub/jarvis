@@ -45,3 +45,12 @@ test("Woiwodschaften: Formular mit Polen, Speichern", async () => {
   form.append("laender", "POL"); form.append("woiwodschaften", "lodzkie");
   assert.deepEqual(ausFormular(form).woiwodschaften, ["lodzkie"]);
 });
+
+test("Comunidades: Formular mit Spanien, Speichern", async () => {
+  const { comunidadesBereinigen } = await import("../src/comunidades.ts");
+  assert.deepEqual(comunidadesBereinigen(["es61", "ES30", "XX"]), ["ES30", "ES61"]);
+  const leer = { beschreibung: "", website_beschreibung: "", websuche_beschreibung: "", websuche_quellen: [], leistungen: [], ausschluss: [], ausschluss_cpv: [], standorte: [] };
+  assert.match(profilFormular("f", { ...leer, laender: ["ESP"], comunidades: ["ES30"] }, ""), /name="comunidades" value="ES30" checked/);
+  const form = new FormData(); form.append("laender", "ESP"); form.append("comunidades", "ES51");
+  assert.deepEqual(ausFormular(form).comunidades, ["ES51"]);
+});

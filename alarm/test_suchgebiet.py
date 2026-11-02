@@ -19,6 +19,17 @@ def boamp(deps=(), plz=""):
             "tender": {"items": [{"deliveryLocation": {"description": f"{plz}, France"}}]}}
 
 
+class ComunidadesTest(unittest.TestCase):
+    def test_spanien_nach_nuts(self):
+        p = aus_db("f", "F", "x", {"laender": ["ESP"], "comunidades": ["es30", "XX99"]})
+        self.assertEqual(p["comunidades"], ["ES30"])
+        madrid = {"_land": "ESP", "tender": {"items": [{"deliveryLocation": {"description": "ES300, Spanien"}}]}}
+        sevilla = {"_land": "ESP", "tender": {"items": [{"deliveryLocation": {"description": "ES618"}}]}}
+        self.assertTrue(im_suchgebiet(p, madrid))
+        self.assertFalse(im_suchgebiet(p, sevilla))
+        self.assertTrue(im_suchgebiet(p, {"_land": "ESP", "tender": {"items": [{"deliveryLocation": {"description": "Spanien"}}]}}), "ohne Region nicht verwerfen")
+
+
 class DepartementTest(unittest.TestCase):
     def test_plz_zu_departement(self):
         self.assertEqual(departement_aus_plz("75011"), "75")

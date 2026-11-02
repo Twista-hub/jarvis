@@ -3,6 +3,7 @@
 import { escape } from "./seite.ts";
 import { departementName, departementsBereinigen } from "./departements.ts";
 import { woiwodschaftName, woiwodschaftenBereinigen } from "./woiwodschaften.ts";
+import { comunidadName, comunidadesBereinigen } from "./comunidades.ts";
 
 // Same projection as the generator (equirectangular, x scaled by cos 51.2°), 400 px wide.
 const LON0 = 5.8;
@@ -45,4 +46,10 @@ export function departementZeile(d?: string[]): string {
 export function woiwodschaftZeile(w?: string[]): string {
   const liste = woiwodschaftenBereinigen(w);
   return liste.length ? `<p class="klein">🇵🇱 Województwa: ${liste.map((x) => escape(woiwodschaftName(x))).join(", ")}</p>` : "";
+}
+
+/** Selected Spanish regions on the search profile page (empty: no line). */
+export function comunidadZeile(c?: string[]): string {
+  const liste = comunidadesBereinigen(c);
+  return liste.length ? `<p class="klein">🇪🇸 Comunidades: ${liste.map((x) => escape(comunidadName(x))).join(", ")}</p>` : "";
 }
