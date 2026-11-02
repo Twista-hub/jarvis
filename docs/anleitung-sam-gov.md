@@ -30,3 +30,21 @@ Das tägliche Kontingent richtet sich nach deiner SAM.gov-Kontorolle. Jarvis fra
 - Firmen kreuzen im Suchprofil unter „Länder → Außerhalb Europas“ **USA** an; der tägliche Alarm holt dann
   einmal am Tag die neuen Bundesausschreibungen (eine Anfrage pro Tag, das Tageslimit eines persönlichen Schlüssels reicht).
 - Nicht enthalten: Ausschreibungen der Bundesstaaten, Landkreise und Städte (eigene Portale).
+
+## 5. Höheres Kontingent (1.000 statt 10 Abrufe am Tag) – Stand 02.11.2026
+Ein persönlicher Schlüssel ohne Rolle erlaubt nur 10 Abrufe am Tag. Mit einer Rolle bei einer registrierten Firma sind
+es 1.000 (Quelle: GSA-Ratenlimits, Sekundärquelle, siehe `docs/usa-recherche.md` 3.2). Die Rolle bekommt, wer für
+WP Digital Ranger eine UEI anlegt (wird automatisch „Entity Administrator“).
+
+1. https://sam.gov → **„Sign In“** (gleiches login.gov-Konto wie oben).
+2. Oben **„Workspace“** → bei „Entity Management“ **„Get Started“** → **„Get Unique Entity ID“** (nur UEI,
+   keine volle Bieter-Registrierung; kostenlos, niemand anderes darf dafür Geld verlangen).
+3. Angaben genau wie im Handelsregister/Gewerbeschein: „WP Digital Ranger“, Rochusstraße 19, 52531 Übach-Palenberg,
+   Germany. SAM.gov prüft Name und Adresse; bei ausländischen Firmen ggf. Dokument hochladen (Gewerbeanmeldung).
+4. Fragt SAM.gov nach einem **NCAGE-Code**: kostenlos beantragen unter https://eportal.nspa.nato.int/Codification/CageTool/home.aspx
+   (Dauer einige Tage bis Wochen). Neuere Hinweise sagen, NCAGE sei nur für Verteidigungsaufträge Pflicht; im Zweifel
+   Federal Service Desk fragen: https://www.fsd.gov.
+5. Nach Freigabe: **„Account Details“** → **„API Key“** neu erzeugen und bei GitHub `SAM_API_KEY` ersetzen
+   (https://github.com/Twista-hub/jarvis/settings/secrets/actions).
+6. Claude/ChatGPT Bescheid geben: dann wird die Laufgrenze in `alarm/usa.py` angehoben und Beschreibungen/Anhänge
+   für Treffer werden nachgeladen.
