@@ -97,28 +97,34 @@ def main(n: int) -> None:
         print(f"Vorfilter Haiku >= {schwelle}: {behalten}/{g['s_treffer']} Sonnet-Treffer behalten, {raus}/{g['rest']} Nicht-Treffer aussortiert")
 
 
-def batch_probe() -> None:
-    """Live check of ki.score_viele (Batch API, pre-filter + Sonnet) on 16 rated notices of the first firm: same final
-    points as the stored Sonnet ratings for the notices Sonnet rates again, duration and cost. Uses the central budget."""
+def batch_probe(n: int = 48) -> None:
+    """Live check of ki.score_viele (Batch API) against direct ki.score on the SAME notices of the first firm: does the
+    batch rate like the direct path? Also both against the stored ratings (run-to-run scatter). Uses the central budget."""
     import time as zeit
     profil = next(p for p in profile_db.laden().values() if p.get("firma_id") and not p.get("zusatz"))
-    paare = stichprobe(profil, 16)
+    paare = stichprobe(profil, n)
     pakete = [[item(i, p[1]) for i, p in enumerate(paare[a:a + 8])] for a in range(0, len(paare), 8)]
     start = zeit.monotonic()
-    ergebnisse = ki.score_viele(profil["beschreibung"], pakete, **sprach_arg(profil))
-    print(f"Batch fertig nach {zeit.monotonic() - start:.0f} s, Kosten {ki.kosten():.4f} $ (mit 50 % Batch-Rabatt)")
-    gleich = vergleichbar = 0
-    for k, e in enumerate(ergebnisse):
-        for i, b in e.items():
+    batch = ki.score_viele(profil["beschreibung"], pakete, **sprach_arg(profil))
+    k_batch = ki.kosten()
+    print(f"Batch fertig nach {zeit.monotonic() - start:.0f} s, Kosten {k_batch:.4f} $")
+    direkt = [ki.score(profil["beschreibung"], items, **sprach_arg(profil)) for items in pakete]
+    print(f"Direkt: Kosten {ki.kosten() - k_batch:.4f} $")
+    werte = []
+    for k in range(len(pakete)):
+        for i in range(len(pakete[k])):
             alt = paare[k * 8 + i][0].get("punkte")
-            quelle = "Haiku-Vorfilter" if b.get("vorfilter") else "Sonnet"
-            print(f"- gespeichert {alt}, Batch {b['punkte']} ({quelle})")
-            if not b.get("vorfilter"):
-                vergleichbar += 1
-                gleich += abs(alt - b["punkte"]) <= 1
-    print(f"Sonnet im Batch: {gleich}/{vergleichbar} innerhalb ±1 Punkt der gespeicherten Bewertung; Ergebnisse für {sum(len(e) for e in ergebnisse)}/{len(paare)} Ausschreibungen")
-    if sum(len(e) for e in ergebnisse) < len(paare):
-        sys.exit("Batch lieferte nicht alle Ergebnisse")
+            b, d = (batch[k].get(i) or {}).get("punkte"), (direkt[k].get(i) or {}).get("punkte")
+            if b is not None and d is not None:
+                werte.append((alt, b, d))
+    def stat(name, paare_):
+        nah = sum(abs(x - y) <= 1 for x, y in paare_)
+        schwelle = sum((x >= 6) == (y >= 6) for x, y in paare_)
+        print(f"{name}: ±1 Punkt {nah}/{len(paare_)}, gleiche Treffer-Entscheidung (>= 6) {schwelle}/{len(paare_)}, mittlere Abweichung {sum(abs(x - y) for x, y in paare_) / max(1, len(paare_)):.2f}")
+    stat("Batch gegen direkt (gleicher Zeitpunkt)", [(b, d) for _, b, d in werte])
+    stat("Direkt gegen gespeichert (Streuung zwischen Läufen)", [(a, d) for a, _, d in werte])
+    stat("Batch gegen gespeichert", [(a, b) for a, b, _ in werte])
+    print(f"Ergebnisse: Batch {sum(len(e) for e in batch)}/{len(paare)}, direkt {sum(len(e) for e in direkt)}/{len(paare)}")
 
 
 if __name__ == "__main__":
