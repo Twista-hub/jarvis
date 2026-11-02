@@ -101,7 +101,32 @@ def als_release(n: dict) -> dict:
         "buyer": {"name": behoerde or "US-Bundesbehörde", "address": {"countryName": "USA"}},
         "_land": "USA",
         "_quelle": "SAM.gov",
+        "_us": us_daten(n),
     }
+
+
+# Set-aside codes of the Opportunities API (typeOfSetAside) → certification the bidder needs (see web/src/ampel.ts).
+def us_daten(n: dict) -> dict:
+    """Structured SAM.gov fields stored with the hit (vorgaenge.us) for the eligibility light and deadline tracker."""
+    ort = n.get("placeOfPerformance") or {}
+    kontakt = next((k for k in n.get("pointOfContact") or [] if k.get("type") == "primary"), (n.get("pointOfContact") or [None])[0]) or {}
+    d = {
+        "notice_id": n.get("noticeId") or "",
+        "solicitation": n.get("solicitationNumber") or "",
+        "art": n.get("type") or "",
+        "naics": str(n.get("naicsCode") or ""),
+        "psc": n.get("classificationCode") or "",
+        "set_aside": n.get("typeOfSetAside") or "",
+        "set_aside_text": n.get("typeOfSetAsideDescription") or "",
+        "frist": (n.get("responseDeadLine") or "").strip(),
+        "veroeffentlicht": n.get("postedDate") or "",
+        "archiv": n.get("archiveDate") or "",
+        "staat": ((ort.get("state") or {}).get("code") or ""),
+        "stadt": ((ort.get("city") or {}).get("name") or ""),
+        "plz": str(ort.get("zip") or ""),
+        "kontakt": {k: str(kontakt.get(f) or "")[:200] for k, f in (("name", "fullName"), ("email", "email"), ("telefon", "phone"))} if kontakt else {},
+    }
+    return {k: (v[:300] if isinstance(v, str) else v) for k, v in d.items() if v}
 
 
 def releases(tag: str) -> list[dict]:

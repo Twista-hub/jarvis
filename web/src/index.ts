@@ -64,6 +64,7 @@ import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
+import { usProfil } from "./usprofil.ts";
 import { appSprache, englisch, sprachFuss, sprachWechsel } from "./englisch.ts";
 import { ISO2, SPRACHEN_OEFFENTLICH, besucher, keineBehoerde, kopfZeile, landWahl, landesSeite, wahlCookies, type Sprache } from "./besucher.ts";
 import { escape, markdown, seite, stapeln } from "./seite";
@@ -230,6 +231,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       const r = await route(request, env);
       if (r) return r;
     }
+    const usp = await usProfil(request, env);
+    if (usp) return usp;
     const pe = await personal(request, env);
     if (pe) return pe;
     const e = await einrichtung(request, env, (firma) => Object.values(profile as Record<string, { firma_id?: string; beschreibung: string }>).find((p) => p.firma_id === firma)?.beschreibung ?? "");

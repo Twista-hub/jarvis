@@ -338,7 +338,8 @@ def treffer_eintrag(name: str, b: dict, day: str, rel: dict, pfad: Path | None =
             "steckbrief": (bewertungsabschnitt(b)
                            + (pfad.read_text(encoding="utf-8") if pfad else kurzbrief(rel, day))),
             "steckbrief_kurz": not bool(pfad), "katalog_id": rel.get("_katalog_id"), "katalog_version": rel.get("_katalog_version"),
-            "fragefrist": ((t.get("enquiryPeriod") or {}).get("endDate") or None)}
+            "fragefrist": ((t.get("enquiryPeriod") or {}).get("endDate") or None),
+            **({"us": rel["_us"]} if rel.get("_us") else {})}
 
 
 def entfernung(profile: dict, rel: dict):

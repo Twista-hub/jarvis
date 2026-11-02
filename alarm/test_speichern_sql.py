@@ -28,7 +28,7 @@ class SpeicherSqlTest(unittest.TestCase):
             id uuid default gen_random_uuid(), firma_id uuid not null, quelle_id text not null,
             titel text, link text, frist timestamptz, punkte int, steckbrief text,
             bereich_id uuid, katalog_id text, katalog_version text, status text default 'neu',
-            entfernung_km numeric(6,1), fragefrist timestamptz,
+            entfernung_km numeric(6,1), fragefrist timestamptz, us jsonb,
             unique(firma_id,quelle_id))""")
 
     def treffer(self, **werte):
@@ -41,6 +41,16 @@ class SpeicherSqlTest(unittest.TestCase):
         punkte, brief = self.con.execute("select punkte,steckbrief from public.vorgaenge").fetchone()
         self.assertIsNone(punkte)
         self.assertIn("Vorhandene Unterlagen", brief)
+
+    def test_us_felder_und_geaenderte_frist_als_amendment(self):
+        us = {"notice_id": "n1", "set_aside": "SBA", "frist": "2026-11-20T14:00:00-05:00", "naics": "561720"}
+        speichern(self.con, FIRMA, [self.treffer(us=us)], {})
+        speichern(self.con, FIRMA, [self.treffer(us=us | {"frist": "2026-11-25T14:00:00-05:00"})], {})
+        gespeichert = self.con.execute("select us from public.vorgaenge").fetchone()[0]
+        self.assertEqual(gespeichert["frist"], "2026-11-25T14:00:00-05:00")
+        self.assertEqual([(a["feld"], a["alt"], a["neu"]) for a in gespeichert["aenderungen"]], [("frist", "2026-11-20T14:00:00-05:00", "2026-11-25T14:00:00-05:00")])
+        speichern(self.con, FIRMA, [self.treffer()], {})
+        self.assertEqual(self.con.execute("select us->>'naics' from public.vorgaenge").fetchone()[0], "561720", "ohne neue US-Daten bleiben die alten")
 
     def test_sql_guard_preserves_a_brief_created_between_select_and_insert(self):
         con, treffer = self.con, self.treffer()
