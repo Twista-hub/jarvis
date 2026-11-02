@@ -108,7 +108,7 @@ jobs:
         run: |
           sleep 10
           # Save first, then grep: "curl | grep -q" fails with exit 23 when grep stops reading early.
-          curl -fsS "$URL/de" -o start.html && grep -q "Jarvis findet passende Ausschreibungen" start.html && curl -fsS "$URL/us" -o us.html && grep -q "right public tenders" us.html
+          curl -fsS "$URL/de" -o start.html && grep -q "Jarvis findet passende Ausschreibungen" start.html && curl -fsS "$URL/us" -o us.html && grep -q "right public tenders" us.html && curl -fsS "$URL/registrieren" -o reg.html && grep -q "Sign up" reg.html
           curl -fsS "$URL/hochladen" -o hochladen.html && grep -q "Unterlagen prüfen lassen" hochladen.html
           curl -fsS "$URL/impressum" -o impressum.html && grep -q "Rochusstraße" impressum.html
           curl -fsS "$URL/app.js" -o app.js && grep -q "push-test" app.js
