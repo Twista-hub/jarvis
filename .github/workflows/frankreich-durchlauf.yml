@@ -1,12 +1,15 @@
 # Manual end-to-end check for a French firm (alarm/frankreich_durchlauf.py): real BOAMP data and real AI within the
 # central budget, no account, nothing saved, no mail sent. Everything is printed into the log.
-name: Frankreich-Durchlauf
+name: Länder-Durchlauf
 on:
   workflow_dispatch:
     inputs:
       tage:
-        description: "Wie viele Tage BOAMP zurück (1–10)"
+        description: "Wie viele Tage zurück (1–10)"
         default: "4"
+      land:
+        description: "fr = Frankreich (BOAMP), pl = Polen (BZP)"
+        default: "fr"
 permissions:
   contents: read
 jobs:
@@ -25,4 +28,5 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           KI_LIMIT_DOLLAR: "1"
           TAGE: ${{ inputs.tage || '4' }}
-        run: cd alarm && python frankreich_durchlauf.py "$TAGE"
+          LAND: ${{ inputs.land || 'fr' }}
+        run: cd alarm && python frankreich_durchlauf.py "$TAGE" "$LAND"

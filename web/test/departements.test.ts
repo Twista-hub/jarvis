@@ -32,3 +32,16 @@ test("Départements: Formular nur mit Frankreich, Radius nur mit Deutschland, Sp
   form.append("laender", "FRA"); form.append("departements", "13"); form.append("departements", "84"); form.append("departements", "zz");
   assert.deepEqual(ausFormular(form).departements, ["13", "84"]);
 });
+
+test("Woiwodschaften: Formular mit Polen, Speichern", async () => {
+  const { woiwodschaftenBereinigen } = await import("../src/woiwodschaften.ts");
+  assert.deepEqual(woiwodschaftenBereinigen(["slaskie", "mazowieckie", "xx"]), ["mazowieckie", "slaskie"]);
+  const leer = { beschreibung: "", website_beschreibung: "", websuche_beschreibung: "", websuche_quellen: [], leistungen: [], ausschluss: [], ausschluss_cpv: [], standorte: [] };
+  const pl = profilFormular("f", { ...leer, laender: ["POL"], woiwodschaften: ["mazowieckie"] }, "");
+  assert.match(pl, /name="woiwodschaften" value="mazowieckie" checked/);
+  assert.doesNotMatch(pl, /name="departements"/);
+  assert.doesNotMatch(pl, /name="o0_name"/);
+  const form = new FormData();
+  form.append("laender", "POL"); form.append("woiwodschaften", "lodzkie");
+  assert.deepEqual(ausFormular(form).woiwodschaften, ["lodzkie"]);
+});

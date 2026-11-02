@@ -226,6 +226,7 @@ def kurzbrief(rel: dict, day: str) -> str:
             + ("**Land:** Großbritannien · Quelle: Find a Tender. Contains public sector information licensed under the Open Government Licence v3.0.\n\n" if rel.get("_quelle") == "Find a Tender" else "")
             + ("**Land:** USA (Bundesbehörde) · Quelle: SAM.gov\n\n" if rel.get("_quelle") == "SAM.gov" else "")
             + ("**Land:** Frankreich · Quelle: BOAMP, DILA (Licence Ouverte 2.0)\n\n" if rel.get("_quelle") == "BOAMP" else "")
+            + ("**Land:** Polen · Quelle: Biuletyn Zamówień Publicznych (UZP)\n\n" if rel.get("_quelle") == "BZP" else "")
             + f"**Angebotsfrist:** {frist_lesbar(frist(t)) or 'nicht angegeben'}\n\n"
             + eckdaten(t)
             + f"{beschreibung or 'Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.'}\n\n"
@@ -406,6 +407,9 @@ def run(days: list[str]) -> str:
     if ausland:
         import ted
         inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in ted.releases(day, [l for l in ausland if l not in ("GBR", "USA", "FRA")])))
+    if "POL" in ausland:  # Poland: national notices below the EU thresholds from BZP (above them TED, see above)
+        import bzp
+        inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in bzp.releases(day)))
     if "FRA" in ausland:  # France from BOAMP (includes the EU notices of TED plus national ones from 90 k€)
         import boamp
         inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in boamp.releases(day)))
