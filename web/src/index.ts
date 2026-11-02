@@ -65,6 +65,7 @@ import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from 
 import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { usProfil } from "./usprofil.ts";
+import { muster } from "./muster.ts";
 import { appSprache, englisch, sprachFuss, sprachWechsel } from "./englisch.ts";
 import { ISO2, SPRACHEN_OEFFENTLICH, besucher, keineBehoerde, kopfZeile, landWahl, landesSeite, wahlCookies, type Sprache } from "./besucher.ts";
 import { escape, markdown, seite, stapeln } from "./seite";
@@ -154,6 +155,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (url.pathname === "/__intern/db-check" && request.method === "POST") return datenbankPruefen(request, env);
     const sw = sprachWechsel(request);
     if (sw) return sw;
+    const mu = muster(request);
+    if (mu) return mu;
     const datei = request.method === "GET" ? statisch(url.pathname) : null;
     if (datei) return datei;
     const u = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/unterlagen$/);
