@@ -7,6 +7,7 @@ import SPRACHE_EN from "../../alarm/sprache-en.txt";
 import SPRACHE_FR from "../../alarm/sprache-fr.txt";
 import SPRACHE_PL from "../../alarm/sprache-pl.txt";
 import SPRACHE_ES from "../../alarm/sprache-es.txt";
+import SPRACHE_IT from "../../alarm/sprache-it.txt";
 import profile from "../../alarm/profile.json";
 import { baseName, bundle, mimeType, wanted, type Text } from "./bundle";
 import type { Env, Job } from "./index";
@@ -92,7 +93,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
           fallbacks: "default",
           max_tokens: 32000,
           output_config: { effort: "medium" },
-          system: job.sprache ? `${ANLEITUNG}\n${{ en: SPRACHE_EN, fr: SPRACHE_FR, pl: SPRACHE_PL, es: SPRACHE_ES }[job.sprache]}` : ANLEITUNG,
+          system: job.sprache ? `${ANLEITUNG}\n${{ en: SPRACHE_EN, fr: SPRACHE_FR, pl: SPRACHE_PL, es: SPRACHE_ES, it: SPRACHE_IT }[job.sprache]}` : ANLEITUNG,
           messages: [{
             role: "user",
             content: `Kunde:\n${kunde.beschreibung}\n\nAusschreibung (Angaben des Kunden):\n${job.titel || "nicht angegeben"}\n\nVergabeunterlagen:\n${dokumente}${bisher}`,

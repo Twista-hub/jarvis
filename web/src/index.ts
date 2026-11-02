@@ -64,6 +64,7 @@ import { landGewerke } from "./gewerke-land.ts";
 import { hinweisDeutsch, RECHT_FR } from "./rechtliches-fr.ts";
 import { hinweisDeutschPl, RECHT_PL } from "./rechtliches-pl.ts";
 import { hinweisDeutschEs, RECHT_ES } from "./rechtliches-es.ts";
+import { hinweisDeutschIt, RECHT_IT } from "./rechtliches-it.ts";
 import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
@@ -267,7 +268,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       if (url.pathname === "/" || url.pathname === "/hochladen") return html(formular("", titel ?? ""));
       const recht = RECHT[url.pathname];
       const rs = appSprache(request);
-      const uebersetzt = rs === "fr" ? [RECHT_FR, hinweisDeutsch] as const : rs === "pl" ? [RECHT_PL, hinweisDeutschPl] as const : rs === "es" ? [RECHT_ES, hinweisDeutschEs] as const : null;
+      const uebersetzt = rs === "fr" ? [RECHT_FR, hinweisDeutsch] as const : rs === "pl" ? [RECHT_PL, hinweisDeutschPl] as const : rs === "es" ? [RECHT_ES, hinweisDeutschEs] as const : rs === "it" ? [RECHT_IT, hinweisDeutschIt] as const : null;
       if (recht && uebersetzt) {
         // Translation (for information, the German text is binding); the page keeps its language.
         const [titel, inhalt] = uebersetzt[0][url.pathname];
