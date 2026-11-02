@@ -168,6 +168,8 @@ export function startseite(beispiel: string): string {
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">Jetzt registrieren</a><a class="knopf zweit" href="/demo">🎬 Erst ansehen (Demo ohne Anmeldung)</a></div>
 <p>Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
 <p class="klein">Nach der Bestätigung deiner E-Mail-Adresse geht es sofort los. Fragen an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>.</p>
+<h2>Ausschreibungen nach Gewerk</h2>
+<p><a href="/ausschreibungen/elektro">Elektro</a> · <a href="/ausschreibungen/sanitaer-heizung-lueftung">Sanitär, Heizung, Lüftung</a> · <a href="/ausschreibungen/tischler-schreiner">Tischler</a> · <a href="/ausschreibungen/gebaeudereinigung">Gebäudereinigung</a> · <a href="/ausschreibungen/maler-trockenbau">Maler und Trockenbau</a> · <a href="/ausschreibungen/dach-zimmerer">Dach und Zimmerer</a> · <a href="/ausschreibungen/garten-landschaftsbau-winterdienst">Garten- und Landschaftsbau</a> · <a href="/ausschreibungen/sicherheitsdienst">Sicherheitsdienst</a> · <a href="/ausschreibungen/bodenbelaege-fliesen">Bodenbeläge und Fliesen</a> · <a href="/ausschreibungen/zeitarbeit-personaldienstleister">Zeitarbeit</a> · <a href="/ausschreibungen">alle</a></p>
 <h2>Beispiel-Steckbrief</h2>
 <details><summary>Leihpersonal für die Gastronomie der Deutschen Bundesbank (aufklappen)</summary>${beispiel}</details>`;
 }
