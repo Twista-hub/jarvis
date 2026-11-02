@@ -967,6 +967,13 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .sprache-wahl a[aria-current] { border-color: var(--accent); color: var(--accent); }
   .land-wahl { font-size: 13px; color: var(--muted); line-height: 1.9; margin-top: 18px; }
   .land-wahl a[aria-current] { color: var(--accent); font-weight: 700; }
+  .us-kasten { border: 1px solid var(--line); border-radius: 14px; padding: 4px 16px 12px; margin: 14px 0; background: var(--card); }
+  .us-kasten h2 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+  .us-ampel-wort { font-size: 14px; padding: 2px 10px; border-radius: 999px; font-weight: 700; }
+  .us-ampel-wort.gruen, .us-ampel.gruen { background: #e3f6e8; color: #17663a; } .us-ampel-wort.gelb, .us-ampel.gelb { background: #fff4d6; color: #7a5600; } .us-ampel-wort.rot, .us-ampel.rot { background: #fde4e1; color: #a1271b; }
+  .us-gruende { list-style: none; padding: 0; margin: 6px 0; display: grid; gap: 6px; } .us-gruende li { line-height: 1.4; }
+  .us-fristen th { width: 40%; }
+  .treffer-fakten li.us-ampel { font-weight: 600; }
   .unterschrift-feld { display: grid; gap: 4px; margin: 6px 0; grid-column: 1 / -1; width: 100%; } .unterschrift-feld canvas { width: 100%; height: auto; aspect-ratio: 5 / 2; max-width: 100%; border: 1px dashed var(--line); border-radius: 10px; background: #fff; touch-action: none; }
   .unterschrift-feld button { justify-self: end; min-height: 30px; padding: 2px 10px; font-size: 13px; }
   .stempeluhr { margin: 8px 0 12px; } .stempeluhr h3 { margin: 6px 0 2px; } .stempel-status { margin: 0 0 6px; font-weight: 600; }

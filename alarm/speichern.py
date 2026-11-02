@@ -9,6 +9,8 @@ import os
 from pathlib import Path
 
 import psycopg
+from psycopg.types.json import Jsonb
+from datetime import date
 import katalog
 
 from profile_db import im_suchgebiet, laden, nicht_mehr_aktuelle_treffer, verbinden
@@ -105,14 +107,29 @@ def firmen_ergebnis(namen: list[str], treffer: list[dict], ausgewertet: dict) ->
     return list(beste.values()), sorted((abgelehnt or set()) - set(beste))
 
 
+def us_zusammenfuehren(alt: dict | None, neu: dict | None) -> dict | None:
+    """SAM.gov fields of a hit; a changed deadline or set-aside on a later run is kept as an amendment (newest last)."""
+    if not neu:
+        return alt
+    erg = dict(neu)
+    aenderungen = list((alt or {}).get("aenderungen") or [])
+    for feld in ("frist", "set_aside", "art"):
+        if alt and alt.get(feld) and neu.get(feld) and alt[feld] != neu[feld]:
+            aenderungen.append({"feld": feld, "alt": alt[feld], "neu": neu[feld], "gesehen": date.today().isoformat()})
+    if aenderungen:
+        erg["aenderungen"] = aenderungen[-20:]
+    return erg
+
+
 def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regionen: dict, bereich_je_profil: dict | None = None, neue_ids: list | None = None) -> int:
     neu = 0
     for t in treffer:
-        bisher = con.execute("select steckbrief from public.vorgaenge where firma_id=%s and quelle_id=%s for update", (firma_id, t["quelle_id"])).fetchone()
+        bisher = con.execute("select steckbrief, us from public.vorgaenge where firma_id=%s and quelle_id=%s for update", (firma_id, t["quelle_id"])).fetchone()
+        us = us_zusammenfuehren(bisher[1] if bisher else None, t.get("us"))
         brief = brief_aktualisieren(bisher[0] if bisher else None, t)
         row = con.execute(
-            """insert into public.vorgaenge (firma_id, quelle_id, titel, link, frist, punkte, steckbrief, bereich_id,katalog_id,katalog_version,entfernung_km,fragefrist)
-               values (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s)
+            """insert into public.vorgaenge (firma_id, quelle_id, titel, link, frist, punkte, steckbrief, bereich_id,katalog_id,katalog_version,entfernung_km,fragefrist,us)
+               values (%s, %s, %s, %s, %s, %s, %s, %s,%s,%s,%s,%s,%s)
                on conflict (firma_id, quelle_id) do update set
                  punkte = excluded.punkte,
                  frist = coalesce(excluded.frist, vorgaenge.frist),
@@ -122,9 +139,10 @@ def speichern(con: psycopg.Connection, firma_id: str, treffer: list[dict], regio
                    else excluded.steckbrief end,
                  link = excluded.link, katalog_id=coalesce(excluded.katalog_id,vorgaenge.katalog_id),katalog_version=coalesce(excluded.katalog_version,vorgaenge.katalog_version),
                  bereich_id = coalesce(vorgaenge.bereich_id, excluded.bereich_id),
-                 entfernung_km = excluded.entfernung_km, fragefrist = coalesce(excluded.fragefrist, vorgaenge.fragefrist)
+                 entfernung_km = excluded.entfernung_km, fragefrist = coalesce(excluded.fragefrist, vorgaenge.fragefrist),
+                 us = coalesce(excluded.us, vorgaenge.us)
                returning (xmax = 0), id::text""",
-            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, (bereich_je_profil or {}).get(t.get("profil")) or bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"),t.get("entfernung_km"),t.get("fragefrist"), bisher[0] if bisher else None),
+            (firma_id, t["quelle_id"], t["titel"][:500], t["link"], t.get("frist") or None, t.get("punkte"), brief, (bereich_je_profil or {}).get(t.get("profil")) or bereich(regionen, t.get("plz", "")),t.get("katalog_id"),t.get("katalog_version"),t.get("entfernung_km"),t.get("fragefrist"), Jsonb(us) if us else None, bisher[0] if bisher else None),
         ).fetchone()
         neu += bool(row and row[0])
         if row and row[0] and neue_ids is not None and len(row) > 1:

@@ -61,6 +61,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261102090000_gewerk_statistik.sql
 \ir ../migrations/20261102100000_gewerk_cache.sql
 \ir ../migrations/20261102110000_gewerk_offen.sql
+\ir ../migrations/20261102120000_us_bieterprofil.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1176,6 +1177,31 @@ update jarvis_katalog.ki_budget set reserviert = 16.5 where monat = '2030-01-01'
 update jarvis_katalog.ki_budget set reserviert = 17 where monat = '2030-01-01';
 select pruefe((select count(*) = 1 from public.push_warteschlange where titel = '⚠️ Jarvis: KI-Budget'), 'Budget-Warnung bei 80 % genau einmal');
 delete from jarvis_katalog.ki_budget where monat = '2030-01-01';
+select set_config('test.uid', '', false);
+
+-- US bidder profile: admins maintain it, the office team reads it, other firms see nothing; format checks.
+reset role;
+update public.mitglieder set aktiv = true where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.us_bieterprofil (firma_id, uei, cage, sam_gueltig_bis, naics, klein_naics, zertifikate) values (:'firma', 'ABCDEF123456', '1A2B3', '2027-05-01', '{561720,561730}', '{561720}', '{wosb}');
+select pruefe((select count(*) = 1 from public.us_bieterprofil), 'Inhaber pflegt das US-Bieterprofil');
+do $$ begin
+  update public.us_bieterprofil set zertifikate = '{erfunden}';
+  raise exception 'FEHLER: unbekanntes Zertifikat';
+exception when check_violation then null; end $$;
+do $$ begin
+  update public.us_bieterprofil set uei = 'zu-kurz';
+  raise exception 'FEHLER: ungültige UEI';
+exception when check_violation then null; end $$;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select uei = 'ABCDEF123456' from public.us_bieterprofil), 'Bearbeiter sieht das US-Bieterprofil');
+update public.us_bieterprofil set uei = 'ZZZZZZ999999';
+select pruefe((select uei = 'ABCDEF123456' from public.us_bieterprofil), 'Bearbeiter ändert das US-Bieterprofil nicht');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.us_bieterprofil), 'Fremde Firma sieht kein US-Bieterprofil');
+reset role;
+update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.

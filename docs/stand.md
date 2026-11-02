@@ -79,6 +79,14 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (USA: „Darf ich bieten?“-Ampel und Fristen-Tracker)
+- Migration `20261102120000_us_bieterprofil.sql`: Tabelle `us_bieterprofil` (UEI, CAGE, SAM gültig bis, NAICS, „small“ für welche NAICS, SBA-Zertifikate 8a/HUBZone/WOSB/EDWOSB/VOSB/SDVOSB/IEE, Ø-Umsatz, Mitarbeiter; lesen Büroteam, ändern Inhaber/Admin) und Spalte `vorgaenge.us` (jsonb). Rechte-Test ergänzt.
+- `alarm/usa.py` speichert pro SAM.gov-Treffer `_us`: Notice-ID, Solicitation-Nr., Art, NAICS, PSC, Set-aside (Code + Text), Frist mit Zeitzone, Ort, Ansprechpartner. `alarm/speichern.py` `us_zusammenfuehren()`: geänderte Frist, Set-aside oder Art bei späteren Läufen landen als Amendment in `us.aenderungen` (Test in `test_speichern_sql`).
+- `web/src/ampel.ts`: Regeln für die Ampel (Frist vorbei, SAM-Registrierung aktiv bis zur Frist, NAICS im Profil, Set-aside → nötige Zertifizierung, Kleinunternehmen nach SBA-Größentabelle 2023 oder eigener Angabe). Rot/Gelb/Grün mit Gründen, deutsch oder englisch direkt. Kasten auf der Treffer-Seite mit Fristen-Tracker (Frist laut Ausschreibung mit Zeitzone, eigene Zeit, Restzeit, Rückfragefrist oder Hinweis auf Anhänge, Amendments mit SF-30-Hinweis, Ansprechpartner, Link zu SAM.gov). Trefferkarte zeigt Ampel + Set-aside.
+- `web/src/usprofil.ts`: Seite `/konto/us-profil` (Link aus dem Ampel-Kasten).
+- Tests `web/test/ampel.test.ts`. Größengrenzen außer 238210 laut Recherche „(prüfen)“; Ampel ist ein Hinweis, die Behörde entscheidet.
+- Voraussetzung im Betrieb: Neue US-Treffer erst nach dem nächsten Alarm-Lauf mit `us`-Daten; ältere US-Treffer zeigen keinen Kasten. Mit 10 SAM-Abrufen/Tag bleiben Rückfragefrist und Ortsbesichtigung bis zur Registrierung von WP Digital Ranger ohne Anhänge.
+
 ### 02.11.2026 – Claude (Morgenmail und Handy-Nachrichten auf Englisch)
 - `alarm/mail.py`: Texte in `T["de"]`/`T["en"]`; Sprache pro Firma über `firma_sprache()` (gleiche Regel wie die KI-Texte, `profile_db.sprache`). Englische Firmen, die die USA suchen, bekommen Uhrzeiten in US-Ostküstenzeit mit „ET“ (12-Stunden-Format), die gewählte Mail-Uhrzeit und Ruhezeiten gelten in dieser Zeitzone; alle anderen wie bisher Berlin. Englische Mehrzahl korrekt (1 new tender / 2 new tenders).
 - Betroffen: Morgenmail (Betreff, Fristen, neue Ausschreibungen, ablaufende Nachweise, Fußzeile), Handy-Nachricht zu neuen Treffern, Sofort-Nachricht ab Punktzahl, Fristtag-Nachricht am Morgen.

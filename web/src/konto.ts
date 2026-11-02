@@ -35,6 +35,9 @@ import { anfrageSpeichern, partnerTeil } from "./partner.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
 import { suchgebietKarte, type Suchpunkt } from "./karte.ts";
+import { ampelChip, usKasten, type UsDaten, type UsProfil } from "./ampel.ts";
+import { appSprache } from "./englisch.ts";
+import { usProfilLaden } from "./usprofil.ts";
 import { bewertung, daumen, eckdaten, filterLeiste, sortieren, SORTIERUNGEN, suchbegriff } from "./treffer.ts";
 
 export interface KontoEnv {
@@ -53,7 +56,7 @@ export async function bereicheLaden(s: Sitzung, env: KontoEnv, firma: string) {
   const r = await db<Bereich[]>(s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id,ansprechpartner,telefon,email&order=name`);
   return r.ok ? r : db<Bereich[]>(s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id&order=name`);
 }
-type Vorgang = { entfernung_km?: number | null; fragefrist?: string | null; id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; kaufverantwortlich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };
+type Vorgang = { us?: UsDaten | null; entfernung_km?: number | null; fragefrist?: string | null; id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; kaufverantwortlich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };
 const STATUS: Record<string, string> = {
   neu: "neu",
   pruefen: "prüfen",
@@ -248,7 +251,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const unter = (id: string): string[] => [id, ...b.filter((x) => x.parent_id === id).flatMap((x) => unter(x.id))];
   const bereichFilter = filter ? `&bereich_id=in.(${unter(filter.id).join(",")})` : "";
   const [vorgaenge, mitglieder, einladungen, anzahl] = await Promise.all([
-    db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${bereichFilter}${statusFilter}${fristFilter}${titelFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief,entfernung_km,fragefrist&order=${unterseite === "fristen" ? "frist.asc" : "punkte.desc.nullslast,erstellt.desc"}&limit=100`),
+    db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}${bereichFilter}${statusFilter}${fristFilter}${titelFilter}&select=id,titel,link,frist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief,entfernung_km,fragefrist,us&order=${unterseite === "fristen" ? "frist.asc" : "punkte.desc.nullslast,erstellt.desc"}&limit=100`),
     db<Mitglied[]>(s, env, `mitglieder?firma_id=eq.${m.firma_id}&select=firma_id,rolle,aktiv,erstellt,user_id,anzeigename,funktion,finanzen,alle_bereiche&order=erstellt`),
     admin ? db<Einladung[]>(s, env, `einladungen?firma_id=eq.${m.firma_id}&angenommen=is.null&gueltig_bis=gt.${new Date(Date.now() - 60 * 86400_000).toISOString()}&select=id,email,anzeigename,rolle,gueltig_bis,angenommen,bereich_ids,finanzen,funktion&order=erstellt.desc&limit=50`) : Promise.resolve({ ok: true, daten: [] as Einladung[] }),
     db<number>(s, env, "rpc/nutzer_zaehlen", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }),
@@ -398,7 +401,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     const vorschlagV = admin && /^[0-9a-f-]{36}$/.test(vorschlagId) ? liste.find((v) => v.id === vorschlagId) : undefined;
     const aktuellesProfil = profil.ok ? profil.daten[0] : undefined;
     const karte = vorschlagV ? ausschlussKarte(vorschlagV, m.firma_id, (aktuellesProfil?.leistungen ?? []).flatMap((l) => l.woerter ?? []), aktuellesProfil?.ausschluss_schnell ?? [], link(reiter)) : "";
-    inhalt = rahmen(`${karte}${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${umschalter}${abgelaufen}${massen}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q, { kompakt, seit: gesehen, darfAendern })}`);
+    inhalt = rahmen(`${karte}${hilfe("Ausschreibungen sortieren", "Neu zeigt frische Treffer, In Arbeit die Angebote, an denen ihr arbeitet, Abgegeben bereits eingereichte Angebote und Archiv abgeschlossene oder aussortierte Treffer. Tippe eine Karte an, um Steckbrief und Aktionen zu öffnen.")}${meldungen}${tabs}${umschalter}${abgelaufen}${massen}${trefferListe(sortieren(liste.filter((v) => gruppen[reiter].includes(v.status)), sortierung), name, bereichWahl, link(reiter), rueckmeldungen, q, { kompakt, seit: gesehen, darfAendern, us: liste.some((v) => v.us) ? { profil: await usProfilLaden(s, env, m.firma_id), sprache: appSprache(request) } : undefined })}`);
   } else if (unterseite === "fristen") {
     const mitFrist = liste.filter((v) => v.frist || v.fragefrist);
     const kalk = mitFrist.length ? await db<{ vorgang_id: string }[]>(s, env, `kalkulationen?firma_id=eq.${m.firma_id}&vorgang_id=in.(${mitFrist.map((v) => v.id).join(",")})&select=vorgang_id`) : { ok: true as const, daten: [] };
@@ -793,7 +796,7 @@ export function bewertungsErklaerung(steckbrief?: string | null): string {
   return inhalt?.replace(/\*\*/g, "").replace(/\s+/g, " ").trim().slice(0, 420) ?? "";
 }
 
-export function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefined) => string, bereichWahl: string, weiter: string, rueckmeldungen = new Map<string, string>(), q = "", opts: { kompakt?: boolean; seit?: string; darfAendern?: boolean } = {}): string {
+export function trefferListe(liste: Vorgang[], bereichName: (id: string | null | undefined) => string, bereichWahl: string, weiter: string, rueckmeldungen = new Map<string, string>(), q = "", opts: { kompakt?: boolean; seit?: string; darfAendern?: boolean; us?: { profil: UsProfil | null; sprache: "de" | "en" } } = {}): string {
   if (!liste.length) return `${bereichWahl}<div class="treffer-leer"><h2>${q ? "Nichts gefunden" : "Noch keine Ausschreibungen"}</h2><p>${q ? `Kein Treffer enthält „${escape(q)}“ im Titel.` : "In diesem Bereich gibt es aktuell keine Treffer. Wähle einen anderen Stand oder Bereich."}</p></div>`;
   const optionen = (aktuell: string) => Object.entries(STATUS).map(([k, t]) => `<option value="${k}"${k === aktuell ? " selected" : ""}>${t}</option>`).join("");
   const istNeu = (v: Vorgang) => !!opts.seit && Date.parse(v.erstellt) > Date.parse(opts.seit);
@@ -808,7 +811,7 @@ export function trefferListe(liste: Vorgang[], bereichName: (id: string | null |
     return `<li><article class="treffer-karte">
   <div class="treffer-meta">${auswahl(v)}<span class="treffer-punkte">${v.punkte !== null ? `${v.punkte}/10 Punkte` : "Noch ohne KI-Bewertung"}</span><span class="treffer-status">${escape(STATUS[v.status] ?? v.status)}</span></div>
   <h2><a href="/konto/vorgang/${v.id}"><span>${istNeu(v) ? '<span class="neu-punkt" title="Neu seit deinem letzten Besuch" aria-label="neu seit deinem letzten Besuch"></span>' : ""}${escape(v.titel)}</span><span aria-hidden="true">›</span></a></h2>
-  ${fakten.length ? `<ul class="treffer-fakten">${fakten.map((f) => `<li>${f.label ? `<span>${escape(f.label)}</span>` : ""}${escape(f.wert)}${/^ca\./.test(f.wert) ? `<span class="dl-hinweis" title="Geschätzt – genaue Angaben in den Vergabeunterlagen">${DL_ICON}</span>` : ""}</li>`).join("")}</ul>` : ""}
+  ${fakten.length || v.us ? `<ul class="treffer-fakten">${v.us ? ampelChip(v.us, opts.us?.profil ?? null, opts.us?.sprache ?? "de") : ""}${fakten.map((f) => `<li>${f.label ? `<span>${escape(f.label)}</span>` : ""}${escape(f.wert)}${/^ca\./.test(f.wert) ? `<span class="dl-hinweis" title="Geschätzt – genaue Angaben in den Vergabeunterlagen">${DL_ICON}</span>` : ""}</li>`).join("")}</ul>` : ""}
   ${gesucht ? `<p class="treffer-gesucht">${escape(gesucht)}</p>` : !warum && bewertungsErklaerung(v.steckbrief) ? `<p class="treffer-gesucht">${escape(bewertungsErklaerung(v.steckbrief))}</p>` : ""}
   ${warum ? `<p class="treffer-warum">${escape(warum)}</p>` : ""}
   <div class="treffer-unten">
@@ -913,7 +916,7 @@ async function kaufverantwortlichSpeichern(s: Sitzung, form: FormData, _r: Reque
 export async function vorgangZugriff(request: Request, env: KontoEnv, id: string): Promise<{ s: Sitzung; v: Vorgang & { firma_id: string }; rolle: string; finanzen: boolean } | null> {
   const s = await sitzung(request, env);
   if (!s || !/^[0-9a-f-]{36}$/.test(id)) return null;
-  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,fragefrist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief,katalog_id,katalog_version`);
+  const r = await db<(Vorgang & { firma_id: string })[]>(s, env, `vorgaenge?id=eq.${id}&select=id,firma_id,titel,link,frist,fragefrist,status,punkte,erstellt,bereich_id,kaufverantwortlich_id,steckbrief,katalog_id,katalog_version,us`);
   const v = r.ok ? r.daten[0] : undefined;
   if (!v) return null;
   const m = await db<{ rolle: string; finanzen?: boolean }[]>(s, env, `mitglieder?firma_id=eq.${v.firma_id}&user_id=eq.${s.userId}&aktiv=eq.true&select=rolle,finanzen`);
@@ -991,7 +994,7 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
   const fristKlasse = v.frist ? ampel({ id: v.id, titel: v.titel, frist: v.frist, status: v.status }) : "grau";
   const kopf = `<ul class="kopf-chips">${v.punkte ? `<li class="punkte">${v.punkte}/10</li>` : ""}<li class="frist ${fristKlasse}">⏰ ${v.frist ? `${datum(v.frist)} · ${abstand(v.frist)}` : "Frist unbekannt"}</li><li>${escape(STATUS[v.status] ?? v.status)}</li>${v.entfernung_km != null ? `<li>📍 ${Math.round(v.entfernung_km)} km</li>` : ""}</ul>
 ${portal ? `<a class="knopf portal-knopf" href="${escape(portal)}" rel="noopener" target="_blank">🌐 Zum Vergabeportal</a>` : ""}
-${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}${hinweisText ? `<p role="status"><strong>${escape(hinweisText)}</strong></p>` : ""}${await vorschlagKarte(request, env, s, v, rolle)}`;
+${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}${hinweisText ? `<p role="status"><strong>${escape(hinweisText)}</strong></p>` : ""}${await vorschlagKarte(request, env, s, v, rolle)}${v.us ? usKasten(v, v.us, await usProfilLaden(s, env, v.firma_id), appSprache(request), ["inhaber", "admin"].includes(rolle)) : ""}`;
   // Required proofs the firm has not uploaded yet get a ⚠️ with an upload link (only for people with finance access).
   const unterlagen = finanzen ? await Promise.all([db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`), referenzenLaden(s, env, v.firma_id)]).then(([r, refs]) => r.ok ? { ok: true as const, daten: mitReferenzen(r.daten, refs, v.firma_id) } : r) : null;
   const heute = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
