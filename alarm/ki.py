@@ -13,10 +13,14 @@ import anthropic
 # (half the price of Opus); the Steckbrief reads long tender documents and stays on Opus 5.5.
 MODEL = "claude-opus-5-5"
 MODEL_BEWERTEN = "claude-sonnet-5-5"
-PREISE = {"claude-opus-5-5": (4.0, 20.0), "claude-sonnet-5-5": (2.0, 10.0)}  # $ per million input / output tokens
-# Prompt caching (5-minute entries): writes cost 1.25x input, reads $0.20 per million on both models.
+MODEL_VORFILTER = "claude-haiku-5-5"
+# $ per million tokens: input, output, cache read. Cache writes (5-minute entries) cost 1.25x input.
+PREISE = {"claude-opus-5-5": (4.0, 20.0, 0.20), "claude-sonnet-5-5": (2.0, 10.0, 0.20), "claude-haiku-5-5": (0.10, 0.50, 0.01)}
 CACHE_SCHREIBEN = 1.25
-CACHE_LESEN = 0.20
+# Pre-filter (ki_vergleich.py, 03.11.2026): Haiku rates every candidate first with the identical prompt; only notices
+# it gives at least VORFILTER_SCHWELLE points go to Sonnet, whose rating stays the final one. Clear misfits keep Haiku's
+# rating. 0 switches the pre-filter off.
+VORFILTER_SCHWELLE = int(os.environ.get("KI_VORFILTER", "3"))
 LIMIT = float(os.environ.get("KI_LIMIT_DOLLAR", "3"))  # hard stop per run
 client = anthropic.Anthropic(max_retries=0)
 _kosten = [0.0]
@@ -36,7 +40,7 @@ def cache_stand() -> str:
 def _zaehlen(usage, model: str = MODEL) -> None:
     preis = PREISE[model]
     eingabe = usage.input_tokens * preis[0] + (usage.cache_creation_input_tokens or 0) * preis[0] * CACHE_SCHREIBEN \
-        + (usage.cache_read_input_tokens or 0) * CACHE_LESEN
+        + (usage.cache_read_input_tokens or 0) * preis[2]
     _kosten[0] += (eingabe + usage.output_tokens * preis[1]) / 1e6
     _cache[0] += usage.cache_read_input_tokens or 0
     _cache[1] += usage.cache_creation_input_tokens or 0
@@ -85,14 +89,18 @@ def _reservieren(kwargs):
         return None
 
 
-def _create(**kwargs):
-    # fallbacks="default": a safety decline is retried server-side on Anthropic's recommended model.
+def _create(model: str = MODEL_BEWERTEN, **kwargs):
     reservierung = _reservieren(kwargs)
     if not reservierung:
         return None
     vorher = kosten()
-    response = client.beta.messages.create(model=MODEL_BEWERTEN, betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
-    _zaehlen(response.usage, MODEL_BEWERTEN)
+    if model == MODEL_VORFILTER:
+        # Haiku has no server-side fallback; a decline simply sends the batch on to Sonnet.
+        response = client.messages.create(model=model, **kwargs)
+    else:
+        # fallbacks="default": a safety decline is retried server-side on Anthropic's recommended model.
+        response = client.beta.messages.create(model=model, betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
+    _zaehlen(response.usage, model)
     katalog.abschliessen(reservierung, kosten() - vorher)
     return response
 
@@ -108,14 +116,32 @@ def score(beschreibung: str, items: list[dict], sprache: str = "de") -> dict[int
     """items: [{nr, titel, auftraggeber, ort, beschreibung, cpv}] -> {nr: {punkte, kurz, grund}}"""
     if not items or _bremse():
         return {}
+    vorab: dict[int, dict] = {}
+    if VORFILTER_SCHWELLE:
+        vorab = _bewerten(MODEL_VORFILTER, beschreibung, items, sprache) or {}
+        if not vorab and _bremse():
+            return {}
+    weiter = [x for x in items if vorab.get(x["nr"], {}).get("punkte", 10) >= VORFILTER_SCHWELLE]
+    ergebnis = {nr: dict(b, vorfilter=True) for nr, b in vorab.items() if b.get("punkte", 10) < VORFILTER_SCHWELLE}
+    if weiter:
+        # Sonnet sees the remaining notices numbered 0..n like before, the numbers are mapped back afterwards.
+        neu = _bewerten(MODEL_BEWERTEN, beschreibung, [dict(x, nr=i) for i, x in enumerate(weiter)], sprache)
+        if neu is None:
+            return ergebnis  # the clear misfits are rated; the rest is retried in the next run
+        ergebnis.update({weiter[i]["nr"]: dict(b, nr=weiter[i]["nr"]) for i, b in neu.items() if 0 <= i < len(weiter)})
+    return ergebnis
+
+
+def _bewerten(model: str, beschreibung: str, items: list[dict], sprache: str) -> dict[int, dict] | None:
     response = _create(
+        model=model,
         max_tokens=min(16000, max(1024, len(items) * 280 + 256)),
         system=score_system(sprache),
         output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCORE_SCHEMA}},
         messages=[{"role": "user", "content": bewertung_inhalt(beschreibung, items)}],
     )
     if response is None or response.stop_reason == "refusal":
-        return {}
+        return None
     text = next(b.text for b in response.content if b.type == "text")
     return {b["nr"]: b for b in json.loads(text)["bewertungen"]}
 
@@ -162,7 +188,7 @@ STECKBRIEF_ANLEITUNG = (Path(__file__).parent / "steckbrief-anleitung.txt").read
 # stay (alarm/sprache-<code>.txt). A new language = one file here plus one line in BEWERTUNG.
 BEWERTUNG_EN = " Write kurz and grund in English (US)."
 BEWERTUNG = {"en": BEWERTUNG_EN, "fr": " Rédige kurz et grund en français.", "pl": " Napisz kurz i grund po polsku.",
-             "es": " Escribe kurz y grund en español."}
+             "es": " Escribe kurz y grund en español.", "it": " Scrivi kurz e grund in italiano."}
 SPRACHE_ZUSATZ = {s: (Path(__file__).parent / f"sprache-{s}.txt").read_text(encoding="utf-8") for s in BEWERTUNG}
 SPRACHE_EN = SPRACHE_ZUSATZ["en"]
 

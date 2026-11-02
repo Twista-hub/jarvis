@@ -27,6 +27,10 @@ class SpracheTest(unittest.TestCase):
         self.assertEqual(profile_db.sprache({"laender": ["POL", "FRA"]}), "en", "zwei Fremdsprachen: Englisch")
         self.assertEqual(profile_db.sprache({"laender": ["POL", "AUT"]}), "de")
         self.assertEqual(profile_db.sprache({"laender": ["ESP"]}), "es")
+        self.assertEqual(profile_db.sprache({"laender": ["ITA"]}), "it")
+        self.assertEqual(profile_db.sprache({"laender": ["ITA", "CHE"]}), "de", "Schweiz ist (auch) deutschsprachig")
+        self.assertIn("stazione appaltante", ki.anleitung("it"))
+        self.assertIn("italiano", ki.BEWERTUNG["it"])
 
     def test_steckbrief_anleitung(self):
         self.assertEqual(ki.anleitung("de"), ki.STECKBRIEF_ANLEITUNG)
@@ -53,8 +57,11 @@ class SpracheTest(unittest.TestCase):
             ki.score("Firma", [{"nr": 0, "titel": "x"}], "fr")
         self.assertNotIn("English", gesehen[0])
         self.assertNotIn("français", gesehen[0])
-        self.assertIn("in English (US)", gesehen[1])
-        self.assertIn("en français", gesehen[2])
+        # Each score call asks the pre-filter (Haiku) and then Sonnet with the same system prompt.
+        self.assertEqual(len(gesehen), 6)
+        self.assertEqual(gesehen[2], gesehen[3])
+        self.assertIn("in English (US)", gesehen[2])
+        self.assertIn("en français", gesehen[4])
 
     def test_aufruf_deutscher_profile_unveraendert(self):
         self.assertEqual(alarm.sprach_arg({"sprache": "de"}), {})
