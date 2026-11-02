@@ -185,5 +185,8 @@
  "Keine Leistungsbeschreibung in der Bekanntmachung vorhanden.": "L'avis ne contient aucune description des prestations.",
  "Dieser Kurzüberblick enthält Angaben aus der öffentlichen Bekanntmachung. Die Vergabeunterlagen wurden nicht geprüft. Für die ausführliche Analyse bitte die Unterlagen hochladen.": "Cet aperçu rapide reprend les informations de l'avis public. Le dossier de consultation (DCE) n'a pas été examiné. Pour l'analyse détaillée, veuillez téléverser les documents.",
  "Dies ist die archivierte Zusammenfassung zur Bekanntmachung. Für eine ausführliche Prüfung bitte die Vergabeunterlagen hochladen.": "Voici le résumé archivé de l'avis. Pour un examen détaillé, veuillez téléverser le dossier de consultation (DCE).",
- "Frankreich · Quelle: BOAMP, DILA (Licence Ouverte 2.0)": "France · Source : BOAMP, DILA (Licence Ouverte 2.0)"
+ "Frankreich · Quelle: BOAMP, DILA (Licence Ouverte 2.0)": "France · Source : BOAMP, DILA (Licence Ouverte 2.0)",
+ "Départements in Frankreich": "Départements",
+ "Jarvis zeigt nur Ausschreibungen aus den gewählten Départements. Keine Auswahl bedeutet ganz Frankreich. Ändern kostet nichts extra.": "Jarvis n'affiche que les appels d'offres des départements choisis. Aucune sélection signifie toute la France. Modifier ce choix ne coûte rien de plus.",
+ "ganz Frankreich": "toute la France"
 }

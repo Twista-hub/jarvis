@@ -78,4 +78,7 @@ test("Französisch: Wörterbuch, ganze Seite, Steckbrief-Marken", () => {
   assert.doesNotMatch(fr, /Mein Profil|E-Mail-Adresse/);
   assert.match(fr, /<strong>Objet :<\/strong> Nettoyage/);
   assert.equal(uebersetzen("<p>Mein Profil</p>", "de"), "<p>Mein Profil</p>");
+  assert.equal(wort("Nettoyage de bureaux suchen", "fr"), "Rechercher : Nettoyage de bureaux");
+  assert.equal(wort("Office cleaning suchen"), "Search for Office cleaning");
+  assert.equal(wort("Arbeit suchen"), "Search work", "feste Einträge gehen vor");
 });

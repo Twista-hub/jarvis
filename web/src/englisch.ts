@@ -35,6 +35,11 @@ const PRAEFIXE: Record<Fremd, [string, string][]> = {
   en: [["Steckbrief: ", "Fact sheet: "], ["Gesucht: ", "Wanted: "], ["Warum passend: ", "Why it fits: "], ["Empfehlung: ", "Recommendation: "]],
   fr: [["Steckbrief: ", "Fiche synthèse : "], ["Gesucht: ", "Objet : "], ["Warum passend: ", "Pourquoi c'est pertinent : "], ["Empfehlung: ", "Recommandation : "]],
 };
+/** Fixed labels after free text (a work or place name the firm typed). */
+const SUFFIXE: Record<Fremd, [string, (frei: string) => string][]> = {
+  en: [[" suchen", (f) => `Search for ${f}`], [" als Einsatzort", (f) => `${f} as place of work`]],
+  fr: [[" suchen", (f) => `Rechercher : ${f}`], [" als Einsatzort", (f) => `${f} comme lieu d'intervention`]],
+};
 type Muster = { re: RegExp; ziel: string };
 type Woerterbuch = { genau: Map<string, string>; muster: Muster[] };
 const geladen: Partial<Record<Fremd, Woerterbuch>> = {};
@@ -74,6 +79,7 @@ export function wort(text: string, sprache: Fremd = "en"): string | null {
   if (direkt !== undefined) return direkt;
   // Fixed labels in front of free text (AI fact sheet title, rating lines): translate only the label.
   for (const [de, ziel] of PRAEFIXE[sprache]) if (text.startsWith(de) && text.length > de.length) return ziel + text.slice(de.length);
+  for (const [de, ziel] of SUFFIXE[sprache]) if (text.endsWith(de) && text.length > de.length && !/\d/.test(text)) return ziel(text.slice(0, -de.length));
   if (!/\d/.test(text)) return null;
   for (const m of w.muster) {
     const t = m.re.exec(text);

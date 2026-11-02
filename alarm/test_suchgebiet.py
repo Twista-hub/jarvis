@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent))
-from alarm.profile_db import aus_db, im_suchgebiet, nicht_mehr_aktuelle_treffer
+from alarm.profile_db import aus_db, departement_aus_plz, departements_der_bekanntmachung, im_suchgebiet, nicht_mehr_aktuelle_treffer
 
 
 def bekanntmachung(plz="", ort=""):
@@ -12,6 +12,47 @@ def bekanntmachung(plz="", ort=""):
         "deliveryAddress": {"postalCode": plz, "locality": ort},
         "deliveryLocation": {"description": f"{plz} {ort}".strip()},
     }]}}
+
+
+def boamp(deps=(), plz=""):
+    return {"_land": "FRA", "_boamp": {"departements": list(deps)},
+            "tender": {"items": [{"deliveryLocation": {"description": f"{plz}, France"}}]}}
+
+
+class DepartementTest(unittest.TestCase):
+    def test_plz_zu_departement(self):
+        self.assertEqual(departement_aus_plz("75011"), "75")
+        self.assertEqual(departement_aus_plz("01000"), "01")
+        self.assertEqual(departement_aus_plz("20000"), "2A")
+        self.assertEqual(departement_aus_plz("20200"), "2B")
+        self.assertEqual(departement_aus_plz("97400"), "974")
+        self.assertIsNone(departement_aus_plz("98000"))
+        self.assertIsNone(departement_aus_plz("1234"))
+
+    def test_departements_aus_boamp_oder_plz(self):
+        self.assertEqual(departements_der_bekanntmachung(boamp(["75", "92"])), {"75", "92"})
+        self.assertEqual(departements_der_bekanntmachung(boamp(["2a", "6"])), {"2A", "06"})
+        self.assertEqual(departements_der_bekanntmachung(boamp([], "69003")), {"69"})
+
+    def test_filter_nach_departements(self):
+        p = {"departements": ["75", "92", "93", "94"], "suchorte": [{"name": "Pforzheim", "plz_praefixe": ["75"]}]}
+        self.assertTrue(im_suchgebiet(p, boamp(["92"])))
+        self.assertFalse(im_suchgebiet(p, boamp(["69"])))
+        self.assertTrue(im_suchgebiet(p, boamp([])), "ohne bekanntes Département nicht verwerfen")
+        # German search places and prefixes never apply to French notices; no choice = all of France.
+        self.assertTrue(im_suchgebiet({"suchorte": [{"name": "Aachen", "plz_praefixe": ["52"]}]}, boamp(["13"], "13001")))
+        # German notices keep the old logic.
+        self.assertFalse(im_suchgebiet(p, bekanntmachung("69003", "Lyon")))
+
+    def test_profil_nur_mit_auswahl(self):
+        self.assertNotIn("departements", aus_db("f", "Firma", "x", {"laender": ["DEU"]}))
+        p = aus_db("f", "Firma", "x", {"laender": ["FRA"], "departements": ["75", "2a", "99", "92"]})
+        self.assertEqual(p["departements"], ["2A", "75", "92"])
+
+    def test_auswahl_aendert_profilversion_nicht(self):
+        import katalog
+        e = {"laender": ["FRA"], "leistungen": [{"name": "Nettoyage", "woerter": ["nettoyage"], "cpv": []}]}
+        self.assertEqual(katalog.profil_version(aus_db("f", "F", "x", e)), katalog.profil_version(aus_db("f", "F", "x", {**e, "departements": ["75"]})))
 
 
 class SuchgebietTest(unittest.TestCase):
