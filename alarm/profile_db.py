@@ -101,7 +101,8 @@ def im_suchgebiet(profile: dict, rel: dict) -> bool:
     # Radius in km around the firm's locations, when set and the notice names a known postal code.
     radius = profile.get("radius_km")
     punkte = [p for p in profile.get("suchpunkte") or [] if p.get("lat") is not None]
-    if radius and punkte:
+    # The coordinates are German postal codes only; other countries are matched by place names and prefixes below.
+    if radius and punkte and (rel.get("_land") or "DEU") == "DEU":
         from geo_radius import entfernung_km, koordinaten
         bekannt = False
         for item in items:
