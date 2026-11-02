@@ -79,6 +79,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02./03.11.2026 – Claude (Nacht: KI-Kosten, Italien, Niederlande, Ideen, Abos)
+- KI-Kosten: Prompt-Caching und Haiku-Vorfilter (Schwelle 3, Sonnet bewertet endgültig), gemessen 51/51 Treffer erhalten, ca. 40–45 % billiger (`docs/ki-kosten.md`). Batch-API als nächster Hebel vorgeschlagen.
+- Italien komplett: Oberfläche (`web/src/italienisch/`), KI-Texte (`alarm/sprache-it.txt`), Mail (Rom), Regionen (`alarm/regioni.json`), Quelle ANAC PVL (`alarm/anac.py`, CC BY 4.0, alle Schwellen), Gewerke-Seiten `/it/gare-d-appalto` mit Live-Zahlen (Migration `20261103010000`), Rechtsseiten (Garante). Länder-Durchlauf ALLES OK.
+- Niederlande: TenderNed CC0, robots.txt sperrt → TED (`docs/niederlande.md`).
+- Konzepte: `docs/ideen-arbeitsoberflaeche.md` (50 Ideen, Top 10), `docs/abos.md` (Free/Basis 59 €/Pro 149 €/Business 399 €, Entscheidung Benjamin).
+- Rechte-Test: Ausfall-Abschnitt rechnet in Berliner Zeit (schlug nach 23 Uhr UTC fehl).
+
 ### 02.11.2026 – Claude (Gewerke- und Rechtsseiten Polnisch/Spanisch)
 - Gewerke-Seiten für Google: `/pl/przetargi` und `/es/licitaciones` mit je 10 Gewerken (`web/src/gewerke-land.ts`), FAQ als schema.org, Quellenhinweis BZP/TED bzw. Generalitat de Catalunya/TED. hreflang verbindet jetzt alle vier Sprachfassungen (`web/src/gewerke-sprachen.ts`, Slug-Tabelle mit Test), Sitemap 82 Seiten.
 - Live-Zahlen: Bestand `jarvis_intern.ausland_avis` (Migration `20261102150000_ausland_bestand.sql`, 90 Tage), zweimal täglich aus BZP und Katalonien gefüllt (`alarm/ausland_bestand.py`, Workflow `ausland-bestand.yml`), Zahlen über denselben Hintergrund-Cache (`land_statistik`). Spanien zählt nur Katalonien (so beschriftet). Erstbefüllung 31 Tage (https://github.com/Twista-hub/jarvis/actions/runs/41537327778): Polen 11.006, Katalonien 1.892 Bekanntmachungen; z. B. Elektro PL 1.121 (693 offen), Reinigung PL 175/100, Reinigung Katalonien 96/66. Zeitarbeit (CPV 7962) in Polen fast leer (1), weil Personal dort unter der jeweiligen Leistung ausgeschrieben wird.

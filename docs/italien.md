@@ -12,6 +12,12 @@
 >   100 Bandi (codiceScheda 2,4; 81 Erstveröffentlichungen, 19 Berichtigungen), insgesamt 3.826 Einträge aller Arten.
 >   `codiceScheda=5` (Indagini) liefert HTTP 500 → später andere Kennung prüfen.
 > - **Ergebnis: grünes Licht** für den Einbau (`alarm/anac.py`).
+> - **Eingebaut 03.11.2026:** `alarm/anac.py` (alle Bandi des Tages, nur aktive Erstveröffentlichungen mit künftiger
+>   Frist, Regionen über Provinz → NUTS-2, `alarm/province_it.json`), Italien kommt komplett aus der PVL, TED nur als Ersatz
+>   bei Ausfall. Länder-Durchlauf (Mailänder Reinigungsfirma, 4 Regionen, 10 Tage)
+>   https://github.com/Twista-hub/jarvis/actions/runs/41544733109: **ALLES OK**, 0,074 $. Zwei kommunale
+>   Reinigungsaufträge 9/10 (Bacoli, Kampanien), Rovigo 8/10, Kanal-/Klärschlamm-Reinigung richtig 1–2/10; Steckbrief und
+>   Mail („Nuove gare: 7 – Pulizie Rossi S.r.l.“) auf Italienisch.
 
 > **Recherche-Stand 02.11.2026 (vor den Lese-Tests):** Aus dieser Cloud-Sitzung waren alle italienischen Hosts gesperrt
 > (`pubblicitalegale.anticorruzione.it`, `dati.anticorruzione.it`, `www.anticorruzione.it`, `www.gazzettaufficiale.it`,
