@@ -1,0 +1,38 @@
+# Read-only: how ANAC PVL calls for tenders carry lots and CPV (labels or codes). 2 requests, no personal data printed.
+name: Italien-CPV
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  lesen:
+    runs-on: ubuntu-latest
+    env:
+      UA: "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+      PVL: "https://pubblicitalegale.anticorruzione.it/api/v0"
+    steps:
+      - run: |
+          D=$(curl -sS -m 30 -A "$UA" "$PVL/date" | python3 -c "
+          import json,sys; from datetime import datetime, date
+          print(max(x for x in json.load(sys.stdin) if datetime.strptime(x,'%d/%m/%Y').date() < date.today()))")
+          sleep 3
+          curl -sS -m 60 -A "$UA" -H "Accept: application/json" -o b.json "$PVL/avvisi?dataPubblicazioneStart=$D&dataPubblicazioneEnd=$D&sortField=dataPubblicazione&sortDirection=ASC&page=0&size=100&codiceScheda=2,4"
+          python3 - <<'PY'
+          import json, collections as C
+          rows = json.load(open("b.json")).get("content") or []
+          namen, felder, cpv = C.Counter(), C.Counter(), C.Counter()
+          for r in rows:
+              t = ((r.get("templates") or [{}])[0] or {}).get("template") or {}
+              for s in t.get("sections") or []:
+                  namen[s.get("name")] += 1
+                  for k, v in (s.get("fields") or {}).items():
+                      felder[f"{s.get('name')} / fields.{k}"] += 1
+                      if "cpv" in k.lower(): cpv[str(v)[:120]] += 1
+                  for it in s.get("items") or []:
+                      for k, v in (it or {}).items():
+                          felder[f"{s.get('name')} / items.{k}"] += 1
+                          if "cpv" in k.lower(): cpv[str(v)[:120]] += 1
+          print(len(rows), "Bandi"); print("Abschnitte:", namen.most_common())
+          print("Felder:"); [print("  ", k, n) for k, n in felder.most_common(60) if not any(x in k.lower() for x in ("rup", "nome", "email", "telefono", "pec", "cognome"))]
+          print("CPV-Werte (Beispiele):"); [print("  ", n, v) for v, n in cpv.most_common(40)]
+          PY

@@ -36,3 +36,29 @@ Protokoll unten ergänzen. Ist ein Punkt blockiert, Grund notieren und zum näch
 - 23:25 UTC Punkte 1–7c fertig: Italien komplett (Oberfläche 2.350 Einträge, KI/Mail, Regionen, ANAC-Quelle CC BY 4.0, Gewerke-Seiten /it/gare-d-appalto mit Live-Zahlen, Rechtsseiten mit Garante), Länder-Durchlauf it ALLES OK (0,074 $). Niederlande: TenderNed-Daten CC0, aber robots.txt sperrt → weiter TED. Ideenliste (50 Ideen) und Abo-Vorschlag geschrieben. Nebenbei: Rechte-Test schlug zwischen 23 und 24 Uhr UTC fehl (Ausfall-Tag Berliner Zeit) → behoben.
 
 ## Morgenbericht
+
+**Kurz:** Italien ist komplett live, die KI-Bewertung kostet rund 40–45 % weniger bei gleicher Qualität, die Niederlande
+bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
+
+### Fertig und live
+1. **KI-Kosten:** Firmenbeschreibung im Prompt-Cache + Haiku-Vorfilter (Sonnet bewertet weiter endgültig).
+   Vergleich auf 285 echten Bewertungen: 51/51 Treffer erhalten. Batch-API (weitere 50 %) ist eingebaut, aber AUS
+   (`KI_BATCH=1`). Details: `docs/ki-kosten.md`.
+2. **Italien:** Oberfläche, KI-Texte, Morgenmail, Regionen, Quelle ANAC (alle Ausschreibungen, CC BY 4.0),
+   Gewerke-Seiten https://app.wpdigitalranger.com/it/gare-d-appalto mit Live-Zahlen, Rechtsseiten (Garante).
+   Länder-Durchlauf Mailänder Reinigungsfirma: ALLES OK (0,074 $).
+3. **Niederlande:** TenderNed-Daten frei (CC0), aber robots.txt sperrt → nicht genutzt, weiter TED.
+4. **Behoben:** Datenbank-Test schlug abends zwischen 23 und 24 Uhr UTC fehl (Berliner Datum) – Prüfungen wieder grün.
+
+### Zum Lesen (Konzepte, nichts gebaut)
+- `docs/ideen-arbeitsoberflaeche.md`: 50 Ideen, Top 10 (E-Rechnung, Mahnwesen, DATEV-Export, Belege per Foto,
+  Bietergemeinschaft finden, Auftragsbörse …).
+- `docs/abos.md`: Free 0 €, Basis 59 €, Pro 149 €, Business 399 € pro Monat, Länderpreise, Margen.
+
+### Deine Entscheidungen (keine Eile)
+- **Abo-Preise** aus `docs/abos.md` freigeben oder ändern (erst danach Stripe).
+- **Batch-API einschalten?** Spart weitere 50 %, dafür muss der tägliche Alarm früher starten (z. B. 03:00).
+- **Anfragen um Erlaubnis** an PLACSP (Spanien, Entwurf `docs/anfragen/placsp-anfrage.md`) und ggf. TenderNed
+  (Niederlande) – nur mit deinem OK.
+- Bleibt von vorher: Test mit echtem Konto, Max-Abo mit der Console verknüpfen (ab ca. 07./08.11.), SAM.gov-UEI,
+  gogovjob.com, Zustellung der Tagesmail bestätigen.
