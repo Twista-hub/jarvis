@@ -35,6 +35,14 @@ jobs:
               k.execute("""with g as (select left(c,5) g, count(distinct v.id) n from public.vergabekatalog v, unnest(v.cpv) c where v.quell_datum > now() - interval '180 days' group by 1 order by 2 desc limit 40)
                            select g.g, (select string_agg(t, ' | ') from (select left(v.titel, 70) t from public.vergabekatalog v where exists (select 1 from unnest(v.cpv) c where c like g.g || '%') order by v.quell_datum desc limit 3) x) from g order by g.n desc""")
               for r in k.fetchall(): print("BEISPIEL", r)
+              gewerke = {"Arbeitnehmerüberlassung": ["79620", "79624", "79625"], "Gebäudereinigung": ["90911", "90919"], "Glasreinigung": ["909113"], "Sicherheitsdienst": ["79710", "79713", "79714"],
+                         "Garten- und Landschaftsbau": ["77310", "77311", "77313", "45112710"], "Winterdienst": ["90620", "90630"], "Hausmeister/Facility": ["98341", "79993", "50700"], "Catering/Verpflegung": ["55520", "55521", "55523", "555"],
+                         "Maler/Lackierer": ["45442", "45441"], "Fliesen": ["45431"], "Bodenbeläge": ["45432"], "Trockenbau/Putz": ["45410", "45421146", "45324"], "Tischler/Schreiner": ["45421"], "Dach/Zimmerer": ["45261"],
+                         "Elektro": ["45311", "45315", "45317"], "Sanitär/Heizung/Lüftung": ["45331", "45332", "45330"], "Gerüstbau": ["45262110", "45262100"], "Metallbau/Schlosser": ["45262400", "45421140", "44221"],
+                         "Abbruch": ["45111"], "Straßen-/Tiefbau": ["45233", "45112"], "Umzüge": ["98392", "60100000"], "Wäscherei": ["98310"], "Pflege/Betreuung": ["85141", "85311", "85312"], "Hostessen/Veranstaltung": ["79952", "79956", "79950"]}
+              for name, pre in gewerke.items():
+                  k.execute("select count(*), count(*) filter (where cardinality(lose) > 1) from public.vergabekatalog v where v.quell_datum > now() - interval '180 days' and exists (select 1 from unnest(v.cpv) c where c like any(%s))", ([x + "%" for x in pre],))
+                  print("GEWERK", name, k.fetchone())
               k.execute("""select left(p, 1) region, count(distinct v.id) from public.vergabekatalog v, unnest(v.plz) p where v.quell_datum > now() - interval '180 days' and p ~ '^[0-9]' group by 1 order by 1""")
               print("PLZ-REGION", k.fetchall())
           PY
