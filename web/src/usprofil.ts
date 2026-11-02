@@ -5,6 +5,7 @@ import { GROESSE, ZERTIFIKATE, type UsProfil } from "./ampel.ts";
 import { appSprache } from "./englisch.ts";
 import { db, html, weiterleiten, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
+import { auslaufend, vertragsTabelle } from "./usaspending.ts";
 
 export async function usProfilLaden(s: Sitzung, env: KontoEnv, firma: string): Promise<UsProfil | null> {
   const r = await db<UsProfil[]>(s, env, `us_bieterprofil?firma_id=eq.${firma}&select=uei,cage,sam_gueltig_bis,naics,klein_naics,zertifikate,umsatz_durchschnitt,mitarbeiter`);
@@ -76,4 +77,29 @@ export async function usProfil(request: Request, env: KontoEnv): Promise<Respons
     return weiterleiten(`/konto/us-profil?hinweis=${encodeURIComponent(r.ok ? (de ? "Gespeichert." : "Saved.") : (de ? "Speichern hat nicht geklappt." : "Could not save."))}`, f.s.cookies);
   }
   return antwort(usProfilFormular(await usProfilLaden(f.s, env, f.m.firma_id), de, f.admin, url.searchParams.get("hinweis") ?? ""));
+}
+
+const STAATEN = "AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY NC ND OH OK OR PA RI SC SD TN TX UT VT VA WA WV WI WY PR GU VI".split(" ");
+
+/** /konto/us-radar: federal contracts in a NAICS and state that end in 6–18 months (they will be tendered again). */
+export async function usRadar(request: Request, env: KontoEnv): Promise<Response | null> {
+  const url = new URL(request.url);
+  if (url.pathname !== "/konto/us-radar" || request.method !== "GET") return null;
+  const f = await aktiveFirma(request, env);
+  if (!f) return weiterleiten("/konto");
+  const de = appSprache(request) === "de";
+  const t = (a: string, b: string) => de ? a : b;
+  if (f.m.rolle === "mitarbeiter") return html(seite(t("Auslaufende US-Verträge", "US contracts ending soon"), `<p>${t("Das sieht das Büroteam.", "Visible to the office team.")}</p>`, 0, "treffer"), 403, f.s.cookies);
+  const profil = await usProfilLaden(f.s, env, f.m.firma_id);
+  const naics = /^\d{6}$/.test(url.searchParams.get("naics") ?? "") ? url.searchParams.get("naics")! : profil?.naics[0] ?? "";
+  const staat = STAATEN.includes((url.searchParams.get("staat") ?? "").toUpperCase()) ? url.searchParams.get("staat")!.toUpperCase() : "";
+  const formular = `<form method="get" action="/konto/us-radar" class="zeile-form"><label>NAICS<input name="naics" inputmode="numeric" maxlength="6" value="${escape(naics)}" required${profil?.naics.length ? ` list="eigene-naics"` : ""}></label>${profil?.naics.length ? `<datalist id="eigene-naics">${profil.naics.map((n) => `<option value="${n}">`).join("")}</datalist>` : ""}<label>${t("Bundesstaat", "State")}<select name="staat" required><option value="">–</option>${STAATEN.map((x) => `<option${x === staat ? " selected" : ""}>${x}</option>`).join("")}</select></label><button>${t("Anzeigen", "Show")}</button></form>`;
+  let ergebnis = "";
+  if (naics && staat) {
+    const liste = await auslaufend(naics, staat, (env as { WARTEN?: (p: Promise<unknown>) => void }).WARTEN);
+    ergebnis = liste === null ? `<p class="fehler">${t("USAspending.gov ist gerade nicht erreichbar.", "USAspending.gov is not reachable right now.")}</p>`
+      : !liste.length ? `<p class="klein">${t("Keine Verträge, die in 6 bis 18 Monaten enden.", "No contracts ending in 6 to 18 months.")}</p>`
+      : `<p>${t(`${liste.length} Bundesverträge mit NAICS ${naics} in ${staat} enden in 6 bis 18 Monaten. Die Behörden schreiben sie meist vorher neu aus, oft mit „Sources Sought“. Jetzt Kontakt zum Contracting Officer aufnehmen und das Capability Statement schicken.`, `${liste.length} federal contracts with NAICS ${naics} in ${staat} end in 6 to 18 months. Agencies usually re-compete them before that, often starting with a sources sought notice. Reach out to the contracting officer now and send your capability statement.`)}</p>${vertragsTabelle(liste, de ? "de" : "en")}`;
+  }
+  return html(seite(t("Auslaufende US-Verträge", "US contracts ending soon"), `<p class="konto-zurueck"><a href="/konto" aria-label="${t("Zurück", "Back")}">←</a></p><p class="leise">${t("Recompete-Radar: Wer hat welchen Bundesvertrag, und wann läuft er aus?", "Recompete radar: who holds which federal contract, and when does it end?")}</p>${formular}${ergebnis}<p class="klein">${t("Quelle: USAspending.gov (offene Daten des US-Finanzministeriums), Enddatum ohne noch nicht gezogene Optionen.", "Source: USAspending.gov (US Treasury open data); end date without options not yet exercised.")}</p>`, 0, "treffer"), 200, f.s.cookies);
 }

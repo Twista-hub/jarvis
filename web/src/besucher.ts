@@ -112,7 +112,8 @@ const T: Record<Sprache, Texte> = {
 const US_EXTRA = `<h2>Built for small businesses bidding on government contracts</h2>
 <ul><li>Federal opportunities from SAM.gov every day: solicitations, combined synopsis/solicitations and sources sought.</li>
 <li>See set-asides (small business, 8(a), HUBZone, WOSB, SDVOSB), NAICS code and response deadline at a glance.</li>
-<li>Your team, shifts and timesheets in one place once you win.</li></ul>`;
+<li>Your team, shifts and timesheets in one place once you win.</li></ul>
+<p>New to federal contracting? Read our free <a href="/us/sam-registration">step-by-step guide to SAM.gov registration</a>.</p>`;
 
 /** Country and language links (shown at the bottom of the public start page). */
 export function landWahl(b: Besucher): string {

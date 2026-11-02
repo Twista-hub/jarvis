@@ -112,6 +112,7 @@ def us_daten(n: dict) -> dict:
     kontakt = next((k for k in n.get("pointOfContact") or [] if k.get("type") == "primary"), (n.get("pointOfContact") or [None])[0]) or {}
     d = {
         "notice_id": n.get("noticeId") or "",
+        "behoerde": (n.get("fullParentPathName") or "")[:300],
         "solicitation": n.get("solicitationNumber") or "",
         "art": n.get("type") or "",
         "naics": str(n.get("naicsCode") or ""),
