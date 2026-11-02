@@ -23,6 +23,9 @@ class SpracheTest(unittest.TestCase):
         self.assertEqual(profile_db.sprache({"laender": ["FRA", "DEU"]}), "de")
         self.assertEqual(profile_db.sprache({"laender": ["FRA", "ESP"]}), "en")
         self.assertEqual(profile_db.sprache({"sprache": "fr", "laender": ["DEU"]}), "fr")
+        self.assertEqual(profile_db.sprache({"laender": ["POL"]}), "pl")
+        self.assertEqual(profile_db.sprache({"laender": ["POL", "FRA"]}), "en", "zwei Fremdsprachen: Englisch")
+        self.assertEqual(profile_db.sprache({"laender": ["POL", "AUT"]}), "de")
 
     def test_steckbrief_anleitung(self):
         self.assertEqual(ki.anleitung("de"), ki.STECKBRIEF_ANLEITUNG)
@@ -33,6 +36,9 @@ class SpracheTest(unittest.TestCase):
         self.assertIn("Französisch", fr)
         self.assertIn("„non précisé“", fr)
         self.assertIn("„nicht angegeben“", fr)
+        pl = ki.anleitung("pl")
+        self.assertIn("Polnisch", pl)
+        self.assertIn("„nie podano“", pl)
 
     def test_bewertung_englisch_nur_wenn_gewuenscht(self):
         gesehen = []
@@ -54,6 +60,7 @@ class SpracheTest(unittest.TestCase):
         self.assertEqual(alarm.sprach_arg({}), {})
         self.assertEqual(alarm.sprach_arg({"sprache": "en"}), {"sprache": "en"})
         self.assertEqual(alarm.sprach_arg({"sprache": "fr"}), {"sprache": "fr"})
+        self.assertEqual(alarm.sprach_arg({"sprache": "pl"}), {"sprache": "pl"})
 
 
 if __name__ == "__main__":

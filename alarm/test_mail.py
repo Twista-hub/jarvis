@@ -173,6 +173,26 @@ class Franzoesisch(unittest.TestCase):
         self.assertEqual(set(mail.T["en"]), set(mail.T["de"]))
 
 
+class Polnisch(unittest.TestCase):
+    def test_mail_auf_polnisch(self):
+        from datetime import datetime, timezone
+        frist = datetime(2026, 11, 20, 13, 0, tzinfo=timezone.utc)  # 14:00 Warschau
+        m = mail.nachricht("szef@example.test", "Sprzątanie Kowalski Sp. z o.o.", [("v1", "Sprzątanie urzędu", 8, frist)], [("v2", "Utrzymanie zieleni", frist)], [], "pl", mail.WARSCHAU)
+        self.assertEqual(m["Subject"], "Nowe przetargi: 1 – Sprzątanie Kowalski Sp. z o.o.")
+        text = m.get_body(preferencelist=("plain",)).get_content()
+        self.assertIn("oferty do 20.11.2026, godz. 14:00", text)
+        self.assertNotIn("Ausschreibung", text)
+        self.assertEqual(set(mail.T["pl"]), set(mail.T["de"]))
+
+    def test_zeitzone_polen(self):
+        from unittest.mock import MagicMock
+        mail._firmen.clear()
+        con = MagicMock()
+        con.execute.return_value.fetchone.side_effect = [({"laender": ["POL"]},)]
+        self.assertEqual(mail.firma_sprache(con, "pl"), ("pl", mail.WARSCHAU))
+        mail._firmen.clear()
+
+
 class Englisch(unittest.TestCase):
     def test_mail_auf_englisch_mit_ostkuestenzeit(self):
         from datetime import datetime, timezone
