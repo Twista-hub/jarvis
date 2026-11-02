@@ -1,0 +1,27 @@
+# Read-only: Catalan open data portal (Socrata) for public procurement – robots.txt, dataset licence, sample rows.
+name: Katalonien-Test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - run: |
+          UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+          echo "== robots.txt"; curl -sS -m 20 -A "$UA" https://analisi.transparenciacatalunya.cat/robots.txt | head -40
+          echo "== contractaciopublica.cat robots"; curl -sS -m 20 -A "$UA" https://contractaciopublica.cat/robots.txt | head -40
+          echo "== Suche nach Datensätzen"; curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/api/catalog/v1?q=contractació%20pública&limit=10" -o c.json
+          python3 -c "
+          import json; d=json.load(open('c.json'))
+          for r in d.get('results',[]):
+              x=r['resource']; print(x['id'], '|', x['name'][:90], '| updated', x.get('data_updated_at'), '|', r.get('metadata',{}).get('license'))"
+          for id in ybgg-dgi6 a23c-d6vp; do
+            echo "== Metadaten $id"; curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/api/views/$id.json" -o m.json
+            python3 -c "
+          import json; d=json.load(open('m.json')); print(d.get('name'), '|', d.get('license'), '|', d.get('licenseId'), '| rows updated', d.get('rowsUpdatedAt'))
+          print('Spalten:', [c.get('fieldName') for c in d.get('columns',[])][:60])" || true
+            echo "== Beispiel $id"; curl -sS -m 30 -A "$UA" "https://analisi.transparenciacatalunya.cat/resource/$id.json?\$limit=2&\$order=:updated_at%20DESC" | head -c 3000; echo
+          done
