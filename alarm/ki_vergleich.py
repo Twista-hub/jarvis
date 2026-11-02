@@ -51,6 +51,7 @@ def stichprobe(profil: dict, n: int) -> list[tuple[dict, dict]]:
 
 def main(n: int) -> None:
     gesamt = {"paare": 0, "s_treffer": 0, "h6": 0, "h4": 0, "fp": 0, "rest_raus": 0, "rest": 0, "diff": 0}
+    verteilung = {"treffer": [0] * 11, "rest": [0] * 11}  # Haiku points of Sonnet hits / non-hits
     for name, profil in profile_db.laden().items():
         if not profil.get("firma_id") or profil.get("zusatz"):
             continue
@@ -71,6 +72,7 @@ def main(n: int) -> None:
                 s, hp = sonnet.get("punkte", 0), h[i]["punkte"]
                 gesamt["paare"] += 1
                 gesamt["diff"] += abs(s - hp)
+                verteilung["treffer" if s >= 6 else "rest"][max(0, min(10, hp))] += 1
                 if s >= 6:
                     gesamt["s_treffer"] += 1
                     gesamt["h6"] += hp >= 6
@@ -89,6 +91,10 @@ def main(n: int) -> None:
     print(f"Sonnet-Treffer (>= 6): {g['s_treffer']}; davon Haiku >= 6: {g['h6']} ({g['h6'] / max(1, g['s_treffer']):.0%}), Haiku >= 4: {g['h4']} ({g['h4'] / max(1, g['s_treffer']):.0%})")
     print(f"Sonnet-Nicht-Treffer: {g['rest']}; Haiku fälschlich >= 6: {g['fp']}; Haiku < 4 (Vorfilter würde aussortieren): {g['rest_raus']} ({g['rest_raus'] / max(1, g['rest']):.0%})")
     print(f"Mittlere Abweichung der Punkte: {g['diff'] / g['paare']:.2f}")
+    for schwelle in (2, 3, 4, 5):
+        behalten = sum(verteilung["treffer"][schwelle:])
+        raus = sum(verteilung["rest"][:schwelle])
+        print(f"Vorfilter Haiku >= {schwelle}: {behalten}/{g['s_treffer']} Sonnet-Treffer behalten, {raus}/{g['rest']} Nicht-Treffer aussortiert")
 
 
 if __name__ == "__main__":
