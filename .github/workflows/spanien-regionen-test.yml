@@ -1,0 +1,17 @@
+# Read-only: robots.txt of Spanish regional procurement portals and open data portals (alternative to PLACSP, whose
+# robots.txt disallows everything). Nothing is stored.
+name: Spanien-Regionen-Test
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - run: |
+          UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
+          for h in contractaciopublica.cat analisi.transparenciacatalunya.cat contratos-publicos.comunidad.madrid datos.comunidad.madrid www.juntadeandalucia.es contratacion.euskadi.eus www.contratosdegalicia.gal datos.gob.es www.hacienda.gob.es ted.europa.eu api.ted.europa.eu; do
+            echo "===== https://$h/robots.txt"; curl -sSL -m 20 -A "$UA" -w "\n[HTTP %{http_code}]\n" "https://$h/robots.txt" | grep -viE "^\s*$" | head -30
+          done
