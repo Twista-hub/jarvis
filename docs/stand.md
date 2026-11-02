@@ -79,6 +79,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Gewerke- und Rechtsseiten Polnisch/Spanisch)
+- Gewerke-Seiten für Google: `/pl/przetargi` und `/es/licitaciones` mit je 10 Gewerken (`web/src/gewerke-land.ts`), FAQ als schema.org, Quellenhinweis BZP/TED bzw. Generalitat de Catalunya/TED. hreflang verbindet jetzt alle vier Sprachfassungen (`web/src/gewerke-sprachen.ts`, Slug-Tabelle mit Test), Sitemap 82 Seiten.
+- Live-Zahlen: Bestand `jarvis_intern.ausland_avis` (Migration `20261102150000_ausland_bestand.sql`, 90 Tage), zweimal täglich aus BZP und Katalonien gefüllt (`alarm/ausland_bestand.py`, Workflow `ausland-bestand.yml`), Zahlen über denselben Hintergrund-Cache (`land_statistik`). Spanien zählt nur Katalonien (so beschriftet).
+- Rechtsseiten auf Polnisch (UODO) und Spanisch (AEPD) per Übersetzung, deutsche Fassung verbindlich (`web/src/rechtliches-pl.ts`, `rechtliches-es.ts`). Quellen im Impressum (de/fr/pl/es) um TED, BZP, Katalonien und SAM.gov ergänzt.
+
 ### 02.11.2026 – Claude (Spanien: Katalonien, Länder-Durchläufe Polen und Spanien)
 - Polen: BZP-Abruf läuft jetzt vorwärts ab der letzten gelesenen Veröffentlichungszeit (die API ignoriert Seitenzahlen und rechnet das Ende nur tageweise; die Zeitfenster-Teilung hing). Länder-Durchlauf Warschau: https://github.com/Twista-hub/jarvis/actions/runs/41532921559 ALLES OK, 0,06 $.
 - Spanien: Katalonien vollständig aus dem Open-Data-Portal der Generalitat (`alarm/katalonien.py`, Socrata ybgg-dgi6, ca. 120 Ausschreibungen/Tag, alle Schwellen, Lizenz „Llicència oberta“ live geprüft, Quellenangabe). TED-Kopien katalanischer Aufträge (ES51) werden ausgefiltert; übriges Spanien weiter über TED. Madrid und Galicien sperren per robots.txt alles, PLACSP ebenso (Anfrage-Entwurf wartet auf Benjamins OK).
