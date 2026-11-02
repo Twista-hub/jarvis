@@ -108,7 +108,20 @@ def score(beschreibung: str, items: list[dict], sprache: str = "de") -> dict[int
     """items: [{nr, titel, auftraggeber, ort, beschreibung, cpv}] -> {nr: {punkte, kurz, grund}}"""
     if not items or _bremse():
         return {}
-    system = (
+    response = _create(
+        max_tokens=min(16000, max(1024, len(items) * 280 + 256)),
+        system=score_system(sprache),
+        output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCORE_SCHEMA}},
+        messages=[{"role": "user", "content": bewertung_inhalt(beschreibung, items)}],
+    )
+    if response is None or response.stop_reason == "refusal":
+        return {}
+    text = next(b.text for b in response.content if b.type == "text")
+    return {b["nr"]: b for b in json.loads(text)["bewertungen"]}
+
+
+def score_system(sprache: str = "de") -> str:
+    return (
         "Du bewertest öffentliche Ausschreibungen für einen Kunden. Antworte auf Deutsch. "
         "punkte: 1–10, wie gut die Ausschreibung zum Kunden passt (10 = Kerngeschäft, realistisch gewinnbar; "
         "1 = passt nicht). Entscheidend ist die tatsächlich ausgeschriebene Hauptleistung bzw. das Los, "
@@ -118,16 +131,6 @@ def score(beschreibung: str, items: list[dict], sprache: str = "de") -> dict[int
         "Unter 6 Punkten bei lediglich entferntem oder unklarem Leistungsbezug. "
         "kurz: ein Satz, was gesucht wird. grund: ein Satz, warum es passt oder nicht."
     ) + BEWERTUNG.get(sprache, "")
-    response = _create(
-        max_tokens=min(16000, max(1024, len(items) * 280 + 256)),
-        system=system,
-        output_config={"effort": "low", "format": {"type": "json_schema", "schema": SCORE_SCHEMA}},
-        messages=[{"role": "user", "content": bewertung_inhalt(beschreibung, items)}],
-    )
-    if response is None or response.stop_reason == "refusal":
-        return {}
-    text = next(b.text for b in response.content if b.type == "text")
-    return {b["nr"]: b for b in json.loads(text)["bewertungen"]}
 
 
 def foerder_score(beschreibung: str, items: list[dict]) -> dict[int, dict]:
