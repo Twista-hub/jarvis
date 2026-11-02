@@ -8,7 +8,7 @@ on:
         description: "Wie viele Tage zurück (1–10)"
         default: "4"
       land:
-        description: "fr = Frankreich (BOAMP), pl = Polen (BZP)"
+        description: "fr = Frankreich (BOAMP), pl = Polen (BZP), es = Spanien (Katalonien)"
         default: "fr"
 permissions:
   contents: read
