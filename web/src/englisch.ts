@@ -13,6 +13,7 @@ import t04 from "./englisch/teil04.json" with { type: "json" };
 import t05 from "./englisch/teil05.json" with { type: "json" };
 import tZusatz from "./englisch/zusatz.json" with { type: "json" };
 import tAttribute from "./englisch/attribute.json" with { type: "json" };
+import tNachtrag from "./englisch/nachtrag.json" with { type: "json" };
 import f00 from "./franzoesisch/teil00.json" with { type: "json" };
 import f01 from "./franzoesisch/teil01.json" with { type: "json" };
 import f02 from "./franzoesisch/teil02.json" with { type: "json" };
@@ -21,14 +22,15 @@ import f04 from "./franzoesisch/teil04.json" with { type: "json" };
 import f05 from "./franzoesisch/teil05.json" with { type: "json" };
 import fZusatz from "./franzoesisch/zusatz.json" with { type: "json" };
 import fAttribute from "./franzoesisch/attribute.json" with { type: "json" };
+import fNachtrag from "./franzoesisch/nachtrag.json" with { type: "json" };
 
 export type AppSprache = "de" | "en" | "fr";
 type Fremd = Exclude<AppSprache, "de">;
 
 const ZAHL = "(\\d[\\d.,:]*)";
 const TEILE: Record<Fremd, Record<string, string>[]> = {
-  en: [t00, t01, t02, t03, t04, t05, tZusatz, tAttribute],
-  fr: [f00, f01, f02, f03, f04, f05, fZusatz, fAttribute],
+  en: [t00, t01, t02, t03, t04, t05, tZusatz, tAttribute, tNachtrag],
+  fr: [f00, f01, f02, f03, f04, f05, fZusatz, fAttribute, fNachtrag],
 };
 /** Fixed labels in front of free text (AI fact sheet title, rating lines). */
 const PRAEFIXE: Record<Fremd, [string, string][]> = {
@@ -74,6 +76,12 @@ const entschluesseln = (t: string) => t.replace(/&#(\d+);/g, (_, n: string) => S
 
 /** Translates one plain text (already unescaped); null when the dictionary does not know it. */
 export function wort(text: string, sprache: Fremd = "en"): string | null {
+  // Numbers and amounts often carry non-breaking spaces ("1.341,00 €"); the dictionary is written with plain spaces.
+  if (/[\u00a0\u202f]/.test(text)) return wortGenau(text, sprache) ?? wortGenau(text.replace(/[\u00a0\u202f]/g, " "), sprache);
+  return wortGenau(text, sprache);
+}
+
+function wortGenau(text: string, sprache: Fremd): string | null {
   const w = laden(sprache);
   const direkt = w.genau.get(text);
   if (direkt !== undefined) return direkt;
