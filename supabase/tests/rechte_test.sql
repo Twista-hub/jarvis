@@ -64,6 +64,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261102120000_us_bieterprofil.sql
 \ir ../migrations/20261102130000_boamp_bestand.sql
 \ir ../migrations/20261102150000_ausland_bestand.sql
+\ir ../migrations/20261103010000_ausland_bestand_italien.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -970,7 +971,8 @@ do $$ begin
   raise exception 'FEHLER: Verrechnungssatz ohne Finanzfreigabe';
 exception when insufficient_privilege then null; end $$;
 insert into public.einsatzorte (firma_id, kunde_id, name, strasse, plz, ort, treffpunkt, kleidung) values (:'firma', :'kunde_berlin', 'Messe Halle 3', 'Messedamm 22', '14055', 'Berlin', 'Eingang Süd', 'Schwarz, Sicherheitsschuhe') returning id as ort_halle \gset
-insert into public.schichten (firma_id, bereich_id, personal_id, einsatzort_id, datum, beginn, ende, ort) values (:'firma', :'berlin', :'p_berlin', :'ort_halle', current_date, '06:00', '14:00', 'Messe Halle 3');
+-- ausfall_melden counts today in Berlin time; the shift and the reports use the same day (also after 23:00 UTC).
+insert into public.schichten (firma_id, bereich_id, personal_id, einsatzort_id, datum, beginn, ende, ort) values (:'firma', :'berlin', :'p_berlin', :'ort_halle', (now() at time zone 'Europe/Berlin')::date, '06:00', '14:00', 'Messe Halle 3');
 insert into public.einsatzorte (firma_id, kunde_id, name) values (:'firma', :'kunde_berlin', 'Messe Halle 7');
 reset role;
 update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
@@ -986,17 +988,17 @@ reset role;
 select pruefe((select kunde_id = :'kunde_berlin' from public.stundenzettel where datum = current_date and einsatz = 'Messe Halle 3'), 'Stunden der Einsatzkraft werden über den Einsatzort dem Kunden zugeordnet');
 set role authenticated;
 select test_als('00000000-0000-0000-0000-0000000000e1');
-select pruefe(public.ausfall_melden(current_date + 3, '') = -1, 'Ausfall nur für heute oder morgen');
-select pruefe(public.ausfall_melden(current_date, '') = 1, 'Ausfall gemeldet, eine Schicht abgesagt');
-select pruefe(public.ausfall_melden(current_date, '') = -2, 'Ausfall nicht doppelt');
-select pruefe((select antwort = 'abgesagt' from public.schichten where datum = current_date), 'Schicht des Tages ist abgesagt');
+select pruefe(public.ausfall_melden((now() at time zone 'Europe/Berlin')::date + 3, '') = -1, 'Ausfall nur für heute oder morgen');
+select pruefe(public.ausfall_melden((now() at time zone 'Europe/Berlin')::date, '') = 1, 'Ausfall gemeldet, eine Schicht abgesagt');
+select pruefe(public.ausfall_melden((now() at time zone 'Europe/Berlin')::date, '') = -2, 'Ausfall nicht doppelt');
+select pruefe((select antwort = 'abgesagt' from public.schichten where datum = (now() at time zone 'Europe/Berlin')::date), 'Schicht des Tages ist abgesagt');
 reset role;
-select pruefe((select count(*) = 1 and bool_and(kurzfristig and status = 'bestaetigt') from public.personal_abwesenheiten where personal_id = :'p_berlin' and von = current_date), 'Kurzfristiger Ausfall als Abwesenheit gespeichert');
+select pruefe((select count(*) = 1 and bool_and(kurzfristig and status = 'bestaetigt') from public.personal_abwesenheiten where personal_id = :'p_berlin' and von = (now() at time zone 'Europe/Berlin')::date), 'Kurzfristiger Ausfall als Abwesenheit gespeichert');
 select pruefe((select count(*) >= 2 from public.push_warteschlange where titel like '🚨 Ausfall%') and not exists (select 1 from public.push_warteschlange where titel like '🚨 Ausfall%' and user_id = '00000000-0000-0000-0000-0000000000e1'), 'Ausfall geht an Planer und Leitung, nicht an die Einsatzkraft selbst');
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.kunden) and (select count(*) = 0 from public.einsatzorte) and (select count(*) = 0 from public.kunden_preise), 'Fremde Firma sieht keine Kunden, Orte oder Preise');
-select pruefe(public.ausfall_melden(current_date, '') = -1, 'Ohne eigene Personalakte kein Ausfall');
+select pruefe(public.ausfall_melden((now() at time zone 'Europe/Berlin')::date, '') = -1, 'Ohne eigene Personalakte kein Ausfall');
 reset role;
 update public.mitglieder set aktiv = false, finanzen = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
 select set_config('test.uid', '', false);
@@ -1192,13 +1194,17 @@ delete from jarvis_intern.boamp_avis;
 insert into jarvis_intern.ausland_avis (land, id, publication, titel, auftraggeber, region, cpv, frist, link) values
   ('pl', 'bzp-1', current_date - 1, 'Sprzątanie urzędu', 'Gmina Kraków', 'woj. małopolskie', '{90911200}', now() + interval '9 days', 'https://ezamowienia.gov.pl/mp-client/search/list/ocds-148610-1'),
   ('pl', 'bzp-2', current_date - 2, 'Sprzątanie szkoły', 'Gmina Kraków', 'woj. małopolskie', '{90910000}', now() - interval '1 day', 'https://ezamowienia.gov.pl/x'),
-  ('es', 'cat-1', current_date - 1, 'Neteja escola', 'Ajuntament de Girona', 'Girona', '{90911200}', null, 'https://contractaciopublica.cat/ca/detall-publicacio/1');
+  ('es', 'cat-1', current_date - 1, 'Neteja escola', 'Ajuntament de Girona', 'Girona', '{90911200}', null, 'https://contractaciopublica.cat/ca/detall-publicacio/1'),
+  ('it', 'anac-1', current_date - 1, 'Servizio di pulizia', 'Comune di Milano', 'ITC4', '{90911200}', now() + interval '5 days', 'https://pubblicitalegale.anticorruzione.it/bandi/1');
 set role anon;
 do $$ begin perform 1 from jarvis_intern.ausland_avis; raise exception 'FEHLER: anon liest Auslandsbestand'; exception when insufficient_privilege then null; end $$;
 set role authenticated;
 do $$ begin insert into jarvis_intern.ausland_avis (land, id, publication, titel, link) values ('pl', 'x', current_date, 'x', 'https://x'); raise exception 'FEHLER: authenticated schreibt Auslandsbestand'; exception when insufficient_privilege then null; end $$;
 reset role;
-select pruefe(jarvis_intern.gewerk_aktualisieren() >= 41, 'Hintergrundberechnung für alle Länder');
+select pruefe(jarvis_intern.gewerk_aktualisieren() >= 51, 'Hintergrundberechnung für alle Länder');
+set role anon;
+select pruefe((public.land_statistik('it', array['9091','90919'])->>'offen')::int = 1, 'Italienische Zahlen');
+reset role;
 set role anon;
 select pruefe((public.land_statistik('pl', array['9091','90919'])->>'monat')::int = 2 and (public.land_statistik('pl', array['9091','90919'])->>'offen')::int = 1, 'Polnische Zahlen: 30 Tage, offen nach Frist');
 select pruefe(public.land_statistik('pl', array['9091','90919'])->'beispiele'->0->>'ort' = 'woj. małopolskie', 'Beispiel mit Woiwodschaft');

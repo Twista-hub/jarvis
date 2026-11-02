@@ -1,4 +1,4 @@
-"""Daily Polish and Spanish tender stock for the live numbers of the public trade pages (/pl/przetargi/<branża>,
+"""Daily Polish, Spanish and Italian tender stock for the live numbers of the public trade pages (/pl/przetargi/<branża>,
 /es/licitaciones/<oficio>).
 
 Poland: BZP national notices (bzp.py, e-Zamówienia API, open data act). Spain: Catalan calls for tenders (katalonien.py,
@@ -9,6 +9,7 @@ Usage: SUPABASE_DB_PASSWORD=... python3 alarm/ausland_bestand.py [days, default 
 import sys
 from datetime import date, timedelta
 
+import anac
 import bzp
 import katalonien
 
@@ -36,10 +37,20 @@ def zeile_es(a: dict, tag: str) -> tuple | None:
             (a.get("ort") or "Catalunya")[:120], a.get("cpv") or [], katalonien._frist(a.get("frist") or "") or None, a["link"][:500])
 
 
+def zeile_it(a: dict, tag: str) -> tuple | None:
+    """Row from a read ANAC PVL notice (anac.lesen); link to the notice on the PVL (CC BY 4.0: link the original)."""
+    if not a.get("aktiv") or not a.get("titel") or not a.get("id"):
+        return None
+    return ("it", f"anac-{a['id']}"[:120], a.get("veroeffentlicht") or tag, a["titel"][:1000], a.get("auftraggeber", "")[:500],
+            (a.get("regioni") or a.get("orte") or [""])[0][:120], a.get("cpv") or [],
+            (a.get("frist") or "").replace(".000+00:00", "+00:00") or None, (anac.SEITE_LINK + a["id"])[:500])
+
+
 def lesen(tag: str) -> tuple[list[tuple], int]:
     zeilen, fehler = [], 0
     for name, holen in (("BZP", lambda: [zeile_pl(bzp.lesen(x), tag) for x in bzp.bekanntmachungen(tag)]),
-                        ("Katalonien", lambda: [zeile_es(a, tag) for a in katalonien.zusammenfassen(katalonien.bekanntmachungen(tag))])):
+                        ("Katalonien", lambda: [zeile_es(a, tag) for a in katalonien.zusammenfassen(katalonien.bekanntmachungen(tag))]),
+                        ("ANAC", lambda: [zeile_it(anac.lesen(x), tag) for x in anac.bekanntmachungen(tag)])):
         try:
             neu = [z for z in holen() if z]
         except Exception as e:  # noqa: BLE001 – one missing source/day must not stop the others
@@ -69,13 +80,13 @@ def main(tage: int) -> None:
                       region = excluded.region, cpv = excluded.cpv, frist = excluded.frist, link = excluded.link, abgerufen = now()""", zeilen)
         geloescht = con.execute("delete from jarvis_intern.ausland_avis where publication < current_date - %s", (AUFBEWAHREN_TAGE,)).rowcount
         n = con.execute("""update jarvis_intern.gewerk_cache set daten = jarvis_intern.land_berechnen(left(schluessel, 2), praefixe), stand = now()
-            where schluessel ~ '^(pl|es):'""").rowcount
+            where schluessel ~ '^(pl|es|it):'""").rowcount
         for land, anzahl in con.execute("select land, count(*) from jarvis_intern.ausland_avis group by land order by land").fetchall():
             print(f"Bestand {land}: {anzahl}")
-        for k, m, o in con.execute("select schluessel, daten->>'monat', daten->>'offen' from jarvis_intern.gewerk_cache where schluessel ~ '^(pl|es):' order by schluessel").fetchall():
+        for k, m, o in con.execute("select schluessel, daten->>'monat', daten->>'offen' from jarvis_intern.gewerk_cache where schluessel ~ '^(pl|es|it):' order by schluessel").fetchall():
             print(f"  {k}: {m} in 30 Tagen, {o} offen")
     print(f"Gespeichert: {len(zeilen)}, gelöscht (älter als {AUFBEWAHREN_TAGE} Tage): {geloescht}, Gewerke: {n}")
-    if fehler == 2 * tage:
+    if fehler == 3 * tage:
         sys.exit("Keine Quelle an keinem Tag erreichbar")
 
 
