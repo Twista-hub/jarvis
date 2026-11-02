@@ -81,7 +81,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ### 02.11.2026 – Claude (Gewerke- und Rechtsseiten Polnisch/Spanisch)
 - Gewerke-Seiten für Google: `/pl/przetargi` und `/es/licitaciones` mit je 10 Gewerken (`web/src/gewerke-land.ts`), FAQ als schema.org, Quellenhinweis BZP/TED bzw. Generalitat de Catalunya/TED. hreflang verbindet jetzt alle vier Sprachfassungen (`web/src/gewerke-sprachen.ts`, Slug-Tabelle mit Test), Sitemap 82 Seiten.
-- Live-Zahlen: Bestand `jarvis_intern.ausland_avis` (Migration `20261102150000_ausland_bestand.sql`, 90 Tage), zweimal täglich aus BZP und Katalonien gefüllt (`alarm/ausland_bestand.py`, Workflow `ausland-bestand.yml`), Zahlen über denselben Hintergrund-Cache (`land_statistik`). Spanien zählt nur Katalonien (so beschriftet).
+- Live-Zahlen: Bestand `jarvis_intern.ausland_avis` (Migration `20261102150000_ausland_bestand.sql`, 90 Tage), zweimal täglich aus BZP und Katalonien gefüllt (`alarm/ausland_bestand.py`, Workflow `ausland-bestand.yml`), Zahlen über denselben Hintergrund-Cache (`land_statistik`). Spanien zählt nur Katalonien (so beschriftet). Erstbefüllung 31 Tage (https://github.com/Twista-hub/jarvis/actions/runs/41537327778): Polen 11.006, Katalonien 1.892 Bekanntmachungen; z. B. Elektro PL 1.121 (693 offen), Reinigung PL 175/100, Reinigung Katalonien 96/66. Zeitarbeit (CPV 7962) in Polen fast leer (1), weil Personal dort unter der jeweiligen Leistung ausgeschrieben wird.
 - Rechtsseiten auf Polnisch (UODO) und Spanisch (AEPD) per Übersetzung, deutsche Fassung verbindlich (`web/src/rechtliches-pl.ts`, `rechtliches-es.ts`). Quellen im Impressum (de/fr/pl/es) um TED, BZP, Katalonien und SAM.gov ergänzt.
 
 ### 02.11.2026 – Claude (Spanien: Katalonien, Länder-Durchläufe Polen und Spanien)
