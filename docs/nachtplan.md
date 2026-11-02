@@ -24,6 +24,8 @@ Protokoll unten ergänzen. Ist ein Punkt blockiert, Grund notieren und zum näch
 - [ ] 5. Italien Datenquelle einbauen (nur wenn Punkt 1 grünes Licht gibt), sonst nur TED; Länder-Durchlauf `land=it` mit Testfirma, Ergebnis notieren.
 - [ ] 6. Italien Gewerke-Seiten `/it/gare-d-appalto` und Rechtsseiten (Garante Privacy), wie pl/es.
 - [ ] 7. Niederlande recherchieren (TenderNed Open Data, Lizenz, robots.txt), nur Lese-Workflow und `docs/niederlande.md`.
+- [ ] 7b. **Ideen: Jarvis als komplette Arbeitsoberfläche für Firmen** (Wunsch Benjamin 02.11. nachts): 20–50 Funktionen sammeln (Personal, Buchhaltung/Steuer-Vorbereitung, Angebote und Aufträge anderer Firmen/Marktplatz, Kunden, Dokumente, Fuhrpark …). Erst Bestand prüfen (vieles gibt es schon: Personal, Kalkulation, Angebote, Abrechnung, Stempeluhr), dann Lücken. Pro Idee: Nutzen, Aufwand (S/M/L), Abhängigkeiten, rechtliche Hinweise (z. B. Steuer nur Vorbereitung/Export, keine Steuerberatung; GoBD). Priorisierte Liste in `docs/ideen-arbeitsoberflaeche.md`. Nur Konzept, nichts bauen.
+- [ ] 7c. **Abo-Modelle** (Wunsch Benjamin, „wenn alles fertig ist“): Vorschlag in `docs/abos.md` auf Basis von `web/src/plaene.ts` (Free/Basis/Pro/Erfolg), KI-Kosten pro Firma (aus Punkt 1b), Wettbewerberpreise (öffentliche Preisseiten), Länder, Kleinunternehmerregelung § 19 UStG. Mit Rechenbeispiel Marge pro Plan. Nur Vorschlag, Entscheidung bei Benjamin.
 - [ ] 8. Morgenbericht für Benjamin: unten unter „Morgenbericht“, kurz, Wichtigstes zuerst, was er testen/entscheiden muss.
 
 ## Protokoll
