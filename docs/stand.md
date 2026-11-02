@@ -79,6 +79,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Handy-Nachricht an den Betreiber bei neuer Anmeldung)
+- Migration `20261101220000_betreiber_push_anmeldung.sql`: Trigger auf `auth.users` (neue Anmeldung, mit Firmenname aus der Registrierung) und `public.firmen` (neue Firma) legen eine Nachricht in `push_warteschlange` für alle Betreiber (`jarvis_intern.betreiber`); Versand stündlich 6–21 Uhr über `alarm/mail.py`. Link öffnet `/konto/betreiber`. Rechte-Test ergänzt.
+- Diagnose `einrichtung-diagnose.yml` zeigt neue Anmeldungen der letzten 14 Tage (E-Mail gekürzt). Stand 02.11.: 1 Zugang (Benjamin), Test-Konto „Perlease GmbH“ gelöscht.
+
 ### 01.11.2026 – Claude (Löschen sauber, Betreiber-Seite, Suchlauf-Absicherung)
 - Kontolöschung räumt jetzt alle Dateien der gelöschten Firmen in R2 auf: bibliothek, personal-fotos, importe, angebotsabgaben, personal_nachweise, spesen, unterschriften, nachweis, bewerber, firmenlogo, kunden/firma-…, dazu Unterlagenprüfungen der Ausschreibungen (`auftraege/<id>/`). Gemeinsame Funktion `dateienLoeschen` in `web/src/loeschen.ts`.
 - Betreiber-Seite `/konto/betreiber` (nur `jarvis_intern.betreiber`, eingetragen: benschiffer79@gmail.com): Kundenzugang per E-Mail suchen, Firmen mit Rolle und Mitgliederzahl sehen, mit Bestätigung (Adresse erneut eintippen) löschen; optional auch Firmen, deren einziger Inhaber er ist. RPCs `ist_betreiber`, `betreiber_konto_suchen`, `betreiber_konto_loeschen` (Migration `20261101210000_betreiber_konto_loeschen.sql`, Rechte-Test: nur Betreiber, eigenes Konto und letzter Inhaber geschützt, Kollege bleibt).

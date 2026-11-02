@@ -56,6 +56,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101190000_psa_bewerber_checklisten_urlaub_bewertung.sql
 \ir ../migrations/20261101200000_abrechnung_lohn_stempel_selbstbedienung.sql
 \ir ../migrations/20261101210000_betreiber_konto_loeschen.sql
+\ir ../migrations/20261101220000_betreiber_push_anmeldung.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1132,6 +1133,11 @@ select pruefe((select count(*) = 2 from public.betreiber_konto_suchen('KUNDE@weg
 do $$ begin perform public.betreiber_konto_loeschen('benschiffer79@gmail.com', true); raise exception 'FEHLER: eigenes Konto löschbar'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 do $$ begin perform public.betreiber_konto_loeschen('kunde@weg.test', false); raise exception 'FEHLER: letzter Inhaber ohne Firmenlöschung'; exception when others then if sqlerrm not like '%LETZTER_INHABER%' then raise; end if; end $$;
 select public.betreiber_konto_loeschen('kunde@weg.test', true) as erg \gset
+reset role;
+select pruefe((select count(*) >= 3 from public.push_warteschlange where user_id = '00000000-0000-0000-0000-0000000000b1' and (titel like '🆕%' or titel like '🏢%')), 'Betreiber bekommt Handy-Nachricht bei neuer Anmeldung und neuer Firma');
+select pruefe(not exists (select 1 from public.push_warteschlange where user_id <> '00000000-0000-0000-0000-0000000000b1' and titel like '🆕%'), 'Nur der Betreiber bekommt Anmelde-Nachrichten');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000b1');
 reset role;
 select pruefe(not exists (select 1 from auth.users where email = 'kunde@weg.test') and not exists (select 1 from public.firmen where id in (:'wegfirma', :'teamweg')) and exists (select 1 from auth.users where email = 'kollege@weg.test'), 'Betreiber löscht Kunde samt eigener Firmen, Kollege bleibt');
 select pruefe((:'erg'::jsonb->'vorgaenge') ? '' is false and jsonb_array_length(:'erg'::jsonb->'firmen') = 2 and jsonb_array_length(:'erg'::jsonb->'vorgaenge') = 1, 'Rückgabe nennt Firmen und Ausschreibungen für das Aufräumen der Dateien');
