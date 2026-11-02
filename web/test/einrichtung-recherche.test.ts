@@ -77,7 +77,8 @@ test("Fehler bei erneuter Recherche erhalten Formularwerte und überschreiben ke
   assert.match(html, /Noch nicht gespeicherte Firmenbeschreibung/);
   assert.match(html, /value="https:\/\/neu.example"/);
   assert.match(html, /Firmenrecherche wurde nicht abgeschlossen/);
-  assert.equal(schreibt.length, 0);
+  assert.equal(schreibt.filter((x) => !x.pfad.includes("fehler_melden")).length, 0, "kein Profil überschrieben");
+  assert.equal(schreibt.filter((x) => x.pfad.includes("fehler_melden")).length, 1, "Betreiber wird benachrichtigt");
 });
 
 test("unerlaubter Website-Wechsel startet keine kostenpflichtige Recherche", async (t) => {

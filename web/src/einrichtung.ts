@@ -6,6 +6,7 @@ import { sucheLaeuft } from "./suchstatus.ts";
 import { RADIEN } from "./karte.ts";
 import { firmenInfos } from "./firmeninfos.ts";
 import { rechercheProfil } from "./firmenrecherche.ts";
+import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { apiClient } from "./api-budget.ts";
 import { kiFehlerart, kiFehlermeldung, type KiFehlerart } from "./ki-fehler.ts";
 import { standorteBereinigen, standortSchluessel, suchorteAnStandorten, type Firmenstandort, type SuchgebietModus } from "./firmenstandorte.ts";
@@ -136,6 +137,7 @@ async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: str
     if (!v.leistungen.length) throw new Error("keine belegten Leistungen erkannt");
   } catch (e) {
     console.warn(`Automatische Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
+    if (kiFehlerart(e) !== "budget") await fehlerMelden(env, "einrichtung", `${name.slice(0, 60)}: ${fehlerText(e)}`);
     const meldung = `Die Firmenrecherche wurde nicht abgeschlossen. ${kiFehlermeldung(e)}`;
     if (!eingerichtet) {
       const art = kiFehlerart(e);

@@ -1,0 +1,62 @@
+# Nightly backup of the database (all app data incl. logins), encrypted with the password in the secret
+# BACKUP_PASSWORT and stored in Cloudflare R2 (bucket jarvis-auftraege, folder sicherung/). Keeps 14 days plus the
+# backup of the 1st of every month for one year. Restore: see docs/sicherung.md.
+name: Datensicherung
+on:
+  schedule:
+    - cron: "23 1 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: sicherung
+jobs:
+  sichern:
+    runs-on: ubuntu-latest
+    env:
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      BACKUP_PASSWORT: ${{ secrets.BACKUP_PASSWORT }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Passwort vorhanden?
+        run: |
+          if [ -z "$BACKUP_PASSWORT" ]; then echo "::error::Secret BACKUP_PASSWORT fehlt. Bitte unter Settings → Secrets → Actions anlegen (siehe docs/sicherung.md)."; exit 1; fi
+      - name: Werkzeuge (pg_dump 17)
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+      - name: Sichern
+        run: |
+          set -euo pipefail
+          TAG=$(date -u +%F)
+          mkdir -p s
+          VERB="host=aws-1-eu-central-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.juuuifrcxmitkqudqngq sslmode=require"
+          /usr/lib/postgresql/17/bin/pg_dump "$VERB" --no-owner --no-privileges -n public -n jarvis_intern -n jarvis_katalog | gzip -9 > s/daten.sql.gz
+          /usr/lib/postgresql/17/bin/pg_dump "$VERB" --data-only --no-owner -t auth.users -t auth.identities | gzip -9 > s/anmeldungen.sql.gz
+          # A complete dump ends with this line; otherwise the backup is not stored.
+          gzip -dc s/daten.sql.gz | tail -n 5 | grep -q "PostgreSQL database dump complete"
+          gzip -dc s/anmeldungen.sql.gz | tail -n 5 | grep -q "PostgreSQL database dump complete"
+          tar -cf - -C s . | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSWORT -out "jarvis-$TAG.tar.enc"
+          # Check that it can be decrypted again.
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_PASSWORT -in "jarvis-$TAG.tar.enc" | tar -tf - | grep -q daten.sql.gz
+          ls -la "jarvis-$TAG.tar.enc"
+          echo "TAG=$TAG" >> "$GITHUB_ENV"
+      - uses: actions/checkout@v4
+        with:
+          path: repo
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: In R2 ablegen, alte löschen
+        run: |
+          set -euo pipefail
+          cd repo/web && npm ci --silent
+          npx wrangler r2 object put "jarvis-auftraege/sicherung/jarvis-$TAG.tar.enc" --file "$GITHUB_WORKSPACE/jarvis-$TAG.tar.enc" --remote --content-type application/octet-stream
+          ALT=$(date -u -d "15 days ago" +%F)
+          if [ "$(date -u -d "15 days ago" +%d)" != "01" ]; then npx wrangler r2 object delete "jarvis-auftraege/sicherung/jarvis-$ALT.tar.enc" --remote || true; fi
+          # Monthly backups are kept for one year (deleted data must not stay forever).
+          JAHR=$(date -u -d "366 days ago" +%F)
+          if [ "$(date -u -d "366 days ago" +%d)" = "01" ]; then npx wrangler r2 object delete "jarvis-auftraege/sicherung/jarvis-$JAHR.tar.enc" --remote || true; fi

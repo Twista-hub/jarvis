@@ -57,6 +57,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101200000_abrechnung_lohn_stempel_selbstbedienung.sql
 \ir ../migrations/20261101210000_betreiber_konto_loeschen.sql
 \ir ../migrations/20261101220000_betreiber_push_anmeldung.sql
+\ir ../migrations/20261102080000_fehler_alarm.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1141,6 +1142,20 @@ select test_als('00000000-0000-0000-0000-0000000000b1');
 reset role;
 select pruefe(not exists (select 1 from auth.users where email = 'kunde@weg.test') and not exists (select 1 from public.firmen where id in (:'wegfirma', :'teamweg')) and exists (select 1 from auth.users where email = 'kollege@weg.test'), 'Betreiber löscht Kunde samt eigener Firmen, Kollege bleibt');
 select pruefe((:'erg'::jsonb->'vorgaenge') ? '' is false and jsonb_array_length(:'erg'::jsonb->'firmen') = 2 and jsonb_array_length(:'erg'::jsonb->'vorgaenge') = 1, 'Rückgabe nennt Firmen und Ausschreibungen für das Aufräumen der Dateien');
+-- Error alarm: callable without login, limited, goes to the operator only; budget warning at 80 %.
+reset role;
+delete from public.push_warteschlange;
+set role anon;
+select pruefe(public.fehler_melden('app', 'Test: Seite /x antwortet mit 500'), 'Fehler wird gemeldet (auch ohne Anmeldung)');
+select pruefe(not public.fehler_melden('app', 'Test: Seite /x antwortet mit 500'), 'Gleicher Fehler nicht doppelt innerhalb von 30 Minuten');
+do $$ begin perform 1 from jarvis_intern.fehler_meldungen; raise exception 'FEHLER: Fehlerliste lesbar'; exception when insufficient_privilege then null; end $$;
+reset role;
+select pruefe((select count(*) = 1 from public.push_warteschlange where user_id = '00000000-0000-0000-0000-0000000000b1' and titel = '⚠️ Jarvis: Fehler in der App'), 'Fehlermeldung geht nur an den Betreiber');
+insert into jarvis_katalog.ki_budget (monat, reserviert, limit_usd) values ('2030-01-01', 15, 20);
+update jarvis_katalog.ki_budget set reserviert = 16.5 where monat = '2030-01-01';
+update jarvis_katalog.ki_budget set reserviert = 17 where monat = '2030-01-01';
+select pruefe((select count(*) = 1 from public.push_warteschlange where titel = '⚠️ Jarvis: KI-Budget'), 'Budget-Warnung bei 80 % genau einmal');
+delete from jarvis_katalog.ki_budget where monat = '2030-01-01';
 select set_config('test.uid', '', false);
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.
