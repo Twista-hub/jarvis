@@ -1,0 +1,40 @@
+# Read only: which services (CPV codes) are tendered most often in the catalogue – basis for landing pages.
+name: Marktanalyse
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  analyse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q "psycopg[binary]"
+      - name: Auswerten
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          cd alarm
+          python - <<'PY'
+          from profile_db import verbinden
+          with verbinden() as c, c.cursor() as k:
+              k.execute("set transaction read only")
+              k.execute("select count(*), min(quell_datum)::date, max(quell_datum)::date, count(*) filter (where quell_datum > now() - interval '90 days') from public.vergabekatalog")
+              print("GESAMT", k.fetchone())
+              for stellen in (2, 3, 5):
+                  k.execute(f"""select left(c, {stellen}) g, count(distinct v.id) n, count(distinct v.id) filter (where v.status = 'offen') offen,
+                                  count(distinct v.auftraggeber_id) ag
+                                from public.vergabekatalog v, unnest(v.cpv) c
+                                where v.quell_datum > now() - interval '180 days'
+                                group by 1 order by 2 desc limit {25 if stellen == 2 else 40}""")
+                  for r in k.fetchall(): print(f"CPV{stellen}", r)
+              # Example titles for the most frequent 5-digit groups (to name them in plain words).
+              k.execute("""with g as (select left(c,5) g, count(distinct v.id) n from public.vergabekatalog v, unnest(v.cpv) c where v.quell_datum > now() - interval '180 days' group by 1 order by 2 desc limit 40)
+                           select g.g, (select string_agg(t, ' | ') from (select left(v.titel, 70) t from public.vergabekatalog v where exists (select 1 from unnest(v.cpv) c where c like g.g || '%') order by v.quell_datum desc limit 3) x) from g order by g.n desc""")
+              for r in k.fetchall(): print("BEISPIEL", r)
+              k.execute("""select left(p, 1) region, count(distinct v.id) from public.vergabekatalog v, unnest(v.plz) p where v.quell_datum > now() - interval '180 days' and p ~ '^[0-9]' group by 1 order by 1""")
+              print("PLZ-REGION", k.fetchall())
+          PY
