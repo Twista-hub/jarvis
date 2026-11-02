@@ -79,6 +79,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 02.11.2026 – Claude (Morgenmail und Handy-Nachrichten auf Englisch)
+- `alarm/mail.py`: Texte in `T["de"]`/`T["en"]`; Sprache pro Firma über `firma_sprache()` (gleiche Regel wie die KI-Texte, `profile_db.sprache`). Englische Firmen, die die USA suchen, bekommen Uhrzeiten in US-Ostküstenzeit mit „ET“ (12-Stunden-Format), die gewählte Mail-Uhrzeit und Ruhezeiten gelten in dieser Zeitzone; alle anderen wie bisher Berlin. Englische Mehrzahl korrekt (1 new tender / 2 new tenders).
+- Betroffen: Morgenmail (Betreff, Fristen, neue Ausschreibungen, ablaufende Nachweise, Fußzeile), Handy-Nachricht zu neuen Treffern, Sofort-Nachricht ab Punktzahl, Fristtag-Nachricht am Morgen.
+- Deutsche Firmen: Texte und Zeiten unverändert (bestehende Tests grün). Tests ergänzt (`alarm/test_mail.py` Klasse `Englisch`).
+- Noch offen: Nachrichten aus der Warteschlange (Schichten, Brett) kommen aus Datenbank-Triggern auf Deutsch; die Mail-Zeit für US-Firmen westlich der Ostküste gilt in ET.
+
 ### 02.11.2026 – Claude (KI-Texte auf Englisch für englischsprachige Firmen)
 - Sprache der KI-Texte pro Firma: `einstellungen.sprache` (beim Speichern des Suchprofils = App-Sprache des Speichernden), sonst Englisch, wenn kein deutschsprachiges Land (DEU/AUT/CHE/LIE/LUX) gesucht wird (`alarm/profile_db.py` `sprache()`). Das Profil bekommt den Schlüssel `sprache` nur bei Englisch, damit deutsche Profile ihre Profilversion behalten (keine bezahlte Neubewertung nach dem Deploy).
 - `alarm/ki.py`: `score(..., sprache)` lässt kurz/grund englisch schreiben, `steckbrief(..., sprache)` hängt `alarm/sprache-en.txt` an die Steckbrief-Anleitung. Upload-Steckbrief (`web/src/workflow.ts`) nutzt dieselbe Datei, Sprache kommt aus dem Hochladenden (`Job.sprache`). Deutsche Aufrufe sind unverändert (`alarm.sprach_arg`).

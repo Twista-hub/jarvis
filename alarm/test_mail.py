@@ -139,3 +139,45 @@ class Warteschlange(unittest.TestCase):
             mail.senden_an_geraete = alt
         self.assertEqual(gesendet, [("u1", "2 neue Nachrichten", "/konto"), ("u2", "📌 Betriebsversammlung", "/konto/brett")])
         self.assertTrue(any("set gesendet" in q and a == (["1", "2", "3"],) for q, a in con.sql))
+
+
+class Englisch(unittest.TestCase):
+    def test_mail_auf_englisch_mit_ostkuestenzeit(self):
+        from datetime import datetime, timezone
+        frist = datetime(2026, 11, 20, 19, 0, tzinfo=timezone.utc)  # 2 PM Eastern
+        m = mail.nachricht("boss@example.test", "Acme Cleaning LLC", [("v1", "Janitorial Services VA Clinic", 9, frist)], [("v2", "Grounds Maintenance", frist)],
+                           [("d1", "General Liability.pdf", date(2026, 12, 1), 30)], "en", mail.NEW_YORK)
+        self.assertEqual(m["Subject"], "1 new tender for Acme Cleaning LLC")
+        text = m.get_body(preferencelist=("plain",)).get_content()
+        self.assertIn("Deadlines coming up", text)
+        self.assertIn("due Nov 20, 2026, 02:00 PM ET", text)
+        self.assertIn("valid until Dec 01, 2026 (in 30 days)", text)
+        self.assertIn("Change the time or turn off emails", text)
+        self.assertNotIn("Ausschreibung", text)
+        self.assertIn("Open all matches in Jarvis", m.get_body(preferencelist=("html",)).get_content())
+
+    def test_handy_auf_englisch(self):
+        from unittest.mock import MagicMock, patch
+        from datetime import datetime, timezone
+        with patch.object(mail, "senden_an_geraete", return_value=1) as senden:
+            mail.handy(MagicMock(), ("a", "b"), "u1", "f1", "Acme", [("v1", "Janitorial", 9, None)], [], sofort=True, sprache="en")
+            self.assertEqual(senden.call_args.args[3], "⭐ Top match 9/10")
+            mail.handy(MagicMock(), ("a", "b"), "u1", "f1", "Acme", [("v1", "A", 7, None), ("v2", "B", 6, None)], [("v3", "C", None)], sprache="en")
+            self.assertEqual(senden.call_args.args[3], "2 new tenders for Acme")
+            self.assertEqual(senden.call_args.args[4], "A · and 1 deadline soon")
+            con = MagicMock()
+            con.execute.return_value.fetchone.return_value = None
+            mail.morgen_push(con, ("a", "b"), "u1", "f1", [("v1", "Janitorial", datetime(2026, 11, 2, 19, 0, tzinfo=timezone.utc), "Abgabe")], "en", mail.NEW_YORK)
+            self.assertEqual(senden.call_args.args[3], "⏰ Today: deadline · Bid due 02:00 PM ET")
+
+    def test_firmensprache_und_zeitzone(self):
+        from unittest.mock import MagicMock
+        mail._firmen.clear()
+        con = MagicMock()
+        con.execute.return_value.fetchone.side_effect = [({"laender": ["USA"]},), ({"laender": ["DEU"]},), None, ({"sprache": "en", "laender": ["IRL"]},)]
+        self.assertEqual(mail.firma_sprache(con, "us"), ("en", mail.NEW_YORK))
+        self.assertEqual(mail.firma_sprache(con, "de"), ("de", mail.BERLIN))
+        self.assertEqual(mail.firma_sprache(con, "ohne"), ("de", mail.BERLIN))
+        self.assertEqual(mail.firma_sprache(con, "ie"), ("en", mail.BERLIN))
+        self.assertEqual(mail.firma_sprache(con, "us"), ("en", mail.NEW_YORK), "zwischengespeichert")
+        mail._firmen.clear()
