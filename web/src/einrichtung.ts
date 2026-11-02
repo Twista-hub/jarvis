@@ -14,6 +14,7 @@ export { FIRMEN_WEB_SUCHTOOL } from "./firmenrecherche.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
 import { vorschauBox, vorschauZaehlen } from "./vorschau.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
+import { startLaender } from "./besucher.ts";
 import { AUSSERHALB, LAENDER, NACHBARN, WEITERE, laenderBereinigen } from "./laender.ts";
 import { websiteKontext, websiteNormalisieren } from "./webseite.ts";
 const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 0, "einstellungen");
@@ -56,7 +57,7 @@ export async function einrichtung(request: Request, env: EinrichtungEnv, vorlage
 
   let antwort: Response;
   if (url.pathname === "/konto/einrichtung" && !post) antwort = await anzeigen(s, env, firma, f.name, f.website, url.searchParams.get("neu") === "1", vorlage, url.searchParams.get("automatisch") === "1", f.plz, f.ort);
-  else if (url.pathname === "/konto/einrichtung/automatisch" && post) antwort = await automatischEinrichten(s, env, firma, f.name, f.website, f.rolle, f.plz, f.ort, form!, dienste);
+  else if (url.pathname === "/konto/einrichtung/automatisch" && post) antwort = await automatischEinrichten(s, env, firma, f.name, f.website, f.rolle, f.plz, f.ort, (form!.set("laender_start", startLaender(request).join(",")), form!), dienste);
   else if (url.pathname === "/konto/einrichtung/vorschlag" && post) antwort = await vorschlagen(env, firma, f.name, form!);
   else if (url.pathname === "/konto/einrichtung/speichern" && post) antwort = await speichern(s, env, firma, f.name, f.website, f.rolle, form!);
   else if (url.pathname === "/konto/einrichtung/vorschau" && post) antwort = await vorschauZeigen(s, env, firma, f.name, f.website, form!);
@@ -133,6 +134,7 @@ async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: str
     v = bereinigen({ ...profil, beschreibung: eigeneBeschreibung, recherche_version: 2, website_hinweis: websiteDaten.hinweis, recherchiert_am: new Date().toISOString() });
     if (eingerichtet || basis.standorte.length) { v.standorte = basis.standorte; v.ausschluss = basis.ausschluss; v.ausschluss_cpv = basis.ausschluss_cpv; v.laender = basis.laender; }
     if (!v.firmenstandorte?.length) v.firmenstandorte = basis.firmenstandorte;
+    if (!eingerichtet && !v.laender?.length) v.laender = laenderBereinigen(String(eingabe.get("laender_start") ?? "").split(","));
     v.suchgebiet_modus = (eingabe.get("suchgebiet_modus") || vorhanden?.einstellungen?.suchgebiet_modus) === "manuell" ? "manuell" : undefined;
     if (!v.leistungen.length) throw new Error("keine belegten Leistungen erkannt");
   } catch (e) {

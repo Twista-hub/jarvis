@@ -965,6 +965,8 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .sprache-wahl { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; flex: 1; min-width: 0; align-items: center; font-size: 13px; }
   .sprache-wahl a { flex: none; padding: 3px 8px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--muted); text-decoration: none; font-weight: 600; }
   .sprache-wahl a[aria-current] { border-color: var(--accent); color: var(--accent); }
+  .land-wahl { font-size: 13px; color: var(--muted); line-height: 1.9; margin-top: 18px; }
+  .land-wahl a[aria-current] { color: var(--accent); font-weight: 700; }
   .unterschrift-feld { display: grid; gap: 4px; margin: 6px 0; grid-column: 1 / -1; width: 100%; } .unterschrift-feld canvas { width: 100%; height: auto; aspect-ratio: 5 / 2; max-width: 100%; border: 1px dashed var(--line); border-radius: 10px; background: #fff; touch-action: none; }
   .unterschrift-feld button { justify-self: end; min-height: 30px; padding: 2px 10px; font-size: 13px; }
   .stempeluhr { margin: 8px 0 12px; } .stempeluhr h3 { margin: 6px 0 2px; } .stempel-status { margin: 0 0 6px; font-weight: 600; }
