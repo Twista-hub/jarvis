@@ -27,5 +27,26 @@ class KiKosten(unittest.TestCase):
         self.assertIn("2000 Tokens gelesen, 2000 geschrieben", ki.cache_stand())
 
 
+    def test_vorfilter(self):
+        aufrufe = []
+
+        def bewerten(model, beschreibung, items, sprache):
+            aufrufe.append((model, [x["nr"] for x in items], [x["titel"] for x in items]))
+            if model == ki.MODEL_VORFILTER:
+                return {x["nr"]: {"nr": x["nr"], "punkte": 2 if "Bäckerei" in x["titel"] else 7, "kurz": "k", "grund": "Haiku"} for x in items}
+            return {x["nr"]: {"nr": x["nr"], "punkte": 9, "kurz": "k", "grund": "Sonnet"} for x in items}
+
+        alt, ki._bewerten = ki._bewerten, bewerten
+        alt_schwelle, ki.VORFILTER_SCHWELLE = ki.VORFILTER_SCHWELLE, 3
+        try:
+            items = [{"nr": 0, "titel": "Reinigung Schule"}, {"nr": 1, "titel": "Bäckerei Brötchen"}, {"nr": 2, "titel": "Glasreinigung"}]
+            r = ki.score("Reinigungsfirma", items)
+        finally:
+            ki._bewerten, ki.VORFILTER_SCHWELLE = alt, alt_schwelle
+        self.assertEqual(aufrufe[1], (ki.MODEL_BEWERTEN, [0, 1], ["Reinigung Schule", "Glasreinigung"]), "Sonnet sieht nur die Kandidaten, neu nummeriert")
+        self.assertEqual({k: (v["punkte"], v["grund"]) for k, v in r.items()}, {0: (9, "Sonnet"), 1: (2, "Haiku"), 2: (9, "Sonnet")})
+        self.assertTrue(r[1]["vorfilter"])
+
+
 if __name__ == "__main__":
     unittest.main()

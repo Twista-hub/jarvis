@@ -194,7 +194,7 @@ def eforms_text(rel: dict) -> str:
 
 def sprach_arg(profile: dict) -> dict:
     """Language for the AI only when it is not German (German profiles call the AI exactly as before)."""
-    return {"sprache": profile["sprache"]} if profile.get("sprache") in ("en", "fr", "pl", "es") else {}
+    return {"sprache": profile["sprache"]} if profile.get("sprache") in ("en", "fr", "pl", "es", "it") else {}
 
 
 def frist_lesbar(wert: str | None) -> str | None:
