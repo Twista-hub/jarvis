@@ -13,6 +13,11 @@ Protokoll unten ergänzen. Ist ein Punkt blockiert, Grund notieren und zum näch
 
 ## Punkte
 - [ ] 1. Italien recherchieren: nationale Quelle (ANAC, Banca Dati Nazionale dei Contratti Pubblici / Open Data, ggf. Pubblicità a valore legale), Lizenz, robots.txt, Schnittstelle, Mengen. Lese-Workflow `italien-test.yml`. Ergebnis in `docs/italien.md`.
+- [ ] 1b. **KI-Kosten senken bei gleicher oder besserer Qualität** (Wunsch Benjamin 02.11. abends). Erst messen, dann ändern:
+  - Ist-Stand erfassen: welche Aufrufe (Suchprofil, Bewertung, Steckbrief, Kalkulation), welches Modell, Tokens und Kosten pro Lauf (`alarm/ki.py`, `web/src/workflow.ts`, Budgettabellen).
+  - Kandidaten: Prompt-Caching für die langen festen Anleitungen; Batch-API (50 % günstiger) für die nächtliche Bewertung, die nicht sofort fertig sein muss; schärfere Vorfilter (CPV, Ort, Ausschlusswörter) vor der KI; Bewertung einer Bekanntmachung einmal zusammenfassen und für alle Firmen wiederverwenden; kürzere, strukturierte Antworten; günstiges Modell nur für die Vorauswahl, starkes Modell für die echten Kandidaten.
+  - Qualität absichern: feste Vergleichsmenge (bekannte Treffer und Nicht-Treffer aus PerLease, Frankreich-, Polen-, Spanien-Durchlauf), alte und neue Variante gegeneinander, Abweichungen der Punkte notieren. Nur übernehmen, was gleich gut oder besser ist.
+  - Ergebnis und Ersparnis in `docs/ki-kosten.md`; risikolose Änderungen (z. B. Caching) direkt einbauen, Modellwechsel nur mit Vergleich.
 - [ ] 2. Italien Oberfläche: Wörterbuch `web/src/italienisch/` (per Agenten wie bei pl/es), App-Sprache `it`, Fuß mit Italiano, Land IT → it.
 - [ ] 3. Italien KI und Mail: `alarm/sprache-it.txt`, `mail.T["it"]` (Zeitzone Rom), Sprache aus Land ITA → it, Tests.
 - [ ] 4. Italien Suchgebiet: Regionen (NUTS-2, ITC1 … ITG2) wie Comunidades, Formular und Suchprofil.
