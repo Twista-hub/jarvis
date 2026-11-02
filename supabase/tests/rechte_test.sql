@@ -59,6 +59,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261101220000_betreiber_push_anmeldung.sql
 \ir ../migrations/20261102080000_fehler_alarm.sql
 \ir ../migrations/20261102090000_gewerk_statistik.sql
+\ir ../migrations/20261102100000_gewerk_cache.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1148,6 +1149,11 @@ reset role;
 insert into public.vergabekatalog (id, quelle, quelle_id, version, quell_datum, titel, link, auftraggeber, auftraggeber_id, cpv, frist, status)
   values ('test:g1', 'bks', 'g1', '1', now() - interval '2 days', 'Elektroinstallation Schule', 'https://x.test', 'Stadt X', 'a', array['45311000'], now() + interval '10 days', 'offen'),
          ('test:g2', 'bks', 'g2', '1', now() - interval '40 days', 'Elektro alt', 'https://x.test', 'Stadt X', 'a', array['45311000'], now() - interval '1 day', 'offen');
+set role anon;
+select pruefe(public.gewerk_statistik(array['45311']) is null, 'Vor der Berechnung noch keine Zahlen (Seite zeigt dann keine)');
+do $$ begin perform jarvis_intern.gewerk_aktualisieren(); raise exception 'FEHLER: anon darf Zahlen berechnen'; exception when insufficient_privilege then null; end $$;
+reset role;
+select pruefe(jarvis_intern.gewerk_aktualisieren() >= 11, 'Hintergrundberechnung für alle Gewerke');
 set role anon;
 select pruefe((select (public.gewerk_statistik(array['45311'])->>'monat')::int = 1 and (public.gewerk_statistik(array['45311'])->>'offen')::int = 1), 'Gewerk-Zahlen ohne Anmeldung, nur letzte 30 Tage');
 select pruefe(public.gewerk_statistik(array['45311'])->'beispiele'->0->>'titel' = 'Elektroinstallation Schule', 'Beispiele mit offener Frist');
