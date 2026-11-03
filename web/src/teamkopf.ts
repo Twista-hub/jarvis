@@ -73,7 +73,7 @@ export async function teamKopf(s: Sitzung, env: KontoEnv, firma: string, heute: 
   const [n, z, u, t, p, prof, bm, an, sz, sa, pf, fk, af, ps, bw, cl, sp, rf, gb] = await Promise.all([
     db<{ gueltig_bis: string }[]>(s, env, `personal_nachweise?firma_id=eq.${firma}&gueltig_bis=lte.${plusTage(heute, 60)}&select=gueltig_bis&limit=2000`),
     db<{ id: string }[]>(s, env, `firmen_zertifikate?firma_id=eq.${firma}&gueltig_bis=lte.${plusTage(heute, 90)}&select=id`),
-    db<Unterweisung[]>(s, env, `unterweisungen?firma_id=eq.${firma}&select=id,titel,intervall_monate,beschreibung`),
+    db<Unterweisung[]>(s, env, `unterweisungen?firma_id=eq.${firma}&archiviert=eq.false&select=id,titel,intervall_monate,beschreibung`),
     db<Teilnahme[]>(s, env, `unterweisung_teilnahmen?firma_id=eq.${firma}&select=unterweisung_id,personal_id,datum&limit=20000`),
     db<PersonKurz[]>(s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,status&limit=3000`),
     db<{ rechtsform: string; gruendungsjahr: number | null }[]>(s, env, `firmenprofil?firma_id=eq.${firma}&select=rechtsform,gruendungsjahr`),

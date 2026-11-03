@@ -53,6 +53,10 @@ export const STANDARD: Eingaben = {
   gemeinkosten: 15, gewinn: 8,
 };
 export const MINDESTLOHN_2026 = 13.9;
+/** Fünfte Mindestlohnanpassungsverordnung: 14,60 € from 1.1.2027 (Rechtsprüfung A-M8). */
+export const MINDESTLOHN_2027 = 14.6;
+/** Statutory minimum wage valid today (switches automatically on 1.1.2027). */
+export const mindestlohnHeute = (jetzt = new Date()) => jetzt >= new Date("2027-01-01T00:00:00Z") ? MINDESTLOHN_2027 : MINDESTLOHN_2026;
 export const UST = 19;
 
 type Feld = { key: keyof Eingaben; label: string; einheit: string; hilfe: string; gruppe: string };
@@ -135,7 +139,7 @@ export type Ergebnis = {
 
 /** Lowest wage allowed: legal minimum wage or the lowest sector minimum wage of the firm's agreements. */
 export type Boden = { lohn: number; name: string };
-export const MINDESTLOHN: Boden = { lohn: MINDESTLOHN_2026, name: "gesetzlicher Mindestlohn" };
+export const MINDESTLOHN: Boden = { lohn: mindestlohnHeute(), name: "gesetzlicher Mindestlohn" };
 
 const auf = (x: number, p: number) => x * (1 + p / 100);
 
@@ -179,8 +183,12 @@ export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record
   });
   const netto = runden(zeilen.reduce((s, z) => s + z.netto, 0));
   const warnungen: string[] = [];
-  if (e.lohn < MINDESTLOHN_2026 || zeilen.some((z) => z.lohn < MINDESTLOHN_2026)) warnungen.push(`Ein Stundenlohn liegt unter dem gesetzlichen Mindestlohn (${fmt(MINDESTLOHN_2026)} € ab 1.1.2026).`);
-  else if (boden.lohn > MINDESTLOHN_2026) {
+  const ml = mindestlohnHeute();
+  if (e.lohn < ml || zeilen.some((z) => z.lohn < ml)) warnungen.push(`Ein Stundenlohn liegt unter dem gesetzlichen Mindestlohn (${fmt(ml)} € ab 1.1.${ml === MINDESTLOHN_2027 ? 2027 : 2026}).`);
+  // Multi-year contracts: the statutory minimum wage rises on 1.1.2027 (A-M8).
+  if (new Date() < new Date("2027-01-01T00:00:00Z") && (e.lohn < MINDESTLOHN_2027 || zeilen.some((z) => z.lohn < MINDESTLOHN_2027)) && e.lohn >= ml)
+    warnungen.push(`Ab 1.1.2027 steigt der gesetzliche Mindestlohn auf ${fmt(MINDESTLOHN_2027)} €. Läuft der Auftrag über den Jahreswechsel, die Lohnerhöhung oder eine Preisgleitklausel einplanen.`);
+  if (boden.lohn > ml && !warnungen.some((w) => w.includes("unter dem gesetzlichen"))) {
     const drunter = zeilen.filter((z) => !z.eg && z.lohn < boden.lohn);
     if (e.lohn < boden.lohn && !lose.length) warnungen.push(`Der Stundenlohn liegt unter dem ${boden.name} (${fmt(boden.lohn)} €). Gilt er für diesen Auftrag, ist der Preis zu niedrig.`);
     if (drunter.length) warnungen.push(`${drunter.map((z) => `Los ${z.los.nr}`).join(", ")}: Lohn unter dem ${boden.name} (${fmt(boden.lohn)} €). Gilt er für diesen Auftrag, ist der Preis zu niedrig.`);
@@ -210,7 +218,7 @@ export function laufzeitFaktor(lose: Los[], monate: number): number {
 
 /** Price per hour at the floor wage with the firm's own costs and no profit: below it every hour loses money. */
 export function untergrenze(e: Eingaben, lohn: number): number {
-  return runden(stundenpreis({ ...e, gewinn: 0 }, Math.max(lohn, MINDESTLOHN_2026), false).preis);
+  return runden(stundenpreis({ ...e, gewinn: 0 }, Math.max(lohn, mindestlohnHeute()), false).preis);
 }
 
 /** Sector starting values (experience values, no legal data); the wage stays the firm's own. */
