@@ -7,7 +7,7 @@
 - Antworten auf Deutsch, kurz, Wichtigstes zuerst.
 
 ## Arbeitsteilung (seit 03.11.2026, ChatGPT ist raus)
-- ChatGPT/Codex wird nicht mehr genutzt. Claude Code programmiert; ein eigener Claude-Chat mit Browser-Steuerung erledigt Arbeiten im Browser (Konten, Formulare). Aufträge dafür liegen in `docs/auftraege/`.
+- ChatGPT/Codex wird nicht mehr genutzt. Claude Code programmiert; ein eigener Claude-Chat mit Browser-Steuerung erledigt Arbeiten im Browser (Konten, Formulare). Aufträge dafür liegen in `docs/auftraege/`, seine Rückmeldungen in `docs/browser/protokoll.md` (zu Beginn jeder Sitzung lesen; öffentliches Repo, keine Passwörter).
 - Gemeinsame Anleitung: `AGENTS.md`. Gemeinsames Gedächtnis: `docs/stand.md`. Zu Beginn jeder Sitzung beide lesen, am Ende `docs/stand.md` (Stand, offene Punkte, Protokoll) aktualisieren, committen, pushen.
 - Die App heißt nach außen **Crewtender** (seit 03.11.2026); technische Namen (Repo, Datenbank `jarvis_*`, Worker, Bucket) bleiben „jarvis“.
 

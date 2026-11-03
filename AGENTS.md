@@ -5,7 +5,7 @@ erledigt Browser-Arbeiten (Aufträge in `docs/auftraege/`). ChatGPT/Codex wird n
 außen **Crewtender**. Alle haben die gleichen Rechte und Pflichten. Wer an Jarvis arbeitet, liest zuerst diese Datei und dann `docs/stand.md`.
 
 ## 1. Pflicht: gemeinsames Gedächtnis
-- **Zu Beginn jeder Sitzung:** `AGENTS.md`, `docs/stand.md` und `docs/app-fahrplan.md` lesen. Vorher `git pull`.
+- **Zu Beginn jeder Sitzung:** `AGENTS.md`, `docs/stand.md`, `docs/app-fahrplan.md` und `docs/browser/protokoll.md` (Rückmeldungen des Browser-Chats) lesen. Vorher `git pull`.
 - **Am Ende jeder Sitzung (oder nach jedem größeren Schritt):** in `docs/stand.md`
   - „Aktueller Stand“ und „Offene Punkte“ anpassen,
   - oben im Protokoll einen Eintrag ergänzen: Datum, wer (Claude Code / Browser-Chat), was gemacht, was offen ist, was Benjamin tun muss.
