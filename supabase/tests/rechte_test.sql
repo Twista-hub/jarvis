@@ -66,6 +66,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261102150000_ausland_bestand.sql
 \ir ../migrations/20261103010000_ausland_bestand_italien.sql
 \ir ../migrations/20261103020000_rechnungen_mahnwesen.sql
+\ir ../migrations/20261103030000_rechnungsvorlagen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1075,6 +1076,8 @@ do $$ begin
 exception when unique_violation then null; end $$;
 update public.rechnungen set bezahlt_am = current_date, mahnstufe = 1, gemahnt_am = current_date where nummer = 'RE-2026-0001';
 select pruefe((select bezahlt_am = current_date and mahnstufe = 1 from public.rechnungen where nummer = 'RE-2026-0001'), 'Zahlungsstatus und Mahnstufe änderbar (Finanzfreigabe)');
+insert into public.rechnungsvorlagen (firma_id, kunde_id, text, betrag) values (:'firma', :'kunde_berlin', 'Unterhaltsreinigung pauschal', 1200);
+select pruefe((select count(*) = 1 from public.rechnungsvorlagen), 'Rechnungsvorlage mit Finanzfreigabe anlegen');
 do $$ begin
   update public.rechnungen set netto = 1 where nummer = 'RE-2026-0001';
   raise exception 'FEHLER: Rechnungsbetrag nachträglich änderbar';
@@ -1096,7 +1099,7 @@ do $$ begin
   raise exception 'FEHLER: Stempelzeit zurückdatiert';
 exception when insufficient_privilege then null; end $$;
 insert into public.unterschriften (firma_id, personal_id, art, bezug) values (:'firma', :'p_berlin', 'psa', '2026-11');
-select pruefe((select count(*) = 0 from public.rechnungen) and (select count(*) = 0 from public.nachweis_freigaben), 'Einsatzkraft sieht keine Rechnungen und keine Kundenlinks');
+select pruefe((select count(*) = 0 from public.rechnungen) and (select count(*) = 0 from public.rechnungsvorlagen) and (select count(*) = 0 from public.nachweis_freigaben), 'Einsatzkraft sieht keine Rechnungen, Vorlagen und keine Kundenlinks');
 reset role;
 set role anon;
 select pruefe((select count(*) = 1 from public.nachweis_abrufen('geheim-123')) and (select count(*) = 0 from public.nachweis_abrufen('falsch')), 'Kundenlink funktioniert nur mit dem richtigen Schlüssel');
@@ -1125,7 +1128,7 @@ select pruefe((select rolle = 'mitarbeiter' from public.mitglieder where user_id
 update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-0000000000e2';
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000c');
-select pruefe((select count(*) = 0 from public.rechnungen) and (select count(*) = 0 from public.spesen) and (select count(*) = 0 from public.stempel) and (select count(*) = 0 from public.nachweis_freigaben), 'Fremde Firma sieht nichts davon');
+select pruefe((select count(*) = 0 from public.rechnungen) and (select count(*) = 0 from public.rechnungsvorlagen) and (select count(*) = 0 from public.spesen) and (select count(*) = 0 from public.stempel) and (select count(*) = 0 from public.nachweis_freigaben), 'Fremde Firma sieht nichts davon');
 reset role;
 update public.mitglieder set aktiv = false, finanzen = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
 select set_config('test.uid', '', false);

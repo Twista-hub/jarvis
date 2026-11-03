@@ -71,13 +71,15 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
   Summen; Knöpfe „✓ Bezahlt“ und „✉️ Zahlungserinnerung → 1. Mahnung → 2. Mahnung“ mit Word-Schreiben (neue Frist 7 Tage,
   keine Gebühren). Jarvis verschickt nichts. Rechnungsinhalt ist jetzt in der Datenbank unveränderlich (nur Zahlungs- und
   Mahnstatus änderbar) – vorher wären Beträge nachträglich änderbar gewesen.
+- **Wiederkehrende Rechnungen (Top-3) gebaut:** unter Rechnungen „🔁 Wiederkehrende Rechnungen“: Vorlage je Kunde mit
+  festem Monatsbetrag, Knopf „Rechnungen für <Monat> erstellen“ macht daraus einmal pro Monat nummerierte Entwürfe.
 - **Plan-Struktur** aus dem Abo-Vorschlag im Code (`web/src/plaene.ts`, Grenzen je Plan), **nicht aktiv**, Preise
   weiter „Preis folgt“.
 
 ### Bewusst nicht umgesetzt (Regeln aus CLAUDE.md, braucht dein OK)
 - **Abo-Preise und Stripe:** Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
   Punkt 7c war ein Vorschlag gefragt; `web/src/plaene.ts` bleibt abgeschaltet.
-- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1 (E-Rechnung) und Nr. 2 (Mahnwesen) sind gebaut; Nr. 3–10 nach deiner Reihenfolge.
+- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1–3 (E-Rechnung, Mahnwesen, wiederkehrende Rechnungen) sind gebaut; Nr. 4–10 nach deiner Reihenfolge (Nr. 10 Auftragsbörse erst nach anwaltlicher Prüfung der AGB).
 - **Anfragen an PLACSP und TenderNed:** Mails an Dritte nur nach deinem OK.
 
 ### Deine Entscheidungen (keine Eile)

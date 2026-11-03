@@ -170,7 +170,7 @@ Reihenfolge nach Nutzen zu Aufwand und nach Umsatzchance.
 
 1. ✅ **E-Rechnung (Nr. 17)** – gebaut 03.11.2026 (XRechnung-Download, KoSIT-geprüft): Pflicht ab 2027/2028 für jede Firma, das ist der stärkste Grund, für Jarvis zu bezahlen.
 2. ✅ **Zahlungsstatus und Mahnwesen (Nr. 18)** – gebaut 03.11.2026 (Status offen/überfällig/bezahlt, Summen, Mahnschreiben in 3 Stufen): Rechnungen gibt es schon, mit wenig Arbeit bringt Jarvis der Firma direkt Geld.
-3. **Wiederkehrende Rechnungen (Nr. 19)**: kleiner Aufwand und für Reinigung und Sicherheit jeden Monat spürbar.
+3. ✅ **Wiederkehrende Rechnungen (Nr. 19)** – gebaut 03.11.2026 (Vorlagen je Kunde, einmal pro Monat als Entwürfe): kleiner Aufwand und für Reinigung und Sicherheit jeden Monat spürbar.
 4. **Lohn-Export für DATEV (Nr. 3)**: Die Lohnliste ist schon da, es fehlt nur das passende Format, und das Lohnbüro spart jeden Monat Stunden.
 5. **DATEV-Export und Steuerberater-Zugang (Nr. 22)**: Jede kleine Firma hat einen Steuerberater, und der empfiehlt Jarvis weiter, wenn die Daten sauber kommen.
 6. **Belege per Foto (Nr. 21)**: Die Spesen mit Belegfoto gibt es schon, und damit wird Jarvis zum täglichen Werkzeug im Büro.
