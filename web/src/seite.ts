@@ -92,6 +92,10 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .start-karte h3 { margin: 8px 0 4px; font-size: 1.04rem; }
   .start-karte p { margin: 0; color: var(--muted); font-size: .95rem; }
   .start-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-size: 1.3rem; background: rgba(79,179,234,.18); }
+  .start-mehr { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+  .start-mehr li { overflow-wrap: normal; hyphens: auto; -webkit-hyphens: auto; display: flex; align-items: flex-start; gap: 8px; padding: 10px 12px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-size: .9rem; font-weight: 600; line-height: 1.3; }
+  .start-mehr li span { flex: 0 0 auto; font-size: 1.1rem; line-height: 1.2; }
+  .start-mehr-link { margin: 12px 0 0; font-weight: 700; }
   .start-schluss { margin-top: 30px; }
   .start-schluss h2 { margin: 0 0 8px; color: #102a40; }
   @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .start-karte { background: var(--card); } }
