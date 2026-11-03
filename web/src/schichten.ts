@@ -32,13 +32,42 @@ export function termine(datum: string, wochentageWahl: number[], wochen: number)
   return [...new Set([datum, ...liste])].sort().slice(0, 60);
 }
 
-/** Warnings per shift: person absent that day, or two overlapping shifts. */
+/** Start and end of a shift in minutes since 1970 (night shifts end the next day). */
+const zeitraum = (x: Pick<Schicht, "datum" | "beginn" | "ende">): [number, number] => {
+  const t0 = Date.parse(`${x.datum}T00:00:00Z`) / 60000, v = zuMin(x.beginn), e = zuMin(x.ende);
+  return [t0 + v, t0 + (e <= v ? e + 1440 : e)];
+};
+/** Working time without the statutory break (§ 4 ArbZG: 30 min over 6 h, 45 min over 9 h). */
+const netto = (brutto: number) => brutto - (brutto > 540 ? 45 : brutto > 360 ? 30 : 0);
+const std = (min: number) => String(Math.round(min / 6) / 10).replace(".", ",");
+
+/** Rechtsprüfung 03.11.2026 (A1): Arbeitszeitgesetz for one shift against the person's other shifts. More than 10 hours
+ *  of work on a day (§ 3), less than 11 hours rest between two shifts (§ 5), Sunday work (§ 9, only with an exception
+ *  such as § 10 and a substitute rest day, § 11). Hints for the office, no legal advice. */
+export function arbzgHinweise(s: Pick<Schicht, "id" | "personal_id" | "datum" | "beginn" | "ende">, alle: Schicht[]): string[] {
+  if (!s.personal_id) return [];
+  const eigene = alle.filter((x) => x.personal_id === s.personal_id && x.id !== s.id && x.antwort !== "abgesagt");
+  const [a, b] = zeitraum(s);
+  const h: string[] = [];
+  const amTag = netto(b - a) + eigene.filter((x) => x.datum === s.datum).reduce((n, x) => { const [p, q] = zeitraum(x); return n + netto(q - p); }, 0);
+  if (amTag > 600) h.push(`${std(amTag)} Std. Arbeit am Tag, erlaubt sind höchstens 10 (§ 3 ArbZG)`);
+  for (const x of eigene) {
+    const [p, q] = zeitraum(x);
+    const ruhe = q <= a ? a - q : b <= p ? p - b : null;
+    if (ruhe !== null && ruhe < 660) { h.push(`nur ${std(ruhe)} Std. Ruhezeit zur Schicht am ${x.datum.slice(8, 10)}.${x.datum.slice(5, 7)}., mindestens 11 nötig (§ 5 ArbZG)`); break; }
+  }
+  if (new Date(`${s.datum}T12:00:00Z`).getUTCDay() === 0) h.push("Sonntagsarbeit: nur mit Ausnahme (§ 10 ArbZG) und Ersatzruhetag (§ 11)");
+  return h;
+}
+
+/** Warnings per shift: person absent that day, two overlapping shifts, or a working-time rule (ArbZG). */
 export function konflikte(schichten: Schicht[], abw: Abw[]): Map<string, string> {
   const m = new Map<string, string>();
   for (const s of schichten) {
     if (!s.personal_id || s.antwort === "abgesagt") continue;
     if (abw.some((a) => a.personal_id === s.personal_id && a.von <= s.datum && a.bis >= s.datum)) m.set(s.id, "abwesend");
     else if (schichten.some((x) => x.id !== s.id && x.personal_id === s.personal_id && x.datum === s.datum && x.antwort !== "abgesagt" && ueberschneiden(x, s))) m.set(s.id, "doppelt eingeplant");
+    else { const h = arbzgHinweise(s, schichten).filter((x) => !x.startsWith("Sonntag")); if (h.length) m.set(s.id, `Arbeitszeit: ${h[0]}`); }
   }
   return m;
 }
@@ -51,7 +80,10 @@ export function ersatzVorschlaege(schicht: Schicht, fuer: Person | undefined, pe
     && !ueb.some((u) => u.personal_id === p.id && u.von <= schicht.datum && (!u.bis || u.bis >= schicht.datum))
     && !schichten.some((x) => x.personal_id === p.id && x.datum === schicht.datum && x.antwort !== "abgesagt" && ueberschneiden(x, schicht)));
   const passt = (p: Person) => (fuer?.berufe ?? []).some((b) => (p.berufe ?? []).includes(b));
-  return [...frei.filter(passt), ...frei.filter((p) => !passt(p))].slice(0, 5);
+  // Nobody who would exceed 10 hours a day or get less than 11 hours rest (ArbZG §§ 3, 5).
+  const arbzgOk = (p: Person) => !arbzgHinweise({ ...schicht, id: "neu", personal_id: p.id }, schichten).some((x) => !x.startsWith("Sonntag"));
+  const ok = frei.filter(arbzgOk);
+  return [...ok.filter(passt), ...ok.filter((p) => !passt(p))].slice(0, 5);
 }
 
 export function schichtenSeite(liste: Schicht[], personen: Person[], abw: Abw[], o: { montag: string; heute: string; darfAendern: boolean; bereiche: { id: string; name: string }[]; orte?: { id: string; name: string }[]; ueb?: Ueb[]; gesperrt?: (s: Schicht) => Set<string> }): string {
@@ -69,7 +101,8 @@ ${o.orte?.length ? `<label class="ganz">Einsatzort (mit Infoblatt)<select name="
 <label class="ganz">Beruf (bei offener Schicht: nur diese Einsatzkräfte sehen sie)<select name="beruf"><option value="">alle Berufe</option>${[...new Set(personen.flatMap((p) => p.berufe ?? []))].sort((a, b) => a.localeCompare(b, "de")).map((b) => `<option>${escape(b)}</option>`).join("")}</select></label>
 ${o.bereiche.length ? `<label class="ganz">Standort (bei offener Schicht)<select name="bereich"><option value="">ganze Firma</option>${o.bereiche.map((b) => `<option value="${b.id}">${escape(b.name)}</option>`).join("")}</select></label>` : ""}
 <fieldset class="ganz"><legend>Wiederholen an</legend><div class="chips">${TAGE.map((t, i) => `<label><input type="checkbox" name="tag" value="${i}"><span>${t}</span></label>`).join("")}</div></fieldset>
-<label>für Wochen<input type="number" name="wochen" min="1" max="8" value="1"></label><label>Notiz<input name="notiz" maxlength="300"></label></div><button>Schicht speichern</button><p class="klein">Ohne Wochentage gilt nur das Datum. Die Person bekommt eine Handy-Nachricht und sagt in der App zu oder ab. Eine offene Schicht sehen passende Einsatzkräfte in der App; wer zuerst „Übernehmen“ tippt, bekommt sie.</p></form></details>` : "";
+<label>für Wochen<input type="number" name="wochen" min="1" max="8" value="1"></label><label>Notiz<input name="notiz" maxlength="300"></label>
+<label class="zeile ganz"><input type="checkbox" name="arbzg_ok" value="1">Hinweise zum Arbeitszeitgesetz gelesen, trotzdem speichern</label></div><button>Schicht speichern</button><p class="klein">Ohne Wochentage gilt nur das Datum. Die Person bekommt eine Handy-Nachricht und sagt in der App zu oder ab. Eine offene Schicht sehen passende Einsatzkräfte in der App; wer zuerst „Übernehmen“ tippt, bekommt sie.</p></form></details>` : "";
   // T32: short-notice absences from today with their cancelled shifts and suggestions for a replacement.
   const ausfaelle = abw.filter((a) => a.kurzfristig && a.bis >= o.heute);
   const ausfall = ausfaelle.length ? `<section id="ausfall" class="ausfall"><h2>🚨 Kurzfristig ausgefallen</h2>${ausfaelle.map((a) => {
@@ -145,6 +178,14 @@ export async function schichtenRoute(request: Request, env: KontoEnv): Promise<R
     let ort = t("ort", 160);
     if (einsatzort && !ort) { const eo = await db<{ name: string }[]>(f.s, env, `einsatzorte?id=eq.${einsatzort}&firma_id=eq.${firma}&select=name`); ort = eo.ok ? eo.daten[0]?.name ?? "" : ""; }
     const zeilen = liste.map((d) => ({ firma_id: firma, bereich_id: bereich, personal_id: person || null, einsatzort_id: einsatzort, datum: d, beginn, ende, ort, notiz: t("notiz", 300), beruf: person ? "" : t("beruf", 120) }));
+    if (person && form.get("arbzg_ok") !== "1") {
+      // ArbZG: check against the person's other shifts around these days; warn first, save only after confirmation.
+      const vorhanden = await db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&personal_id=eq.${person}&datum=gte.${plusTage(liste[0], -1)}&datum=lte.${plusTage(liste[liste.length - 1], 1)}&select=id,personal_id,bereich_id,datum,beginn,ende,ort,notiz,antwort&limit=2000`);
+      const neu = zeilen.map((z, i) => ({ ...z, id: `neu-${i}`, antwort: "offen" }) as unknown as Schicht);
+      const alle = [...(vorhanden.ok ? vorhanden.daten : []), ...neu];
+      const hinweise = [...new Set(neu.flatMap((z) => arbzgHinweise(z, alle).map((h) => `${z.datum.slice(8, 10)}.${z.datum.slice(5, 7)}.: ${h}`)))];
+      if (hinweise.length) return zurueck(`⚠️ Arbeitszeitgesetz: ${hinweise.slice(0, 4).join(" · ")}${hinweise.length > 4 ? " …" : ""}. Nichts gespeichert. Bitte Zeiten prüfen oder „Hinweise gelesen, trotzdem speichern“ ankreuzen.`, montag(datum));
+    }
     const r = await db(f.s, env, "schichten", { method: "POST", body: JSON.stringify(zeilen) });
     return zurueck(r.ok ? `${zeilen.length} ${zeilen.length === 1 ? "Schicht" : "Schichten"} gespeichert.${person ? " Die Person bekommt eine Handy-Nachricht (wenn eingeschaltet)." : ""}` : "Speichern hat nicht geklappt. Hast du Rechte für diesen Standort?", montag(datum));
   }
