@@ -137,6 +137,10 @@ jobs:
         run: |
           psql "$DB_URL" -c "select regexp_replace(u.email, '^(.{3})[^@]*', '\\1…') as wer, f.name as firma, m.rolle, m.aktiv, m.finanzen, m.erstellt::date from public.mitglieder m join auth.users u on u.id = m.user_id join public.firmen f on f.id = m.firma_id order by u.email, m.erstellt"
 
+      - name: App-Fehler der letzten 7 Tage (nur lesend, Pfade ohne Personendaten)
+        run: |
+          psql "$DB_URL" -c "select zeit, art, text from jarvis_intern.fehler_meldungen where zeit > now() - interval '7 days' order by zeit desc limit 60"
+
       - name: KI-Budget (nur lesend)
         run: |
           psql "$DB_URL" -c "select monat, limit_usd, reserviert from jarvis_katalog.ki_budget order by monat desc limit 2"
