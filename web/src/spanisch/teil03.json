@@ -419,5 +419,7 @@
  "Kunden-Portal": "Portal de clientes",
  "Rundgänge & Wachbuch": "Rondas y libro de guardia",
  "⏳ # laufen in # Tagen ab": "⏳ # caducan en # días",
- "⏳ # läuft in # Tagen ab": "⏳ # caduca en # días"
+ "⏳ # läuft in # Tagen ab": "⏳ # caduca en # días",
+ "Arbeitstage": "Días laborables",
+ "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Para las vacaciones: solo cuentan estos días, vacaciones mínimas de # días por cada día laborable semanal (§ # BUrlG)."
 }

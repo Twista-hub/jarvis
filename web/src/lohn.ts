@@ -6,22 +6,22 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, weiterleiten, type KontoEnv } from "./konto.ts";
 import { dezimal, einsatzLaender, landDerFirma, minuten, mitLand, naechsterMonat, type Eintrag } from "./stunden.ts";
 import { steuerfrei3b, summe, summe3b, zuschlag, type Steuerfrei } from "./zuschlaege.ts";
-import { arbeitstage } from "./urlaub.ts";
+import { arbeitstage, arbeitstageLaden } from "./urlaub.ts";
 import { zeitkonto, type Start, type ZPerson } from "./zeitkonto.ts";
 import { xlsxAntwort, xlsxDatei, type Zelle } from "./xlsx.ts";
 import { absatz, bild, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
 import { schluessel } from "./unterschrift.ts";
 import { cp1252, fehltDatev, lodasDatei, type Lohnarten } from "./datev.ts";
 
-export type LPerson = ZPerson & { personalnummer: string };
+export type LPerson = ZPerson & { personalnummer: string; arbeitstage?: number[] | null };
 type Abw = { personal_id: string; von: string; bis: string; grund: string; status?: string; kurzfristig?: boolean };
 type Spese = { personal_id: string; betrag: number | string; status: string };
 export type Zeile = { personalnummer: string; name: string; stunden: number; nacht: number; sonntag: number; feiertag: number; sf?: Steuerfrei; urlaub: number; schulung: number; abwesend: number; ausfaelle: number; spesen: number; saldo: number | null };
 
 export function lohnZeilen(personen: LPerson[], stunden: Eintrag[], abw: Abw[], spesen: Spese[], starts: Start[], alleStunden: Eintrag[], alleAbw: Abw[], monat: string, land: string): Zeile[] {
   const von = `${monat}-01`, bis = new Date(Date.UTC(Number(monat.slice(0, 4)), Number(monat.slice(5, 7)), 0)).toISOString().slice(0, 10);
-  const tageIm = (a: Abw) => arbeitstage(a.von < von ? von : a.von, a.bis > bis ? bis : a.bis, land);
   return personen.map((p) => {
+    const tageIm = (a: Abw) => arbeitstage(a.von < von ? von : a.von, a.bis > bis ? bis : a.bis, land, undefined, p.arbeitstage);
     const l = stunden.filter((s) => s.personal_id === p.id && s.status === "freigegeben" && s.datum >= von && s.datum <= bis);
     const z = summe(l.map((e) => zuschlag(e, land))), sf = summe3b(l.map((e) => steuerfrei3b(e, land)));
     const a = abw.filter((x) => x.personal_id === p.id && x.status !== "beantragt" && x.von <= bis && x.bis >= von);
@@ -83,15 +83,16 @@ export async function lohn(request: Request, env: KontoEnv): Promise<Response | 
     return wordAntwort(stundennachweisDocx(fn.ok ? fn.daten[0]?.name ?? "" : "", person, l.ok ? l.daten : [], monat, land, png && ux ? { png, am: ux.erstellt } : null), `Stundennachweis_${person.nachname || person.vorname}_${monat}.docx`.replace(/[^\wäöüÄÖÜß.-]+/g, "_"), f.s.cookies);
   }
   const jahr = `${Number(monat.slice(0, 4)) - 1}-01-01`;
-  const [p, st, a, sp, zk] = await Promise.all([
+  const [p, st, a, sp, zk, at] = await Promise.all([
     db<LPerson[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,personalnummer,status,wochenstunden,eintritt&limit=5000`),
     db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&status=eq.freigegeben&datum=gte.${jahr}&datum=lt.${bis}&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id&limit=100000`),
     db<Abw[]>(f.s, env, `personal_abwesenheiten?firma_id=eq.${firma}&status=eq.bestaetigt&bis=gte.${jahr}&von=lt.${bis}&select=personal_id,von,bis,grund,status,kurzfristig&limit=20000`),
     db<Spese[]>(f.s, env, `spesen?firma_id=eq.${firma}&status=eq.freigegeben&datum=gte.${von}&datum=lt.${bis}&select=personal_id,betrag,status&limit=10000`),
     db<Start[]>(f.s, env, `zeitkonten?firma_id=eq.${firma}&select=personal_id,ab,startsaldo_min&limit=5000`),
+    arbeitstageLaden(f.s, env, firma),
   ]);
   const stunden = st.ok ? mitLand(st.daten, await einsatzLaender(f.s, env, firma)) : [], abw = a.ok ? a.daten : [];
-  const z = lohnZeilen(p.ok ? p.daten : [], stunden, abw, sp.ok ? sp.daten : [], zk.ok ? zk.daten : [], stunden, abw, monat, land);
+  const z = lohnZeilen((p.ok ? p.daten : []).map((x) => ({ ...x, arbeitstage: at.get(x.id) ?? null })), stunden, abw, sp.ok ? sp.daten : [], zk.ok ? zk.daten : [], stunden, abw, monat, land);
   if (url.pathname.endsWith(".txt")) {
     const e = await db<{ datev_berater: string; datev_mandant: string; lohnarten: Lohnarten }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=datev_berater,datev_mandant,lohnarten`);
     const x = e.ok ? e.daten[0] : undefined, ein = { berater: x?.datev_berater ?? "", mandant: x?.datev_mandant ?? "" };

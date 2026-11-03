@@ -5,7 +5,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { escape } from "./seite.ts";
 import { absatz, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
 
-export type Akte = { eintritt?: string | null; beschaeftigung?: string; wochenstunden?: number | string | null; fuehrerschein?: string[]; sprachen?: string[]; wohn_plz?: string; probezeit_bis?: string | null; befristet_bis?: string | null; aufenthalt_bis?: string | null; firmenwagen?: boolean; personalnummer?: string; geburtstag?: string | null };
+export type Akte = { arbeitstage?: number[] | null; eintritt?: string | null; beschaeftigung?: string; wochenstunden?: number | string | null; fuehrerschein?: string[]; sprachen?: string[]; wohn_plz?: string; probezeit_bis?: string | null; befristet_bis?: string | null; aufenthalt_bis?: string | null; firmenwagen?: boolean; personalnummer?: string; geburtstag?: string | null };
 export type Nachweis = { id: string; personal_id: string; bezeichnung: string; erworben: string | null; gueltig_bis: string | null; datei_name: string | null; datei_mime: string | null };
 export const BESCHAEFTIGUNG: Record<string, string> = { vollzeit: "Vollzeit", teilzeit: "Teilzeit", minijob: "Minijob", aushilfe: "Aushilfe", azubi: "Auszubildende/r" };
 export const FUEHRERSCHEINE = ["B", "BE", "C1", "C1E", "C", "CE", "D1", "D", "T", "L", "Stapler"];
@@ -38,12 +38,20 @@ export function akteFelder(k: Akte & { id?: string }): string {
 <label>Beschäftigung<select name="beschaeftigung"><option value="">–</option>${Object.entries(BESCHAEFTIGUNG).map(([w, t]) => `<option value="${w}"${k.beschaeftigung === w ? " selected" : ""}>${t}</option>`).join("")}</select></label></div>
 <div class="zwei"><label>Wochenstunden<input name="wochenstunden" inputmode="decimal" maxlength="5" value="${k.wochenstunden ?? ""}"></label>
 <label>Wohnort-PLZ<input name="wohn_plz" inputmode="numeric" maxlength="5" pattern="\\d{5}" value="${escape(k.wohn_plz ?? "")}" placeholder="für die Entfernung"></label></div>
+<fieldset><legend>Arbeitstage</legend><div class="chips">${WOCHENTAGE.map((t, i) => `<label><input type="checkbox" name="arbeitstag" value="${i + 1}"${(k.arbeitstage ?? [1, 2, 3, 4, 5]).includes(i + 1) ? " checked" : ""}><span>${t}</span></label>`).join("")}</div><p class="klein">Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub 4 Tage je Arbeitstag (§ 3 BUrlG).</p></fieldset>
 <fieldset><legend>Führerschein</legend><div class="chips">${FUEHRERSCHEINE.map((f) => `<label><input type="checkbox" name="fuehrerschein" value="${f}"${fs.includes(f) ? " checked" : ""}><span>${f}</span></label>`).join("")}</div></fieldset>
 <label>Sprachen (mit Komma)<input name="sprachen" maxlength="200" value="${escape((k.sprachen ?? []).join(", "))}" placeholder="z. B. Deutsch, Englisch, Türkisch"></label>
 <label class="zeile"><input type="checkbox" name="firmenwagen"${k.firmenwagen ? " checked" : ""}>Fährt Firmenfahrzeuge (Führerscheinkontrolle alle 6 Monate)</label>
 <fieldset><legend>⏳ Fristen</legend><div class="zwei"><label>Probezeit bis<input name="probezeit_bis" type="date" value="${escape(k.probezeit_bis ?? "")}"></label>
 <label>Befristet bis<input name="befristet_bis" type="date" value="${escape(k.befristet_bis ?? "")}"></label></div>
 <label>Aufenthaltstitel / Arbeitserlaubnis gültig bis<input name="aufenthalt_bis" type="date" value="${escape(k.aufenthalt_bis ?? "")}"></label><p class="klein">Crewtender warnt vorher (Probezeit 30, Befristung 60, Aufenthalt 90 Tage). Nur das Datum, keine Kopie des Dokuments.</p></fieldset></details>`;
+}
+
+export const WOCHENTAGE = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+/** Ticked weekdays (1 = Monday … 7 = Sunday); Monday to Friday is stored as null (the default). */
+export function arbeitstageAusFormular(f: FormData): number[] | null {
+  const tage = [...new Set(f.getAll("arbeitstag").map(Number).filter((x) => Number.isInteger(x) && x >= 1 && x <= 7))].sort();
+  return !tage.length || tage.join() === "1,2,3,4,5" ? null : tage;
 }
 
 /** Form → personnel file fields (invalid values become empty). */
@@ -61,6 +69,7 @@ export function akteAusFormular(f: FormData): Required<Akte> {
     wohn_plz: /^\d{5}$/.test(plz) ? plz : "",
     probezeit_bis: tag("probezeit_bis"), befristet_bis: tag("befristet_bis"), aufenthalt_bis: tag("aufenthalt_bis"),
     firmenwagen: f.get("firmenwagen") === "on",
+    arbeitstage: arbeitstageAusFormular(f),
     personalnummer: t("personalnummer", 20),
     geburtstag: tag("geburtstag"),
   };

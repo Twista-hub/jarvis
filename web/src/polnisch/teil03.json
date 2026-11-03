@@ -419,5 +419,7 @@
  "Kunden-Portal": "Portal klienta",
  "Rundgänge & Wachbuch": "Obchody i książka służby",
  "⏳ # laufen in # Tagen ab": "⏳ # wygasa w ciągu # dni",
- "⏳ # läuft in # Tagen ab": "⏳ # wygasa w ciągu # dni"
+ "⏳ # läuft in # Tagen ab": "⏳ # wygasa w ciągu # dni",
+ "Arbeitstage": "Dni pracy",
+ "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Dla urlopu: liczą się tylko te dni, minimalny urlop # dni na każdy dzień pracy w tygodniu (§ # BUrlG)."
 }
