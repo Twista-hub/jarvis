@@ -11,12 +11,15 @@ on:
       max:
         description: "Höchstzahl Seiten je Firma"
         default: "300"
+      firma:
+        description: "Nur Firmen, deren Name dies enthält (leer = alle)"
+        default: ""
 permissions:
   contents: read
 jobs:
   pruefen:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 90
     env:
       REF: juuuifrcxmitkqudqngq
       PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -35,9 +38,12 @@ jobs:
           done
           echo "::error::Keine Verbindung"; exit 1
       - name: Konto und Firmen bestimmen (nur IDs, maskiert)
+        env:
+          FIRMA_FILTER: ${{ inputs.firma }}
         run: |
           nutzer=$(psql "$DB_URL" -tAc "select m.user_id from public.mitglieder m join public.firmen f on f.id = m.firma_id where f.name = 'WP Digital Ranger' and m.rolle = 'inhaber' limit 1")
-          firmen=$(psql "$DB_URL" -tAc "select string_agg(firma_id::text, ',' order by erstellt) from public.mitglieder where user_id = '$nutzer' and aktiv")
+          filter=$(printf '%s' "$FIRMA_FILTER" | tr -cd '[:alnum:] ()-')
+          firmen=$(psql "$DB_URL" -tAc "select string_agg(m.firma_id::text, ',' order by m.erstellt) from public.mitglieder m join public.firmen f on f.id = m.firma_id where m.user_id = '$nutzer' and m.aktiv and f.name ilike '%$filter%'")
           echo "::add-mask::$nutzer"; echo "NUTZER=$nutzer" >> "$GITHUB_ENV"; echo "FIRMEN=$firmen" >> "$GITHUB_ENV"
           geheim=$(openssl rand -hex 32); echo "::add-mask::$geheim"; echo "JWT_SECRET=$geheim" >> "$GITHUB_ENV"
       - name: PostgREST starten (alles wird zurückgerollt)
