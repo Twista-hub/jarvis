@@ -8,10 +8,14 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 | Domain crewtender.eu | Namecheap → Cloudflare | gekauft 03.11.2026 (Benjamin), Cloudflare aktiv | |
 | E-Mail hello@crewtender.eu | Cloudflare Email Routing → kontakt@wpdigitalranger.com | aktiv 03.11.2026 | |
 | Instagram | – | offen | |
-| Facebook-Seite | – | offen | |
+| Facebook-Seite | Crewtender (Kategorie Software) | angelegt 03.11.2026 unter Benjamins persönlichem Profil | https://www.facebook.com/profile.php?id=61596423171638 |
 | LinkedIn-Seite | – | offen | |
 
 ## Einträge
+
+### 03.11.2026 – Browser-Chat: Bilder und Facebook-Seite
+- Bilder erstellt (Farben der WP-Digital-Ranger-Marke, Zeichen: offenes „C“ mit Häkchen und zwei „Crew“-Punkten): `docs/design/crewtender/` → profil.png (1080×1080), facebook-titel.png (1640×624), linkedin-titel.png (1128×191), crewtender-zeichen.svg.
+- Facebook-Seite „Crewtender“ angelegt, als Benjamin Schiffer (nicht unter Demopin oder RestockHero). Bio auf Englisch (Short bio aus dem Auftrag, Benjamins Wunsch: international), Website https://app.wpdigitalranger.com, E-Mail hello@crewtender.eu, Impressum-Text mit Link auf https://app.wpdigitalranger.com/impressum. Profil- und Titelbild hochgeladen. WhatsApp nicht verknüpft, keine Freunde eingeladen, keine Werbe-Mails, nichts gepostet.
 
 ### 03.11.2026 – Browser-Chat: crewtender.eu bei Cloudflare
 - Cloudflare-Konto geprüft: „Benschiffer79@gmail.com's Account“ (darin liegen wpdigitalranger.com und der Worker jarvis-alarm).
