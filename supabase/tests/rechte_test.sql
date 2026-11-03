@@ -79,6 +79,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103110000_rechnungen_gobd.sql
 \ir ../migrations/20261103120000_datenschutz_ausfall_portal_link.sql
 \ir ../migrations/20261103130000_land_der_firma.sql
+\ir ../migrations/20261103140000_leser_rundgang_rechte.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1327,6 +1328,12 @@ exception when insufficient_privilege then null; end $$;
 delete from public.rechnungen; delete from public.belege;
 reset role;
 select pruefe((select count(*) >= 2 from public.rechnungen) and (select count(*) = 1 from public.belege), 'Leser löscht nichts');
+-- Rechtsprüfung D1: the tax adviser keeps names for payroll but no certificates, guard book, time-clock events.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select count(*) >= 1 from public.personal) and (select count(*) = 0 from public.personal_nachweise) and (select count(*) = 0 from public.wachbuch)
+  and (select count(*) = 0 from public.stempel) and (select count(*) = 0 from public.rundgang_scans), 'Steuerbüro sieht Namen, aber keine Nachweise, Wachbuch, Stempel und Rundgänge');
+reset role;
 update public.mitglieder set finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000b');
