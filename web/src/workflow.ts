@@ -1,4 +1,5 @@
 // Turns one upload into a Steckbrief: files -> text (Workers AI) -> Claude -> ergebnis.md in R2.
+import { personenMaskieren } from "./datensparsam.ts";
 import { apiClient, firmaVonProfil } from "./api-budget.ts";
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
@@ -75,8 +76,10 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
 
     const ki = await step.do("Steckbrief schreiben", { retries: { limit: 2, delay: "30 seconds" }, timeout: "15 minutes" }, async () => {
       await stand(2, `${lesen.gelesen} ${lesen.gelesen === 1 ? "Datei" : "Dateien"} gelesen, Jarvis schreibt den Steckbrief`);
-      const dokumente = await (await this.env.DATEN.get(`${dir}/text.md`))!.text();
-      const bekanntmachung = await (await this.env.DATEN.get(`${dir}/bekanntmachung.md`))?.text();
+      // K4: names and personal e-mail addresses of contact persons are masked before the AI (datensparsam.ts).
+      const dokumente = personenMaskieren(await (await this.env.DATEN.get(`${dir}/text.md`))!.text());
+      const bekanntmachungRoh = await (await this.env.DATEN.get(`${dir}/bekanntmachung.md`))?.text();
+      const bekanntmachung = bekanntmachungRoh === undefined ? undefined : personenMaskieren(bekanntmachungRoh);
       const bisher = bekanntmachung
         ? `\n\nBisheriger Steckbrief aus der öffentlichen Bekanntmachung:\n${bekanntmachung}\n\n` +
           "WICHTIG: Schreibe EINEN Steckbrief aus beiden Quellen. Übernimm jede Angabe aus dem bisherigen Steckbrief " +

@@ -841,7 +841,7 @@ export function trefferListe(liste: Vorgang[], bereichName: (id: string | null |
   <h2><a href="/konto/vorgang/${v.id}"><span>${istNeu(v) ? '<span class="neu-punkt" title="Neu seit deinem letzten Besuch" aria-label="neu seit deinem letzten Besuch"></span>' : ""}${escape(v.titel)}</span><span aria-hidden="true">›</span></a></h2>
   ${fakten.length || v.us ? `<ul class="treffer-fakten">${v.us ? ampelChip(v.us, opts.us?.profil ?? null, opts.us?.sprache ?? "de") : ""}${fakten.map((f) => `<li>${f.label ? `<span>${escape(f.label)}</span>` : ""}${escape(f.wert)}${/^ca\./.test(f.wert) ? `<span class="dl-hinweis" title="Geschätzt – genaue Angaben in den Vergabeunterlagen">${DL_ICON}</span>` : ""}</li>`).join("")}</ul>` : ""}
   ${gesucht ? `<p class="treffer-gesucht">${escape(gesucht)}</p>` : !warum && bewertungsErklaerung(v.steckbrief) ? `<p class="treffer-gesucht">${escape(bewertungsErklaerung(v.steckbrief))}</p>` : ""}
-  ${warum ? `<p class="treffer-warum">${escape(warum)}</p>` : ""}
+  ${warum ? `<p class="treffer-warum" data-ki-erstellt="true"><span title="Von KI erstellt (Claude, Anthropic)" aria-label="KI-Einschätzung">🤖</span> ${escape(warum)}</p>` : ""}
   <div class="treffer-unten">
     <p class="treffer-frist"><span>Abgabefrist</span>${v.frist ? `<time datetime="${escape(v.frist)}">${datum(v.frist)}${OFFEN.includes(v.status) ? ` <em class="frist-abstand frist-${ampel(v)}">${abstand(v.frist)}</em>` : ""}</time>` : `<strong>Noch nicht bekannt</strong>`}${v.bereich_id ? `<small>${escape(bereichName(v.bereich_id))}</small>` : ""}</p>
     ${daumen(v.id, rueckmeldungen.get(v.id), weiter)}
