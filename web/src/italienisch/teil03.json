@@ -228,5 +228,10 @@
   "Bitte eine gültige E-Mail-Adresse angeben, damit wir antworten können.": "Indica un indirizzo e-mail valido per poterti rispondere.",
   "Bitte schreib uns etwas mehr (mindestens 10 Zeichen).": "Scrivi qualcosa in più (almeno 10 caratteri).",
   "Heute sind schon sehr viele Nachrichten eingegangen. Bitte schreib uns direkt an": "Oggi abbiamo già ricevuto moltissimi messaggi. Scrivici direttamente a",
-  "Die Nachricht konnte gerade nicht gesendet werden. Bitte schreib uns direkt an": "Al momento non è stato possibile inviare il messaggio. Scrivici direttamente a"
+  "Die Nachricht konnte gerade nicht gesendet werden. Bitte schreib uns direkt an": "Al momento non è stato possibile inviare il messaggio. Scrivici direttamente a",
+  "Das Foto geht dafür an den KI-Dienst Claude (Anthropic, USA), der es nicht zum Training nutzt.": "A tal fine la foto viene inviata al servizio di IA Claude (Anthropic, USA), che non la usa per l'addestramento.",
+  "Dafür gehen sie an den KI-Dienst Claude (Anthropic, USA), der sie nicht zum Training nutzt.": "A tal fine vengono inviati al servizio di IA Claude (Anthropic, USA), che non li usa per l'addestramento.",
+  "🤖 Die Dateien werden zur Auswertung an den KI-Dienst Claude (Anthropic, USA) übermittelt und nach 30 Tagen gelöscht. Keine Personalakten oder Gesundheitsdaten hochladen.": "🤖 I file vengono inviati per l'analisi al servizio di IA Claude (Anthropic, USA) e cancellati dopo 30 giorni. Non caricare fascicoli del personale né dati sanitari.",
+  "🔍 KI-Datum, bitte prüfen": "🔍 Data letta dall'IA, da verificare",
+  "Von der KI aus dem Dokument gelesen. Unter Ändern prüfen und speichern.": "Letta dal documento dall'IA. Verifica e salva in Modifica."
 }
