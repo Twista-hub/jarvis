@@ -47,7 +47,7 @@ und Nachweise laufen über Jarvis.
 | 1–5 MA | 3,11 $ = **3 €** | 8,62 $ = **9 €** | Basis | 59 € | 16 % |
 | 10 MA | 6,12 $ = **7 €** | 15,16 $ = **16 €** | Pro | 149 € | 11 % |
 | 100 MA | 16,53 $ = **18 €** | 36,39 $ = **39 €** | Business | 399 € | 10 % |
-| 1.000 MA | 36,34 $ = **39 €** | 90,90 $ = **97 €** | Business + 900 Zusatz-Einsatzkräfte | ca. 1.750 € | 6 % |
+| 1.000 MA | 36,34 $ = **39 €** | 90,90 $ = **97 €** | Business + 900 Zusatz-Einsatzkräfte (400 × 3 € + 500 × 2,50 €) | 2.849 € | 3 % |
 
 Was auffällt:
 - **Belege und Nachweise kosten praktisch nichts** (auch 6.000 Belege im Monat sind 1,80 $).

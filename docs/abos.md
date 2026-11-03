@@ -16,7 +16,7 @@
 - **Preis netto = Endpreis**, solange Benjamin Kleinunternehmer nach § 19 UStG ist. In AGB und Stripe trotzdem als
   **„zzgl. USt., soweit sie anfällt“** anlegen. Dann bleibt der Preis beim Wechsel zur Regelbesteuerung gleich (Abschnitt 6).
 - **Test:** Jede neue Firma bekommt automatisch **14 Tage Pro**, ohne Karte. Danach Free, nichts wird gelöscht.
-- **Zusatz:** weiterer Büro-Nutzer 12 € (Pro) bzw. 9 € (Business), weitere Einsatzkraft 2 € (Pro) bzw. 1,50 € (Business),
+- **Zusatz:** weiterer Büro-Nutzer 12 € (Pro) bzw. 9 € (Business), weitere Einsatzkraft 3,50 € (Pro) bzw. 3 € (Business, ab der 501. Einsatzkraft 2,50 €; Benjamin 03.11.2026),
   10 zusätzliche Steckbriefe 15 €. Leser (nur lesen) bleiben kostenlos.
 - **Warum eine neue Stufe „Business“ statt „Erfolg“:** Der größte Wert liegt bei Firmen mit vielen Standorten und viel
   Personal. Ein Erfolgshonorar ist rechtlich und praktisch aufwendig und passt schlecht zur Kleinunternehmergrenze.
@@ -30,7 +30,7 @@
 | Länder | 1 | 1 + 1 Nachbarland | alle (DE, AT, CH, FR, PL, ES, IT, US …) | alle |
 | Standorte / Regionen | 1 | 1 | bis 5 | unbegrenzt, mit Regionen |
 | Büro-Nutzer (Inhaber, Admin, Bearbeiter) | 1 | 3 | 5 inkl. (+12 €) | 15 inkl. (+9 €) |
-| Einsatzkräfte mit eigenem Zugang | – | – | 25 inkl. (+2 €) | 100 inkl. (+1,50 €) |
+| Einsatzkräfte mit eigenem Zugang | – | – | 25 inkl. (+3,50 €) | 100 inkl. (+3 €, ab 501: +2,50 €) |
 | Leser | – | unbegrenzt | unbegrenzt | unbegrenzt |
 | KI-Bewertung neuer Ausschreibungen | ja (bis 300/Monat) | ja | ja | ja |
 | Benachrichtigung | Wochenmail | täglich Mail + Handy, Fristen-Erinnerung | wie Basis | wie Basis |
@@ -140,7 +140,8 @@ Rand, bietet aber KI-Bewertung und Steckbriefe. Das ist der Einstieg.
 
 **Einordnung:** Eine Reinigungsfirma mit 25 Kräften zahlt bei Papershift (mit Dienstplan) rund 150 €/Monat, nur für
 Planung und Zeiten. Jarvis Pro kostet dasselbe und bringt die Ausschreibungen mit. PerLease (16 Standorte) zahlt bei
-ordio ab 1.424 €/Monat. Jarvis Business mit 300 Kräften: 399 € + 200 × 1,50 € = **699 €**.
+ordio ab 1.424 €/Monat. Jarvis Business mit 300 Kräften: 399 € + 200 × 3 € = **999 €**; mit 1.000 Kräften 399 € + 400 × 3 € + 500 × 2,50 € = **2.849 €**
+(Papershift mit Dienstplan für 1.000 Kräfte: ca. 6.000 €). Ab ca. 300 Kräften ist ein Einzelangebot möglich.
 
 ## 5. Option „Erfolg“ (Anteil bei Zuschlag)
 

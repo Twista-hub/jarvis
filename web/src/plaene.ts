@@ -26,6 +26,16 @@ export const GRENZEN: Record<string, Grenzen> = {
   test: { suchprofile: null, laender: null, nutzer: null, einsatzkraefte: null, steckbriefe_monat: null, ki_euro_monat: null, arbeitsoberflaeche: true, taeglich: true },
 };
 
+/** Monthly price per additional field worker (Benjamin, 03.11.2026; NOT active): Pro 3.50 €, Business 3 €, Business from
+ * the 501st field worker 2.50 €. Free and Basis have no field-worker access. */
+export function einsatzkraefteZusatz(plan: string, anzahl: number): number {
+  const frei = GRENZEN[plan]?.einsatzkraefte ?? 0;
+  const mehr = Math.max(0, anzahl - frei);
+  if (plan === "pro") return mehr * 3.5;
+  if (plan === "business") return Math.min(mehr, 500 - frei) * 3 + Math.max(0, anzahl - 500) * 2.5;
+  return 0;
+}
+
 /** Limits of a stored plan id (unknown or old ids such as "erfolg" get the full preview access until plans go live). */
 export const grenzen = (id: string): Grenzen => GRENZEN[id] ?? GRENZEN.test;
 
