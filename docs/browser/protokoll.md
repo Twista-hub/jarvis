@@ -15,6 +15,9 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ### 03.11.2026 – Browser-Chat: LinkedIn
 - Benjamin hat ein persönliches LinkedIn-Konto angelegt (mit seiner geschäftlichen Adresse bei WP Digital Ranger).
+- Profil eingerichtet (Englisch): Headline „Founder of Crewtender · Public tenders & crew planning for trades and service companies | WP Digital Ranger“, Branche Softwareentwicklung, Info-Text (Handwerk/Bau zuerst, dann Reinigung, Sicherheit, Personal, Catering), Website https://app.wpdigitalranger.com (Geschäftlich). Premium und Verifizierung nicht genutzt.
+- Titelbild fürs persönliche Profil: `docs/design/crewtender/linkedin-profil-titel.png` (1584×396). Lädt Benjamin selbst hoch (LinkedIn öffnet nur den Datei-Dialog). Profilfoto: echtes Foto von Benjamin, nicht das Logo.
+- Facebook-Bio auf Handwerk erweitert: „Find public tenders, write bids, plan your crew – the app for trades and service companies: construction, cleaning, security, staffing and catering.“
 - Unternehmensseite noch nicht möglich: LinkedIn meldet „Funktion nicht verfügbar … warten Sie bitte mindestens einen Tag“. Ab 04.11.2026 erneut versuchen.
 
 ### 03.11.2026 – Browser-Chat: Bilder und Facebook-Seite
