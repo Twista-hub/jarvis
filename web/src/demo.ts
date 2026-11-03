@@ -1,6 +1,7 @@
 // Demo without registration: the real pages of Jarvis with sample data of a fictitious firm. Nothing is read from or
 // written to the database; forms are blocked in the browser (app.js, body[data-demo]) and every link into the app
 // is rewritten to the demo. Lets interested firms look around before they register.
+import { KI_KENNUNG } from "./ki-kennung.ts";
 import { escape, markdown, seite } from "./seite.ts";
 import { html, trefferListe, frageMarken, unterlagenHinweis } from "./konto.ts";
 import { schichtenSeite, type Schicht } from "./schichten.ts";
@@ -101,7 +102,7 @@ export function demoSeite(pfad: string, heute: string, muster: string, sprache =
     const x = v.find((y) => y.id === a[1]);
     if (!x) return null;
     const ausUnterlagen = x.id.endsWith("1");
-    const brief = `<div class="steckbrief-karte">${markdown(x.steckbrief)}</div>`;
+    const brief = `<div class="steckbrief-karte" data-ki-erstellt="true" data-ki-anbieter="Anthropic Claude">${KI_KENNUNG}${markdown(x.steckbrief)}</div>`;
     const marken = ausUnterlagen ? { html: brief, anzahl: 0 } : frageMarken(brief);
     return { titel: x.titel, inhalt: `${banner}${reiter("treffer")}<ul class="kopf-chips"><li class="punkte">${x.punkte}/10</li><li>⏰ Frist ${new Date(x.frist).toLocaleDateString("de-DE")}</li><li>📍 ${x.entfernung_km} km</li></ul>
 <h2 id="steckbrief">${ausUnterlagen ? "Steckbrief aus den Vergabeunterlagen" : "Steckbrief aus der Bekanntmachung"}</h2>${ausUnterlagen ? `<p class="klein">So sieht ein Steckbrief aus, nachdem die Vergabeunterlagen hochgeladen wurden: Lose mit Mengen und Stunden, Personal je Los, Nachweise, Fristen.</p>` : `<p class="klein">Ohne hochgeladene Unterlagen: Angaben aus der öffentlichen Bekanntmachung. Das Symbol zeigt, was erst in den Unterlagen steht.</p>`}${marken.html}${ausUnterlagen ? "" : unterlagenHinweis(x.steckbrief, x.link, false)}` };

@@ -233,5 +233,6 @@
  "Dafür gehen sie an den KI-Dienst Claude (Anthropic, USA), der sie nicht zum Training nutzt.": "For this they are sent to the AI service Claude (Anthropic, USA), which does not use them for training.",
  "🤖 Die Dateien werden zur Auswertung an den KI-Dienst Claude (Anthropic, USA) übermittelt und nach 30 Tagen gelöscht. Keine Personalakten oder Gesundheitsdaten hochladen.": "🤖 The files are sent to the AI service Claude (Anthropic, USA) for analysis and deleted after 30 days. Do not upload personnel files or health data.",
  "🔍 KI-Datum, bitte prüfen": "🔍 AI date, please check",
- "Von der KI aus dem Dokument gelesen. Unter Ändern prüfen und speichern.": "Read from the document by the AI. Check and save under Edit."
+ "Von der KI aus dem Dokument gelesen. Unter Ändern prüfen und speichern.": "Read from the document by the AI. Check and save under Edit.",
+ "🤖 Von KI erstellt (Claude, Anthropic). Vor der Verwendung mit den Originalunterlagen prüfen.": "🤖 Created by AI (Claude, Anthropic). Check against the original documents before use."
 }

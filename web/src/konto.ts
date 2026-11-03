@@ -1,3 +1,4 @@
+import { KI_KENNUNG } from "./ki-kennung.ts";
 import { firmenInfos } from "./firmeninfos.ts";
 import type { Firmenstandort, SuchgebietModus } from "./firmenstandorte.ts";
 // Accounts: login (anmeldung.ts, Supabase Auth) and the firm pages
@@ -1038,7 +1039,7 @@ ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}${hinweisText ? `<p ro
   const unterlagen = finanzen ? await Promise.all([db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`), referenzenLaden(s, env, v.firma_id)]).then(([r, refs]) => r.ok ? { ok: true as const, daten: mitReferenzen(r.daten, refs, v.firma_id) } : r) : null;
   const heute = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
   const stichtag = v.frist && v.frist.slice(0, 10) > heute ? v.frist.slice(0, 10) : heute;
-  const brief = (md: string) => `<div class="steckbrief-karte">${briefInhalt(md)}</div>`;
+  const brief = (md: string) => `<div class="steckbrief-karte" data-ki-erstellt="true" data-ki-anbieter="Anthropic Claude">${KI_KENNUNG}${briefInhalt(md)}</div>`;
   const briefInhalt = (md: string) => nachweiseMarkieren(markdown(md), unterlagen?.ok ? unterlagen.daten : null, stichtag, `/konto/firmenunterlagen?firma=${v.firma_id}`);
   const hochladen = rolle === "leser" ? "" : `<h2 id="unterlagen">📥 Vergabeunterlagen</h2>
 <p>Für Eignungskriterien, Nachweise, Referenzen und das Preisblatt braucht Jarvis die Unterlagen.</p>
