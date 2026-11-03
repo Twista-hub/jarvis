@@ -51,6 +51,11 @@ test("T34: Positionen mit Zuschlägen, Nummernkreis, Word-Rechnung", () => {
   const entwurf: Rechnung = { ...r, nummer: "ENTWURF-1234abcd", status: "entwurf" };
   const t3 = docText(rechnungDocx(entwurf, null, a));
   assert.ok(t3.includes("Rechnungsentwurf – nicht versenden") && !t3.includes("ENTWURF-1234abcd"));
+  // Invoice template: logo, intro, closing text and footer lines end up in the document.
+  const mitVorlage = rechnungDocx(r, null, a, { logo: { bytes: PNG, typ: "png" }, einleitung: "Vielen Dank für Ihren Auftrag.", schluss: "Mit freundlichen Grüßen", fuss: ["Geschäftsführer: Max Muster"] });
+  const tv = docText(mitVorlage);
+  for (const s of ["Vielen Dank für Ihren Auftrag.", "Mit freundlichen Grüßen", "Geschäftsführer: Max Muster"]) assert.ok(tv.includes(s), s);
+  assert.ok(Object.keys(unzipSync(mitVorlage)).some((n) => n.startsWith("word/media/")), "Logo eingebettet");
   const liste = rechnungenSeite([entwurf, { ...frei, id: "r2" }, { ...frei, id: "r3", nummer: "RE-2026-0009", art: "storno", bezug_nummer: "RE-2026-0008" }], [], { fehlt: [] });
   assert.match(liste, /name="ausstellen"/);
   assert.match(liste, /name="stornieren"/);

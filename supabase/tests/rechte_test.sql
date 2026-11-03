@@ -86,6 +86,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103180000_belege_storno.sql
 \ir ../migrations/20261103190000_rechnungen_13b.sql
 \ir ../migrations/20261103200000_probezeit_ki_budget.sql
+\ir ../migrations/20261103210000_rechnungsvorlage.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values

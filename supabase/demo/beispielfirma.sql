@@ -39,6 +39,8 @@ begin
   insert into public.firmen (name, paket, strasse, plz, ort, telefon, website)
   values ('Rheinland Facility Service GmbH (Beispiel)', 'test', 'Am Beispielpark 12', '52068', 'Aachen', '+49 241 99999-0', 'https://www.beispiel-facility.invalid')
   returning id into f;
+  -- Operator's demo firm: no trial AI limit (the demo flag keeps it out of the daily AI search anyway).
+  update public.firmen set ki_budget_usd = null where id = f;
   insert into public.mitglieder (firma_id, user_id, rolle, alle_bereiche, aktiv, anzeigename, funktion, finanzen)
   values (f, u, 'inhaber', true, true, 'Benjamin', 'Geschäftsführung', true);
   insert into public.firmenprofil (firma_id, rechtsform, registergericht, registernummer, gruendungsjahr, mitarbeiter, website, email, ustid,

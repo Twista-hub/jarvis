@@ -4,7 +4,7 @@ import { db, html, sitzung, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 
 /** Every R2 folder that belongs to one firm (see the places that write files). */
-export const FIRMEN_ORDNER = ["bibliothek", "personal-fotos", "importe", "angebotsabgaben", "personal_nachweise", "spesen", "unterschriften", "nachweis", "bewerber"];
+export const FIRMEN_ORDNER = ["bibliothek", "personal-fotos", "importe", "angebotsabgaben", "personal_nachweise", "spesen", "unterschriften", "nachweis", "bewerber", "belege", "rechnungen"];
 
 async function ordnerLeeren(env: KontoEnv, praefix: string): Promise<number> {
   let n = 0;

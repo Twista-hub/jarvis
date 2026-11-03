@@ -5,7 +5,7 @@
 import { zipSync, strToU8 } from "fflate";
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, weiterleiten, type KontoEnv } from "./konto.ts";
-import { beteiligte, RECHNUNG_SPALTEN, rechnungDocx, ustVon, type Absender, type Rechnung } from "./rechnungen.ts";
+import { beteiligte, originalSchluessel, RECHNUNG_SPALTEN, rechnungDocx, ustVon, type Absender, type Rechnung } from "./rechnungen.ts";
 import { xrechnungXml, fehlendFuerXRechnung } from "./xrechnung.ts";
 import { dateiSchluessel, type Beleg } from "./belege.ts";
 import type { Kunde } from "./kunden.ts";
@@ -40,7 +40,8 @@ export async function archiv(request: Request, env: KontoEnv): Promise<Response 
     const kunde = kunden.find((k) => k.id === r.kunde_id) ?? null;
     const b = beteiligte(r, kunde, absender);
     const ust = ustVon(r, absender.kleinunternehmer);
-    dateien[`rechnungen/${sicher(r.nummer)}.docx`] = rechnungDocx(r, kunde, absender);
+    const original = await env.DATEN?.get(originalSchluessel(firma, r.id));
+    dateien[`rechnungen/${sicher(r.nummer)}.docx`] = original ? new Uint8Array(await original.arrayBuffer()) : rechnungDocx(r, kunde, absender);
     if (r.art !== "storno" && !fehlendFuerXRechnung(b.a, b.kunde).length) dateien[`rechnungen/${sicher(r.nummer)}.xml`] = strToU8(xrechnungXml(r, b.kunde, b.a, r.empfaenger?.leitweg ?? ""));
     reZeilen.push([r.nummer, r.art === "storno" ? "Storno" : "Rechnung", r.bezug_nummer ?? "", r.datum, r.monat, b.kunde?.name ?? "", betrag(Number(r.netto)), betrag(ust), betrag(Number(r.netto) + ust), r.bezahlt_am ?? "", r.storniert_durch ? "ja" : ""]);
   }

@@ -128,6 +128,24 @@ export function vorlagePositionen(v: Vorlage, monat: string): Position[] {
 /** Templates still to be billed for this month (active, not yet billed for it). */
 export const offeneVorlagen = (l: Vorlage[], monat: string) => l.filter((v) => v.aktiv && (v.letzter_monat ?? "") < monat);
 
+/** Stored original of an issued invoice (GoBD: the document as handed out, independent of later template changes). */
+export const originalSchluessel = (firma: string, id: string) => `rechnungen/${firma}/${id}.docx`;
+
+/** Invoice template of a firm: logo from the firm profile, opening/closing text, footer lines. */
+export async function vorlageLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string): Promise<Vorlage2> {
+  const p = await db<{ logo: string | null; rechnung_einleitung: string; rechnung_schluss: string; rechtsform: string; registergericht: string; registernummer: string; geschaeftsfuehrung: string; website: string }[]>(s, env, `firmenprofil?firma_id=eq.${firma}&select=logo,rechnung_einleitung,rechnung_schluss,rechtsform,registergericht,registernummer,geschaeftsfuehrung,website`);
+  const x = p.ok ? p.daten[0] : undefined;
+  const obj = x?.logo ? await env.DATEN?.get(`firmenlogo/${firma}`) : null;
+  return { logo: obj ? { bytes: new Uint8Array(await obj.arrayBuffer()), typ: x!.logo === "image/png" ? "png" : "jpeg" } : null, einleitung: x?.rechnung_einleitung ?? "", schluss: x?.rechnung_schluss ?? "", fuss: x ? fusszeilen(x) : [] };
+}
+
+export function vorlageFormular(v: { einleitung: string; schluss: string; logo: boolean }): string {
+  return `<details><summary>🧾 Rechnungsvorlage (Logo, Texte)</summary><form method="post" action="/konto/rechnungen" class="formular-zeile">
+<input type="hidden" name="aktion" value="vorlage"><label class="ganz">Einleitung (über den Positionen)<textarea name="rechnung_einleitung" rows="2" maxlength="1000" placeholder="z. B. Vielen Dank für Ihren Auftrag. Wir berechnen Ihnen folgende Leistungen:">${escape(v.einleitung)}</textarea></label>
+<label class="ganz">Schlusstext (unter dem Zahlungshinweis)<textarea name="rechnung_schluss" rows="2" maxlength="1000" placeholder="z. B. Mit freundlichen Grüßen">${escape(v.schluss)}</textarea></label><button class="zweit">Vorlage speichern</button></form>
+<p class="klein">${v.logo ? "✓ Das Logo aus dem Firmenprofil steht oben auf jeder Rechnung." : "Kein Logo: Ein Logo lädst du im <a href=\"/konto/firmenprofil\">Firmenprofil</a> hoch."} Die Fußzeile füllt Jarvis aus dem Firmenprofil (Steuernummer, Kontakt, Registergericht, Geschäftsführung). Beim Ausstellen speichert Jarvis die fertige Rechnung, spätere Änderungen an der Vorlage ändern sie nicht mehr. <a href="/konto/rechnungen/vorschau.docx" download>📄 Vorschau mit Beispieldaten</a></p></details>`;
+}
+
 export function vorlagenBereich(vorlagen: Vorlage[], kunden: Kunde[], monat: string): string {
   const kName = (id: string) => kunden.find((k) => k.id === id)?.name ?? "Kunde gelöscht";
   const offen = offeneVorlagen(vorlagen, monat);
@@ -176,7 +194,7 @@ export const ohneFormulare = (h: string) => h.replace(/<form[\s\S]*?<\/form>/g, 
 export async function rechnungen(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const docx = url.pathname.match(/^\/konto\/rechnungen\/([0-9a-f-]{36})\.(docx|xml|mahnung\.docx)$/);
-  if (url.pathname !== "/konto/rechnungen" && !docx) return null;
+  if (url.pathname !== "/konto/rechnungen" && url.pathname !== "/konto/rechnungen/vorschau.docx" && !docx) return null;
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
   const antwort = (t: string, status = 200) => html(seite("Rechnungen", `<p class="konto-zurueck"><a href="/konto/team" aria-label="Zurück zu Firma &amp; Team">←</a></p>${t}`, 0, "team"), status, f.s.cookies);
@@ -192,6 +210,12 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     const a = fi.ok ? fi.daten[0] : undefined, p = pr.ok ? pr.daten[0] : undefined;
     return { name: a?.name ?? "", strasse: a?.strasse ?? "", plz: a?.plz ?? "", ort: a?.ort ?? "", telefon: a?.telefon ?? "", email: p?.email ?? "", ustid: p?.ustid ?? "", steuernummer: p?.steuernummer ?? "", kleinunternehmer: !!p?.kleinunternehmer, zahlungshinweis: p?.zahlungshinweis ?? "" };
   };
+  if (url.pathname === "/konto/rechnungen/vorschau.docx") {
+    const beispiel: Rechnung = { id: "vorschau", kunde_id: null, nummer: "RE-2026-0001", monat: heute.slice(0, 7), datum: heute, netto: 1500, ust_satz: 19, erstellt: "", status: "ausgestellt",
+      positionen: [{ text: `Leistungen ${monatName(heute.slice(0, 7))} lt. Leistungsnachweis`, menge: 50, einheit: "Std.", preis: 30, betrag: 1500 }], empfaenger: { name: "Beispielkunde GmbH", strasse: "Musterweg 1", plz: "50667", ort: "Köln" } };
+    const a = await absender();
+    return wordAntwort(rechnungDocx({ ...beispiel, absender: a, kleinunternehmer: a.kleinunternehmer, ust_betrag: a.kleinunternehmer ? 0 : 285 }, null, a, await vorlageLaden(f.s, env, firma)), "Rechnungsvorlage-Vorschau.docx", f.s.cookies);
+  }
   if (docx) {
     const r = await db<Rechnung[]>(f.s, env, `rechnungen?id=eq.${docx[1]}&firma_id=eq.${firma}&select=${RECHNUNG_SPALTEN}`);
     const x = r.ok ? r.daten[0] : undefined;
@@ -214,12 +238,25 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
       for (const c of f.s.cookies ?? []) h.append("set-cookie", c);
       return new Response(xrechnungXml(x, b.kunde, b.a, leitweg), { headers: h });
     }
-    return wordAntwort(rechnungDocx(x, kunde, await absender()), `${istEntwurf(x) ? `Rechnungsentwurf-${x.monat}` : x.nummer}.docx`, f.s.cookies);
+    // Issued: the original stored at issue time; older invoices (before 03.11.2026) are rendered from the frozen data.
+    const original = !istEntwurf(x) ? await env.DATEN?.get(originalSchluessel(firma, x.id)) : null;
+    if (original) return wordAntwort(new Uint8Array(await original.arrayBuffer()), `${x.nummer}.docx`, f.s.cookies);
+    return wordAntwort(rechnungDocx(x, kunde, await absender(), await vorlageLaden(f.s, env, firma)), `${istEntwurf(x) ? `Rechnungsentwurf-${x.monat}` : x.nummer}.docx`, f.s.cookies);
   }
   if (request.method === "POST" && nurLesen) return antwort("<p>Mit Leserechten kannst du Rechnungen nur ansehen und herunterladen.</p>", 403);
   if (request.method === "POST") {
     const form = await request.formData();
     const zurueck = (h: string) => weiterleiten(`/konto/rechnungen?hinweis=${encodeURIComponent(h)}`, f.s.cookies);
+    // GoBD: keep the document exactly as issued (logo and texts of that day) next to the frozen data.
+    const originalAblegen = async (nummer: string) => {
+      const n = await db<Rechnung[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&nummer=eq.${encodeURIComponent(nummer)}&select=${RECHNUNG_SPALTEN}`);
+      const x = n.ok ? n.daten[0] : undefined;
+      if (x && env.DATEN) await env.DATEN.put(originalSchluessel(firma, x.id), rechnungDocx(x, null, await absender(), await vorlageLaden(f.s, env, firma)), { httpMetadata: { contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" } });
+    };
+    if (form.get("aktion") === "vorlage") {
+      const r = await db(f.s, env, "firmenprofil?on_conflict=firma_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify({ firma_id: firma, rechnung_einleitung: String(form.get("rechnung_einleitung") ?? "").trim().slice(0, 1000), rechnung_schluss: String(form.get("rechnung_schluss") ?? "").trim().slice(0, 1000) }) });
+      return zurueck(r.ok ? "Rechnungsvorlage gespeichert." : "Speichern hat nicht geklappt (nur Inhaber und Admins).");
+    }
     for (const [feld, daten, text] of [["bezahlt", { bezahlt_am: heute }, "Als bezahlt markiert."], ["offen", { bezahlt_am: null }, "Wieder offen."]] as const) {
       const id = String(form.get(feld) ?? "");
       if (/^[0-9a-f-]{36}$/.test(id)) { const r = await db(f.s, env, `rechnungen?id=eq.${id}&firma_id=eq.${firma}`, { method: "PATCH", body: JSON.stringify(daten) }); return zurueck(r.ok ? text : "Speichern hat nicht geklappt."); }
@@ -230,6 +267,7 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
       const id = String(form.get(feld) ?? "");
       if (/^[0-9a-f-]{36}$/.test(id)) {
         const r = await db<string>(f.s, env, `rpc/${fn}`, { method: "POST", body: JSON.stringify({ r: id }) });
+        if (r.ok) await originalAblegen(r.daten);
         return zurueck(r.ok ? `Rechnung ${r.daten} ${ok}. Bitte herunterladen und selbst versenden.` : dbFehler(r.fehler) || "Das hat nicht geklappt.");
       }
     }
@@ -286,5 +324,5 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
   ]);
   const fehlt = [!a.steuernummer && !a.ustid ? "Steuernummer oder USt-IdNr." : "", !a.strasse || !a.ort ? "Anschrift" : "", !a.zahlungshinweis ? "Zahlungshinweis (z. B. Bankverbindung)" : ""].filter(Boolean);
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${nurLesen ? ohneFormulare(rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt: [], heute, kleinunternehmer: a.kleinunternehmer })) : rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt, heute, kleinunternehmer: a.kleinunternehmer }) + vorlagenBereich(vorlagen.ok ? vorlagen.daten : [], k.ok ? k.daten : [], heute.slice(0, 7))}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${nurLesen ? ohneFormulare(rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt: [], heute, kleinunternehmer: a.kleinunternehmer })) : rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt, heute, kleinunternehmer: a.kleinunternehmer }) + vorlageFormular(await (async () => { const v = await db<{ rechnung_einleitung: string; rechnung_schluss: string; logo: string | null }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=rechnung_einleitung,rechnung_schluss,logo`); const x = v.ok ? v.daten[0] : undefined; return { einleitung: x?.rechnung_einleitung ?? "", schluss: x?.rechnung_schluss ?? "", logo: !!x?.logo }; })()) + vorlagenBereich(vorlagen.ok ? vorlagen.daten : [], k.ok ? k.daten : [], heute.slice(0, 7))}`);
 }

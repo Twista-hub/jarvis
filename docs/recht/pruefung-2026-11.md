@@ -154,3 +154,11 @@ Website (Domain, die noch keine andere Firma nutzt, keine Freemail) gibt es 5,50
 `ki_reservieren_fuer` lehnt Anfragen über dem Kontingent ab (Alarm fällt auf Stichwort-Treffer zurück). Bestehende
 Firmen, eigene Firmen und zahlende Kunden: `null` = ohne Grenze (setzt der Betreiber per SQL). Hinweis auf der Übersicht
 (`probeHinweis`).
+
+## 9. Rechnungsvorlage (03.11.2026)
+
+Migration `20261103210000`: Einleitung und Schlusstext (je höchstens 1.000 Zeichen) im Firmenprofil, Logo in R2.
+Pflichtangaben nach § 14 Abs. 4 UStG bleiben fest im Dokument und lassen sich über die Vorlage nicht entfernen.
+Ausgestellte Rechnungen und Stornos werden beim Ausstellen als Word-Original abgelegt und danach unverändert
+ausgeliefert, auch im ZIP-Archiv (GoBD Unveränderbarkeit). Das Original wird mit dem Firmenordner beim Kontolöschen
+entfernt; vorher kommt die Warnung zum ZIP-Export.
