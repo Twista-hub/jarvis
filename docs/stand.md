@@ -8,6 +8,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Betreiber-Seite https://crewtender.eu/konto/betreiber: alle Firmen mit Inhaber, Plan, KI-Verbrauch, letzter Anmeldung; KI-Grenze (ohne Grenze / Probe 5,50 $ / 20 $ / Demo) und Plan per Knopf. Damit lässt sich die KI-Grenze des Testers ohne SQL aufheben.
   - Kundenrechnungen https://crewtender.eu/konto/betreiber/rechnungen: Rechnungen von WP Digital Ranger an Crewtender-Kunden, Nummern CT-Jahr-0001, Kleinunternehmer-Hinweis, Druckansicht/PDF, Storno statt Ändern, 8 Jahre aufbewahrt. **Geht erst mit Steuernummer** (Feld auf der Seite, Benjamin trägt sie selbst ein). Kunden im Ausland erst mit USt-IdNr.
   - Datenschutzerklärung (6 Sprachen): Aufbewahrung der eigenen Kundenrechnungen 8 Jahre.
+  - Teilzeit: Arbeitstage pro Person (Personalakte, Migration `20261103320000_arbeitstage.sql`). Urlaubskonto, Lohnliste und „Ich“-Seite zählen nur diese Tage; Mindesturlaub 4 Tage je Arbeitstag. Offen: Zeitkonto-Soll rechnet Abwesenheiten weiter mit Wochenstunden ÷ 5.
+  - Alarm (Python) protokolliert Modell und Anfrage-ID je KI-Anfrage (Rechtsprüfung K7 komplett).
+  - Achtung beim ersten Ausrollen: Datenbank und Web laufen parallel. Bis die Migration durch ist (1–2 Min.), kann das Speichern einer Person kurz fehlschlagen.
 - **Browser-Chat:** Auftrag LinkedIn-Unternehmensseite ab 04.11. liegt in `docs/auftraege/crewtender-linkedin.md`.
 
 ## Aktueller Stand (31.10.2026)
