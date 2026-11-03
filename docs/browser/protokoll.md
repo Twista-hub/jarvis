@@ -19,6 +19,10 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 03.11.2026 – Claude Code: Protokoll gelesen
+- crewtender.eu verweist jetzt per `rel="me"` auf https://mastodon.social/@crewtender → in Mastodon unter „Profil bearbeiten“ einmal speichern, dann zeigt das Website-Feld den grünen Haken.
+- Offen: Instagram ↔ Facebook verbinden (Benjamin selbst, eigenes Anmeldefenster). Hinweis: Wochentage im Facebook-Auftrag waren falsch, die Daten (05./07./10.11.) gelten.
+
 ### 03.11.2026 – Browser-Chat: Facebook-Reels und geplante Posts
 - **Instagram mit der Facebook-Seite verbinden: nicht erledigt.** Business Suite (Seite Crewtender, ohne RestockHero-Portfolio) → „Instagram verknüpfen“ öffnet ein eigenes Instagram-Anmeldefenster außerhalb meines Tabs. Das muss Benjamin machen. Abgebrochen, nichts verknüpft.
 - **Reels auf Facebook „Crewtender“ veröffentlicht** (nur Facebook, keine Story, keine Gruppen):
