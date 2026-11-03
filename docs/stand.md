@@ -98,7 +98,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Probezeit-Schutz** (`20261103200000`): ohne Website Demo ohne KI, mit eigener Website 5,50 $ KI je Firma, eine Probezeit je Domain. Bestehende Firmen ohne Grenze.
 - **Rechnungsvorlage** (`20261103210000`): Logo (`firmenlogo/<firma>` in R2), Einleitung, Schlusstext, Fußzeile aus dem Firmenprofil, Vorschau `/konto/rechnungen/vorschau.docx`. Beim Ausstellen/Stornieren wird das Word-Original in R2 abgelegt (`rechnungen/<firma>/<id>.docx`) und später unverändert ausgeliefert (GoBD: spätere Logo-/Textänderungen ändern alte Rechnungen nicht).
 - **Unternehmer-Häkchen** bei der Registrierung (nur B2B) und **Kontaktformular** `/kontakt` (zweiter Kontaktweg fürs Impressum, Mail nur an kontakt@).
-- Offen: siehe `docs/recht/pruefung-2026-11.md` (u. a. automatische Löschung nach Fristen, englische Rechtstexte, KI-Kennzeichnung, LODAS § 3b). Danach Hilfe-Center mit Anleitungen (Benjamin fragt nach „Wiki“).
+- **Löschfristen** (`20261103220000`): nachts vor der Datensicherung (`sicherung.yml`) Stempel, Rundgang-Scans, Bewertungen nach 2 J., Abwesenheiten, Wachbuch nach 3 J. (ab Jahresende). Person löschen entfernt auch Foto und Nachweisdateien in R2.
+- Offen: siehe `docs/recht/pruefung-2026-11.md` (u. a. englische Rechtstexte, KI-Kennzeichnung, LODAS § 3b). Danach Hilfe-Center mit Anleitungen (Benjamin fragt nach „Wiki“).
 
 ### 03.11.2026 – Claude (KI-Kosten je Firmengröße, Pläne angepasst, Verbesserungen aus dem Durchspielen)
 - Umgesetzt aus dem Durchspielen: Kasten „Nächster Schritt“ oben auf der Ausschreibungsseite (`web/src/naechster.ts`, Status-Knöpfe direkt), selten gebrauchte Abschnitte zugeklappt, Mehr-Menü in 6 Gruppen (`web/src/menue.ts`), Chat lädt neue Nachrichten alle 15 s von selbst, Unterlagen-Symbol steht hinter der ganzen geschätzten Angabe.
