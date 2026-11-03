@@ -107,7 +107,7 @@ export function mahnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeute
     ? `sicher ist es Ihrer Aufmerksamkeit entgangen: Für unsere Rechnung ${r.nummer} vom ${datum(r.datum)} konnten wir noch keinen Zahlungseingang feststellen. Wir bitten Sie, den Betrag bis zum ${frist} zu überweisen. Sollten Sie inzwischen bezahlt haben, betrachten Sie dieses Schreiben bitte als gegenstandslos.`
     : stufe === 2
       ? `leider ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} trotz Zahlungserinnerung weiterhin offen. Wir bitten Sie, den Betrag bis spätestens ${frist} zu begleichen.`
-      : `trotz Zahlungserinnerung und Mahnung ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} noch immer nicht bezahlt. Bitte überweisen Sie den Betrag bis spätestens ${frist}. Nach Ablauf dieser Frist behalten wir uns weitere Schritte vor.`;
+      : `trotz Zahlungserinnerung und Mahnung ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} noch immer nicht bezahlt. Bitte überweisen Sie den Betrag bis spätestens ${frist}. Nach Ablauf dieser Frist behalten wir uns weitere Schritte vor, insbesondere Verzugszinsen (§ 288 BGB, gegenüber Unternehmern 9 Prozentpunkte über dem Basiszinssatz) und die Verzugspauschale von 40 € (§ 288 Abs. 5 BGB).`;
   return wordDokument(absatz([a.name, adresse(a)].filter(Boolean).join(" · "), { grau: true, groesse: 16, abstand: 240 })
     + absatz([kunde?.name ?? "", kunde?.ansprechpartner ? `z. Hd. ${kunde.ansprechpartner}` : "", kunde?.strasse ?? "", [kunde?.plz, kunde?.ort].filter(Boolean).join(" ")].filter(Boolean).join("\n"), { abstand: 400 })
     + absatz(datum(heute), { abstand: 240 })
