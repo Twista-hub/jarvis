@@ -48,8 +48,11 @@ const NACHT: [number, number][] = [[0, 360], [1380, 1440]];
 const ueberlapp = (a: number, b: number, c: number, d: number) => Math.max(0, Math.min(b, d) - Math.max(a, c));
 const zuMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
 
-/** Night, Sunday and holiday minutes of one entry (holiday on a Sunday counts as holiday only; night counts on top). */
-export function zuschlag(e: { datum: string; beginn: string; ende: string; pause_min: number }, land: string): Zuschlag {
+/** Night, Sunday and holiday minutes of one entry (holiday on a Sunday counts as holiday only; night counts on top).
+ *  Public holidays follow the place of work (e.land, from the customer's site; Rechtsprüfung 03.11.2026 A4), the
+ *  firm's federal state only as fallback. */
+export function zuschlag(e: { datum: string; beginn: string; ende: string; pause_min: number; land?: string }, landFirma: string): Zuschlag {
+  const land = e.land || landFirma;
   const s = zuMin(e.beginn); let ende = zuMin(e.ende); if (ende <= s) ende += 1440;
   const brutto = ende - s, faktor = brutto > 0 ? Math.max(0, brutto - (e.pause_min || 0)) / brutto : 0;
   const z: Zuschlag = { nacht: 0, sonntag: 0, feiertag: 0 };
