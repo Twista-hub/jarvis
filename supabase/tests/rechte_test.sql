@@ -5,7 +5,7 @@ create extension if not exists pgcrypto;
 do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$;
 do $$ begin create role anon nologin; exception when duplicate_object then null; end $$;
 create schema auth;
-create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
+create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb, last_sign_in_at timestamptz);
 create function auth.uid() returns uuid language sql stable as $$ select coalesce(nullif(current_setting('test.uid', true), ''), nullif(current_setting('request.jwt.claim.sub', true), ''))::uuid $$;
 grant usage on schema auth to authenticated;
 -- Like Supabase: new tables in public get all table rights for authenticated (a migration's revoke then applies).
@@ -95,6 +95,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103270000_unterweisung_archiv.sql
 \ir ../migrations/20261103280000_ki_protokoll.sql
 \ir ../migrations/20261103290000_protokoll_datensparsam.sql
+\ir ../migrations/20261103300000_betreiber_firmen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1493,9 +1494,26 @@ insert into public.mitglieder (firma_id, user_id, rolle, anzeigename) values (:'
 set role authenticated;
 do $$ begin perform public.betreiber_konto_suchen('kunde@weg.test'); raise exception 'FEHLER: Nicht-Betreiber darf suchen'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 do $$ begin perform public.betreiber_konto_loeschen('kollege@weg.test', true); raise exception 'FEHLER: Kunde darf andere löschen'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select set_config('test.wegfirma', :'wegfirma', false);
+do $$ begin perform public.betreiber_firmen(); raise exception 'FEHLER: Kunde sieht alle Firmen'; exception when insufficient_privilege then null; end $$;
+do $$ begin perform public.betreiber_ki_budget(current_setting('test.wegfirma')::uuid, null); raise exception 'FEHLER: Kunde hebt eigenes KI-Limit auf'; exception when insufficient_privilege then null; end $$;
+do $$ begin perform public.betreiber_paket(current_setting('test.wegfirma')::uuid, 'pro'); raise exception 'FEHLER: Kunde setzt eigenen Plan'; exception when insufficient_privilege then null; end $$;
+do $$ begin update public.firmen set ki_budget_usd = 100 where id = current_setting('test.wegfirma')::uuid; raise exception 'FEHLER: Kunde ändert KI-Limit direkt'; exception when insufficient_privilege then null; end $$;
+do $$ begin update public.firmen set paket = 'pro' where id = current_setting('test.wegfirma')::uuid; raise exception 'FEHLER: Kunde ändert Plan direkt'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 select test_als('00000000-0000-0000-0000-0000000000b1');
 select pruefe(public.ist_betreiber(), 'Betreiber erkannt');
 select pruefe((select count(*) = 2 from public.betreiber_konto_suchen('KUNDE@weg.test')), 'Betreiber findet beide Firmen des Kunden');
+select pruefe((select inhaber = 'kunde@weg.test' and mitglieder = 1 and ki_budget_usd = 0 and paket = 'kostenlos' from public.betreiber_firmen() where id = :'wegfirma'), 'Betreiber sieht Firma mit Inhaber, Mitgliedern, Plan und KI-Limit');
+select pruefe((select count(*) >= 3 from public.betreiber_firmen()), 'Betreiber sieht auch fremde Firmen');
+select public.betreiber_ki_budget(:'wegfirma', null);
+select pruefe((select ki_budget_usd is null from public.betreiber_firmen() where id = :'wegfirma'), 'Betreiber hebt KI-Limit auf (fremde Firma)');
+select public.betreiber_ki_budget(:'wegfirma', 5.50);
+select pruefe((select ki_budget_usd = 5.50 from public.betreiber_firmen() where id = :'wegfirma'), 'Betreiber setzt Probe-Kontingent');
+do $$ begin perform public.betreiber_ki_budget(current_setting('test.wegfirma')::uuid, -1); raise exception 'FEHLER: negatives KI-Limit'; exception when others then if sqlerrm not like '%UNGUELTIG%' then raise; end if; end $$;
+do $$ begin perform public.betreiber_ki_budget(gen_random_uuid(), 0); raise exception 'FEHLER: unbekannte Firma'; exception when others then if sqlerrm not like '%NICHT_GEFUNDEN%' then raise; end if; end $$;
+select public.betreiber_paket(:'wegfirma', 'pro');
+select pruefe((select paket = 'pro' from public.betreiber_firmen() where id = :'wegfirma'), 'Betreiber setzt Plan');
+do $$ begin perform public.betreiber_paket(current_setting('test.wegfirma')::uuid, 'gold'); raise exception 'FEHLER: unbekannter Plan'; exception when others then if sqlerrm not like '%UNGUELTIG%' then raise; end if; end $$;
 do $$ begin perform public.betreiber_konto_loeschen('benschiffer79@gmail.com', true); raise exception 'FEHLER: eigenes Konto löschbar'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 do $$ begin perform public.betreiber_konto_loeschen('kunde@weg.test', false); raise exception 'FEHLER: letzter Inhaber ohne Firmenlöschung'; exception when others then if sqlerrm not like '%LETZTER_INHABER%' then raise; end if; end $$;
 select public.betreiber_konto_loeschen('kunde@weg.test', true) as erg \gset
