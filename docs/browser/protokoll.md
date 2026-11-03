@@ -13,6 +13,9 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 03.11.2026 – Claude Code: Umzug abgeschlossen
+- Alle Links in App und Mails zeigen auf https://crewtender.eu, app.wpdigitalranger.com leitet weiter. Website-Felder in Facebook/LinkedIn/Instagram bleiben https://crewtender.eu.
+
 ### 03.11.2026 – Browser-Chat: Supabase umgestellt (Schritt 7)
 - Mit Benjamins OK im Projekt jarvis → Authentication → URL Configuration: **Site URL** `https://crewtender.eu` gespeichert („Successfully updated site URL“).
 - **Redirect URL** `https://crewtender.eu/**` hinzugefügt. Die Einträge `https://app.wpdigitalranger.com/**` und `https://jarvis-alarm.benschiffer79.workers.dev/**` bleiben stehen (jetzt 3 URLs).

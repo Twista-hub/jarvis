@@ -124,15 +124,16 @@ const MAX_BYTES = 60 * 1024 * 1024;
 const MAX_FILES = 40;
 const ID = /^[0-9a-f-]{36}$/;
 
-export const ADRESSE = "https://app.wpdigitalranger.com";
+export const ADRESSE = "https://crewtender.eu";
 
 export default {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     // KI cost settlement may finish after the page has answered (time limit); keep it alive past the response.
     if (ctx) env = { ...env, WARTEN: (p: Promise<unknown>) => ctx.waitUntil(p) };
-    // The app lives at app.wpdigitalranger.com; the old workers.dev address forwards there (links in older mails keep working).
+    // The app lives at crewtender.eu (since 03.11.2026); the old addresses (workers.dev, app.wpdigitalranger.com) forward
+    // there, so links in older mails, calendar feeds and printed QR codes keep working.
     const alt = new URL(request.url);
-    if (alt.hostname.endsWith(".workers.dev")) return Response.redirect(`${ADRESSE}${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
+    if (alt.hostname.endsWith(".workers.dev") || alt.hostname === "app.wpdigitalranger.com") return Response.redirect(`${ADRESSE}${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
     // www.crewtender.eu forwards to the bare domain (one address for links, cookies and search engines).
     if (alt.hostname === "www.crewtender.eu") return Response.redirect(`https://crewtender.eu${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
     let antwort: Response;

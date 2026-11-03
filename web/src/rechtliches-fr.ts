@@ -16,7 +16,7 @@ export function impressumFr(): string {
   return `<h2>Informations selon le § 5 de la loi allemande sur les services numériques (DDG)</h2>
 <p>${anschrift()}</p>
 <h2>Contact</h2>
-<p>E-mail : ${mail()}<br>Formulaire de contact: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Téléphone : ${escape(FIRMA.telefon)}` : ""}</p>
+<p>E-mail : ${mail()}<br>Formulaire de contact: <a href="/kontakt">crewtender.eu/kontakt</a>${FIRMA.telefon ? `<br>Téléphone : ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>TVA</h2><p>Numéro de TVA intracommunautaire selon le § 27a UStG : ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>TVA</h2><p>Petite entreprise au sens du § 19 de la loi allemande sur la TVA (UStG) : aucune TVA n'est facturée.</p>` : ""}
 <h2>Responsable du contenu</h2>
 <p>${escape(FIRMA.name)}, adresse ci-dessus.</p>

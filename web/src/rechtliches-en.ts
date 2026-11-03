@@ -16,7 +16,7 @@ export function impressumEn(): string {
   return `<h2>Information pursuant to § 5 of the German Digital Services Act (DDG)</h2>
 <p>${anschrift()}</p>
 <h2>Contact</h2>
-<p>Email: ${mail()}<br>Contact form: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Phone: ${escape(FIRMA.telefon)}` : ""}</p>
+<p>Email: ${mail()}<br>Contact form: <a href="/kontakt">crewtender.eu/kontakt</a>${FIRMA.telefon ? `<br>Phone: ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>VAT</h2><p>VAT identification number pursuant to § 27a of the German VAT Act (UStG): ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>VAT</h2><p>Small business pursuant to § 19 of the German VAT Act (UStG); therefore no VAT is charged.</p>` : ""}
 <h2>Responsible for the content</h2>
 <p>${escape(FIRMA.name)}, address as above.</p>
