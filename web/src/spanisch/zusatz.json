@@ -217,5 +217,11 @@
  "Senden hat nicht geklappt.": "No se pudo enviar.",
  "Der Team-Chat ist nur für das Team, nicht für Lesezugänge.": "El chat del equipo es solo para el equipo, no para accesos de solo lectura.",
  "noch keine Nachricht": "todavía no hay mensajes",
- "Passt das zu euch? #/#": "¿Encaja con su empresa? #/#"
+ "Passt das zu euch? #/#": "¿Encaja con su empresa? #/#",
+ "Konto & Suche": "Cuenta y búsqueda",
+ "Ausschreibungen & Angebote": "Licitaciones y ofertas",
+ "Planung & Personal": "Planificación y personal",
+ "Abrechnung & Kunden": "Facturación y clientes",
+ "Firma": "Empresa",
+ "Weitere": "Más"
 }
