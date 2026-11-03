@@ -1,15 +1,16 @@
-# Jarvis – Anleitung für alle KI-Mitarbeiter (Claude und ChatGPT/Codex)
+# Jarvis (Crewtender) – Anleitung für alle KI-Mitarbeiter
 
-Diese Datei gilt für Claude (Claude Code) und ChatGPT (Codex) gleichermaßen. Beide haben die gleichen Rechte und
-Pflichten. Wer an Jarvis arbeitet, liest zuerst diese Datei und dann `docs/stand.md`.
+Seit 03.11.2026 arbeitet nur noch Claude an Jarvis: Claude Code programmiert, ein Claude-Chat mit Browser-Steuerung
+erledigt Browser-Arbeiten (Aufträge in `docs/auftraege/`). ChatGPT/Codex wird nicht mehr genutzt. Die App heißt nach
+außen **Crewtender**. Alle haben die gleichen Rechte und Pflichten. Wer an Jarvis arbeitet, liest zuerst diese Datei und dann `docs/stand.md`.
 
 ## 1. Pflicht: gemeinsames Gedächtnis
 - **Zu Beginn jeder Sitzung:** `AGENTS.md`, `docs/stand.md` und `docs/app-fahrplan.md` lesen. Vorher `git pull`.
 - **Am Ende jeder Sitzung (oder nach jedem größeren Schritt):** in `docs/stand.md`
   - „Aktueller Stand“ und „Offene Punkte“ anpassen,
-  - oben im Protokoll einen Eintrag ergänzen: Datum, wer (Claude/ChatGPT), was gemacht, was offen ist, was Benjamin tun muss.
+  - oben im Protokoll einen Eintrag ergänzen: Datum, wer (Claude Code / Browser-Chat), was gemacht, was offen ist, was Benjamin tun muss.
   - Dann committen und pushen. Nichts Wichtiges nur im Chat lassen: der andere sieht den Chat nicht.
-- Vor dem Push `git pull --rebase`, damit sich Claude und ChatGPT nicht gegenseitig überschreiben.
+- Vor dem Push `git pull --rebase`, damit sich parallele Sitzungen nicht gegenseitig überschreiben.
 - Neue dauerhafte Regeln oder Fakten (Konten, Adressen, Entscheidungen von Benjamin) gehören in diese Datei.
 
 ## 2. Benjamin (der Nutzer)

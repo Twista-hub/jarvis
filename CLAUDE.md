@@ -6,9 +6,10 @@
 - Kein Konsolen-Fan. Für Schritte im Browser immer den direkten Link und den genauen Buttontext schicken.
 - Antworten auf Deutsch, kurz, Wichtigstes zuerst.
 
-## Gemeinsam mit ChatGPT (seit 30.10.2026)
-- Claude und ChatGPT/Codex haben die gleichen Rechte. Gemeinsame Anleitung: `AGENTS.md`. Gemeinsames Gedächtnis: `docs/stand.md`.
-- Zu Beginn jeder Sitzung beide lesen, am Ende `docs/stand.md` (Stand, offene Punkte, Protokoll) aktualisieren, committen, pushen.
+## Arbeitsteilung (seit 03.11.2026, ChatGPT ist raus)
+- ChatGPT/Codex wird nicht mehr genutzt. Claude Code programmiert; ein eigener Claude-Chat mit Browser-Steuerung erledigt Arbeiten im Browser (Konten, Formulare). Aufträge dafür liegen in `docs/auftraege/`.
+- Gemeinsame Anleitung: `AGENTS.md`. Gemeinsames Gedächtnis: `docs/stand.md`. Zu Beginn jeder Sitzung beide lesen, am Ende `docs/stand.md` (Stand, offene Punkte, Protokoll) aktualisieren, committen, pushen.
+- Die App heißt nach außen **Crewtender** (seit 03.11.2026); technische Namen (Repo, Datenbank `jarvis_*`, Worker, Bucket) bleiben „jarvis“.
 
 ## Projekt
 - Jarvis ist das KI-Gehirn für Benjamins Firma. Plan, Regeln und Phasen stehen in `PLAN.md`. Zu Beginn jeder Sitzung lesen.
