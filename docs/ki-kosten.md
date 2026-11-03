@@ -57,6 +57,17 @@ Batch nach 461 s fertig, 16/16 Ergebnisse, Kosten 0,018 $ (halber Preis). 13 von
 ±1 Punkt der gespeicherten; zwei wichen stärker ab (8→5, 7→3). Das ist die normale Streuung zwischen zwei Läufen bei
 niedrigem Aufwand, kein Batch-Effekt (gleiches Modell, gleicher Text), sollte aber vor dem Einschalten an einer größeren
 Stichprobe beobachtet werden.
+**Größere Probe 03.11.2026** (Run 41549205326, 48 Ausschreibungen, Batch **und** direkt auf denselben Ausschreibungen):
+
+| Vergleich | ±1 Punkt | gleiche Treffer-Entscheidung (≥ 6) | mittlere Abweichung |
+|---|---:|---:|---:|
+| Batch gegen direkt (gleicher Zeitpunkt) | 45/48 | 45/48 | 0,46 |
+| Direkt gegen gespeichert (normale Streuung zwischen zwei Läufen) | 42/48 | 44/48 | 0,96 |
+| Batch gegen gespeichert | 44/48 | 47/48 | 0,71 |
+
+Kosten: Batch 0,046 $, direkt 0,090 $ (−49 %), 48/48 Ergebnisse nach 490 s. **Ergebnis:** Der Batch bewertet so gut wie
+der direkte Weg; die Abweichungen sind die normale Streuung des Modells, kleiner als zwischen zwei direkten Läufen.
+Qualität spricht nicht gegen das Einschalten – nur der Zeitpunkt (Alarm früher starten) ist zu entscheiden.
 
 ## 3. Weitere Hebel (Entscheidung Benjamin)
 

@@ -45,7 +45,7 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
 ### Fertig und live
 1. **KI-Kosten:** Firmenbeschreibung im Prompt-Cache + Haiku-Vorfilter (Sonnet bewertet weiter endgültig).
    Vergleich auf 285 echten Bewertungen: 51/51 Treffer erhalten. Batch-API (weitere 50 %) ist eingebaut, aber AUS
-   (`KI_BATCH=1`), Live-Probe: 16/16 Ergebnisse nach knapp 8 Minuten, halber Preis. Details: `docs/ki-kosten.md`.
+   (`KI_BATCH=1`), Probe mit 48 Ausschreibungen: bewertet so gut wie direkt (Abweichung 0,46 Punkte, kleiner als zwischen zwei direkten Läufen), 49 % billiger. Details: `docs/ki-kosten.md`.
 2. **Italien:** Oberfläche, KI-Texte, Morgenmail, Regionen, Quelle ANAC (alle Ausschreibungen, CC BY 4.0),
    Gewerke-Seiten https://app.wpdigitalranger.com/it/gare-d-appalto mit Live-Zahlen, Rechtsseiten (Garante).
    Länder-Durchlauf Mailänder Reinigungsfirma: ALLES OK (0,074 $).
