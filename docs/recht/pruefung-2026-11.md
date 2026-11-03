@@ -50,7 +50,7 @@
 | S20 | Belege mit mehreren Steuersätzen werden mit dem höchsten Satz gerechnet | belege.ts:71 | ⏳ |
 
 ### Niedrig
-S21 Kleinunternehmer-Text nennt die Befreiung nicht ausdrücklich (✅) · S22 fehlende Steuernummer wird auf die Rechnung gedruckt statt zu sperren (✅ Ausstellen gesperrt) · S23 Verzugszinsen/40-€-Pauschale optional anbieten (⏳) · S24 Rechnungsdatum = Erstellung des Entwurfs (✅ Datum beim Ausstellen) · S25 Leitweg-ID-Feld je Kunde (⏳) · S26 Belegdateien gelöschter Firmen bleiben in R2 (⏳) · S27 Nachkalkulation ohne Ausfallzeiten (⏳) · S28 LODAS-Schlüssel vom Lohnbüro bestätigen (⚖️; § 3b-Spalten n25/n40/so50/f125/f150 jetzt als eigene Lohnarten im LODAS-Export)
+S21 Kleinunternehmer-Text nennt die Befreiung nicht ausdrücklich (✅) · S22 fehlende Steuernummer wird auf die Rechnung gedruckt statt zu sperren (✅ Ausstellen gesperrt) · S23 Verzugszinsen/40-€-Pauschale optional anbieten (⏳) · S24 Rechnungsdatum = Erstellung des Entwurfs (✅ Datum beim Ausstellen) · S25 Leitweg-ID-Feld je Kunde (✅ Migration `20261103230000`, eigenes Feld, wird beim Ausstellen eingefroren und als BT-10 in die XRechnung geschrieben) · S26 Belegdateien gelöschter Firmen bleiben in R2 (⏳) · S27 Nachkalkulation ohne Ausfallzeiten (⏳) · S28 LODAS-Schlüssel vom Lohnbüro bestätigen (⚖️; § 3b-Spalten n25/n40/so50/f125/f150 jetzt als eigene Lohnarten im LODAS-Export)
 
 ## 2. Arbeitsrecht und Lohn
 

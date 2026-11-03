@@ -220,7 +220,7 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     const r = await db<Rechnung[]>(f.s, env, `rechnungen?id=eq.${docx[1]}&firma_id=eq.${firma}&select=${RECHNUNG_SPALTEN}`);
     const x = r.ok ? r.daten[0] : undefined;
     if (!x) return new Response("Nicht gefunden", { status: 404 });
-    const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz`) : null;
+    const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz,leitweg_id`) : null;
     const kunde = k?.ok ? k.daten[0] ?? null : null;
     if (docx[2] === "mahnung.docx") {
       if (!x.mahnstufe) return new Response("Noch keine Mahnung", { status: 404 });
@@ -233,7 +233,7 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
       const fehlt = fehlendFuerXRechnung(b.a, b.kunde);
       if (fehlt.length) return antwort(`<p>Für eine gültige E-Rechnung fehlt: ${escape(fehlt.join(", "))}. <a href="/konto/rechnungen">Zurück</a></p>`, 409);
       // Leitweg-ID of public buyers (BT-10): frozen at issue time from the customer note ("Leitweg-ID: 05315-…").
-      const leitweg = x.empfaenger?.leitweg || /Leitweg(?:-ID)?:?\s*([0-9A-Za-z-]{5,46})/i.exec(kunde?.notiz ?? "")?.[1] || "";
+      const leitweg = x.empfaenger?.leitweg || kunde?.leitweg_id || /Leitweg(?:-ID)?:?\s*([0-9A-Za-z-]{5,46})/i.exec(kunde?.notiz ?? "")?.[1] || "";
       const h = new Headers({ "content-type": "application/xml; charset=utf-8", "content-disposition": `attachment; filename="${x.nummer}.xml"` });
       for (const c of f.s.cookies ?? []) h.append("set-cookie", c);
       return new Response(xrechnungXml(x, b.kunde, b.a, leitweg), { headers: h });
