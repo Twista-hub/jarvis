@@ -79,7 +79,7 @@ Pausenprüfung grob · Gemeinde-Feiertage (Mariä Himmelfahrt, Augsburg, Fronlei
 | D2 | Führungszeugnis, Gesundheitszeugnis, Höhentauglichkeit als Upload-Vorschlag; Download für das ganze Büro inkl. Leser | Art. 9, 10 DSGVO, § 53 BZRG, ArbMedVV | personalakte.ts:12, 133, 155 | Nur „eingesehen am / gültig bis“, keine Kopie; Downloads nur Inhaber/Admin/Bearbeiter | ✅ keine Kopie (Datei wird verworfen), Hinweis, Download nur Inhaber/Admin/Bearbeiter/Standortleitung; ⏳ alte Kopien prüfen |
 | D3 | Ausfall-Notiz wird weiter gespeichert und in der Personalakte gezeigt (auch Lesern) | Art. 9 DSGVO | ausfall_melden, personal.ts:95 | Notizfeld beim Ausfall streichen, alte Notizen leeren | ✅ Feld weg, DB-Trigger speichert nie einen Grund, alte geleert |
 | D4 | Rundgänge und Wachbuch ohne Standortgrenze (Standortleitung und Leser sehen alles) | Art. 5, 32 DSGVO | Migration 20261103040000:38 | darf_bereich, Leser ausschließen | ✅ |
-| D5 | Wachbuch-Vorfälle ungefiltert im Kundenportal, Portal-Link ohne Ablauf | Art. 5, 10, 32 DSGVO | Migration 20261103060000:72 | Freigabe pro Eintrag, Ablaufdatum | ✅ nur Zeit und Objekt, kein Text; ⏳ Ablaufdatum |
+| D5 | Wachbuch-Vorfälle ungefiltert im Kundenportal, Portal-Link ohne Ablauf | Art. 5, 10, 32 DSGVO | Migration 20261103060000:72 | Freigabe pro Eintrag, Ablaufdatum | ✅ nur Zeit und Objekt, kein Text; ✅ Link gilt 12 Monate, nachts abgeschaltet (Migration `20261103240000`) |
 | D6 | Person löschen: Dateien bleiben in R2, Pflichtunterlagen gehen verloren | Art. 17 DSGVO | personal.ts:508 | wie A2, R2-Ordner pro Person mitlöschen | 🔧 Pflichtunterlagen geschützt (A2); ✅ Foto und Nachweisdateien werden mit der Person aus R2 gelöscht |
 
 ### Mittel

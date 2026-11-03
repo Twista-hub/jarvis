@@ -43,7 +43,7 @@ ${d.vorfaelle?.length ? `<h3>Vorfälle (30 Tage)</h3><ul class="kontakt-liste">$
 ${d.meldungen.length ? `<h3>Ihre letzten Meldungen</h3><ul class="kontakt-liste">${d.meldungen.map((m) => `<li><div><strong>${ARTEN[m.art] ?? ""} · ${zeitpunkt(m.erstellt)}</strong><span class="klein">${escape(m.text)} · ${m.erledigt_am ? `✅ erledigt am ${datum(m.erledigt_am)}` : "⏳ in Bearbeitung"}</span></div></li>`).join("")}</ul>` : ""}`;
 }
 
-type Portal = { id: string; kunde_id: string; aktiv: boolean; rechnungen_zeigen: boolean; berichte_zeigen: boolean; erstellt: string };
+type Portal = { id: string; kunde_id: string; aktiv: boolean; rechnungen_zeigen: boolean; berichte_zeigen: boolean; erstellt: string; gueltig_bis?: string };
 type Meldung = { id: string; kunde_id: string; art: string; text: string; name: string; erstellt: string; erledigt_am: string | null };
 type KundeKurz = { id: string; name: string };
 
@@ -55,7 +55,7 @@ export function portalVerwaltung(kunden: KundeKurz[], portale: Portal[], meldung
   const zeile = (k: KundeKurz) => {
     const p = portale.find((x) => x.kunde_id === k.id);
     const knoepfe = !o.darf ? "" : p ? `${schalter(p, "rechnungen", "Rechnungen", p.rechnungen_zeigen, o.finanzen)}${schalter(p, "berichte", "Kontrollgänge &amp; Vorfälle", p.berichte_zeigen, true)}<form method="post" action="/konto/kundenportal"><input type="hidden" name="neu" value="${k.id}"><button class="zweit" title="Neuer Link, der alte gilt dann nicht mehr">🔄 Neuer Link</button></form><form method="post" action="/konto/kundenportal"><input type="hidden" name="portal" value="${p.id}"><input type="hidden" name="aktiv" value="${p.aktiv ? "0" : "1"}"><button class="zweit">${p.aktiv ? "⛔ Sperren" : "✅ Freigeben"}</button></form>` : `<form method="post" action="/konto/kundenportal"><input type="hidden" name="neu" value="${k.id}"><button>🔗 Portal-Link erstellen</button></form>`;
-    return `<li><div><strong>${escape(k.name)}</strong><span class="klein">${p ? p.aktiv ? `Portal aktiv seit ${datum(p.erstellt)}` : "⛔ gesperrt" : "kein Portal"}</span></div><span class="knopf-zeile">${knoepfe}</span></li>`;
+    return `<li><div><strong>${escape(k.name)}</strong><span class="klein">${p ? p.aktiv ? `Portal aktiv seit ${datum(p.erstellt)}${p.gueltig_bis ? `, gültig bis ${datum(p.gueltig_bis)}` : ""}` : "⛔ gesperrt oder abgelaufen" : "kein Portal"}</span></div><span class="knopf-zeile">${knoepfe}</span></li>`;
   };
   return `<p class="klein">Jeder Kunde bekommt einen geheimen Link (ohne Anmeldung). Dort sieht er seine Leistungsnachweise (nur Summen, keine Namen), auf Wunsch Rechnungen und Kontrollgänge und kann Mängel, Wünsche oder Lob melden. Jarvis verschickt den Link nicht selbst. Bitte die Kundendaten-Verarbeitung im Vertrag mit dem Kunden regeln.</p>
 <h2>📣 Meldungen von Kunden ${offen.length ? `<span class="klein">(${offen.length} offen)</span>` : ""}</h2>
@@ -86,12 +86,12 @@ export async function kundenportal(request: Request, env: KontoEnv): Promise<Res
       const k = await db<{ id: string; name: string; telefon: string; email: string }[]>(f.s, env, `kunden?id=eq.${kid}&firma_id=eq.${firma}&select=id,name,telefon,email`);
       const kunde = k.ok ? k.daten[0] : undefined;
       if (!kunde) return zurueck("Kunde nicht gefunden.");
-      const r = await db(f.s, env, "kunden_portale?on_conflict=kunde_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ firma_id: firma, kunde_id: kid, token_hash: hash, aktiv: true }) });
+      const r = await db(f.s, env, "kunden_portale?on_conflict=kunde_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ firma_id: firma, kunde_id: kid, token_hash: hash, aktiv: true, gueltig_bis: new Date(Date.now() + 365 * 86400_000).toISOString().slice(0, 10) }) });
       if (!r.ok) return zurueck("Link konnte nicht erstellt werden.");
       const link = new URL(`/portal/${token}`, request.url).toString();
       const text = `Ihr Kundenbereich bei ${f.m.firmen?.name || "uns"}: Leistungsnachweise ansehen und Anliegen melden: ${link}`;
       const tel = kunde.telefon.replace(/[^\d+]/g, "").replace(/^0/, "49").replace(/^\+/, "");
-      return antwort(`<p>Portal-Link für <strong>${escape(kunde.name)}</strong>. Er wird nur jetzt angezeigt; ein früherer Link gilt nicht mehr.</p><label>Link<input readonly value="${escape(link)}"></label>
+      return antwort(`<p>Portal-Link für <strong>${escape(kunde.name)}</strong>. Er wird nur jetzt angezeigt und gilt 12 Monate; ein früherer Link gilt nicht mehr.</p><label>Link<input readonly value="${escape(link)}"></label>
 <div class="knopf-zeile teilen"><a class="knopf" href="https://wa.me/${tel}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a><a class="knopf zweit" href="mailto:${escape(kunde.email)}?subject=${encodeURIComponent("Ihr Kundenbereich")}&body=${encodeURIComponent(text)}">E-Mail</a></div>
 <p class="klein">Jarvis verschickt den Link nicht selbst. Wer den Link hat, sieht den Kundenbereich; bitte nur an den Kunden geben. Bei Verdacht: „🔄 Neuer Link“ oder „⛔ Sperren“.</p><p><a href="/konto/kundenportal">← Zurück zur Übersicht</a></p>`);
     }
@@ -112,7 +112,7 @@ export async function kundenportal(request: Request, env: KontoEnv): Promise<Res
   }
   const [k, p, ml] = await Promise.all([
     db<KundeKurz[]>(f.s, env, `kunden?firma_id=eq.${firma}&select=id,name&order=name&limit=1000`),
-    db<Portal[]>(f.s, env, `kunden_portale?firma_id=eq.${firma}&select=id,kunde_id,aktiv,rechnungen_zeigen,berichte_zeigen,erstellt&limit=1000`),
+    db<Portal[]>(f.s, env, `kunden_portale?firma_id=eq.${firma}&select=id,kunde_id,aktiv,rechnungen_zeigen,berichte_zeigen,erstellt,gueltig_bis&limit=1000`),
     db<Meldung[]>(f.s, env, `kunden_meldungen?firma_id=eq.${firma}&select=id,kunde_id,art,text,name,erstellt,erledigt_am&order=erstellt.desc&limit=200`),
   ]);
   const hinweis = url.searchParams.get("hinweis");

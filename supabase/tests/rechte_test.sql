@@ -89,6 +89,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103210000_rechnungsvorlage.sql
 \ir ../migrations/20261103220000_loeschfristen.sql
 \ir ../migrations/20261103230000_leitweg_id.sql
+\ir ../migrations/20261103240000_portal_ablauf.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1623,6 +1624,7 @@ select pruefe((select count(*) = 0 from jarvis_intern.loeschfristen() where gelo
 select pruefe((select count(*) from public.stempel) = :stempel_vorher, 'Aktuelle Stempelzeiten bleiben');
 select pruefe((select sum(geloescht) >= 0 from jarvis_intern.loeschfristen((current_date + interval '5 years')::date)), 'Löschfristen laufen in der Zukunft durch');
 select pruefe((select count(*) = 0 from public.stempel), 'Stempelzeiten nach Ablauf gelöscht');
+select pruefe((select count(*) = 0 from public.kunden_portale where aktiv), 'Abgelaufene Kundenportal-Links abgeschaltet');
 set role authenticated;
 do $$ begin
   perform jarvis_intern.loeschfristen();
