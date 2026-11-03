@@ -83,6 +83,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Batch-API für den geplanten Tagesalarm eingeschaltet (Alarm 04:17 UTC, max. 25 Min. je Firma, Erstlauf direkt); Probe 48 Ausschreibungen: gleiche Qualität wie direkt, −49 %.
 - E-Rechnung: `web/src/xrechnung.ts`, Download „🧾 E-Rechnung“ unter Rechnungen (XRechnung 3.0 UBL, Leitweg-ID aus Kunden-Notiz). KoSIT-Validator akzeptiert normale Rechnung und Kleinunternehmer-Rechnung (`xrechnung-pruefen.yml`).
 - Plan-Struktur nach `docs/abos.md` in `web/src/plaene.ts` (Grenzen, nicht aktiv, Preise offen).
+- Mahnwesen: Zahlungsstatus, Summen offen/überfällig, Mahnschreiben 3 Stufen (`rechnungen.ts`, Migration `20261103020000`); Rechnungsinhalt per Trigger unveränderlich.
 
 ### 02./03.11.2026 – Claude (Nacht: KI-Kosten, Italien, Niederlande, Ideen, Abos)
 - KI-Kosten: Prompt-Caching und Haiku-Vorfilter (Schwelle 3, Sonnet bewertet endgültig), gemessen 51/51 Treffer erhalten, ca. 40–45 % billiger (`docs/ki-kosten.md`). Batch-API als nächster Hebel vorgeschlagen.

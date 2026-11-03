@@ -65,6 +65,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261102130000_boamp_bestand.sql
 \ir ../migrations/20261102150000_ausland_bestand.sql
 \ir ../migrations/20261103010000_ausland_bestand_italien.sql
+\ir ../migrations/20261103020000_rechnungen_mahnwesen.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1072,6 +1073,12 @@ do $$ begin
   insert into public.rechnungen (firma_id, nummer, monat, datum) values (current_setting('test.firma')::uuid, 'RE-2026-0001', '2026-11', current_date);
   raise exception 'FEHLER: doppelte Rechnungsnummer';
 exception when unique_violation then null; end $$;
+update public.rechnungen set bezahlt_am = current_date, mahnstufe = 1, gemahnt_am = current_date where nummer = 'RE-2026-0001';
+select pruefe((select bezahlt_am = current_date and mahnstufe = 1 from public.rechnungen where nummer = 'RE-2026-0001'), 'Zahlungsstatus und Mahnstufe änderbar (Finanzfreigabe)');
+do $$ begin
+  update public.rechnungen set netto = 1 where nummer = 'RE-2026-0001';
+  raise exception 'FEHLER: Rechnungsbetrag nachträglich änderbar';
+exception when insufficient_privilege then null; end $$;
 insert into public.nachweis_freigaben (firma_id, monat, titel, inhalt, token_hash) values (:'firma', '2026-11', 'Messe Berlin', '{"zeilen":[]}', encode(sha256(convert_to('geheim-123', 'UTF8')), 'hex'));
 select test_als('00000000-0000-0000-0000-0000000000e1');
 select pruefe((select count(*) = 1 and min(ort) = 'Offen Berlin' from public.schichten where personal_id is null), 'Einsatzkraft sieht nur passende offene Schichten');
