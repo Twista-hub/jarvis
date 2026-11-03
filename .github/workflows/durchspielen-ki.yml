@@ -8,6 +8,10 @@ on:
       bestaetigung:
         description: "Kostet etwas KI-Guthaben (ca. 1–3 $). Zum Starten JA eintippen"
         default: ""
+      alle_unterlagen:
+        description: "Steckbrief aus allen 11 Bundesbank-Unterlagen statt 3 (teuerster Fall)"
+        type: boolean
+        default: false
       nur:
         description: "Nur diese Teile (kommagetrennt: recherche, belege, nachweise, steckbrief); leer = alle"
         default: ""
@@ -48,7 +52,7 @@ jobs:
         run: |
           python3 alarm/musterbelege.py "$RUNNER_TEMP/belege" >/dev/null
           python3 alarm/musternachweise.py "$RUNNER_TEMP/nachweise"
-          mkdir -p "$RUNNER_TEMP/unterlagen" && cp alarm/test-unterlagen/dtvp-CXP4Y63M3X1/{A0,B0,B5}_* "$RUNNER_TEMP/unterlagen/"
+          mkdir -p "$RUNNER_TEMP/unterlagen" && cp alarm/test-unterlagen/dtvp-CXP4Y63M3X1/* "$RUNNER_TEMP/unterlagen/"
       - name: Testdatenbank mit Beispielfirma
         run: bash web/scripts/durchspielen/basis.sh
       - name: PostgREST und App starten
@@ -68,6 +72,7 @@ jobs:
       - name: KI-Abläufe durchspielen
         env:
           NUR: ${{ inputs.nur }}
+          ALLE_UNTERLAGEN: ${{ inputs.alle_unterlagen && '1' || '0' }}
         run: node web/scripts/durchspielen/ki-ablauf.mjs "$RUNNER_TEMP/belege" "$RUNNER_TEMP/nachweise" "$RUNNER_TEMP/unterlagen" | tee "$RUNNER_TEMP/ergebnis.txt"
       - name: Meldungen der App
         if: always()

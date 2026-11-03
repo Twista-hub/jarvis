@@ -23,6 +23,16 @@ async function app(pfad, { nutzer = INHABER, firma, body, methode } = {}) {
 const NUR = (process.env.NUR ?? "").split(",").map((x) => x.trim()).filter(Boolean);
 const teil = (name) => !NUR.length || NUR.includes(name);
 const t0 = Date.now(); const dauer = () => `${Math.round((Date.now() - t0) / 1000)} s`;
+// AI cost per part: bookings in jarvis_katalog.ki_kosten before and after each part.
+const kostenStand = () => { try { return JSON.parse(sql("select json_build_object('n', count(*), 'usd', coalesce(sum(coalesce(verbraucht, reserviert)), 0)) from jarvis_katalog.ki_kosten")); } catch { return { n: 0, usd: 0 }; } };
+const kosten = [];
+let stand = kostenStand();
+const abrechnen = (teilname, einheiten, einheit) => {
+  const neu = kostenStand();
+  const usd = Number(neu.usd) - Number(stand.usd), n = neu.n - stand.n;
+  if (n) kosten.push(`${teilname}: ${n} KI-Anfragen, ${usd.toFixed(4)} $${einheiten ? ` = ${(usd / einheiten).toFixed(4)} $ je ${einheit}` : ""}`);
+  stand = neu;
+};
 const demo = sql("select id from public.firmen where name = 'Rheinland Facility Service GmbH (Beispiel)'");
 
 // ---------- 1. Sign-up, new firm, automatic research ----------
@@ -52,6 +62,7 @@ if (teil("recherche")) try {
   melde("Firmenrecherche", !/schiefgegangen/.test(seite), `Danach angezeigt: ${seite.slice(0, 300)}`);
 } catch (e) { melde("Firmenrecherche", false, `Abbruch: ${String(e).slice(0, 200)}`); }
 
+abrechnen("Firmenrecherche", 1, "Firma");
 // ---------- 2. Receipts ----------
 if (teil("belege")) try {
   const wahr = JSON.parse(readFileSync(join(BELEGE, "wahrheit.json"), "utf8"));
@@ -71,6 +82,7 @@ if (teil("belege")) try {
   melde("Belege lesen", richtig === gesamt, `${richtig} von ${gesamt} Belegen mit richtigem Datum und Betrag`);
 } catch (e) { melde("Belege lesen", false, `Abbruch: ${String(e).slice(0, 200)}`); }
 
+abrechnen("Belege lesen", 8, "Beleg");
 // ---------- 3. Company proofs: expiry date ----------
 if (teil("nachweise")) try {
   const wahr = JSON.parse(readFileSync(join(NACHWEISE, "wahrheit.json"), "utf8"));
@@ -88,11 +100,13 @@ if (teil("nachweise")) try {
   melde("Nachweise Datum", richtig === Object.keys(wahr).length, `${richtig} von ${Object.keys(wahr).length} Nachweisen richtig`);
 } catch (e) { melde("Nachweise Datum", false, `Abbruch: ${String(e).slice(0, 200)}`); }
 
+abrechnen("Ablaufdatum Nachweise", 6, "Nachweis");
 // ---------- 4. Tender documents -> Steckbrief -> calculation ----------
 if (teil("steckbrief")) try {
   const v = sql(`select id from public.vorgaenge where firma_id = '${demo}' and titel like 'Servicepersonal für Kongresse%'`);
   const fd = new FormData();
-  const dateien = readdirSync(UNTERLAGEN).filter((d) => /^(A0|B0|B5)_/.test(d));
+  // Default: 3 core documents; ALLE_UNTERLAGEN=1 uploads the whole public tender (11 files, worst case for costs).
+  const dateien = readdirSync(UNTERLAGEN).filter((d) => process.env.ALLE_UNTERLAGEN === "1" ? !d.startsWith(".") : /^(A0|B0|B5)_/.test(d));
   for (const d of dateien) fd.append("dateien", new Blob([readFileSync(join(UNTERLAGEN, d))], { type: "application/pdf" }), d);
   const r = await app(`/konto/vorgang/${v}/unterlagen`, { firma: demo, body: fd });
   melde("Steckbrief", r.status === 303 && !/fehler=/.test(r.ort), `${dateien.length} Vergabeunterlagen hochgeladen (${dateien.map((d) => basename(d).slice(0, 30)).join("; ")}) → ${r.ort.replace(/[0-9a-f-]{36}/, ":id")}`);
@@ -109,6 +123,8 @@ if (teil("steckbrief")) try {
   melde("Kalkulation", k.status === 200 && /€/.test(kt), `Kalkulation (HTTP ${k.status}): ${kt.slice(kt.indexOf("Kalkulation"), kt.indexOf("Kalkulation") + 500)}`);
 } catch (e) { melde("Steckbrief", false, `Abbruch: ${String(e).slice(0, 200)}`); }
 
+abrechnen(`Steckbrief aus Unterlagen (${process.env.ALLE_UNTERLAGEN === "1" ? "11 Dateien" : "3 PDFs"}, inkl. Lose)`, 1, "Steckbrief");
+console.log("\nKI-Kosten je Teil:\n  " + (kosten.join("\n  ") || "keine"));
 // ---------- AI costs ----------
 try {
   console.log("\nKI-Kosten: " + sql("select zweck || ': ' || count(*) || ' Anfragen, ' || round(sum(coalesce(verbraucht, reserviert)), 3) || ' $' from jarvis_katalog.ki_kosten group by zweck").replace(/\n/g, " · "));

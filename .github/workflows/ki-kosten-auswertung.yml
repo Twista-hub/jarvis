@@ -38,4 +38,22 @@ jobs:
                   print(c.execute("select count(*), round(avg(length(beschreibung))), max(length(beschreibung)) from public.suchprofile").fetchone())
               except Exception as e:
                   print("nicht lesbar:", type(e).__name__)
+              # Per firm (anonymous labels, the log is public): purpose, requests, spend, days with spend, locations,
+              # services in the search profile. Basis for the cost model per firm size (docs/ki-kosten-plaene.md).
+              print("\nFirma | Zweck | Anfragen | verbraucht $ | Tage mit Kosten | Standorte | Leistungen im Profil (letzte 30 Tage)")
+              zeilen = c.execute("""
+                  select case when f.name like '%(Beispiel)' then 'Beispielfirma' else 'Firma ' || chr(64 + dense_rank() over (order by k.firma_id)::int) end,
+                         k.zweck, count(*), round(sum(coalesce(k.verbraucht, 0)), 4), count(distinct k.zeit::date),
+                         (select count(*) from public.bereiche b where b.firma_id = k.firma_id and b.art = 'standort'),
+                         (select coalesce(jsonb_array_length(s.einstellungen->'leistungen'), 0) from public.suchprofile s where s.firma_id = k.firma_id and s.bereich_id is null limit 1)
+                    from jarvis_katalog.ki_kosten k left join public.firmen f on f.id = k.firma_id
+                   where k.zeit > now() - interval '30 days' and k.firma_id is not null
+                   group by k.firma_id, f.name, k.zweck order by 1, 2""").fetchall()
+              for z in zeilen:
+                  print(*z, sep=" | ")
+              print("\nBeispielfirma heute je Stunde (UTC): Zweck | Anfragen | verbraucht $")
+              for z in c.execute("""select to_char(date_trunc('hour', k.zeit), 'HH24') || ':00', k.zweck, count(*), round(sum(coalesce(k.verbraucht, 0)), 4)
+                                    from jarvis_katalog.ki_kosten k join public.firmen f on f.id = k.firma_id
+                                    where f.name like '%(Beispiel)' and k.zeit::date = current_date group by 1, 2 order by 1""").fetchall():
+                  print(*z, sep=" | ")
           PY
