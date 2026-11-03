@@ -346,7 +346,7 @@ self.addEventListener("notificationclick", function (e) {
 `;
 
 export const MANIFEST = JSON.stringify({
-  name: "Crewtender Ausschreibungs-Alarm",
+  name: "Crewtender",
   short_name: "Crewtender",
   start_url: "/konto",
   scope: "/",
