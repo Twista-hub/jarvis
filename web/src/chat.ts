@@ -35,15 +35,15 @@ export function raumSeite(raum: Pick<Raum, "bereich_id" | "einsatzort_id" | "nam
     const eigen = n.user_id === o.ich;
     return `<div class="chat-blase${eigen ? " eigen" : ""}"><p class="klein">${eigen ? "Du" : escape(name(n.user_id))} · ${zeit(n.erstellt, o.heute)}</p><p>${escape(n.text).replace(/\n/g, "<br>")}</p>${eigen || o.admin ? `<form method="post" action="${ziel}"><input type="hidden" name="loeschen" value="${n.id}"><button class="zweit" aria-label="Nachricht löschen">✕</button></form>` : ""}</div>`;
   }).join("");
-  return `<h2>${symbol(raum)} ${escape(raum.name)}</h2><p><a href="/konto/chat">← Alle Chats</a> · <a href="${ziel}">↻ Aktualisieren</a></p>
-<div class="chat-verlauf">${blasen || `<p class="treffer-leer">Noch keine Nachricht. Schreib die erste.</p>`}</div>
+  return `<h2>${symbol(raum)} ${escape(raum.name)}</h2><p><a href="/konto/chat">← Alle Chats</a> · <a href="${ziel}">↻ Aktualisieren</a> <span class="klein">· neue Nachrichten erscheinen von selbst</span></p>
+<div class="chat-verlauf" data-chat-stand="${escape(liste.at(-1)?.erstellt ?? "")}" data-chat-pruefen="${ziel.replace("/konto/chat?", "/konto/chat/stand?")}">${blasen || `<p class="treffer-leer">Noch keine Nachricht. Schreib die erste.</p>`}</div>
 <form method="post" action="${ziel}" class="chat-form"><label>Nachricht<textarea name="text" required maxlength="1000" rows="3" placeholder="z. B. Treffpunkt morgen 6:45 Uhr am Eingang Süd"></textarea></label><button>Senden</button>
 <p class="klein">Alle im Chat bekommen eine Handy-Nachricht (wenn eingeschaltet, innerhalb einer Stunde zwischen 6 und 21 Uhr). Bitte keine Gesundheitsangaben.</p></form>`;
 }
 
 export async function chat(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
-  if (url.pathname !== "/konto/chat") return null;
+  if (url.pathname !== "/konto/chat" && url.pathname !== "/konto/chat/stand") return null;
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
   const firma = f.m.firma_id;
@@ -68,6 +68,12 @@ export async function chat(request: Request, env: KontoEnv): Promise<Response | 
   }
   if (!raum) return weiterleiten(`/konto/chat?hinweis=${encodeURIComponent("Diesen Chat gibt es nicht oder du bist nicht dabei.")}`, f.s.cookies);
   const ziel = raumLink(raum);
+  if (url.pathname === "/konto/chat/stand") {
+    // Polled by the open chat page (app.js): time of the newest message in this room, nothing else.
+    const filterStand = `firma_id=eq.${firma}&bereich_id=${raum.bereich_id ? `eq.${raum.bereich_id}` : "is.null"}&einsatzort_id=${raum.einsatzort_id ? `eq.${raum.einsatzort_id}` : "is.null"}`;
+    const r = await db<{ erstellt: string }[]>(f.s, env, `chat_nachrichten?${filterStand}&select=erstellt&order=erstellt.desc&limit=1`);
+    return new Response(JSON.stringify({ letzte: r.ok ? r.daten[0]?.erstellt ?? "" : "" }), { headers: { "content-type": "application/json", "cache-control": "no-store" } });
+  }
   if (request.method === "POST") {
     const form = await request.formData();
     const loeschen = String(form.get("loeschen") ?? "");

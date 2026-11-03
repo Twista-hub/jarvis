@@ -782,7 +782,8 @@ function leistungsTreffer(leistungen: { name: string; woerter: string[] }[], lis
 }
 
 /** Words in a Steckbrief from the public notice that mark missing or guessed facts. */
-const UNSICHER = /(?<![\p{L}])(nicht angegeben|nicht genannt|nicht bekannt|vermutlich|geschätzte[rnms]?|Schätzung|not specified|not stated|not known|unknown|probably|estimated|estimate|non précisée?s?|non communiquée?s?|non connue?s?|inconnue?s?|probablement|estimée?s?|estimation)(?![\p{L}])/giu;
+// Adjectives ("geschätzter Gesamtwert 620.000 EUR") get the mark at the end of the statement, not inside the phrase.
+const UNSICHER = /(?<![\p{L}])(?:(geschätzte[rnms]?|estimated|estimée?s?)(?![\p{L}])(?:[^.;!?]|\.(?=\S))*?(?=[.;!?](?:\s|$)|$)|(nicht angegeben|nicht genannt|nicht bekannt|vermutlich|Schätzung|not specified|not stated|not known|unknown|probably|estimate|non précisée?s?|non communiquée?s?|non connue?s?|inconnue?s?|probablement|estimation)(?![\p{L}]))/giu;
 /** Small line-drawn download symbol (arrow into a tray). */
 export const DL_ICON = `<svg class="dl-icon" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M8 2.5v7M4.8 6.6 8 9.8l3.2-3.2M3 12.5h10" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 /** Small "?" after each missing or guessed fact (opens the shared pop-up); only in text, not inside links or buttons. */

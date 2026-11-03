@@ -86,6 +86,18 @@ document.querySelectorAll("[data-live-satz]").forEach(function (anzeige) {
   if (tarif) tarif.addEventListener("change", function () { var lohn = form.querySelector('[name="lohn"]'); if (tarif.value && lohn) { lohn.value = tarif.value; rechnen(); } });
 });
 document.querySelectorAll("[data-drucken]").forEach(function (b) { b.addEventListener("click", function () { window.print(); }); });
+// Team chat: every 15 s ask whether a newer message exists; reload only when nothing is being typed and the tab is visible.
+document.querySelectorAll("[data-chat-stand]").forEach(function (v) {
+  var stand = v.getAttribute("data-chat-stand") || "", url = v.getAttribute("data-chat-pruefen");
+  var feld = document.querySelector(".chat-form textarea");
+  if (!url) return;
+  setInterval(function () {
+    if (document.hidden || (feld && feld.value.trim())) return;
+    fetch(url, { credentials: "same-origin" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (d) {
+      if (d && d.letzte && d.letzte !== stand) location.reload();
+    }).catch(function () {});
+  }, 15000);
+});
 // Display settings: stored in a cookie so the server draws the page in the chosen look right away.
 (function () {
   var wahl = (document.cookie.match(/(?:^|;\s*)jv_darstellung=([a-z-]+)/) || [])[1] || "";
