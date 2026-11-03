@@ -1,0 +1,17 @@
+# Fetches the private test tender documents from R2 (bucket jarvis-auftraege, testdaten/test-unterlagen.tar) into
+# alarm/test-unterlagen/. They must not be in the public repo (DTVP terms: no passing on to third parties).
+# The calling job needs CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID in its env.
+name: Testunterlagen holen
+description: Lädt die privaten Test-Vergabeunterlagen aus R2 nach alarm/test-unterlagen/
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      run: |
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/web"
+        [ -d node_modules/wrangler ] || npm ci --silent
+        npx wrangler r2 object get "jarvis-auftraege/testdaten/test-unterlagen.tar" --file "$RUNNER_TEMP/test-unterlagen.tar" --remote --jurisdiction eu
+        mkdir -p "$GITHUB_WORKSPACE/alarm/test-unterlagen"
+        tar -xf "$RUNNER_TEMP/test-unterlagen.tar" -C "$GITHUB_WORKSPACE/alarm/test-unterlagen"
+        echo "Testunterlagen: $(find "$GITHUB_WORKSPACE/alarm/test-unterlagen" -type f | wc -l) Dateien"

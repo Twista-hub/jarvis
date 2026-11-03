@@ -1,0 +1,39 @@
+# Private test tender documents in R2 (testdaten/test-unterlagen.tar), not in the public repo (DTVP terms).
+# hochladen: packs alarm/test-unterlagen/ of the given git ref and stores it in R2 (used once on 03.11.2026 to move
+# them out of the repo). pruefen: fetches them like the test workflows do and lists the files.
+name: Testdaten
+on:
+  workflow_dispatch:
+    inputs:
+      aktion:
+        description: "hochladen oder pruefen"
+        default: "pruefen"
+      ref:
+        description: "Git-Stand mit alarm/test-unterlagen (nur für hochladen)"
+        default: "main"
+permissions:
+  contents: read
+jobs:
+  testdaten:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Hochladen
+        if: inputs.aktion == 'hochladen'
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          git fetch -q origin "$REF" && git archive --format=tar FETCH_HEAD alarm/test-unterlagen | tar -xf - -C "$RUNNER_TEMP"
+          tar -cf "$RUNNER_TEMP/test-unterlagen.tar" -C "$RUNNER_TEMP/alarm/test-unterlagen" .
+          tar -tvf "$RUNNER_TEMP/test-unterlagen.tar" | awk '{print $3, $6}'
+          cd web && npm ci --silent
+          npx wrangler r2 object put "jarvis-auftraege/testdaten/test-unterlagen.tar" --file "$RUNNER_TEMP/test-unterlagen.tar" --remote --jurisdiction eu --content-type application/x-tar
+      - uses: ./.github/actions/testunterlagen
+      - run: find alarm/test-unterlagen -type f -printf "%s %p\n" | sort -k2
