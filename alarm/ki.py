@@ -229,7 +229,8 @@ def score_system(sprache: str = "de") -> str:
         "Die gesuchten Arbeiten begrenzen den Bedarf des Kunden; Partnerleistungen sind keine eigenen Leistungen. "
         "Ein Fliesenbetrieb passt nicht zu Heizung, Lüftung oder Innenputz, nur weil ein Bad saniert wird. "
         "Unter 6 Punkten bei lediglich entferntem oder unklarem Leistungsbezug. "
-        "kurz: ein Satz, was gesucht wird. grund: ein Satz, warum es passt oder nicht."
+        "kurz: ein Satz, was gesucht wird. grund: ein Satz, warum es passt oder nicht; die Firma liest ihn selbst, "
+        "also direkt ansprechen („eure Leistungen“, „euer Standort“), nicht „der Kunde“."
     ) + BEWERTUNG.get(sprache, "")
 
 
