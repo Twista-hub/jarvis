@@ -20,3 +20,9 @@ test("Fragezeichen hinter fehlenden oder vermuteten Angaben, Pop-up mit Holen un
   assert.doesNotMatch(mitLosen, /fehlen \d|fehlen eine|keine Lose|Portal holen|Hier hochladen/);
   assert.match(unterlagenHinweis("## Kurzüberblick\n\nReinigung", null, true), /nennt keine Lose/);
 });
+
+test("Symbol steht nach der ganzen Angabe, nicht mitten in 'geschätzter Gesamtwert'", () => {
+  const ohne = (h: string) => h.replace(/<button[^>]*>[\s\S]*?<\/button>/g, "[?]");
+  assert.equal(ohne(frageMarken("<td>geschätzter Gesamtwert 620.000 EUR</td>").html), "<td>geschätzter Gesamtwert 620.000 EUR[?]</td>");
+  assert.equal(ohne(frageMarken("<p>Geschätzter Auftragswert: 85.000 €. Laufzeit 24 Monate</p>").html), "<p>Geschätzter Auftragswert: 85.000 €[?]. Laufzeit 24 Monate</p>");
+});
