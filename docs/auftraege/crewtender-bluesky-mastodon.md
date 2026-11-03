@@ -5,7 +5,7 @@ Stand 03.11.2026.
 ## Regeln
 - Neue Tabs. **Getrennt von RestockHero:** eigene, neue Konten. Wenn RestockHero (@restockhero…) angemeldet ist,
   über „Konto hinzufügen“ bzw. abmelden arbeiten. Nichts an den RestockHero-Konten ändern.
-- Passwörter, Codes und Bestätigungsklicks in Mails macht Benjamin. E-Mail: hello@crewtender.eu (landet bei kontakt@wpdigitalranger.com).
+- Passwörter, Codes und Bestätigungsklicks in Mails macht Benjamin. E-Mail: **hello@crewtender.eu** für die Anmeldung; Bestätigungsmails landen im Postfach **kontakt@wpdigitalranger.com** (Weiterleitung).
 - Nichts posten, niemandem folgen außer nötig, keine Nachrichten.
 
 ## 1. Bluesky – Name @crewtender.eu
@@ -22,7 +22,7 @@ Stand 03.11.2026.
 1. https://mastodon.social/auth/sign_up → Benutzername **crewtender** (falls belegt: crew_tender), E-Mail hello@crewtender.eu.
    (Eigenes Konto, nicht das RestockHero-Konto auf mastodon.social.)
 2. Profil wie bei Bluesky (Bild, Banner, Beschreibung). Unter „Profil bearbeiten“ → „Zusätzliche Felder“: „Website“ → https://crewtender.eu,
-   „Impressum“ → https://crewtender.eu/impressum.
+   „Legal notice“ → https://crewtender.eu/impressum. Alle Profiltexte auf Englisch (Benjamin, 03.11.2026).
 3. Optional „Verifiziert“-Haken: Den Link `rel="me"` meldet Claude Code ein, sobald der Kontoname feststeht.
 
 ## 3. Rückmeldung
