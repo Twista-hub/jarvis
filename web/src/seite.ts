@@ -985,6 +985,9 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .bz-felder { border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; } .bz-felder legend { font-weight: 600; font-size: 14px; }
   .teilen { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0; }
   .nachweis-tabelle td, .nachweis-tabelle th { white-space: nowrap; } .tabelle-scroll { overflow-x: auto; }
+  .tabelle-rahmen { overflow-x: auto; margin: 8px 0; } .tabelle-rahmen td, .tabelle-rahmen th { white-space: nowrap; }
+  .fortschritt { height: 10px; border-radius: 6px; background: rgba(127,127,127,.2); overflow: hidden; margin: 2px 0 10px; } .fortschritt span { display: block; height: 100%; background: var(--akzent, #1f5f8b); }
+  .ust-waechter { border: 1px solid rgba(127,127,127,.3); border-radius: 12px; padding: 4px 14px; margin: 10px 0; } .ust-waechter.gelb { border-color: #c9a227; } .ust-waechter.rot { border-color: #c0392b; } .ust-waechter h2 { font-size: 17px; }
   .minus { color: var(--error); } .plus { color: var(--ok, #1a7f37); }
   .aueg-bz { display: block; margin-top: 2px; }
   .kraefte-liste { display: grid; gap: 6px; margin: 8px 0; } @media (min-width: 760px) { .kraefte-liste { grid-template-columns: 1fr 1fr; } }
