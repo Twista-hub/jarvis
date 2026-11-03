@@ -33,10 +33,16 @@ jobs:
       - name: Validieren
         run: |
           JAR=$(find validator -name "*standalone*.jar" | head -1)
-          [ -n "$JAR" ] || JAR=$(find validator -name "validator*.jar" | head -1)
           SZ=$(find konfig -name scenarios.xml | head -1)
           mkdir -p bericht
-          java -jar "$JAR" -s "$SZ" -r "$(dirname "$SZ")" -o bericht -h regel.xml klein.xml || true
+          if [ -n "$JAR" ]; then
+            java -jar "$JAR" -s "$SZ" -r "$(dirname "$SZ")" -o bericht -h regel.xml klein.xml || true
+          else
+            # Newer releases ship the validator jar plus its libraries: start the command line class via the classpath.
+            CP=$(find validator -name "*.jar" | tr '\n' ':')
+            java -cp "$CP" de.kosit.validationtool.cmd.CommandLineApplication -s "$SZ" -r "$(dirname "$SZ")" -o bericht -h regel.xml klein.xml || true
+          fi
+          ls bericht
           ok=1
           for f in regel klein; do
             r=$(ls bericht/${f}-report.xml 2>/dev/null | head -1)
