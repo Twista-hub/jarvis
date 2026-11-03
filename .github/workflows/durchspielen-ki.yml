@@ -1,0 +1,72 @@
+# End-to-end test of all AI flows in the real app with the real Claude API, on a throwaway database with the example
+# firm (web/scripts/durchspielen): sign-up + company research, receipts, proof dates, tender documents -> Steckbrief ->
+# calculation. Live data is not touched; only invented data and public tender documents go to the API. About 1–3 $.
+name: Durchspielen mit KI
+on:
+  workflow_dispatch:
+    inputs:
+      bestaetigung:
+        description: "Kostet etwas KI-Guthaben (ca. 1–3 $). Zum Starten JA eintippen"
+        default: ""
+permissions:
+  contents: read
+jobs:
+  durchspielen:
+    if: inputs.bestaetigung == 'JA'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Werkzeuge
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils fonts-dejavu-core unzip >/dev/null
+          pip install -q pillow
+          cd web && npm ci --silent
+      - name: Muster erzeugen (Belege, Nachweise, Vergabeunterlagen)
+        run: |
+          python3 alarm/musterbelege.py "$RUNNER_TEMP/belege" >/dev/null
+          python3 alarm/musternachweise.py "$RUNNER_TEMP/nachweise"
+          mkdir -p "$RUNNER_TEMP/unterlagen" && cp alarm/test-unterlagen/dtvp-CXP4Y63M3X1/{A0,B0,B5}_* "$RUNNER_TEMP/unterlagen/"
+      - name: Testdatenbank mit Beispielfirma
+        run: bash web/scripts/durchspielen/basis.sh
+      - name: PostgREST und App starten
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          geheim=$(openssl rand -hex 32); echo "::add-mask::$geheim"
+          docker run -d --name pgrst --network host -e PGRST_DB_URI="postgres://postgres:postgres@localhost:5432/postgres" \
+            -e PGRST_DB_SCHEMAS=public -e PGRST_DB_ANON_ROLE=anon -e PGRST_JWT_SECRET="$geheim" -e PGRST_SERVER_PORT=3000 postgrest/postgrest:v12.2.3
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/ >/dev/null && break; sleep 2; done
+          cd web
+          PGRST=http://localhost:3000 JWT_SECRET="$geheim" DB_URL="postgres://postgres:postgres@localhost:5432/postgres" PORT=8790 \
+            NUTZER=0000000b-0000-4000-8000-00000000be01 nohup node --experimental-strip-types --import ./scripts/klickpruefung/register.mjs \
+            scripts/durchspielen/server.ts > "$RUNNER_TEMP/server.log" 2>&1 &
+          for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8790/konto && break; sleep 1; done
+          echo "App läuft"
+      - name: KI-Abläufe durchspielen
+        run: node web/scripts/durchspielen/ki-ablauf.mjs "$RUNNER_TEMP/belege" "$RUNNER_TEMP/nachweise" "$RUNNER_TEMP/unterlagen" | tee "$RUNNER_TEMP/ergebnis.txt"
+      - name: Meldungen der App
+        if: always()
+        run: grep -E "APPFEHLER|^DB|ABSTURZ|STECKBRIEF|WARNUNG" "$RUNNER_TEMP/server.log" | sort | uniq -c | head -40 || true
+      - name: Zusammenfassung
+        if: always()
+        run: cat "$RUNNER_TEMP/ergebnis.txt" >> "$GITHUB_STEP_SUMMARY" || true

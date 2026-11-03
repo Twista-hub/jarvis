@@ -341,8 +341,9 @@ def laden() -> dict:
         print(f"Suchprofile aus der App nicht geladen: {e}", file=sys.stderr)
         return profile
     for firma_id, name, beschreibung, e, plz in rows:
-        # Example firms (supabase/demo) never run the paid AI search.
-        if not (e or {}).get("leistungen") or (e or {}).get("demo") is True:
+        # Example firms (supabase/demo) never take part in the daily paid AI search; only a run started by hand for exactly
+        # this firm (alarm.yml input "firma") searches for them.
+        if not (e or {}).get("leistungen") or ((e or {}).get("demo") is True and os.environ.get("FIRMA") != firma_id):
             continue
         key = next((k for k, p in profile.items() if p.get("firma_id") == firma_id and not p.get("zusatz")), f"firma-{firma_id}")
         profile[key] = aus_db(firma_id, name, beschreibung, e, plz)
