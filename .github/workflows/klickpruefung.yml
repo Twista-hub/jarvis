@@ -4,6 +4,13 @@
 name: Klickprüfung (echtes Konto, nur lesend)
 on:
   workflow_dispatch:
+    inputs:
+      start:
+        description: "Nur diese Seiten (kommagetrennt, leer = alle)"
+        default: ""
+      max:
+        description: "Höchstzahl Seiten je Firma"
+        default: "300"
 permissions:
   contents: read
 jobs:
@@ -44,4 +51,6 @@ jobs:
       - name: Alle Seiten anklicken
         env:
           PGRST: http://localhost:3000
+          START: ${{ inputs.start }}
+          MAX: ${{ inputs.max }}
         run: cd web && node --experimental-strip-types --import ./scripts/klickpruefung/register.mjs scripts/klickpruefung/echt.ts 2>&1 | grep --line-buffered -v ExperimentalWarning
