@@ -56,7 +56,7 @@ export function planSeite(aktuell: string, firma: string, darfAendern: boolean, 
       ? `<p><strong>✓ Dein aktueller Plan</strong></p>`
       : p.id === "kostenlos" || !darfAendern
         ? ""
-        : `<p><a class="knopf" href="mailto:${kontakt}?subject=${encodeURIComponent(`Jarvis: Upgrade auf ${p.name}`)}&body=${encodeURIComponent(`Hallo,\n\nwir möchten für ${firma} auf den Plan ${p.name} wechseln.\n\nViele Grüße`)}">Upgrade auf ${escape(p.name)}</a></p>`;
+        : `<p><a class="knopf" href="mailto:${kontakt}?subject=${encodeURIComponent(`Crewtender: Upgrade auf ${p.name}`)}&body=${encodeURIComponent(`Hallo,\n\nwir möchten für ${firma} auf den Plan ${p.name} wechseln.\n\nViele Grüße`)}">Upgrade auf ${escape(p.name)}</a></p>`;
     return `<article class="treffer-karte${istAktuell ? " plan-aktuell" : ""}"><h3>${escape(p.name)}</h3><p><strong>${escape(p.preis)}</strong> · ${escape(p.fuer)}</p><ul>${p.punkte.map((x) => `<li>${escape(x)}</li>`).join("")}</ul>${knopf}</article>`;
   }).join("");
   return `<h2>Dein Plan: ${escape(planName(aktuell))}</h2>${karten}${darfAendern ? "" : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;

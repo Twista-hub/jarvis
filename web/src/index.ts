@@ -1,4 +1,4 @@
-// Jarvis upload page: customers upload tender documents, a Workflow writes the Steckbrief.
+// Crewtender upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import kunden from "../kunden.json";
 import { BRANCHEN_VORLAGEN, euro, FELDER, losStunden, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
 import profile from "../../alarm/profile.json";
@@ -409,9 +409,9 @@ async function auftrag(id: string, env: Env, request: Request): Promise<Response
     // instance not visible yet
   }
   if (["errored", "terminated"].includes(status)) {
-    return html(seite("Fehler", "<p>Beim Lesen der Unterlagen ist etwas schiefgegangen. Jarvis meldet das an WP Digital Ranger.</p>"));
+    return html(seite("Fehler", "<p>Beim Lesen der Unterlagen ist etwas schiefgegangen. Crewtender meldet das an WP Digital Ranger.</p>"));
   }
-  return html(seite("Wird geprüft …", `<p>Jarvis liest gerade die Unterlagen${job.titel ? ` zu <strong>${escape(job.titel)}</strong>` : ""}.</p>
+  return html(seite("Wird geprüft …", `<p>Crewtender liest gerade die Unterlagen${job.titel ? ` zu <strong>${escape(job.titel)}</strong>` : ""}.</p>
     <p>Das dauert meist 2 bis 5 Minuten. Diese Seite lädt sich von selbst neu. Du kannst sie auch schließen und den Link später öffnen.</p>`, 20, job.vorgang ? "unterlagen" : undefined));
 }
 
@@ -484,7 +484,7 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   const ohneArbeitskraft = lose.length > 0 && lose.every((l) => l.taetigkeit === undefined);
   // Collective wages: lots with a wage group get the average tariff wage over the contract period.
   const tarifFelder = `<fieldset><legend>Tarif Zeitarbeit (${GVP.name})</legend>
-      <span class="klein">Wähle unten pro Los eine Entgeltgruppe. Jarvis rechnet den Durchschnittslohn über die Laufzeit, mit den bekannten Erhöhungen. Quelle: ${GVP.quelle}.</span>
+      <span class="klein">Wähle unten pro Los eine Entgeltgruppe. Crewtender rechnet den Durchschnittslohn über die Laufzeit, mit den bekannten Erhöhungen. Quelle: ${GVP.quelle}.</span>
       <label>Vertragsbeginn<input type="date" name="tarif_beginn" value="${escape(tarif.beginn)}"></label>
       <label>Vertragslaufzeit (Monate)<input name="tarif_monate" inputmode="numeric" value="${tarif.monate}"></label>
       <label>Erwartete Erhöhung pro Jahr nach der letzten bekannten Tabelle (%)<input name="tarif_steigerung" inputmode="decimal" value="${fmt(tarif.steigerung)}"></label>
@@ -539,7 +539,7 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
   const vorlageSpeichern = zugriff ? `<details class="vorlage-speichern"><summary>💾 Werte als Vorlage speichern</summary><div class="vorlage-speichern-zeile"><label>Name<input name="vorlage_name" maxlength="60" placeholder="z. B. Gastro Frankfurt"></label><button name="aktion" value="vorlage" class="zweit">Speichern</button></div><p class="klein">Speichert Kosten und Aufschläge (nicht die Stunden der Lose). Gleicher Name überschreibt.</p></details>` : "";
   const gespeichertHinweis = new URL(request.url).searchParams.get("vorlage_gespeichert");
   return `<h2 id="kalkulation">💶 Kalkulation</h2>${gespeichertHinweis ? `<p class="${gespeichertHinweis === "1" ? "erfolg" : "fehler"}" role="status">${gespeichertHinweis === "1" ? "💾 Vorlage gespeichert. Du findest sie oben unter „Vorlage laden“." : "Die Vorlage konnte nicht gespeichert werden (höchstens 30 je Firma)."}</p>` : ""}
-    <p>Trag deine Werte ein. Jarvis rechnet den Preis pro Stunde und pro Los aus und merkt sich deine Werte für die nächste Ausschreibung.</p>
+    <p>Trag deine Werte ein. Crewtender rechnet den Preis pro Stunde und pro Los aus und merkt sich deine Werte für die nächste Ausschreibung.</p>
     ${ergebnis}
     ${ohneArbeitskraft ? `<form method="post" action="/auftrag/${job.id}/arbeitskraefte"><p class="klein">Diese Unterlagen wurden vor der Arbeitskräfte-Erkennung geprüft.</p><button>👷 Arbeitskräfte und Entgeltgruppen erkennen</button><span class="klein">Dauert etwa 20 Sekunden.</span></form>` : ""}
     ${await darfAuftrag(request,env,job,(key)=>(profile as Record<string,{firma_id?:string}>)[key]?.firma_id,true) ? `${vorlagenWahl}<form method="post" action="/auftrag/${job.id}/kalkulation">
@@ -625,7 +625,7 @@ async function zaehlen(env: Env): Promise<boolean> {
 function formular(fehler = "", titel = ""): string {
   return seite("Unterlagen prüfen lassen", `
     ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}
-    <p>Lade die Vergabeunterlagen einer Ausschreibung hoch (PDF, Word, Excel oder ZIP). Jarvis schreibt daraus einen Steckbrief: Fristen, Leistungen, Nachweise, ob es zu dir passt, und rechnet mit deinen Löhnen den Angebotspreis aus.</p>
+    <p>Lade die Vergabeunterlagen einer Ausschreibung hoch (PDF, Word, Excel oder ZIP). Crewtender schreibt daraus einen Steckbrief: Fristen, Leistungen, Nachweise, ob es zu dir passt, und rechnet mit deinen Löhnen den Angebotspreis aus.</p>
     <p class="klein">So kommst du an die Unterlagen: In der Ausschreibung auf „Zur Ausschreibung“ tippen, beim Portal „Vergabeunterlagen“ öffnen und „Alle herunterladen“ wählen (meist eine ZIP-Datei). Die Datei hier hochladen.</p>
     <form method="post" action="/hochladen" enctype="multipart/form-data">
       <label>Zugangscode<input name="code" type="password" autocomplete="current-password" required minlength="8"></label>
@@ -645,7 +645,7 @@ function landesStart(request: Request, url: URL, ausAdresse?: string): Response 
   const zusatz = startseite(markdown(MUSTER.replace(/^>.*\n/m, "")));
   const l = landesSeite(b, ADRESSE, "");
   const body = deutsch ? `${zusatz}${landWahl(b)}<p class="klein">${keineBehoerde("de")}</p>` : l.inhalt;
-  const r = html(kopfZeile(seite(deutsch ? "Jarvis" : l.titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}`));
+  const r = html(kopfZeile(seite(deutsch ? "Crewtender" : l.titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}`));
   r.headers.delete("x-robots-tag");
   r.headers.set("vary", "cookie, accept-language");
   r.headers.set("cache-control", "private, no-store");

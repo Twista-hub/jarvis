@@ -12,7 +12,7 @@ import urllib.request
 import xml.etree.ElementTree as ET
 
 FEED = "https://www.foerderdatenbank.de/FDB/DE/Service/RSS/Functions/foerderprogram_rssnewsfeed.xml"
-QUELLE = "Quelle: [Förderdatenbank des Bundes](https://www.foerderdatenbank.de), Lizenz CC BY-ND 4.0 DE. Einschätzung: Jarvis."
+QUELLE = "Quelle: [Förderdatenbank des Bundes](https://www.foerderdatenbank.de), Lizenz CC BY-ND 4.0 DE. Einschätzung: Crewtender."
 UA = {"User-Agent": "JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"}
 
 

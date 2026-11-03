@@ -4,7 +4,7 @@ import { auftragswert, bewertung, eckdaten, sortieren, suchbegriff } from "../sr
 import { abstand, ampel, fristenSeite, gruppen, ics, icsKalender, offenePunkte } from "../src/fristen.ts";
 import { berlinZuUtc } from "../src/konto.ts";
 
-const brief = "## Jarvis-Bewertung\n\n**Gesucht:** Servicekräfte\n\n**Warum passend:** Kerngeschäft.\n\n## Kurzüberblick\n\n**Ort:** Bonn\n\n**Lose:** 2 (Küche; Service)\n\n**Geschätzter Auftragswert:** 450.000 €\n\n**Laufzeit:** 730 Tage\n\n";
+const brief = "## Crewtender-Bewertung\n\n**Gesucht:** Servicekräfte\n\n**Warum passend:** Kerngeschäft.\n\n## Kurzüberblick\n\n**Ort:** Bonn\n\n**Lose:** 2 (Küche; Service)\n\n**Geschätzter Auftragswert:** 450.000 €\n\n**Laufzeit:** 730 Tage\n\n";
 
 test("Trefferkarte liest Eckdaten und zweiteilige Bewertung", () => {
   assert.deepEqual(eckdaten(brief).map((e) => e.wert), ["2 Lose", "450.000 €", "730 Tage", "Bonn"]);
@@ -75,7 +75,7 @@ test("D1–D5: Tagesfilter, eigene Termine, Fragefristen, Zeitleiste und Kalende
   assert.match(html, /class="zeitleiste"/);
   assert.match(html, /tag=2026-11-05[^"]*"[^>]*class="[^"]*gewaehlt|gewaehlt[^>]*tag=2026-11-05/);
   const ics = icsKalender([{ uid: "a", titel: "Frist, Rathaus", zeit: "2026-11-10T10:00:00Z", text: "x", url: "https://x" }]);
-  assert.match(ics, /X-WR-CALNAME:Jarvis Fristen/);
+  assert.match(ics, /X-WR-CALNAME:Crewtender Fristen/);
   assert.match(ics, /Frist\\, Rathaus/);
   assert.match(ics, /TRIGGER:-P1D/);
   assert.equal(berlinZuUtc("2026-11-05T14:00"), "2026-11-05T13:00:00.000Z");

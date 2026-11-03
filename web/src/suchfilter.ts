@@ -1,4 +1,4 @@
-// H2: after a 👎 ("does not fit") Jarvis offers words from the tender title to exclude with one tap. The words go into
+// H2: after a 👎 ("does not fit") Crewtender offers words from the tender title to exclude with one tap. The words go into
 // einstellungen.ausschluss_schnell: a pure display filter, so adding one never triggers a paid re-scoring.
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, weiterleiten, type KontoEnv } from "./konto.ts";

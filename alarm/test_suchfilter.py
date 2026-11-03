@@ -90,7 +90,7 @@ class MehrereProfile(unittest.TestCase):
             (Path(tmp) / "steckbriefe").mkdir()
             r = {"ocid": "o1", "tender": {"title": "Winterdienst Schulen"}}
             datei = alarm.steckbrief_datei("f", "2026-11-01", r)
-            datei.write_text(f"Text\n_Automatisch erstellt von Jarvis am {date.today().isoformat()} aus …_", encoding="utf-8")
+            datei.write_text(f"Text\n_Automatisch erstellt von Crewtender am {date.today().isoformat()} aus …_", encoding="utf-8")
             alarm.steckbrief_datei("f#z", "2026-11-01", {"ocid": "o2", "tender": {"title": "Reinigung"}}).write_text(f"am {date.today().isoformat()} ", encoding="utf-8")
             self.assertEqual(alarm.steckbriefe_heute(["f", "f#z"]), 2)  # both profiles count towards the firm's limit
             self.assertEqual(alarm.vorhandener_steckbrief(["f#z", "f"], "2026-11-01", r), datei)  # no second paid Steckbrief

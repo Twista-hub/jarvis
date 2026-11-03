@@ -1,6 +1,6 @@
 // T40: Kunde bestätigt Stunden online. The office creates a secret link for one customer and month; the content is
 // frozen at that moment. The customer opens the link without an account, checks the hours and confirms with name
-// (and optionally a signature) or sends a query. Jarvis sends nothing itself; the firm passes the link on.
+// (and optionally a signature) or sends a query. Crewtender sends nothing itself; the firm passes the link on.
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
@@ -105,5 +105,5 @@ export async function kundenlinkErstellen(request: Request, env: KontoEnv): Prom
   return html(seite("Link für den Kunden", `<p class="konto-zurueck"><a href="/konto/leistungsnachweis?monat=${monat}" aria-label="Zurück">←</a></p><p>Link für <strong>${escape(g.titel)}</strong> (${monatName(monat)}), 30 Tage gültig. Der Inhalt ist jetzt eingefroren; spätere Änderungen an Stunden erscheinen dort nicht.</p>
 <label>Link<input readonly value="${escape(link)}"></label>
 <div class="knopf-zeile teilen"><a class="knopf" href="https://wa.me/${tel}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a><a class="knopf zweit" href="mailto:${escape(g.kunde?.email ?? "")}?subject=${encodeURIComponent(`Leistungsnachweis ${monatName(monat)}`)}&body=${encodeURIComponent(text)}">E-Mail</a></div>
-<p class="klein">Jarvis verschickt den Link nicht selbst. Die Knöpfe öffnen WhatsApp bzw. dein Mailprogramm mit fertigem Text. Wer den Link hat, kann die Stunden sehen und bestätigen; bitte nur an den Kunden geben. Du bekommst eine Handy-Nachricht, sobald bestätigt ist.</p>`, 0, "team"), 200, f.s.cookies);
+<p class="klein">Crewtender verschickt den Link nicht selbst. Die Knöpfe öffnen WhatsApp bzw. dein Mailprogramm mit fertigem Text. Wer den Link hat, kann die Stunden sehen und bestätigen; bitte nur an den Kunden geben. Du bekommst eine Handy-Nachricht, sobald bestätigt ist.</p>`, 0, "team"), 200, f.s.cookies);
 }

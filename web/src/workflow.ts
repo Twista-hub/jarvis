@@ -75,7 +75,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
     }
 
     const ki = await step.do("Steckbrief schreiben", { retries: { limit: 2, delay: "30 seconds" }, timeout: "15 minutes" }, async () => {
-      await stand(2, `${lesen.gelesen} ${lesen.gelesen === 1 ? "Datei" : "Dateien"} gelesen, Jarvis schreibt den Steckbrief`);
+      await stand(2, `${lesen.gelesen} ${lesen.gelesen === 1 ? "Datei" : "Dateien"} gelesen, Crewtender schreibt den Steckbrief`);
       // K4: names and personal e-mail addresses of contact persons are masked before the AI (datensparsam.ts).
       const dokumente = personenMaskieren(await (await this.env.DATEN.get(`${dir}/text.md`))!.text());
       const bekanntmachungRoh = await (await this.env.DATEN.get(`${dir}/bekanntmachung.md`))?.text();
@@ -108,7 +108,7 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
       return { text: message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim(), kosten, bekanntmachung: !!bekanntmachung };
     });
 
-    const fuss = `\n\n---\n_Automatisch erstellt von Jarvis aus ${lesen.gelesen} Dateien` +
+    const fuss = `\n\n---\n_Automatisch erstellt von Crewtender aus ${lesen.gelesen} Dateien` +
       (ki.bekanntmachung ? " und der öffentlichen Bekanntmachung" : "") +
       (lesen.ausgelassen.length ? ` (nicht gelesen: ${lesen.ausgelassen.join(", ")})` : "") +
       `. Ohne Gewähr, vor dem Angebot bitte die Originalunterlagen prüfen._\n`;

@@ -67,7 +67,7 @@ export function tarifHinweise(w: TarifWahl): string[] {
   const hinweise: string[] = [];
   const ende = monatPlus(w.beginn, Math.max(1, w.monate) - 1);
   const letzte = GVP.tabellen[GVP.tabellen.length - 1].ab;
-  if (ende >= monatPlus(letzte, 12)) hinweise.push(`Tariflöhne sind bis ${letzte.slice(5, 7)}/${letzte.slice(0, 4)} bekannt; danach rechnet Jarvis mit ${w.steigerung.toLocaleString("de-DE")} % Erhöhung pro Jahr.`);
+  if (ende >= monatPlus(letzte, 12)) hinweise.push(`Tariflöhne sind bis ${letzte.slice(5, 7)}/${letzte.slice(0, 4)} bekannt; danach rechnet Crewtender mit ${w.steigerung.toLocaleString("de-DE")} % Erhöhung pro Jahr.`);
   if (w.monate > 9) hinweise.push("Bleibt dieselbe Kraft länger als 9 Monate beim Kunden, gilt grundsätzlich Equal Pay (§ 8 Abs. 4 AÜG), außer ein Branchenzuschlagstarif greift. Lohn des Kunden erfragen und ggf. als eigenen Stundenlohn eintragen.");
   return hinweise;
 }

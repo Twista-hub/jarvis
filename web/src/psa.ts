@@ -32,7 +32,7 @@ export function psaSeite(liste: Psa[], personen: Person[], o: { heute: string; d
 <label>Größe<input name="groesse" maxlength="20" placeholder="z. B. 43, L"></label><label>Menge<input name="menge" type="number" min="1" max="99" value="1"></label>
 <label>Ausgegeben am<input name="ausgegeben" type="date" required value="${o.heute}"></label><label>Austausch am<input name="austausch" type="date" value="${plusTage(o.heute, 365)}"></label>
 <label class="ganz">Notiz<input name="notiz" maxlength="300"></label></div><button>Ausgabe speichern</button></form></details>` : "";
-  return `<p class="klein">Ausgegebene Schutzausrüstung mit Größe und Austauschtermin. Jarvis warnt 30 Tage vorher. Das Ausgabeprotokoll unterschreibt die Person bei der Übergabe (Nachweis nach PSA-Benutzungsverordnung).</p>
+  return `<p class="klein">Ausgegebene Schutzausrüstung mit Größe und Austauschtermin. Crewtender warnt 30 Tage vorher. Das Ausgabeprotokoll unterschreibt die Person bei der Übergabe (Nachweis nach PSA-Benutzungsverordnung).</p>
 ${faellig.length ? `<h2>⚠️ Austausch fällig</h2><ul class="kontakt-liste zert-liste">${faellig.map((p) => zeile(p, true)).join("")}</ul>` : liste.length ? `<p class="klein">✅ Kein Austausch in den nächsten 30 Tagen.</p>` : ""}${form}
 ${proPerson ? `<h2>Pro Person</h2>${proPerson}` : `<p class="treffer-leer">Noch keine Ausgabe eingetragen.</p>`}`;
 }

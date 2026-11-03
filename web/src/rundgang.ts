@@ -23,7 +23,7 @@ export function rundgangSeite(orte: Ort[], punkte: Punkt[], scans: Scan[], eintr
   const pName = (id: string) => { const p = personen.find((x) => x.id === id); return p ? `${p.vorname} ${p.nachname}`.trim() : "–"; };
   const punkt = (id: string) => punkte.find((x) => x.id === id);
   const oName = (id: string | null) => orte.find((x) => x.id === id)?.name ?? "";
-  return `${MITBESTIMMUNG}<p class="klein">Kontrollpunkte als QR-Code ausdrucken und vor Ort anbringen. Die Einsatzkraft scannt sie mit der Handy-Kamera; Jarvis speichert Zeit und Person. Ins Wachbuch schreiben Einsatzkräfte Meldungen, Vorfälle und Übergaben.</p>
+  return `${MITBESTIMMUNG}<p class="klein">Kontrollpunkte als QR-Code ausdrucken und vor Ort anbringen. Die Einsatzkraft scannt sie mit der Handy-Kamera; Crewtender speichert Zeit und Person. Ins Wachbuch schreiben Einsatzkräfte Meldungen, Vorfälle und Übergaben.</p>
 ${orte.length ? orte.map((o) => {
     const liste = punkte.filter((p) => p.einsatzort_id === o.id);
     return `<details${liste.length ? "" : " open"}><summary>📍 ${escape(o.name)} (${liste.length} Kontrollpunkte)</summary>
@@ -37,7 +37,7 @@ ${eintraege.length ? `<ul class="kontakt-liste">${eintraege.map((e) => `<li><div
 }
 
 export function qrBogen(ort: Ort, punkte: Punkt[]): string {
-  return `<h1>Kontrollpunkte: ${escape(ort.name)}</h1><p class="klein">Ausschneiden und am jeweiligen Ort anbringen. Scannen mit der Handy-Kamera (angemeldet in Jarvis).</p>
+  return `<h1>Kontrollpunkte: ${escape(ort.name)}</h1><p class="klein">Ausschneiden und am jeweiligen Ort anbringen. Scannen mit der Handy-Kamera (angemeldet in Crewtender).</p>
 <div class="qr-bogen">${punkte.map((p) => `<figure class="qr-karte">${qrSvg(scanLink(p.token), p.name)}<figcaption><strong>${escape(p.name)}</strong><br>${escape(ort.name)}</figcaption></figure>`).join("")}</div>
 <style>.qr-bogen{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:16px}.qr-karte{border:1px dashed #999;padding:12px;margin:0;text-align:center;break-inside:avoid}.qr-karte svg{width:150px;height:150px}</style>`;
 }

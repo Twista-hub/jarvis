@@ -1,4 +1,4 @@
-// T39: signatures drawn on the phone. The browser sends a PNG as data URL; Jarvis checks it and keeps it in R2.
+// T39: signatures drawn on the phone. The browser sends a PNG as data URL; Crewtender checks it and keeps it in R2.
 import { escape } from "./seite.ts";
 
 /** PNG from a data URL; null when it is not a small, real PNG (max. 300 KB). */

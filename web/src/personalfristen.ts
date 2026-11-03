@@ -33,7 +33,7 @@ ${faellige.length ? `<ul class="kontakt-liste zert-liste">${faellige.map(({ p, f
 ${spaeter.length ? `<details><summary class="klein">Alle weiteren eingetragenen Fristen (${spaeter.length})</summary><ul class="kontakt-liste">${spaeter.slice(0, 200).map((x) => `<li><span>${escape(name(x.p))}</span><span class="klein">${x.icon} ${x.text} ${datum(x.bis!)}</span></li>`).join("")}</ul></details>` : ""}
 <p class="klein">Fristen trägst du in der Personalakte der Person ein (✏️ Bearbeiten → 📁 Personalakte → ⏳ Fristen). Vorwarnung: Probezeit 30, Befristung 60, Aufenthaltstitel 90 Tage.</p>
 <h2>🚗 Führerscheinkontrolle</h2>
-<p class="klein">Wer Firmenfahrzeuge fährt, zeigt alle ${INTERVALL_MONATE} Monate den Original-Führerschein (Halterhaftung, § 21 StVG). Eine Kopie ist nicht nötig; Jarvis speichert nur Datum, Klassen und wer geprüft hat.</p>
+<p class="klein">Wer Firmenfahrzeuge fährt, zeigt alle ${INTERVALL_MONATE} Monate den Original-Führerschein (Halterhaftung, § 21 StVG). Eine Kopie ist nicht nötig; Crewtender speichert nur Datum, Klassen und wer geprüft hat.</p>
 ${st.length ? `<ul class="kontakt-liste zert-liste kontroll-liste">${st.map(kontrollZeile).join("")}</ul><p><a class="knopf zweit" href="/konto/personalfristen/fuehrerschein.docx" download>📄 Nachweis als Word</a></p>` : `<p class="treffer-leer">Noch niemand als Fahrer markiert. In der Personalakte „Fährt Firmenfahrzeuge“ ankreuzen.</p>`}`;
 }
 

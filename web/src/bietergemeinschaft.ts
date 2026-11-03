@@ -1,8 +1,8 @@
-// Idea 28 (docs/ideen-arbeitsoberflaeche.md): find a bidding consortium. On a tender, Jarvis suggests the firm's own
+// Idea 28 (docs/ideen-arbeitsoberflaeche.md): find a bidding consortium. On a tender, Crewtender suggests the firm's own
 // partners whose trades appear in the title or brief (no marketplace: only partners the firm entered itself), and once
 // partners have agreed it creates the consortium declaration as Word (lead firm = own firm, joint and several liability).
 // Competition law (§ 1 GWB): a consortium is only allowed if there is a factual reason (e.g. not able to perform alone);
-// the page says so. Jarvis sends nothing.
+// the page says so. Crewtender sends nothing.
 import type { Anfrage, Partner } from "./partner.ts";
 import { escape } from "./seite.ts";
 import { absatz, tabelle, ueberschrift, wordDokument } from "./word.ts";
@@ -32,7 +32,7 @@ export function passendePartner(text: string, partner: Partner[], anfragen: Pick
 export function bgeTeilHtml(v: { id: string }, vorschlaege: { partner: Partner; gewerk: string }[], zugesagt: number, darfAendern: boolean): string {
   const vorschlag = vorschlaege.length ? `<p class="klein">Passend aus deinen Partnern (Gewerk kommt in der Ausschreibung vor):</p><ul class="frage-liste">${vorschlaege.map(({ partner: p, gewerk }) => `<li class="anfrage-zeile"><div><strong>${escape(p.name)}</strong><span class="klein">${escape(gewerk)}${p.region ? ` · ${escape(p.region)}` : ""}${p.bewertung ? ` · ${"★".repeat(p.bewertung)}` : ""}</span></div>${darfAendern ? `<form method="post" action="/konto/vorgang/${v.id}/partner"><input type="hidden" name="aktion" value="neu"><input type="hidden" name="partner" value="${p.id}"><input type="hidden" name="los" value="${escape(gewerk)}"><button class="zweit">➕ Anfrage festhalten</button></form>` : ""}</li>`).join("")}</ul>` : "";
   return `<details class="bge"${zugesagt ? " open" : ""}><summary>👥 Bietergemeinschaft</summary>${vorschlag}
-${zugesagt ? `<p><a class="knopf" href="/konto/vorgang/${v.id}/bietergemeinschaft.docx" download>📄 Bietergemeinschaftserklärung (Word)</a></p><p class="klein">Mitglieder: deine Firma (federführend) und alle Partner mit „✅ Zugesagt“; Leistungsteil = Los/Leistung der Anfrage. Gibt die Vergabestelle ein eigenes Formular vor, bitte dieses verwenden.</p>` : `<p class="klein">Sobald ein Partner zugesagt hat, erstellt Jarvis hier die Bietergemeinschaftserklärung.</p>`}
+${zugesagt ? `<p><a class="knopf" href="/konto/vorgang/${v.id}/bietergemeinschaft.docx" download>📄 Bietergemeinschaftserklärung (Word)</a></p><p class="klein">Mitglieder: deine Firma (federführend) und alle Partner mit „✅ Zugesagt“; Leistungsteil = Los/Leistung der Anfrage. Gibt die Vergabestelle ein eigenes Formular vor, bitte dieses verwenden.</p>` : `<p class="klein">Sobald ein Partner zugesagt hat, erstellt Crewtender hier die Bietergemeinschaftserklärung.</p>`}
 <p class="klein">⚖️ Eine Bietergemeinschaft ist nur erlaubt, wenn es einen sachlichen Grund gibt (z. B. allein nicht leistungsfähig, fehlendes Gewerk oder zu wenig Kapazität). Keine Preisabsprachen mit Firmen, die getrennt bieten (§ 1 GWB). Im Zweifel den Grund im Angebot kurz begründen.</p></details>`;
 }
 
@@ -52,6 +52,6 @@ export function bgeErklaerungDocx(v: { titel: string; link?: string | null }, fu
     + absatz("3. Der bevollmächtigte Vertreter ist berechtigt, Zahlungen mit befreiender Wirkung für den Auftraggeber entgegenzunehmen.", { abstand: 80 })
     + absatz("4. Die Bildung der Bietergemeinschaft beruht auf einer selbstständigen unternehmerischen Entscheidung; die Mitglieder wären allein nicht oder nicht wirtschaftlich in der Lage, den Auftrag auszuführen. Absprachen mit anderen Bietern wurden nicht getroffen.", { abstand: 240 })
     + tabelle([["Mitglied", "Ort, Datum", "Name in Druckbuchstaben, Unterschrift, Stempel"], ...alle.map((m) => [m.name, `\n, ${datumHeute}`, "\n\n"])], [3000, 2300, 4000], true)
-    + absatz("Vorlage aus Jarvis. Bitte vor Abgabe mit den Vorgaben der Vergabestelle abgleichen; ein vorgegebenes Formular hat Vorrang.", { grau: true, groesse: 16 }),
+    + absatz("Vorlage aus Crewtender. Bitte vor Abgabe mit den Vorgaben der Vergabestelle abgleichen; ein vorgegebenes Formular hat Vorrang.", { grau: true, groesse: 16 }),
   );
 }

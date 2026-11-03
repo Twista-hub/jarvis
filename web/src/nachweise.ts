@@ -46,7 +46,7 @@ export function nachweiseMarkieren(html: string, dateien: FirmenDatei[] | null, 
         const d = vorhanden(t, dateien, stichtag);
         if (d) return ` <span class="nachweis-ok" title="${escape(t.name)} liegt vor: ${escape(d.name)}">✅</span>`;
         const link = `${uploadLink}${uploadLink.includes("?") ? "&" : "?"}name=${encodeURIComponent(t.name)}`;
-        return ` <details class="nachweis-fehlt"><summary title="${escape(t.name)} fehlt">⚠️</summary><span class="nachweis-popup"><strong>${escape(t.name)}</strong> ist noch nicht in deinen Firmenunterlagen (oder abgelaufen). Lade ihn einmal hoch, dann legt Jarvis ihn jedem Angebot bei. <a href="${escape(link)}">Jetzt hochladen →</a></span></details>`;
+        return ` <details class="nachweis-fehlt"><summary title="${escape(t.name)} fehlt">⚠️</summary><span class="nachweis-popup"><strong>${escape(t.name)}</strong> ist noch nicht in deinen Firmenunterlagen (oder abgelaufen). Lade ihn einmal hoch, dann legt Crewtender ihn jedem Angebot bei. <a href="${escape(link)}">Jetzt hochladen →</a></span></details>`;
       }).join("");
       if (tag === "tr") return eintrag.replace(/<\/td>(?![\s\S]*<\/td>)/, `${zeichen}</td>`);
       return `<li>${inhalt}${zeichen}</li>`;

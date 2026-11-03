@@ -1,5 +1,5 @@
 // T1–T3: Firmenprofil. Master data asked for in tenders (legal form, register, founding year, staff, revenue of the last
-// three years, logo), prequalification and certificates with expiry. Jarvis puts them into offers (placeholders), the
+// three years, logo), prequalification and certificates with expiry. Crewtender puts them into offers (placeholders), the
 // suitability declaration (Word) and the offer folder.
 import { LAND_NAMEN } from "./laenderfunktionen.ts";
 import { aktiveFirma } from "./firmenunterlagen.ts";
@@ -105,7 +105,7 @@ ${o.admin ? "<button>Speichern</button>" : '<p class="klein">Ändern dürfen Inh
 <h2>🖼️ Logo</h2>${logo}
 <h2>📈 Umsatz und Beschäftigte</h2>${kz}
 <h2>🏅 Präqualifikation und Zertifikate</h2>${zert.length ? `<ul class="kontakt-liste zert-liste">${zert.map(zeile).join("")}</ul>` : `<p class="klein">Noch keine eingetragen. Eine Präqualifikation (PQ-VOB oder AVPQ) ersetzt in vielen Verfahren die Einzelnachweise.</p>`}${zertForm}
-<p class="klein">Jarvis setzt diese Angaben in die Eigenerklärung und in Textbausteine ein (Platzhalter wie {{RECHTSFORM}}, {{GRUENDUNGSJAHR}}, {{MITARBEITER}}, {{PQ}}). Die Eigenerklärung liegt auch in der Angebotsmappe.</p>`;
+<p class="klein">Crewtender setzt diese Angaben in die Eigenerklärung und in Textbausteine ein (Platzhalter wie {{RECHTSFORM}}, {{GRUENDUNGSJAHR}}, {{MITARBEITER}}, {{PQ}}). Die Eigenerklärung liegt auch in der Angebotsmappe.</p>`;
 }
 
 export async function profilLaden(s: Sitzung, env: KontoEnv, firma: string, finanzen: boolean) {

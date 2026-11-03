@@ -10,7 +10,7 @@ test("Nächster Schritt folgt dem Bearbeitungsstand", () => {
   assert.match(naechsterSchritt(basis), /name="status" value="pruefen"/);
   assert.match(naechsterSchritt(basis), /name="weiter" value="\/konto\/vorgang\/1111/);
   assert.equal(titel(naechsterSchritt({ ...basis, status: "pruefen" })), "Vergabeunterlagen hochladen");
-  assert.equal(titel(naechsterSchritt({ ...basis, status: "pruefen", laeuft: true })), "Jarvis liest die Unterlagen");
+  assert.equal(titel(naechsterSchritt({ ...basis, status: "pruefen", laeuft: true })), "Crewtender liest die Unterlagen");
   assert.equal(titel(naechsterSchritt({ ...basis, status: "pruefen", mitUnterlagen: true })), "Preis kalkulieren und entscheiden");
   assert.equal(titel(naechsterSchritt({ ...basis, status: "angebot" })), "Angebot vorbereiten");
   assert.equal(titel(naechsterSchritt({ ...basis, status: "angebot", mappe: "wartet" })), "Angebot wartet auf Freigabe");

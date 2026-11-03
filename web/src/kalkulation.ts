@@ -244,7 +244,7 @@ export type Zuschlag = { id: string; titel: string; auftraggeber: string; ort: s
 /** Own net total next to published award values of similar tenders (F1). Only orientation: scope and term differ. */
 /** netto/selbstkosten: already scaled to the whole term when the lots count hours per year (zeitraum: label for that). */
 export function zuschlagVergleich(netto: number, liste: Zuschlag[], selbstkosten = 0, zeitraum = ""): string {
-  if (!liste.length) return `<details class="zuschlag-vergleich"><summary>📊 Vergleich mit früheren Zuschlägen</summary><p class="klein">Für ähnliche Ausschreibungen hat Jarvis noch keine veröffentlichten Zuschlagswerte gefunden. Der Bestand wächst täglich.</p></details>`;
+  if (!liste.length) return `<details class="zuschlag-vergleich"><summary>📊 Vergleich mit früheren Zuschlägen</summary><p class="klein">Für ähnliche Ausschreibungen hat Crewtender noch keine veröffentlichten Zuschlagswerte gefunden. Der Bestand wächst täglich.</p></details>`;
   const werte = liste.map((z) => z.wert).sort((a, b) => a - b);
   const median = werte.length % 2 ? werte[(werte.length - 1) / 2] : (werte[werte.length / 2 - 1] + werte[werte.length / 2]) / 2;
   const min = werte[0], max = werte[werte.length - 1];

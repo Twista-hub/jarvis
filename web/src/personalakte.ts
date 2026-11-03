@@ -43,7 +43,7 @@ export function akteFelder(k: Akte & { id?: string }): string {
 <label class="zeile"><input type="checkbox" name="firmenwagen"${k.firmenwagen ? " checked" : ""}>Fährt Firmenfahrzeuge (Führerscheinkontrolle alle 6 Monate)</label>
 <fieldset><legend>⏳ Fristen</legend><div class="zwei"><label>Probezeit bis<input name="probezeit_bis" type="date" value="${escape(k.probezeit_bis ?? "")}"></label>
 <label>Befristet bis<input name="befristet_bis" type="date" value="${escape(k.befristet_bis ?? "")}"></label></div>
-<label>Aufenthaltstitel / Arbeitserlaubnis gültig bis<input name="aufenthalt_bis" type="date" value="${escape(k.aufenthalt_bis ?? "")}"></label><p class="klein">Jarvis warnt vorher (Probezeit 30, Befristung 60, Aufenthalt 90 Tage). Nur das Datum, keine Kopie des Dokuments.</p></fieldset></details>`;
+<label>Aufenthaltstitel / Arbeitserlaubnis gültig bis<input name="aufenthalt_bis" type="date" value="${escape(k.aufenthalt_bis ?? "")}"></label><p class="klein">Crewtender warnt vorher (Probezeit 30, Befristung 60, Aufenthalt 90 Tage). Nur das Datum, keine Kopie des Dokuments.</p></fieldset></details>`;
 }
 
 /** Form → personnel file fields (invalid values become empty). */
@@ -96,8 +96,8 @@ export function nachweisTeil(personId: string, eigene: Nachweis[], heute: string
   return `<div class="nachweis-teil"><h4>🎓 Qualifikationen mit Nachweis</h4>${eigene.length ? `<ul class="abwesenheit-liste">${eigene.map((n) => `<li><span class="${ampel(n.gueltig_bis, heute)}">${escape(n.bezeichnung)}${n.gueltig_bis ? ` · bis ${datum(n.gueltig_bis)}` : ""}${n.datei_name ? ` · <a href="/konto/personal/${personId}/nachweis/${n.id}">📎 Datei</a>` : ""}</span><form method="post" action="/konto/personal/${personId}/nachweis" class="termin-weg"><input type="hidden" name="loeschen" value="${n.id}"><button class="zweit" aria-label="Nachweis löschen">✕</button></form></li>`).join("")}</ul>` : ""}
 <form method="post" action="/konto/personal/${personId}/nachweis" enctype="multipart/form-data" class="nachweis-form"><label class="ganz">Qualifikation<input name="bezeichnung" list="nachweis-vorschlaege" required maxlength="120"></label><datalist id="nachweis-vorschlaege">${NACHWEIS_VORSCHLAEGE.map((v) => `<option value="${v}">`).join("")}</datalist>
 <label>Erworben<input name="erworben" type="date"></label><label>Gültig bis<input name="gueltig_bis" type="date"></label>
-<label class="ganz">Nachweis (PDF/Foto, freiwillig, max. 5 MB)<input type="file" name="datei" accept="application/pdf,image/png,image/jpeg"></label><button class="zweit">Hinzufügen</button><p class="klein ganz">Führungs- und Gesundheitszeugnisse oder ärztliche Bescheinigungen bitte nicht hochladen: Jarvis speichert dafür nur „eingesehen am“ und „gültig bis“, keine Kopie. Keine Gesundheitsangaben in die Bezeichnung.</p></form>
-<p class="klein">Jarvis erinnert in Firma &amp; Team 60 Tage vor dem Ablauf. <a href="/konto/personal/${personId}/profil.docx">📄 Kurzprofil (Word)</a> für Angebote, nur mit Einverständnis der Person weitergeben.</p></div>`;
+<label class="ganz">Nachweis (PDF/Foto, freiwillig, max. 5 MB)<input type="file" name="datei" accept="application/pdf,image/png,image/jpeg"></label><button class="zweit">Hinzufügen</button><p class="klein ganz">Führungs- und Gesundheitszeugnisse oder ärztliche Bescheinigungen bitte nicht hochladen: Crewtender speichert dafür nur „eingesehen am“ und „gültig bis“, keine Kopie. Keine Gesundheitsangaben in die Bezeichnung.</p></form>
+<p class="klein">Crewtender erinnert in Firma &amp; Team 60 Tage vor dem Ablauf. <a href="/konto/personal/${personId}/profil.docx">📄 Kurzprofil (Word)</a> für Angebote, nur mit Einverständnis der Person weitergeben.</p></div>`;
 }
 
 export async function nachweiseLaden(s: Sitzung, env: KontoEnv, firma: string): Promise<Nachweis[]> {
@@ -184,5 +184,5 @@ export async function personalakte(request: Request, env: KontoEnv): Promise<Res
   if (bytes) await env.DATEN?.put(`personal_nachweise/${person.firma_id}/${pid}/${zeile.id}`, bytes, { httpMetadata: { contentType: zeile.datei_mime! } });
   const r = await db(f.s, env, "personal_nachweise", { method: "POST", body: JSON.stringify(zeile) });
   if (!r.ok && bytes) await env.DATEN?.delete(`personal_nachweise/${person.firma_id}/${pid}/${zeile.id}`);
-  return zurueck(r.ok ? (ohneKopie && datei && typeof datei !== "string" && datei.size > 0 ? "Gespeichert, aber ohne Datei: Für Führungs- und Gesundheitszeugnisse speichert Jarvis nur das Datum der Einsicht." : "Nachweis gespeichert.") : "Speichern hat nicht geklappt. Hast du Rechte für den Standort dieser Person?");
+  return zurueck(r.ok ? (ohneKopie && datei && typeof datei !== "string" && datei.size > 0 ? "Gespeichert, aber ohne Datei: Für Führungs- und Gesundheitszeugnisse speichert Crewtender nur das Datum der Einsicht." : "Nachweis gespeichert.") : "Speichern hat nicht geklappt. Hast du Rechte für den Standort dieser Person?");
 }

@@ -37,6 +37,6 @@ test("I5: Hilfe mit Suche, Fragen und Kontakt ohne Versprechen", () => {
   const html = hilfeSeite("eva@example.de");
   assert.match(html, /data-hilfe-suche/);
   assert.ok((html.match(/class="hilfe-frage"/g) ?? []).length >= 10);
-  assert.match(html, /mailto:kontakt@wpdigitalranger\.com\?subject=Frage%20zu%20Jarvis&body=.*eva%40example\.de/);
+  assert.match(html, /mailto:kontakt@wpdigitalranger\.com\?subject=Frage%20zu%20Crewtender&body=.*eva%40example\.de/);
   assert.doesNotMatch(html, /Werktag/);
 });

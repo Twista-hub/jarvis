@@ -389,7 +389,7 @@ def steckbrief_auswahl(name: str, rows: list, namen: list[str] | None = None) ->
 def bewertungsabschnitt(bewertung: dict) -> str:
     """Short, user-facing explanation returned by the AI relevance scoring."""
     kurz, grund = bewertung.get("kurz"), bewertung.get("grund")
-    return f"## Jarvis-Bewertung\n\n**Gesucht:** {kurz}\n\n**Warum passend:** {grund}\n\n" if kurz and grund else ""
+    return f"## Crewtender-Bewertung\n\n**Gesucht:** {kurz}\n\n**Warum passend:** {grund}\n\n" if kurz and grund else ""
 
 
 def steckbrief_datei(name: str, day: str, rel: dict) -> Path:
@@ -418,14 +418,14 @@ def steckbrief_fuer(ki, name: str, profile: dict, day: str, rel: dict, url: str)
         dokumente = ("Nur die öffentliche Bekanntmachung, keine Vergabeunterlagen.\n"
                      + (f"Vollständige Bekanntmachung (eForms, Feldname: Wert):\n{voll}\n\n" if voll else "")
                      + "Kurzfassung (OCDS):\n" + json.dumps(rel, ensure_ascii=False)[:40000])
-        quelle = "aus der vollständigen Bekanntmachung (die Vergabeunterlagen selbst hat Jarvis nicht gelesen)"
+        quelle = "aus der vollständigen Bekanntmachung (die Vergabeunterlagen selbst hat Crewtender nicht gelesen)"
     if not dokumente.strip():
         return None
     text = ki.steckbrief(profile["beschreibung"], kopf, dokumente, **sprach_arg(profile))
     if not text:
         return None
     out.parent.mkdir(exist_ok=True)
-    out.write_text(f"{text}\n\n---\n_Automatisch erstellt von Jarvis am {date.today().isoformat()} {quelle}. "
+    out.write_text(f"{text}\n\n---\n_Automatisch erstellt von Crewtender am {date.today().isoformat()} {quelle}. "
                    f"Quelle: [{url}]({url}). Ohne Gewähr, vor dem Angebot bitte die Originalunterlagen prüfen._\n", encoding="utf-8")
     return out
 

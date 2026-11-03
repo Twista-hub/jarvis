@@ -15,6 +15,6 @@ export const bundeslandName = (c: string): string => LISTE[c] ?? c;
 export function bundeslandAuswahl(gewaehlt: string[]): string {
   const an = new Set(gewaehlt);
   return `<details${gewaehlt.length ? "" : " open"}><summary>Bundesländer in Österreich <span class="check-zahl">${gewaehlt.length ? `${gewaehlt.length} ausgewählt` : "ganz Österreich"}</span></summary>
-    <p class="klein">Jarvis zeigt nur Ausschreibungen aus den gewählten Bundesländern. Keine Auswahl bedeutet ganz Österreich. Ändern kostet nichts extra.</p>
+    <p class="klein">Crewtender zeigt nur Ausschreibungen aus den gewählten Bundesländern. Keine Auswahl bedeutet ganz Österreich. Ändern kostet nichts extra.</p>
     <div class="chips">${Object.entries(LISTE).map(([c, n]) => `<label><input type="checkbox" name="bundeslaender" value="${c}"${an.has(c) ? " checked" : ""}><span>${escape(n)}</span></label>`).join("")}</div></details>`;
 }

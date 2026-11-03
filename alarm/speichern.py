@@ -1,4 +1,4 @@
-"""Writes the hits of the morning report into the firms' Jarvis accounts (Supabase table vorgaenge).
+"""Writes the hits of the morning report into the firms' Crewtender accounts (Supabase table vorgaenge).
 
 Which firm gets which profile: "firma_id" in alarm/profile.json (by id, not by name: anyone can
 create a firm with any name) or the firm of a profile saved in the app (profile_db.py). Reads alarm/treffer.json written by alarm.py.
@@ -78,7 +78,7 @@ def abgelaufene_archivieren(con, firma_id: str) -> int:
 def brief_aktualisieren(alt: str | None, t: dict) -> str | None:
     def teilen(text):
         teile = (text or "").split("\n\n", 3)
-        if len(teile) == 4 and teile[0] == "## Jarvis-Bewertung" and teile[1].startswith("**Gesucht:**") and teile[2].startswith("**Warum passend:**"):
+        if len(teile) == 4 and teile[0] == "## Crewtender-Bewertung" and teile[1].startswith("**Gesucht:**") and teile[2].startswith("**Warum passend:**"):
             return "\n\n".join(teile[:3]) + "\n\n", teile[3]
         return "", text or ""
     neu = t.get("steckbrief")

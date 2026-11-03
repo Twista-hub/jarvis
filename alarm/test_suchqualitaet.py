@@ -127,7 +127,7 @@ class SuchqualitaetTest(unittest.TestCase):
         self.assertNotIn("Veraltet", text)
         self.assertNotIn("Bekanntmachung", text)
         unbewertet = speichern.brief_aktualisieren(alt, {"steckbrief": "## Kurzüberblick", "steckbrief_kurz": True})
-        self.assertNotIn("Jarvis-Bewertung", unbewertet)
+        self.assertNotIn("Crewtender-Bewertung", unbewertet)
         self.assertIn("Wichtige Kundendaten", unbewertet)
         aus_bekanntmachung = speichern.brief_aktualisieren(alt, {"steckbrief": neu, "steckbrief_kurz": False})
         self.assertIn("Wichtige Kundendaten", aus_bekanntmachung)

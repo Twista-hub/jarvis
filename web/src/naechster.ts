@@ -33,11 +33,11 @@ export function naechsterSchritt(d: SchrittDaten): string {
     text = "Lies den Steckbrief unten und entscheide. „Prüfen“ legt die Ausschreibung unter „In Arbeit“ ab.";
     aktionen = d.darfAendern ? [stand(d.id, "pruefen", "✅ Passt, prüfen"), stand(d.id, "verworfen", "✕ Passt nicht", true)] : [knopf("#steckbrief", "📋 Zum Steckbrief")];
   } else if (d.laeuft) {
-    titel = "Jarvis liest die Unterlagen";
+    titel = "Crewtender liest die Unterlagen";
     text = "Steckbrief und Kalkulation sind in 2 bis 5 Minuten fertig. Die Seite aktualisiert sich von selbst.";
   } else if (d.status === "pruefen" && !d.mitUnterlagen) {
     titel = "Vergabeunterlagen hochladen";
-    text = "Erst mit den Unterlagen kennt Jarvis Lose, Mengen, Nachweise und das Preisblatt.";
+    text = "Erst mit den Unterlagen kennt Crewtender Lose, Mengen, Nachweise und das Preisblatt.";
     aktionen = [knopf("#unterlagen", "📥 Unterlagen hochladen"), ...(d.portal ? [knopf(d.portal, "🌐 Zum Vergabeportal", true)] : [])];
   } else if (d.status === "pruefen") {
     titel = d.finanzen ? "Preis kalkulieren und entscheiden" : "Entscheiden: bieten oder nicht?";
@@ -46,7 +46,7 @@ export function naechsterSchritt(d: SchrittDaten): string {
   } else if (d.status === "angebot") {
     if (d.mappe === "keine" || d.mappe === "abgelehnt") {
       titel = d.mappe === "abgelehnt" ? "Angebot überarbeiten" : "Angebot vorbereiten";
-      text = d.mappe === "abgelehnt" ? "Die Firmenleitung hat das Angebot zurückgegeben. Die Anmerkung steht beim Angebot." : `Jarvis stellt Angebotstext und Unterlagen zusammen. Abgabe${bis}.`;
+      text = d.mappe === "abgelehnt" ? "Die Firmenleitung hat das Angebot zurückgegeben. Die Anmerkung steht beim Angebot." : `Crewtender stellt Angebotstext und Unterlagen zusammen. Abgabe${bis}.`;
       aktionen = d.finanzen ? [knopf(`/konto/vorgang/${d.id}/angebot`, "📝 Angebot vorbereiten"), knopf(d.kalkulation, "💶 Kalkulation", true)] : [];
     } else if (d.mappe === "wartet") {
       titel = "Angebot wartet auf Freigabe";

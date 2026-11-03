@@ -48,7 +48,7 @@ ${markieren}${o.darfAendern ? `<form method="post" action="/konto/unterweisungen
 <label>Alle … Monate<input name="intervall" type="number" min="1" max="60" value="12" required></label><label class="ganz">Inhalt (freiwillig; Einsatzkräfte lesen ihn im Handy und bestätigen)<textarea name="beschreibung" maxlength="4000" rows="3"></textarea></label></div><button>Anlegen</button></form>
 ${!liste.length ? `<form method="post" action="/konto/unterweisungen"><input type="hidden" name="aktion" value="vorlagen"><button class="zweit">Die üblichen 3 anlegen (Arbeitsschutz, Hygiene, Brandschutz)</button></form>` : ""}</details>` : "";
   const faelligGesamt = liste.reduce((s, u) => s + staende(u, personen, teilnahmen, o.heute).filter((x) => x.stufe === "rot").length, 0);
-  return `<p class="klein">Wiederkehrende Unterweisungen der Einsatzkräfte. Jarvis zeigt, wer fällig ist; nach einer Unterweisung alle Teilnehmenden auf einmal eintragen. Personen mit Status „nicht verfügbar“ sind ausgenommen.</p>
+  return `<p class="klein">Wiederkehrende Unterweisungen der Einsatzkräfte. Crewtender zeigt, wer fällig ist; nach einer Unterweisung alle Teilnehmenden auf einmal eintragen. Personen mit Status „nicht verfügbar“ sind ausgenommen.</p>
 ${liste.length ? `<p class="${faelligGesamt ? "hinweis" : "klein"}">${faelligGesamt ? `⚠️ ${faelligGesamt} offene Unterweisungen` : "✅ Alle Unterweisungen aktuell."}</p>${liste.map(karte).join("")}` : `<p class="treffer-leer">Noch keine Unterweisungen angelegt.</p>`}${neu}`;
 }
 

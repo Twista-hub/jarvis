@@ -3,7 +3,7 @@ import { unzipSync } from "fflate";
 import { nachholLimit, releaseBloecke, normalisiereBlock, wiederholen, bestehendeBekanntmachungen, exportTage } from "./katalog-plan.ts";
 
 type Env = DbEnv & { AKTIV: string; SAMMLER: Workflow };
-const UA = "Jarvis-Katalog/1.0 (public procurement index)";
+const UA = "Crewtender-Katalog/1.0 (public procurement index)";
 import { katalogDb, type DbEnv } from "./katalog-db.ts";
 export class KatalogSammler extends WorkflowEntrypoint<Env> {
   async run(_event: WorkflowEvent<unknown>, step: WorkflowStep) {

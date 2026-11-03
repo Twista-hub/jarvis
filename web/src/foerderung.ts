@@ -1,5 +1,5 @@
 // N2: funding programmes from the Förderdatenbank des Bundes, checked every morning against the firm's profile.
-// Licence CC BY-ND 4.0 DE: only the original title and link plus Jarvis' own assessment, never a changed text.
+// Licence CC BY-ND 4.0 DE: only the original title and link plus Crewtender' own assessment, never a changed text.
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
@@ -10,7 +10,7 @@ export type Foerderung = {
   foerderprogramme: { titel: string; link: string; veroeffentlicht: string | null } | null;
 };
 export const PASSEND_AB = 6;
-export const QUELLE = `Quelle: <a href="https://www.foerderdatenbank.de" target="_blank" rel="noopener">Förderdatenbank des Bundes</a>, Lizenz <a href="https://creativecommons.org/licenses/by-nd/4.0/deed.de" target="_blank" rel="noopener">CC BY-ND 4.0 DE</a>. Titel unverändert; die Einschätzung stammt von Jarvis.`;
+export const QUELLE = `Quelle: <a href="https://www.foerderdatenbank.de" target="_blank" rel="noopener">Förderdatenbank des Bundes</a>, Lizenz <a href="https://creativecommons.org/licenses/by-nd/4.0/deed.de" target="_blank" rel="noopener">CC BY-ND 4.0 DE</a>. Titel unverändert; die Einschätzung stammt von Crewtender.`;
 
 const ANSICHTEN = [["passend", "Passend"], ["gemerkt", "⭐ Gemerkt"], ["alle", "Alle"], ["ausgeblendet", "Ausgeblendet"]] as const;
 type Ansicht = (typeof ANSICHTEN)[number][0];
@@ -41,9 +41,9 @@ export function foerderSeite(liste: Foerderung[], o: { ansicht: string; darfAend
     const aktionen = !o.darfAendern ? "" : `<div class="foerder-aktionen">${f.stand === "gemerkt" ? knopf(f, "neu", "⭐ Gemerkt") : knopf(f, "gemerkt", "☆ Merken")}${["erledigt", "ausgeblendet"].includes(f.stand) ? knopf(f, "neu", "↩︎ Zurückholen") : `${knopf(f, "erledigt", "✓ Beantragt")}${knopf(f, "ausgeblendet", "Ausblenden")}`}</div>`;
     return `<li class="foerder-zeile${f.punkte >= 8 ? " stark" : f.punkte < PASSEND_AB ? " schwach" : ""}"><span class="foerder-punkte" title="Passung">${f.punkte}/10</span><div class="foerder-text"><a href="${escape(p.link)}" target="_blank" rel="noopener"><strong>${escape(p.titel)}</strong></a><span class="klein">🤖 ${escape(f.grund || "Ohne Begründung.")}</span><span class="klein">${p.veroeffentlicht ? `neu seit ${datum(p.veroeffentlicht)}` : `geprüft ${datum(f.bewertet)}`}${f.stand === "erledigt" ? " · ✓ beantragt" : ""}</span></div>${aktionen}</li>`;
   };
-  const leer = !liste.length ? "Noch keine Förderprogramme geprüft. Jarvis prüft jeden Morgen die neuen Programme der Förderdatenbank des Bundes gegen dein Suchprofil."
+  const leer = !liste.length ? "Noch keine Förderprogramme geprüft. Crewtender prüft jeden Morgen die neuen Programme der Förderdatenbank des Bundes gegen dein Suchprofil."
     : ansicht === "passend" ? `Gerade kein neues Programm mit mindestens ${PASSEND_AB}/10. Unter „Alle“ stehen auch die schwächeren.` : "Hier ist gerade nichts.";
-  return `<p class="klein">Jeden Morgen prüft Jarvis die neuen Programme der Förderdatenbank des Bundes gegen dein Suchprofil. Ab ${PASSEND_AB}/10 gilt ein Programm als passend.</p>${chips}${gezeigt.length ? `<ul class="foerder-liste">${gezeigt.map(zeile).join("")}</ul>` : `<p class="treffer-leer">${leer}</p>`}<p class="klein">Ob deine Firma antragsberechtigt ist, entscheidet der Fördergeber. Die Einschätzung ersetzt keine Beratung. ${QUELLE}</p>`;
+  return `<p class="klein">Jeden Morgen prüft Crewtender die neuen Programme der Förderdatenbank des Bundes gegen dein Suchprofil. Ab ${PASSEND_AB}/10 gilt ein Programm als passend.</p>${chips}${gezeigt.length ? `<ul class="foerder-liste">${gezeigt.map(zeile).join("")}</ul>` : `<p class="treffer-leer">${leer}</p>`}<p class="klein">Ob deine Firma antragsberechtigt ist, entscheidet der Fördergeber. Die Einschätzung ersetzt keine Beratung. ${QUELLE}</p>`;
 }
 
 export async function foerderLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string): Promise<Foerderung[]> {

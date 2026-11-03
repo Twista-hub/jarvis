@@ -1,7 +1,7 @@
-// T43: invite many staff at once. The office ticks people from the personnel list who have no app access yet; Jarvis
+// T43: invite many staff at once. The office ticks people from the personnel list who have no app access yet; Crewtender
 // creates one personal link per person (no e-mail needed, valid 14 days, only role "Mitarbeiter", linked to that
 // personnel record). The links go out by WhatsApp or SMS from the office phone, or as a printable sheet with QR codes.
-// Jarvis sends nothing itself.
+// Crewtender sends nothing itself.
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
@@ -23,7 +23,7 @@ export function telefonWa(t: string): string {
 }
 
 export const einladungsText = (firma: string, vorname: string, link: string) =>
-  `Hallo ${vorname}, ${firma} nutzt Jarvis für Schichten, Stunden und Urlaub. Hier ist dein persönlicher Zugang (14 Tage gültig): ${link}`;
+  `Hallo ${vorname}, ${firma} nutzt Crewtender für Schichten, Stunden und Urlaub. Hier ist dein persönlicher Zugang (14 Tage gültig): ${link}`;
 
 export function auswahlSeite(kraefte: Kraft[], offen: OffeneEinladung[], hinweis = ""): string {
   const ohne = kraefte.filter((k) => !k.user_id && k.status !== "nicht");
@@ -51,7 +51,7 @@ export function ergebnisSeite(links: Link[], firma: string): string {
 <p class="nicht-drucken">${links.length} ${links.length === 1 ? "Link" : "Links"} erstellt, je 14 Tage gültig. Tippe pro Person auf WhatsApp oder SMS; dein Handy öffnet die Nachricht mit fertigem Text. Oder druck die Seite aus und verteil die QR-Codes vor Ort.</p>
 <div class="knopf-zeile nicht-drucken"><button type="button" class="zweit" data-drucken>🖨️ Drucken (QR-Codes)</button></div>
 <div class="einladungen-karten">${links.map(karte).join("")}</div>
-<p class="klein nicht-drucken">Jarvis verschickt nichts selbst. Jeder Link gehört zu genau einer Person; bitte nicht weitergeben. Die Links erscheinen nur jetzt im Klartext. Verlorene Links einfach neu erstellen.</p>`;
+<p class="klein nicht-drucken">Crewtender verschickt nichts selbst. Jeder Link gehört zu genau einer Person; bitte nicht weitergeben. Die Links erscheinen nur jetzt im Klartext. Verlorene Links einfach neu erstellen.</p>`;
 }
 
 export async function kraefteEinladen(request: Request, env: KontoEnv): Promise<Response | null> {

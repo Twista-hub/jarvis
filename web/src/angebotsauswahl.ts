@@ -1,4 +1,4 @@
-// "Angebot vorbereiten" step 1: pick the lots, Jarvis writes the complete offer text with prices from the
+// "Angebot vorbereiten" step 1: pick the lots, Crewtender writes the complete offer text with prices from the
 // calculation and attaches the matching proofs. Nothing left to fill in by hand.
 import type { FirmenDatei } from "./firmenunterlagen.ts";
 import { euro, fmt, rechnen, STANDARD, type Eingaben, type Los, type LosWerte } from "./kalkulation.ts";
@@ -40,7 +40,7 @@ export function passendeNachweise(steckbrief: string, dateien: FirmenDatei[], st
 export function auswahlSeite(vid: string, p: Preise, nachweise: { namen: string[]; fehlen: string[] }, uploadLink: string, kalkLink: string): string {
   const zeilen = p.zeilen.map((z) => `<label class="zeile"><input type="checkbox" name="lose" value="${escape(z.nr)}" checked>
     <span>Los ${escape(z.nr)}: ${escape(z.name)}<br><span class="klein">${z.stunden ? `${fmt(z.stunden)} Std. × ${euro(z.preis ?? p.proStunde)} = ` : ""}<strong>${euro(z.netto)}</strong> netto</span></span></label>`).join("");
-  return `<p>Hake an, worauf ihr bieten wollt. Jarvis schreibt daraus das Angebot mit Preisen und legt die passenden Nachweise bei. Danach kannst du alles noch ändern.</p>
+  return `<p>Hake an, worauf ihr bieten wollt. Crewtender schreibt daraus das Angebot mit Preisen und legt die passenden Nachweise bei. Danach kannst du alles noch ändern.</p>
 <form method="post" action="/konto/vorgang/${vid}/angebot">
   <input type="hidden" name="aktion" value="vorauswahl">
   <fieldset><legend>Lose</legend>${zeilen}</fieldset>

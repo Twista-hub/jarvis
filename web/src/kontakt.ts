@@ -38,7 +38,7 @@ export function kontaktMail(w: Kontakt): Mail {
     to: ABSENDER.email,
     reply: { name, email: w.email },
     subject: `Kontaktformular: ${name}`,
-    text: `Nachricht über das Kontaktformular von Jarvis\n\nName: ${name}\nE-Mail: ${w.email}\n\n${w.nachricht}\n`,
+    text: `Nachricht über das Kontaktformular von Crewtender\n\nName: ${name}\nE-Mail: ${w.email}\n\n${w.nachricht}\n`,
   };
 }
 

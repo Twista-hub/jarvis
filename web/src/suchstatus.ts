@@ -29,9 +29,9 @@ export function suchmeldung(p: Suchstand, firma: string, jetzt = Date.now()): st
   if (sucheLaeuft(p, jetzt)) {
     const z = zwischenstand(p);
     const stand = z
-      ? `Bisher ${z.treffer} passende ${z.treffer === 1 ? "Ausschreibung" : "Ausschreibungen"} gefunden${z.kandidaten ? `, ${z.bewertet} von ${z.kandidaten} möglichen geprüft` : ""}. Neue Treffer erscheinen unten, während Jarvis weitersucht.`
-      : "Jarvis sammelt die passenden Ausschreibungen. Die ersten Treffer erscheinen unten, sobald sie bewertet sind.";
-    return `<p class="laedt" role="status" data-suchlauf="${escape(firma)}" data-treffer="${z ? z.treffer : 0}"><span class="kreisel" aria-hidden="true"></span><span><strong>Jarvis sucht passende Ausschreibungen.</strong><br><span class="klein">${escape(stand)}</span></span></p>`;
+      ? `Bisher ${z.treffer} passende ${z.treffer === 1 ? "Ausschreibung" : "Ausschreibungen"} gefunden${z.kandidaten ? `, ${z.bewertet} von ${z.kandidaten} möglichen geprüft` : ""}. Neue Treffer erscheinen unten, während Crewtender weitersucht.`
+      : "Crewtender sammelt die passenden Ausschreibungen. Die ersten Treffer erscheinen unten, sobald sie bewertet sind.";
+    return `<p class="laedt" role="status" data-suchlauf="${escape(firma)}" data-treffer="${z ? z.treffer : 0}"><span class="kreisel" aria-hidden="true"></span><span><strong>Crewtender sucht passende Ausschreibungen.</strong><br><span class="klein">${escape(stand)}</span></span></p>`;
   }
   const start = Date.parse(p.erstlauf || "") || 0;
   const fertig = Date.parse(p.fertig || "") || 0;

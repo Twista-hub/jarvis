@@ -154,7 +154,7 @@ class Franzoesisch(unittest.TestCase):
         self.assertIn("date limite inconnue", text)
         self.assertIn("valable jusqu'au 01/12/2026 (dans 1 jour)", text)
         self.assertNotIn("Ausschreibung", text)
-        self.assertIn("Ouvrir tous les résultats dans Jarvis", m.get_body(preferencelist=("html",)).get_content())
+        self.assertIn("Ouvrir tous les résultats dans Crewtender", m.get_body(preferencelist=("html",)).get_content())
 
     def test_handy_auf_franzoesisch(self):
         from unittest.mock import MagicMock, patch
@@ -214,7 +214,7 @@ class Englisch(unittest.TestCase):
         self.assertIn("valid until Dec 01, 2026 (in 30 days)", text)
         self.assertIn("Change the time or turn off emails", text)
         self.assertNotIn("Ausschreibung", text)
-        self.assertIn("Open all matches in Jarvis", m.get_body(preferencelist=("html",)).get_content())
+        self.assertIn("Open all matches in Crewtender", m.get_body(preferencelist=("html",)).get_content())
 
     def test_handy_auf_englisch(self):
         from unittest.mock import MagicMock, patch

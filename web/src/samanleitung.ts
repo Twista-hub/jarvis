@@ -1,5 +1,5 @@
 // Public English guide "How to register in SAM.gov" (/us/sam-registration): free help for US small businesses that
-// want federal contracts, and a way for them to find Jarvis through search engines. Facts from docs/usa-recherche.md
+// want federal contracts, and a way for them to find Crewtender through search engines. Facts from docs/usa-recherche.md
 // (2.1, 2.3, 2.12; checked November 2026). No fees, no affiliation with the US government.
 import { escape, seite } from "./seite.ts";
 
@@ -54,8 +54,8 @@ export function samAnleitung(adresse: string): string {
 <h2>Frequently asked questions</h2>
 ${FRAGEN.map(([q, a]) => `<details><summary>${escape(q)}</summary><p>${escape(a)}</p></details>`).join("")}
 <h2>Find contracts that fit you</h2>
-<p>Once you are registered, Jarvis checks new federal opportunities every morning and shows you only the ones that fit your trade and area, with a clear "May I bid?" check (set-aside, size, NAICS, registration) and a deadline tracker.</p>
-<div class="knopf-zeile"><a class="knopf" href="/registrieren">Start for free</a><a class="knopf zweit" href="/us">How Jarvis works</a></div>
+<p>Once you are registered, Crewtender checks new federal opportunities every morning and shows you only the ones that fit your trade and area, with a clear "May I bid?" check (set-aside, size, NAICS, registration) and a deadline tracker.</p>
+<div class="knopf-zeile"><a class="knopf" href="/registrieren">Start for free</a><a class="knopf zweit" href="/us">How Crewtender works</a></div>
 <p class="klein">Official sources: <a href="https://sam.gov/content/entity-registration" rel="noopener">SAM.gov entity registration</a> · <a href="https://www.fsd.gov" rel="noopener">Federal Service Desk</a> · <a href="https://certifications.sba.gov" rel="noopener">MySBA Certifications</a> · <a href="https://www.apexaccelerators.us" rel="noopener">APEX Accelerators</a>. Last checked November 2026.</p>
 <p class="klein">Private service by WP Digital Ranger, Germany. Not affiliated with or endorsed by SAM.gov, GSA, SBA or any US government agency. This guide is general information, not legal advice.</p>
 <script type="application/ld+json">${JSON.stringify(faq).replace(/</g, "\\u003c")}</script>`;

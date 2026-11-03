@@ -1,5 +1,5 @@
 // N6: Auswertung. Hits per month, the way from hit to award, win rate per quarter, revenue (finance rights),
-// reasons for 👎 and what Jarvis spent on AI for the firm (owners and admins).
+// reasons for 👎 and what Crewtender spent on AI for the firm (owners and admins).
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { nettoAusText } from "./angebotsuebersicht.ts";
@@ -61,9 +61,9 @@ export function auswertungSeite(v: V[], o: { heute: string; finanzen: boolean; u
     const monat = o.heute.slice(0, 7), vormonat = monate(o.heute, 2)[0];
     const summe = (m: string) => o.ki!.filter((x) => x.monat.slice(0, 7) === m).reduce((s, x) => s + Number(x.kosten), 0);
     const zwecke = [...new Set(o.ki.filter((x) => x.monat.slice(0, 7) === monat).map((x) => x.zweck))];
-    ki = `<h2>🤖 KI-Kosten</h2><div class="angebot-kennzahlen zwei"><div><strong>${usd(summe(monat))}</strong><span>dieser Monat</span></div><div><strong>${usd(summe(vormonat))}</strong><span>Vormonat</span></div></div>${zwecke.length ? `<p class="klein">${zwecke.map((z) => { const r = o.ki!.filter((x) => x.zweck === z && x.monat.slice(0, 7) === monat); return `${escape(ZWECK[z] ?? z)}: ${usd(r.reduce((s, x) => s + Number(x.kosten), 0))} (${r.reduce((s, x) => s + Number(x.anfragen), 0)} Anfragen)`; }).join(" · ")}</p>` : ""}<p class="klein">Was Jarvis über die offizielle KI-Schnittstelle für eure Firma ausgegeben hat, in US-Dollar. Erfasst seit 01.11.2026; gemeinsame Arbeiten (z. B. der Katalog) sind nicht enthalten.</p>`;
+    ki = `<h2>🤖 KI-Kosten</h2><div class="angebot-kennzahlen zwei"><div><strong>${usd(summe(monat))}</strong><span>dieser Monat</span></div><div><strong>${usd(summe(vormonat))}</strong><span>Vormonat</span></div></div>${zwecke.length ? `<p class="klein">${zwecke.map((z) => { const r = o.ki!.filter((x) => x.zweck === z && x.monat.slice(0, 7) === monat); return `${escape(ZWECK[z] ?? z)}: ${usd(r.reduce((s, x) => s + Number(x.kosten), 0))} (${r.reduce((s, x) => s + Number(x.anfragen), 0)} Anfragen)`; }).join(" · ")}</p>` : ""}<p class="klein">Was Crewtender über die offizielle KI-Schnittstelle für eure Firma ausgegeben hat, in US-Dollar. Erfasst seit 01.11.2026; gemeinsame Arbeiten (z. B. der Katalog) sind nicht enthalten.</p>`;
   }
-  if (!v.length) return `<p class="treffer-leer">Noch keine Daten. Die Auswertung füllt sich, sobald Jarvis Treffer für euch gefunden hat.</p>${ki}`;
+  if (!v.length) return `<p class="treffer-leer">Noch keine Daten. Die Auswertung füllt sich, sobald Crewtender Treffer für euch gefunden hat.</p>${ki}`;
   return `${kopf}<h2>📈 Treffer pro Monat</h2>${balken}<h2>🔻 Vom Treffer zum Zuschlag</h2>${trichterHtml}<h2>🏆 Gewinnquote</h2>${quote}${geld}${gruende}${ki}`;
 }
 

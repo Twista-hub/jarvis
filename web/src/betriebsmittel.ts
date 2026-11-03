@@ -24,7 +24,7 @@ export function betriebsmittelSeite(liste: Betriebsmittel[], o: { heute: string;
 <label class="ganz">Bezeichnung<input name="bezeichnung" required maxlength="200" placeholder="z. B. VW Crafter, Hubsteiger, Scheuersaugmaschine"></label>
 <label>Prüfung<input name="pruefart" maxlength="60" list="pruefarten"></label><datalist id="pruefarten">${PRUEFARTEN.map((p) => `<option value="${p}">`).join("")}</datalist><label>Nächste Prüfung<input type="date" name="naechste_pruefung"></label>
 <label class="ganz">Notiz<input name="notiz" maxlength="500"></label></div><button>Speichern</button></form></details>` : "";
-  return `<p class="klein">Fuhrpark, Maschinen und prüfpflichtige Geräte mit dem nächsten Prüftermin. Jarvis warnt 30 Tage vorher; die Ausstattung steht auch in der Eigenerklärung.</p>
+  return `<p class="klein">Fuhrpark, Maschinen und prüfpflichtige Geräte mit dem nächsten Prüftermin. Crewtender warnt 30 Tage vorher; die Ausstattung steht auch in der Eigenerklärung.</p>
 ${liste.length ? `<p class="${faellig ? "hinweis" : "klein"}">${faellig ? `⚠️ ${faellig} ${faellig === 1 ? "Prüfung" : "Prüfungen"} fällig oder bald fällig` : `✅ Alle Prüfungen aktuell · ${liste.length} Einträge`}</p>${gruppen.map(([, i, t, l]) => `<h2>${i} ${t} <span class="klein">${l.length}</span></h2><ul class="kontakt-liste zert-liste">${l.map(zeile).join("")}</ul>`).join("")}` : `<p class="treffer-leer">Noch nichts eingetragen.</p>`}${form}`;
 }
 

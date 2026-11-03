@@ -1,7 +1,7 @@
 // Idea 23 (docs/ideen-arbeitsoberflaeche.md): VAT overview per month or quarter from the firm's invoices (output VAT)
 // and receipts (input VAT), plus a watch on the small-business limits (§ 19 UStG since 2025: previous year at most
 // 25,000 €, current year at most 100,000 €). Only an overview for the tax adviser or for typing into ELSTER yourself:
-// Jarvis transmits nothing and gives no tax advice. Finance access (readers with finance access may look).
+// Crewtender transmits nothing and gives no tax advice. Finance access (readers with finance access may look).
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
@@ -75,7 +75,7 @@ export function umsatzsteuerSeite(p: Periode[], o: { jahr: number; quartal: bool
 ${o.kleinunternehmer ? `<p class="klein">Laufendes Jahr ${euro(o.laufend)} von ${euro(GRENZE_LAUFEND)}</p>${balken(o.laufend, GRENZE_LAUFEND)}<p class="klein">Vorjahr ${euro(o.vorjahr)} von ${euro(GRENZE_VORJAHR)}</p>${balken(o.vorjahr, GRENZE_VORJAHR)}` : ""}</section>
 <nav class="ordner-chips" aria-label="Ansicht"><a href="${q(o.jahr, false, o.ist)}"${o.quartal ? "" : ' aria-current="page"'}>Monate</a><a href="${q(o.jahr, true, o.ist)}"${o.quartal ? ' aria-current="page"' : ""}>Quartale</a><a href="${q(o.jahr, o.quartal, false)}"${o.ist ? "" : ' aria-current="page"'}>nach Rechnungsdatum</a><a href="${q(o.jahr, o.quartal, true)}"${o.ist ? ' aria-current="page"' : ""}>nach Zahlungseingang</a></nav>
 <div class="tabelle-rahmen">${tabelle}</div>
-<p class="klein">Aus den Rechnungen in Jarvis${o.kleinunternehmer ? "" : " und den erfassten Belegen (Vorsteuer laut Eingabe)"}. ${o.ist ? "Nach Zahlungseingang: nur als bezahlt markierte Rechnungen (Ist-Versteuerung)." : "Nach Rechnungsdatum (Soll-Versteuerung)."} Rechnungen außerhalb von Jarvis fehlen hier. Die Kennzahlen (Kz.) sind zur Orientierung für die Umsatzsteuer-Voranmeldung in ELSTER. Jarvis übermittelt nichts und ersetzt keine Steuerberatung.</p>`;
+<p class="klein">Aus den Rechnungen in Crewtender${o.kleinunternehmer ? "" : " und den erfassten Belegen (Vorsteuer laut Eingabe)"}. ${o.ist ? "Nach Zahlungseingang: nur als bezahlt markierte Rechnungen (Ist-Versteuerung)." : "Nach Rechnungsdatum (Soll-Versteuerung)."} Rechnungen außerhalb von Crewtender fehlen hier. Die Kennzahlen (Kz.) sind zur Orientierung für die Umsatzsteuer-Voranmeldung in ELSTER. Crewtender übermittelt nichts und ersetzt keine Steuerberatung.</p>`;
 }
 
 export async function umsatzsteuer(request: Request, env: KontoEnv): Promise<Response | null> {

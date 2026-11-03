@@ -6,7 +6,7 @@ the KDQs via the data.gv.at search API, reads only items changed on the requeste
 (eForms ContractNotice or the older Austrian KD_8_1 forms); awards are skipped.
 
 Rules (CLAUDE.md): robots.txt of each host is checked before fetching (incl. Crawl-delay); hosts that signal
-"ai-input=no" (Content-Signal, e.g. ANKÖ) are skipped because Jarvis rates notices with AI. Own user agent.
+"ai-input=no" (Content-Signal, e.g. ANKÖ) are skipped because Crewtender rates notices with AI. Own user agent.
 Usage (test): python3 alarm/oesterreich.py YYYY-MM-DD
 """
 import json

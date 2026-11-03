@@ -111,17 +111,17 @@ async function anzeigen(s: Sitzung, env: KontoEnv, firma: string, name: string, 
 function automatischeSeite(firma: string, name: string, website: string, plz: string, ort: string, fehler = "", basis = leer()): string {
   const verborgen = profilZuFormular(basis, website);
   return `<ol class="einrichtungs-schritte" aria-label="Einrichtung"><li aria-current="step">1. Firma prüfen</li><li>2. Suchprofil erstellen</li><li>3. Aufträge finden</li></ol>
-<section class="firmenpruefung"><h2>Jarvis lernt deine Firma kennen</h2><p>Wir prüfen eure Website und öffentliche Quellen. Daraus erkennt Jarvis eure Arbeiten und Firmenstandorte und richtet die Suche nach passenden Ausschreibungen ein.</p>
+<section class="firmenpruefung"><h2>Crewtender lernt deine Firma kennen</h2><p>Wir prüfen eure Website und öffentliche Quellen. Daraus erkennt Crewtender eure Arbeiten und Firmenstandorte und richtet die Suche nach passenden Ausschreibungen ein.</p>
 ${fehler ? `<p class="fehler" role="alert">${escape(fehler)}</p>` : `<p class="klein">Die Prüfung startet automatisch. Du musst keine Suchwörter oder Standorte zusammensuchen.</p>`}
 <form method="post" data-suchaktion action="/konto/einrichtung/automatisch"${fehler ? "" : " data-auto-einrichtung"}>
   <input type="hidden" name="firma" value="${escape(firma)}">
   ${[...verborgen].filter(([k]) => !["firma", "website", "beschreibung"].includes(k)).map(([k, w]) => `<input type="hidden" name="${escape(k)}" value="${escape(String(w))}">`).join("")}
   <p><strong>${escape(name)}</strong>${ort ? ` · ${escape(plz)} ${escape(ort)}` : ""}</p>
   <label>Eure Firmenwebsite (optional)<input name="website" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.eure-firma.de" value="${escape(website)}"></label>
-  ${!website ? `<p class="klein">Auch ohne Website sucht Jarvis mit Firmenname und Firmensitz.</p>` : ""}
-  <details${basis.beschreibung ? " open" : ""}><summary>Eigene Hinweise ergänzen (optional)</summary><label>Was sollte Jarvis über euch wissen?<textarea name="beschreibung" maxlength="3000" placeholder="Zum Beispiel eure wichtigsten Arbeiten oder Besonderheiten.">${escape(basis.beschreibung)}</textarea></label></details>
+  ${!website ? `<p class="klein">Auch ohne Website sucht Crewtender mit Firmenname und Firmensitz.</p>` : ""}
+  <details${basis.beschreibung ? " open" : ""}><summary>Eigene Hinweise ergänzen (optional)</summary><label>Was sollte Crewtender über euch wissen?<textarea name="beschreibung" maxlength="3000" placeholder="Zum Beispiel eure wichtigsten Arbeiten oder Besonderheiten.">${escape(basis.beschreibung)}</textarea></label></details>
   <button type="submit">${fehler ? "Firmenprüfung erneut versuchen" : "Firma prüfen und Suche einrichten"}</button>
-  <p class="klein" data-einrichtung-status role="status" aria-live="polite">Jarvis recherchiert Leistungen und Standorte, erstellt das Suchprofil und startet die erste Ausschreibungssuche. Das kann einige Minuten dauern.</p>
+  <p class="klein" data-einrichtung-status role="status" aria-live="polite">Crewtender recherchiert Leistungen und Standorte, erstellt das Suchprofil und startet die erste Ausschreibungssuche. Das kann einige Minuten dauern.</p>
 </form></section>`;
 }
 
@@ -221,18 +221,18 @@ export function profilZuFormular(v: Vorschlag, website: string): FormData {
 export function startFormular(firma: string, beschreibung: string, orte: string, website: string, fehler: string): string {
   return `${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}
 ${hilfe("Tipp für eine gute Suche", "Beschreibe in einfachen Worten, welche Arbeit ihr macht und wo ihr arbeitet. Fachbegriffe oder Vergabe-Kennziffern brauchst du nicht.")}
-<p>Jarvis wertet Website und öffentliche Suchtreffer automatisch aus. Du kannst das Ergebnis prüfen oder die Firmenarbeit selbst ergänzen.</p>
+<p>Crewtender wertet Website und öffentliche Suchtreffer automatisch aus. Du kannst das Ergebnis prüfen oder die Firmenarbeit selbst ergänzen.</p>
 <form method="post" data-suchaktion action="/konto/einrichtung/vorschlag">
   <input type="hidden" name="firma" value="${firma}">
   <label>Firmenwebsite (freiwillig)<input name="website" type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" value="${escape(website)}"></label>
-  <p class="klein">Jarvis prüft die Website und bis zu drei öffentliche Web-Suchergebnisse. Es übernimmt belegte Leistungen als Suchwörter und beachtet Website-Zugriffssperren.</p>
+  <p class="klein">Crewtender prüft die Website und bis zu drei öffentliche Web-Suchergebnisse. Es übernimmt belegte Leistungen als Suchwörter und beachtet Website-Zugriffssperren.</p>
   <label>Welche Arbeit macht ihr?
     <textarea name="beschreibung" maxlength="3000" placeholder="Zum Beispiel: Wir verlegen Fliesen und Mosaik in Badezimmern und Küchen.">${escape(beschreibung)}</textarea></label>
   <label>Standorte (eine Stadt pro Zeile, freiwillig)
     <textarea name="orte" maxlength="1000" placeholder="Köln&#10;Düsseldorf">${escape(orte)}</textarea>
-    <span class="klein">Ohne Standorte sucht Jarvis in ganz Deutschland.</span></label>
+    <span class="klein">Ohne Standorte sucht Crewtender in ganz Deutschland.</span></label>
   <button type="submit">Suchprofil automatisch erstellen</button>
-  <p class="klein" data-einrichtung-status role="status" aria-live="polite">Jarvis recherchiert die Firma und erstellt danach das Suchprofil. Das kann bis zu zwei Minuten dauern.</p>
+  <p class="klein" data-einrichtung-status role="status" aria-live="polite">Crewtender recherchiert die Firma und erstellt danach das Suchprofil. Das kann bis zu zwei Minuten dauern.</p>
 </form><p><a href="/konto/suchprofil">← Zurück zum Suchprofil</a> · <a href="/konto">Zur Übersicht</a></p>`;
 }
 
@@ -315,10 +315,10 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
     <textarea name="beschreibung" maxlength="3000">${escape(v.beschreibung)}</textarea></label>
   ${firmenInfos(v, true)}
   ${(v.websuche_quellen ?? []).map((q) => `<input type="hidden" name="websuche_quellen" value="${escape(JSON.stringify(q))}">`).join("")}
-  <h2>Welche Arbeiten soll Jarvis für dich finden?</h2>
+  <h2>Welche Arbeiten soll Crewtender für dich finden?</h2>
   ${leistungen}
   <details><summary>Unpassende Arbeiten ausschließen (optional)</summary>
-    <label>Welche Aufträge soll Jarvis nicht anzeigen?<input name="ausschluss" maxlength="1500" placeholder="z. B. Neubau, wenn ihr nur renoviert" value="${liste(v.ausschluss)}"></label>
+    <label>Welche Aufträge soll Crewtender nicht anzeigen?<input name="ausschluss" maxlength="1500" placeholder="z. B. Neubau, wenn ihr nur renoviert" value="${liste(v.ausschluss)}"></label>
     <label>Vergabe-Kennziffern für Ausschlüsse (optional)<input name="ausschluss_cpv" maxlength="300" inputmode="numeric" value="${liste(v.ausschluss_cpv)}"></label>
   </details>
   <details${(v.auftraggeber_bevorzugt?.length || v.auftraggeber_aus?.length || v.wert_min || v.wert_max) ? " open" : ""}><summary>Auftraggeber und Auftragsgröße (optional)</summary>
@@ -329,10 +329,10 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
     <label class="zeile"><input type="checkbox" name="wert_unbekannt" value="1"${v.wert_unbekannt !== false ? " checked" : ""}> Ausschreibungen ohne Wertangabe trotzdem zeigen (empfohlen, viele nennen keinen Wert)</label>
     <span class="klein">Ändert nur, welche Treffer erscheinen. Kostet nichts extra.</span>
   </details>
-  <h2>Wo soll Jarvis suchen?</h2>
+  <h2>Wo soll Crewtender suchen?</h2>
   ${laenderBereinigen(v.laender).includes("DEU") ? `<label>Umkreis um jeden Standort<select name="radius_km">${RADIEN.map((km) => `<option value="${km}"${km === (v.radius_km ?? 50) ? " selected" : ""}>${km} km${km === 50 ? " (empfohlen)" : ""}</option>`).join("")}</select>
-    <span class="klein">Ausschreibungen mit bekanntem Einsatzort weiter weg blendet Jarvis aus. Ändern kostet nichts extra.</span></label>
-  <label class="ankreuzen"><input type="checkbox" name="regionsmodus" value="1"${v.regionsmodus ? " checked" : ""}> 🔭 Alle Ausschreibungen im Umkreis prüfen lassen <span class="klein">Jarvis lässt die KI auch Ausschreibungen ohne passende Suchwörter lesen, wenn der Einsatzort im Umkreis liegt (höchstens 150 am Tag). Findet mehr, kostet etwas mehr KI.</span></label>` : `<input type="hidden" name="radius_km" value="${v.radius_km ?? 50}">`}
+    <span class="klein">Ausschreibungen mit bekanntem Einsatzort weiter weg blendet Crewtender aus. Ändern kostet nichts extra.</span></label>
+  <label class="ankreuzen"><input type="checkbox" name="regionsmodus" value="1"${v.regionsmodus ? " checked" : ""}> 🔭 Alle Ausschreibungen im Umkreis prüfen lassen <span class="klein">Crewtender lässt die KI auch Ausschreibungen ohne passende Suchwörter lesen, wenn der Einsatzort im Umkreis liegt (höchstens 150 am Tag). Findet mehr, kostet etwas mehr KI.</span></label>` : `<input type="hidden" name="radius_km" value="${v.radius_km ?? 50}">`}
   ${laenderBereinigen(v.laender).includes("FRA") ? departementAuswahl(departementsBereinigen(v.departements)) : ""}
   ${laenderBereinigen(v.laender).includes("POL") ? woiwodschaftAuswahl(woiwodschaftenBereinigen(v.woiwodschaften)) : ""}
   ${laenderBereinigen(v.laender).includes("ESP") ? comunidadAuswahl(comunidadesBereinigen(v.comunidades)) : ""}
@@ -342,7 +342,7 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   <p class="klein">Die Ausschreibungssuche berücksichtigt jeden Firmenstandort. Mehrfach gefundene Ausschreibungen erscheinen einmal.</p>
   <details${v.suchgebiet_modus === "manuell" ? " open" : ""}><summary>Eigene Suchorte festlegen (optional)</summary><p class="klein">Wähle dafür oben „Nur ausgewählte Orte“. Ohne eigene Suchorte gilt ganz Deutschland.</p>${standorte}</details>` : nurFrankreich ? "" : standorte}
   <details><summary>In weiteren Ländern suchen (optional)</summary>
-    <p class="klein">Deutschland ist standardmäßig ausgewählt. Jarvis kann zusätzlich Ausschreibungen aus europäischen Ländern und den USA suchen.</p>
+    <p class="klein">Deutschland ist standardmäßig ausgewählt. Crewtender kann zusätzlich Ausschreibungen aus europäischen Ländern und den USA suchen.</p>
     ${laenderAuswahl(laenderBereinigen(v.laender))}
   </details>
   <details><summary>Tägliche E-Mail einstellen (optional)</summary>
@@ -353,7 +353,7 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   <label>Treffer anzeigen und melden ab<select name="min_punkte">${[4, 5, 6, 7, 8].map((n) => `<option value="${n}"${n === (v.min_punkte ?? 6) ? " selected" : ""}>${n}/10${n === 6 ? " (empfohlen)" : n < 6 ? " – mehr, auch unsichere Treffer" : " – nur sehr passende"}</option>`).join("")}</select></label>
   <span class="klein">Ändert nur, welche bewerteten Treffer erscheinen. Kostet nichts extra.</span>
   </details>
-  <p class="kosten-hinweis" data-kosten-hinweis hidden>💡 Du hast Arbeiten, Suchwörter, Ausschlüsse oder Orte geändert. Beim nächsten Suchlauf bewertet Jarvis deshalb alle passenden Ausschreibungen neu. Das kostet einmalig etwa 0,50–1 € KI-Guthaben.</p>
+  <p class="kosten-hinweis" data-kosten-hinweis hidden>💡 Du hast Arbeiten, Suchwörter, Ausschlüsse oder Orte geändert. Beim nächsten Suchlauf bewertet Crewtender deshalb alle passenden Ausschreibungen neu. Das kostet einmalig etwa 0,50–1 € KI-Guthaben.</p>
   <button type="submit">Speichern und Ausschreibungen suchen</button>
   <button type="submit" class="zweit" name="aktion" value="vorschau" formaction="/konto/einrichtung/vorschau">🔍 Vorschau: Wie viele Treffer letzte Woche?</button>
   <button type="submit" class="zweit" name="aktion" value="recherche" formaction="/konto/einrichtung/automatisch" formnovalidate>Firmeninfos neu recherchieren</button>
@@ -534,7 +534,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     const code = fehlerCode(r.fehler);
     console.error("Suchprofil konnte nicht gespeichert werden", { status: r.status, code });
     const meldung = r.status === 401 || r.status === 403
-      ? "Jarvis hat keine Schreibberechtigung für dieses Suchprofil. Bitte melde dich erneut an oder lass die Firmenrechte prüfen."
+      ? "Crewtender hat keine Schreibberechtigung für dieses Suchprofil. Bitte melde dich erneut an oder lass die Firmenrechte prüfen."
       : r.status === 409 || code === "23505"
         ? "Für diese Firma wurde gleichzeitig ein Suchprofil angelegt. Lade die Seite neu und prüfe, ob es bereits gespeichert ist."
         : r.status === 400
@@ -548,15 +548,15 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   }
   if (form.get("aktion") === "recherche") return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(`Firmeninfos aktualisiert: ${v.leistungen.length} Arbeitsbereiche. Du kannst jetzt nach Ausschreibungen suchen.`)}`, s.cookies);
   if (form.has("stunde")) await mailZeitSetzen(s, env, firma, form.get("stunde"));
-  const laufstart: Laufstart = beispiel ? { gestartet: false, hinweis: BEISPIEL_HINWEIS } : sofort ? await ersterLauf(env, firma) : { gestartet: false, hinweis: "Jarvis durchsucht diese Firma gerade. Warte bitte, bis der laufende Suchlauf fertig ist." };
+  const laufstart: Laufstart = beispiel ? { gestartet: false, hinweis: BEISPIEL_HINWEIS } : sofort ? await ersterLauf(env, firma) : { gestartet: false, hinweis: "Crewtender durchsucht diese Firma gerade. Warte bitte, bis der laufende Suchlauf fertig ist." };
   const gestartet = laufstart.gestartet;
   if (gestartet) {
-    // Remembered for the "Jarvis is searching" notice in the overview and the 2-hour limit.
+    // Remembered for the "Crewtender is searching" notice in the overview and the 2-hour limit.
     await db(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null`, { method: "PATCH", body: JSON.stringify({ einstellungen: { ...einstellungen, erstlauf: new Date().toISOString() } }) });
   }
   // While the first run is busy the overview shows its own notice with a spinner, which disappears when it is done.
   if (gestartet) return weiterleiten(`/konto?firma=${firma}`);
-  const hinweis = sofort ? `Dein Suchprofil ist gespeichert. ${laufstart.hinweis}` : "Jarvis durchsucht diese Firma bereits. Warte bitte, bis der laufende Suchlauf fertig ist.";
+  const hinweis = sofort ? `Dein Suchprofil ist gespeichert. ${laufstart.hinweis}` : "Crewtender durchsucht diese Firma bereits. Warte bitte, bis der laufende Suchlauf fertig ist.";
   return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(hinweis)}`, s.cookies);
 }
 
@@ -576,7 +576,7 @@ async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: 
   if (!alt.einstellungen?.websuche_beschreibung && alt.einstellungen?.recherche_version !== 2) return weiterleiten(`/konto/einrichtung?firma=${firma}&automatisch=1`, s.cookies);
   const zuletzt = alt.einstellungen?.erstlauf ? String(alt.einstellungen.erstlauf) : null;
   const fertig = alt.einstellungen?.erstlauf_fertig ? String(alt.einstellungen.erstlauf_fertig) : null;
-  if (suchlaufLaeuft(zuletzt, fertig)) return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent("Jarvis sucht für diese Firma bereits. Die Treffer erscheinen nach Abschluss.")}`, s.cookies);
+  if (suchlaufLaeuft(zuletzt, fertig)) return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent("Crewtender sucht für diese Firma bereits. Die Treffer erscheinen nach Abschluss.")}`, s.cookies);
   if (istBeispiel(alt.einstellungen)) return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(BEISPIEL_HINWEIS)}`, s.cookies);
   const laufstart = await ersterLauf(env, firma);
   if (!laufstart.gestartet) {
@@ -591,7 +591,7 @@ async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: 
 
 /** Example firm (supabase/demo/beispielfirma.sql): everything works except the paid AI search and research. */
 export const istBeispiel = (e: unknown): boolean => (e as { demo?: unknown } | null | undefined)?.demo === true;
-export const BEISPIEL_HINWEIS = "Das ist eine Beispielfirma: Jarvis startet hier keinen echten Suchlauf und keine Firmenprüfung, damit keine KI-Kosten entstehen.";
+export const BEISPIEL_HINWEIS = "Das ist eine Beispielfirma: Crewtender startet hier keinen echten Suchlauf und keine Firmenprüfung, damit keine KI-Kosten entstehen.";
 
 /** Starts the alarm for this firm only (last 7 days) via GitHub Actions. */
 async function ersterLauf(env: EinrichtungEnv, firma: string): Promise<Laufstart> {

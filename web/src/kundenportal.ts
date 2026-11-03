@@ -1,7 +1,7 @@
 // Idea 40 (docs/ideen-arbeitsoberflaeche.md): customer portal. One secret link per customer (only the hash is stored).
 // The customer sees service records (sums only, no staff names), invoices if someone with finance access switched them
 // on, patrol counts and incidents for their sites if switched on, and can report defects, wishes or praise.
-// Jarvis sends nothing itself; the office passes the link on (WhatsApp/e-mail buttons open the own app).
+// Crewtender sends nothing itself; the office passes the link on (WhatsApp/e-mail buttons open the own app).
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { sha256hex, zufallsToken } from "./kundenlink.ts";
@@ -57,7 +57,7 @@ export function portalVerwaltung(kunden: KundeKurz[], portale: Portal[], meldung
     const knoepfe = !o.darf ? "" : p ? `${schalter(p, "rechnungen", "Rechnungen", p.rechnungen_zeigen, o.finanzen)}${schalter(p, "berichte", "Kontrollgänge &amp; Vorfälle", p.berichte_zeigen, true)}<form method="post" action="/konto/kundenportal"><input type="hidden" name="neu" value="${k.id}"><button class="zweit" title="Neuer Link, der alte gilt dann nicht mehr">🔄 Neuer Link</button></form><form method="post" action="/konto/kundenportal"><input type="hidden" name="portal" value="${p.id}"><input type="hidden" name="aktiv" value="${p.aktiv ? "0" : "1"}"><button class="zweit">${p.aktiv ? "⛔ Sperren" : "✅ Freigeben"}</button></form>` : `<form method="post" action="/konto/kundenportal"><input type="hidden" name="neu" value="${k.id}"><button>🔗 Portal-Link erstellen</button></form>`;
     return `<li><div><strong>${escape(k.name)}</strong><span class="klein">${p ? p.aktiv ? `Portal aktiv seit ${datum(p.erstellt)}${p.gueltig_bis ? `, gültig bis ${datum(p.gueltig_bis)}` : ""}` : "⛔ gesperrt oder abgelaufen" : "kein Portal"}</span></div><span class="knopf-zeile">${knoepfe}</span></li>`;
   };
-  return `<p class="klein">Jeder Kunde bekommt einen geheimen Link (ohne Anmeldung). Dort sieht er seine Leistungsnachweise (nur Summen, keine Namen), auf Wunsch Rechnungen und Kontrollgänge und kann Mängel, Wünsche oder Lob melden. Jarvis verschickt den Link nicht selbst. Bitte die Kundendaten-Verarbeitung im Vertrag mit dem Kunden regeln.</p>
+  return `<p class="klein">Jeder Kunde bekommt einen geheimen Link (ohne Anmeldung). Dort sieht er seine Leistungsnachweise (nur Summen, keine Namen), auf Wunsch Rechnungen und Kontrollgänge und kann Mängel, Wünsche oder Lob melden. Crewtender verschickt den Link nicht selbst. Bitte die Kundendaten-Verarbeitung im Vertrag mit dem Kunden regeln.</p>
 <h2>📣 Meldungen von Kunden ${offen.length ? `<span class="klein">(${offen.length} offen)</span>` : ""}</h2>
 ${meldungen.length ? `<ul class="kontakt-liste">${meldungen.map((m) => `<li class="${m.erledigt_am ? "" : m.art === "mangel" ? "abgelaufen" : "bald"}"><div><strong>${ARTEN[m.art] ?? ""} · ${escape(name(m.kunde_id))}</strong><span class="klein">${zeitpunkt(m.erstellt)}${m.name ? ` · ${escape(m.name)}` : ""} · ${escape(m.text)}${m.erledigt_am ? ` · ✅ erledigt ${datum(m.erledigt_am)}` : ""}</span></div>${o.darf ? `<form method="post" action="/konto/kundenportal"><input type="hidden" name="${m.erledigt_am ? "wieder" : "erledigt"}" value="${m.id}"><button class="zweit">${m.erledigt_am ? "↩︎ Wieder offen" : "✓ Erledigt"}</button></form>` : ""}</li>`).join("")}</ul>` : `<p class="treffer-leer">Noch keine Meldungen.</p>`}
 <h2>🔗 Portale je Kunde</h2>${kunden.length ? `<ul class="kontakt-liste">${kunden.map(zeile).join("")}</ul>` : `<p class="treffer-leer">Lege zuerst unter <a href="/konto/kunden">Kunden &amp; Einsatzorte</a> Kunden an.</p>`}`;
@@ -93,7 +93,7 @@ export async function kundenportal(request: Request, env: KontoEnv): Promise<Res
       const tel = kunde.telefon.replace(/[^\d+]/g, "").replace(/^0/, "49").replace(/^\+/, "");
       return antwort(`<p>Portal-Link für <strong>${escape(kunde.name)}</strong>. Er wird nur jetzt angezeigt und gilt 12 Monate; ein früherer Link gilt nicht mehr.</p><label>Link<input readonly value="${escape(link)}"></label>
 <div class="knopf-zeile teilen"><a class="knopf" href="https://wa.me/${tel}?text=${encodeURIComponent(text)}" target="_blank" rel="noopener">WhatsApp</a><a class="knopf zweit" href="mailto:${escape(kunde.email)}?subject=${encodeURIComponent("Ihr Kundenbereich")}&body=${encodeURIComponent(text)}">E-Mail</a></div>
-<p class="klein">Jarvis verschickt den Link nicht selbst. Wer den Link hat, sieht den Kundenbereich; bitte nur an den Kunden geben. Bei Verdacht: „🔄 Neuer Link“ oder „⛔ Sperren“.</p><p><a href="/konto/kundenportal">← Zurück zur Übersicht</a></p>`);
+<p class="klein">Crewtender verschickt den Link nicht selbst. Wer den Link hat, sieht den Kundenbereich; bitte nur an den Kunden geben. Bei Verdacht: „🔄 Neuer Link“ oder „⛔ Sperren“.</p><p><a href="/konto/kundenportal">← Zurück zur Übersicht</a></p>`);
     }
     const portal = id("portal");
     if (portal) {

@@ -86,7 +86,7 @@ def suchorte_fuer_standorte(e: dict) -> list[dict]:
 
 
 def suchpunkte(e: dict, firmen_plz: str = "") -> list[dict]:
-    """Coordinates of the locations Jarvis searches around: researched locations with a postal code, else the firm's seat."""
+    """Coordinates of the locations Crewtender searches around: researched locations with a postal code, else the firm's seat."""
     from geo_radius import koordinaten
     quellen = [(str(o.get("name", "")), str(o.get("plz") or "")) for o in e.get("firmenstandorte") or [] if isinstance(o, dict)]
     if e.get("suchgebiet_modus") == "manuell" or not quellen:
