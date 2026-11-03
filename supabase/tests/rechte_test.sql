@@ -96,6 +96,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103280000_ki_protokoll.sql
 \ir ../migrations/20261103290000_protokoll_datensparsam.sql
 \ir ../migrations/20261103300000_betreiber_firmen.sql
+\ir ../migrations/20261103310000_betreiber_rechnungen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1514,6 +1515,41 @@ do $$ begin perform public.betreiber_ki_budget(gen_random_uuid(), 0); raise exce
 select public.betreiber_paket(:'wegfirma', 'pro');
 select pruefe((select paket = 'pro' from public.betreiber_firmen() where id = :'wegfirma'), 'Betreiber setzt Plan');
 do $$ begin perform public.betreiber_paket(current_setting('test.wegfirma')::uuid, 'gold'); raise exception 'FEHLER: unbekannter Plan'; exception when others then if sqlerrm not like '%UNGUELTIG%' then raise; end if; end $$;
+-- Operator invoices to customers: tax number required, gapless numbers, frozen, cancellation instead of change.
+do $$ begin perform public.betreiber_rechnung_anlegen(current_setting('test.wegfirma')::uuid, '[{"text":"Pro","menge":1,"preis":149}]', 'November 2026', '{"steuernummer":""}'); raise exception 'FEHLER: Rechnung ohne Steuernummer'; exception when others then if sqlerrm not like '%STEUERNUMMER_FEHLT%' then raise; end if; end $$;
+do $$ begin perform public.betreiber_rechnung_anlegen(current_setting('test.wegfirma')::uuid, '[{"text":"Pro","menge":1,"preis":149}]', 'November 2026', '{"steuernummer":"202/123/45678"}'); raise exception 'FEHLER: Rechnung ohne Anschrift'; exception when others then if sqlerrm not like '%ANSCHRIFT_FEHLT%' then raise; end if; end $$;
+do $$ begin perform public.betreiber_rechnung_anlegen(current_setting('test.wegfirma')::uuid, '[{"text":"","menge":1,"preis":149}]', 'November 2026', '{"steuernummer":"202/123/45678"}'); raise exception 'FEHLER: leere Position'; exception when others then if sqlerrm not like '%POSITION_UNGUELTIG%' then raise; end if; end $$;
+reset role;
+update public.firmen set strasse = 'Weg 1', plz = '12345', ort = 'Wegstadt' where id = :'wegfirma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000b1');
+select public.betreiber_rechnung_anlegen(:'wegfirma', '[{"text":"Crewtender Pro","menge":1,"preis":149},{"text":"Zusatzpaket","menge":2,"preis":15.004}]', 'November 2026', '{"firma":"WP Digital Ranger","steuernummer":"202/123/45678","kleinunternehmer":true}') as re1 \gset
+select pruefe((:'re1'::jsonb->>'nummer') = 'CT-' || extract(year from now())::text || '-0001', 'Erste Kundenrechnung hat Nummer CT-Jahr-0001');
+select public.betreiber_rechnung((:'re1'::jsonb->>'id')::uuid) as r1 \gset
+select pruefe((:'r1'::jsonb->>'summe')::numeric = 179.00 and (:'r1'::jsonb->'empfaenger'->>'firma') = 'Weg GmbH' and (:'r1'::jsonb->'empfaenger'->>'strasse') = 'Weg 1' and (:'r1'::jsonb->'empfaenger'->>'inhaber') = 'kunde@weg.test', 'Rechnung rechnet Summe und friert Empfänger ein');
+select (public.betreiber_rechnung_stornieren((:'re1'::jsonb->>'id')::uuid))->>'id' as st1 \gset
+select pruefe((select (x->>'summe')::numeric = -179.00 and x->>'nummer' like '%-0002' and x->>'hinweis' like 'Stornorechnung zu CT-%' and (x->>'storno_von')::uuid = (:'re1'::jsonb->>'id')::uuid from public.betreiber_rechnung(:'st1') x), 'Storno mit eigener Nummer, negativem Betrag und Bezug');
+select pruefe((public.betreiber_rechnung((:'re1'::jsonb->>'id')::uuid)->>'storniert_durch')::uuid = :'st1', 'Original zeigt auf das Storno');
+reset role;
+insert into public.firmenprofil (firma_id, land) values (:'wegfirma', 'AT') on conflict (firma_id) do update set land = 'AT';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000b1');
+do $$ begin perform public.betreiber_rechnung_anlegen(current_setting('test.wegfirma')::uuid, '[{"text":"Pro","menge":1,"preis":149}]', 'November 2026', '{"steuernummer":"202/123/45678"}'); raise exception 'FEHLER: Auslandsrechnung ohne USt-IdNr'; exception when others then if sqlerrm not like '%AUSLAND%' then raise; end if; end $$;
+reset role;
+update public.firmenprofil set land = 'DE' where firma_id = :'wegfirma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000b1');
+do $$ begin perform public.betreiber_rechnung_stornieren((select (x->>'id')::uuid from public.betreiber_rechnungen_liste() x where x->>'nummer' like '%-0001')); raise exception 'FEHLER: doppelt storniert'; exception when others then if sqlerrm not like '%SCHON_STORNIERT%' then raise; end if; end $$;
+select pruefe((select count(*) = 2 from public.betreiber_rechnungen_liste()), 'Betreiber sieht seine Kundenrechnungen');
+select test_als('00000000-0000-0000-0000-0000000000b2');
+do $$ begin perform public.betreiber_rechnungen_liste(); raise exception 'FEHLER: Kunde sieht Betreiber-Rechnungen'; exception when insufficient_privilege then null; end $$;
+do $$ begin perform public.betreiber_rechnung_anlegen(current_setting('test.wegfirma')::uuid, '[{"text":"x","menge":1,"preis":1}]', 'x', '{"steuernummer":"1"}'); raise exception 'FEHLER: Kunde schreibt Rechnung'; exception when insufficient_privilege then null; end $$;
+do $$ begin perform 1 from jarvis_intern.betreiber_rechnungen; raise exception 'FEHLER: Tabelle direkt lesbar'; exception when insufficient_privilege then null; end $$;
+reset role;
+do $$ begin update jarvis_intern.betreiber_rechnungen set summe = 1; raise exception 'FEHLER: Rechnung geändert'; exception when insufficient_privilege then null; end $$;
+do $$ begin delete from jarvis_intern.betreiber_rechnungen; raise exception 'FEHLER: Rechnung gelöscht'; exception when insufficient_privilege then null; end $$;
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000b1');
 do $$ begin perform public.betreiber_konto_loeschen('benschiffer79@gmail.com', true); raise exception 'FEHLER: eigenes Konto löschbar'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 do $$ begin perform public.betreiber_konto_loeschen('kunde@weg.test', false); raise exception 'FEHLER: letzter Inhaber ohne Firmenlöschung'; exception when others then if sqlerrm not like '%LETZTER_INHABER%' then raise; end if; end $$;
 select public.betreiber_konto_loeschen('kunde@weg.test', true) as erg \gset
@@ -1524,6 +1560,7 @@ set role authenticated;
 select test_als('00000000-0000-0000-0000-0000000000b1');
 reset role;
 select pruefe(not exists (select 1 from auth.users where email = 'kunde@weg.test') and not exists (select 1 from public.firmen where id in (:'wegfirma', :'teamweg')) and exists (select 1 from auth.users where email = 'kollege@weg.test'), 'Betreiber löscht Kunde samt eigener Firmen, Kollege bleibt');
+select pruefe((select count(*) = 2 from jarvis_intern.betreiber_rechnungen where firma_id is null and empfaenger->>'firma' = 'Weg GmbH'), 'Kundenrechnungen bleiben nach Löschung der Firma erhalten');
 select pruefe((:'erg'::jsonb->'vorgaenge') ? '' is false and jsonb_array_length(:'erg'::jsonb->'firmen') = 2 and jsonb_array_length(:'erg'::jsonb->'vorgaenge') = 1, 'Rückgabe nennt Firmen und Ausschreibungen für das Aufräumen der Dateien');
 -- Trade pages: public counts without login, only catalogue data.
 reset role;
