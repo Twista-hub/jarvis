@@ -374,8 +374,9 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     if (url.searchParams.get("einfuehrung") === "aus") s.cookies.push(`jv_einfuehrung=aus; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`);
     const schritte = [
       { fertig: sucheEingerichtet, text: "Suchprofil prüfen", hinweis: "Stimmen Arbeiten und Orte?", href: "/konto/suchprofil" },
-      { fertig: ids.length > 0, text: "Ersten Treffer ansehen", hinweis: "Steckbrief und Eckdaten lesen", href: "/konto/treffer" },
-      { fertig: false, text: "Unterlagen hochladen", hinweis: "Jarvis schreibt daraus Steckbrief und Kalkulation", href: "/konto/unterlagen" },
+      // Also done on another device: a tender someone already worked on counts as seen, one with an offer as prepared.
+      { fertig: ids.length > 0 || liste.some((v) => v.status !== "neu"), text: "Ersten Treffer ansehen", hinweis: "Steckbrief und Eckdaten lesen", href: "/konto/treffer" },
+      { fertig: liste.some((v) => ["angebot", "abgegeben", "gewonnen", "verloren"].includes(v.status)), text: "Unterlagen hochladen", hinweis: "Jarvis schreibt daraus Steckbrief und Kalkulation", href: "/konto/unterlagen" },
     ];
     const einfuehrung = !ausgeblendet && admin && !(schritte[0].fertig && schritte[1].fertig) ? `<section class="einfuehrung"><h2>So startest du mit Jarvis</h2><ol>${schritte.map((x, i) => `<li class="${x.fertig ? "erledigt" : ""}"><span class="schritt-nr" aria-hidden="true">${x.fertig ? "✓" : i + 1}</span><a href="${x.href}"><strong>${x.text}</strong><span class="klein">${x.hinweis}</span></a></li>`).join("")}</ol><a class="klein" href="/konto?einfuehrung=aus">Ausblenden</a></section>` : "";
     // T12: banner for whoever covers (or is absent) today, with the absent person's open tasks and tenders.
