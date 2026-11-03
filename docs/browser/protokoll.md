@@ -7,9 +7,13 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 |---|---|---|---|
 | Domain crewtender.eu | Namecheap → Cloudflare | gekauft 03.11.2026 (Benjamin), Cloudflare aktiv | |
 | E-Mail hello@crewtender.eu | Cloudflare Email Routing → kontakt@wpdigitalranger.com | aktiv 03.11.2026 | |
-| Instagram | @crew_tender (Unternehmenskonto, Kategorie Software) | angelegt 03.11.2026 (Benjamin), eingerichtet | https://www.instagram.com/crew_tender/ |
+| Instagram | @crew_tender (Unternehmenskonto, Kategorie Software; Anmeldung mit kontakt@wpdigitalranger.com, laut Benjamin 03.11.) | angelegt 03.11.2026 (Benjamin), eingerichtet | https://www.instagram.com/crew_tender/ |
 | Facebook-Seite | Crewtender (Kategorie Software) | angelegt 03.11.2026 unter Benjamins persönlichem Profil | https://www.facebook.com/profile.php?id=61596423171638 |
 | LinkedIn-Seite | – | gesperrt bis frühestens 04.11.2026 (neues Konto, LinkedIn verlangt 1 Tag Wartezeit) | |
+
+## Regel für Anmeldungen (Benjamin, 03.11.2026)
+- **Alle Crewtender-Konten werden mit kontakt@wpdigitalranger.com angemeldet** (eine Adresse, echtes Postfach).
+- hello@crewtender.eu ist nur die **öffentliche** Kontaktadresse in Profilen und auf der Website (leitet an kontakt@ weiter).
 
 ## Einträge
 
