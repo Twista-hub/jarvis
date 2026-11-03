@@ -31,7 +31,7 @@ import { lage, type Vertrag } from "./auftraege.ts";
 import { nachweiseLaden } from "./personalakte.ts";
 import { teamKopf } from "./teamkopf.ts";
 import { bieterfragenSpeichern, istArt, TERMIN_ARTEN, termineTeil } from "./termine.ts";
-import { anfrageSpeichern, partnerTeil } from "./partner.ts";
+import { anfrageSpeichern, bgeErklaerung, partnerTeil } from "./partner.ts";
 import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchstatus.ts";
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
 import { comunidadZeile, departementZeile, regioneZeile, suchgebietKarte, woiwodschaftZeile, type Suchpunkt } from "./karte.ts";
@@ -129,6 +129,8 @@ export async function konto(request: Request, env: KontoEnv, dateiProfil: (firma
   if (fragen && post) return bieterfragenSpeichern(fragen[1], request, env);
   const anfrage = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/partner$/);
   if (anfrage && post) return anfrageSpeichern(anfrage[1], request, env);
+  const bge = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/bietergemeinschaft\.docx$/);
+  if (bge && !post) return bgeErklaerung(bge[1], request, env);
   const notiz = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/notiz$/);
   if (notiz && post) return notizSpeichern(notiz[1], request, env);
   const v = p.match(/^\/konto\/vorgang\/([0-9a-f-]{36})$/);

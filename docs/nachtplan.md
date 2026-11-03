@@ -84,6 +84,10 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
   sieht seine Leistungsnachweise (nur Summen, keine Namen), auf Wunsch Rechnungen (nur mit Finanzfreigabe einschaltbar)
   und Kontrollgänge/Vorfälle, und meldet Mängel, Wünsche oder Lob (höchstens 10 pro Tag) – das Büro bekommt eine
   Handy-Nachricht und hakt ab. Link neu erzeugen oder sperren jederzeit.
+- **Bietergemeinschaft (Top-7) gebaut:** Auf jeder Ausschreibung unter „🤝 Nachunternehmer“ der Bereich
+  „👥 Bietergemeinschaft“: Jarvis schlägt eigene Partner vor, deren Gewerk in der Ausschreibung vorkommt (ein Klick legt
+  die Anfrage an). Sobald ein Partner zugesagt hat: „📄 Bietergemeinschaftserklärung (Word)“ mit deiner Firma als
+  federführend, gesamtschuldnerischer Haftung und Unterschriftsfeldern. Kartellrechts-Hinweis (§ 1 GWB) steht dabei.
 - **Rechte-Test verschärft:** Der Test vergab früher nach den Migrationen pauschal alle Tabellenrechte und prüfte
   „revoke“-Zeilen deshalb nie. Jetzt wie bei Supabase (Standardrechte beim Anlegen) – alles weiter grün.
 - **Plan-Struktur** aus dem Abo-Vorschlag im Code (`web/src/plaene.ts`, Grenzen je Plan), **nicht aktiv**, Preise
@@ -92,7 +96,7 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
 ### Bewusst nicht umgesetzt (Regeln aus CLAUDE.md, braucht dein OK)
 - **Abo-Preise und Stripe:** Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
   Punkt 7c war ein Vorschlag gefragt; `web/src/plaene.ts` bleibt abgeschaltet.
-- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1–3, 6, 8 und 9 (E-Rechnung, Mahnwesen, wiederkehrende Rechnungen, Belege per Foto, Rundgänge & Wachbuch, Kunden-Portal) sind gebaut; Nr. 4, 5, 7, 10 nach deiner Reihenfolge (Nr. 10 Auftragsbörse erst nach anwaltlicher Prüfung der AGB).
+- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1–3 und 6–9 (E-Rechnung, Mahnwesen, wiederkehrende Rechnungen, Belege per Foto, Bietergemeinschaft, Rundgänge & Wachbuch, Kunden-Portal) sind gebaut; offen sind Nr. 4 und 5 (DATEV, brauchen Lohnarten/Konten vom Steuerbüro) und Nr. 10 nach deiner Reihenfolge (Nr. 10 Auftragsbörse erst nach anwaltlicher Prüfung der AGB).
 - **Anfragen an PLACSP und TenderNed:** Entwürfe liegen bereit (`docs/anfragen/placsp-anfrage.md`, `docs/anfragen/tenderned-anfrage.md`); Mails an Dritte nur nach deinem OK.
 
 ### Deine Entscheidungen (keine Eile)
