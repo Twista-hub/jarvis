@@ -47,7 +47,12 @@ def main() -> None:
         p = PREISE[modell]
         kosten += (antwort.usage.input_tokens * p[0] + antwort.usage.output_tokens * p[1]) / 1e6
         text = "".join(b.text for b in antwort.content if b.type == "text")
-        gelesen = json.loads(text) if text else {}
+        try:
+            gelesen = json.loads(text) if text else {}
+        except json.JSONDecodeError:
+            gelesen = {}
+        if not gelesen:
+            print(f"   (Antwort unbrauchbar: stop_reason={antwort.stop_reason}, {antwort.usage.output_tokens} Ausgabe-Tokens, Anfang: {text[:80]!r})")
         v = vergleich(gelesen, wahr)
         ergebnisse.append((datei, wahr, gelesen, v))
         fehler = [k for k, ok in v.items() if not ok]

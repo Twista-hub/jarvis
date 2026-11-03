@@ -1,19 +1,57 @@
 {
   "modell": "claude-haiku-5-5",
-  "system": "Du liest Belege deutscher Firmen: Kassenbons, Tankquittungen, Rechnungen, Quittungen (Foto oder PDF). Gib zurück:\n- datum: Belegdatum (Kauf- oder Rechnungsdatum) als JJJJ-MM-TT, sonst leer.\n- lieferant: Name des Geschäfts oder Rechnungsstellers (ohne Rechtsform-Zusätze wie GmbH nur wenn nötig), höchstens 80 Zeichen.\n- brutto: zu zahlender Gesamtbetrag in Euro inklusive Umsatzsteuer als Zahl mit Punkt (z. B. 59.90). Nicht Zwischensumme, nicht gegeben/Rückgeld, nicht Netto.\n- ust_satz: 19, 7 oder 0. Enthält der Beleg mehrere Steuersätze, nimm den Satz mit dem größten Bruttoanteil und setze gemischt auf true. Ohne ausgewiesene Steuer (z. B. Kleinunternehmer, Versicherung, Porto) 0.\n- gemischt: true, wenn mehrere Steuersätze vorkommen.\n- kategorie: material (Material, Werkzeug, Baumarkt, Waren), fahrzeug (Tanken, Kfz-Werkstatt, Waschanlage, Parken), buero (Büromaterial, Software, Porto), miete (Miete, Nebenkosten, Strom), versicherung, telefon (Telefon, Internet, Mobilfunk), reise (Hotel, Bahn, Flug, Taxi, Verpflegung auf Reisen), personal (Fremdleistung, Schulung, Arbeitskleidung), sonstiges.\n- sicher: true nur, wenn Datum und Betrag klar lesbar sind.\nErfinde nichts. Unleserliches leer lassen bzw. brutto 0.",
+  "system": "Du liest Belege deutscher Firmen: Kassenbons, Tankquittungen, Rechnungen, Quittungen (Foto oder PDF). Gib zurück:\n- datum: Belegdatum (Kauf- oder Rechnungsdatum) als JJJJ-MM-TT, sonst leer.\n- lieferant: Name des Geschäfts oder Rechnungsstellers, kurz (höchstens 60 Zeichen, keine Adresse).\n- brutto: zu zahlender Gesamtbetrag in Euro inklusive Umsatzsteuer als Zahl mit Punkt (z. B. 59.90). Nicht Zwischensumme, nicht gegeben/Rückgeld, nicht Netto.\n- ust_satz: 19, 7 oder 0. Enthält der Beleg mehrere Steuersätze, nimm den Satz mit dem größten Bruttoanteil und setze gemischt auf true. Ohne ausgewiesene Steuer (z. B. Kleinunternehmer, Versicherung, Porto) 0.\n- gemischt: true, wenn mehrere Steuersätze vorkommen.\n- kategorie: material (Material, Werkzeug, Baumarkt, Waren), fahrzeug (Tanken, Kfz-Werkstatt, Waschanlage, Parken), buero (Büromaterial, Software, Porto), miete (Miete, Nebenkosten, Strom), versicherung, telefon (Telefon, Internet, Mobilfunk), reise (Hotel, Bahn, Flug, Taxi, Bäckerei, Imbiss, Café, Restaurant, Verpflegung), personal (Fremdleistung, Schulung, Arbeitskleidung), sonstiges.\n- sicher: true nur, wenn Datum und Betrag klar lesbar sind.\nErfinde nichts. Unleserliches leer lassen bzw. brutto 0.",
   "frage": "Lies diesen Beleg.",
   "schema": {
     "type": "object",
     "properties": {
-      "datum": { "type": "string" },
-      "lieferant": { "type": "string" },
-      "brutto": { "type": "number" },
-      "ust_satz": { "type": "integer", "enum": [0, 7, 19] },
-      "gemischt": { "type": "boolean" },
-      "kategorie": { "type": "string", "enum": ["material", "fahrzeug", "buero", "miete", "versicherung", "telefon", "reise", "personal", "sonstiges"] },
-      "sicher": { "type": "boolean" }
+      "datum": {
+        "type": "string"
+      },
+      "lieferant": {
+        "type": "string"
+      },
+      "brutto": {
+        "type": "number"
+      },
+      "ust_satz": {
+        "type": "integer",
+        "enum": [
+          0,
+          7,
+          19
+        ]
+      },
+      "gemischt": {
+        "type": "boolean"
+      },
+      "kategorie": {
+        "type": "string",
+        "enum": [
+          "material",
+          "fahrzeug",
+          "buero",
+          "miete",
+          "versicherung",
+          "telefon",
+          "reise",
+          "personal",
+          "sonstiges"
+        ]
+      },
+      "sicher": {
+        "type": "boolean"
+      }
     },
-    "required": ["datum", "lieferant", "brutto", "ust_satz", "gemischt", "kategorie", "sicher"],
+    "required": [
+      "datum",
+      "lieferant",
+      "brutto",
+      "ust_satz",
+      "gemischt",
+      "kategorie",
+      "sicher"
+    ],
     "additionalProperties": false
   }
 }
