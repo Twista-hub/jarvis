@@ -52,6 +52,7 @@ export function profilTeil(m: { firma_id: string; anzeigename?: string; funktion
 <details class="konto-loeschen" id="loeschen"${fehler ? " open" : ""}><summary>Konto löschen</summary>
 ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}
 <p>Dein Zugang wird sofort und endgültig gelöscht. Firmen, in denen du die einzige Person bist, werden mit allen Daten gelöscht. In Firmen mit weiteren Mitgliedern bleiben deren Daten erhalten.</p>
+<p class="hinweis">⚠️ <strong>Rechnungen und Belege</strong> müsst ihr 8 bis 10 Jahre aufbewahren (§ 147 AO, § 14b UStG). Wird eure Firma mitgelöscht, lade vorher das <a href="/konto/archiv.zip" download>Archiv aller Rechnungen und Belege (ZIP)</a> herunter (für Personen mit Finanzfreigabe). Danach können wir die Daten nicht wiederherstellen.</p>
 ${frisch ? `<form method="post" action="/konto/loeschen"><label>Zur Bestätigung LÖSCHEN eintippen<input name="bestaetigung" required autocomplete="off" pattern="LÖSCHEN|löschen|Löschen"></label><button class="gefahr-voll">Konto endgültig löschen</button></form>`
     : `<p class="klein">Zur Sicherheit musst du dich dafür in den letzten 30 Minuten angemeldet haben.</p><form method="post" action="/abmelden"><input type="hidden" name="weiter" value="/konto/profil#loeschen"><button class="zweit">Neu anmelden</button></form>`}
 </details>`;

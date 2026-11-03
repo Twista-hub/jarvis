@@ -29,7 +29,7 @@
 | S3 | Rechnungsnummer kann doppelt vergeben werden (höchste + 1; nach Löschen der letzten wieder dieselbe) | § 14 Abs. 4 Nr. 4 UStG | rechnungen.ts:32 | Zähler pro Firma und Jahr in der DB, Nummer erst beim Ausstellen | ✅ \|
 | S4 | Keine Umkehr der Steuerschuld (§ 13b) für Reinigung an Gebäudereiniger und Bauleistungen | § 13b Abs. 2 Nr. 4/8, § 14a Abs. 5 UStG | rechnungen.ts, xrechnung.ts, datev.ts | Kunde als „§ 13b“ markieren → 0 %, Pflichthinweis, XRechnung AE, eigenes Erlöskonto | ⏳ |
 | S5 | Belege samt Datei löschbar | § 147 AO, GoBD | belege.ts:154 | Stornieren mit Grund statt Löschen, Datei behalten | ✅ DB sperrt Löschen, Storno mit Grund, zählt nicht für Vorsteuer/DATEV (Migration `20261103180000`) |
-| S6 | Konto löschen vernichtet Rechnungen und Belege sofort, ohne Warnung und Export; Datenschutzerklärung verspricht Aufbewahrung | § 147 AO, § 14b UStG | kontoeinstellungen.ts:54, loeschen.ts | Warnung + Komplettexport (Rechnungen, Belege, DATEV) vor dem Löschen; Text anpassen | ⏳ |
+| S6 | Konto löschen vernichtet Rechnungen und Belege sofort, ohne Warnung und Export; Datenschutzerklärung verspricht Aufbewahrung | § 147 AO, § 14b UStG | kontoeinstellungen.ts:54, loeschen.ts | Warnung + Komplettexport (Rechnungen, Belege, DATEV) vor dem Löschen; Text anpassen | ✅ Warnung beim Konto löschen, `/konto/archiv.zip` (Rechnungen Word+XRechnung, Belegdateien, CSV, Hinweis) auch unter Rechnungen; ⏳ Text Datenschutzerklärung, Sperre statt Löschen (⚖️) |
 | S7 | Rechnung, USt, DATEV laufen für Firmen in allen Ländern nach deutschem Recht (PL KSeF, IT SDI, ES Verifactu, FR, US Sales Tax) | jeweiliges Landesrecht | kein Länderfeld | Feld „Land der Firma“; Steuerfunktionen nur für DE | ✅ (L1) |
 
 ### Mittel

@@ -7,6 +7,7 @@ import { unterlagenOhneTreffer } from "./unterlagen";
 import { angebote } from "./angebote";
 import { darfAuftrag } from "./auftragsrechte";
 import { aktiveFirma, firmenunterlagen } from "./firmenunterlagen";
+import { archiv } from "./archiv.ts";
 import { NUR_DEUTSCHLAND, landDerFirmaCode, nurDeutschlandSeite } from "./laenderfunktionen.ts";
 import { referenzen } from "./referenzen";
 import { protokoll } from "./protokoll";
@@ -263,7 +264,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (uw) return uw;
     const ps = await personalsuche(request, env);
     if (ps) return ps;
-    for (const route of [kundenlinkOeffentlich, kundenlinkErstellen, kundenportal, boerse, nachkalkulationRoute, umsatzsteuer, rechnungen, belege, rundgaenge, lohn, spesen, zeitkontoRoute, kraefteEinladen, betreiber, organisation, vertretung, aufgaben, betriebsmittel, kapazitaetSeiteRoute, ich, stundenRoute, schichtenRoute, brett, chat, personalfristen, kundenSeiteRoute, leistungsnachweis, psa, bewerber, checklisten, urlaub, bewertungen, personalauswertung]) {
+    for (const route of [archiv, kundenlinkOeffentlich, kundenlinkErstellen, kundenportal, boerse, nachkalkulationRoute, umsatzsteuer, rechnungen, belege, rundgaenge, lohn, spesen, zeitkontoRoute, kraefteEinladen, betreiber, organisation, vertretung, aufgaben, betriebsmittel, kapazitaetSeiteRoute, ich, stundenRoute, schichtenRoute, brett, chat, personalfristen, kundenSeiteRoute, leistungsnachweis, psa, bewerber, checklisten, urlaub, bewertungen, personalauswertung]) {
       const r = await route(request, env);
       if (r) return r;
     }
