@@ -47,11 +47,11 @@ Haiku allein (ohne Sonnet) wäre nicht gleich gut: 33 von 234 Nicht-Treffern hä
 vorher 0,0034 $ (Sonnet) → jetzt 0,0001 $ (Haiku) + 55 % × 0,0034 $ (Sonnet) ≈ 0,0020 $ → **rund 40 % weniger**,
 mit Caching zusammen 40–45 %.
 
-### c) Batch-API als Schalter (eingebaut, standardmäßig AUS)
+### c) Batch-API (eingebaut, seit 03.11.2026 für den geplanten Tageslauf AN)
 `KI_BATCH=1` schickt alle 8er-Pakete einer Firma als **einen** Batch (erst Haiku-Vorfilter, dann Sonnet) zum halben Preis
 (`ki.score_viele`). Kein Ergebnis nach `KI_BATCH_MINUTEN` (Standard 50) → Batch wird abgebrochen und direkt bewertet;
 fehlende Einzelergebnisse werden direkt nachbewertet. Gleiche Anleitung, gleiche Modelle → gleiche Qualität.
-Einschalten erst, wenn der Alarm früh genug vor der Morgenmail startet (Entscheidung Benjamin).
+Eingeschaltet in `.github/workflows/alarm.yml` nur für den geplanten Lauf (04:17 UTC, `KI_BATCH_MINUTEN=25`); Erstläufe neuer Firmen bleiben direkt.
 **Live-Probe 03.11.2026** (`ki-vergleich.yml` mit `batch`, Run 41545607165): 2 Pakete à 8 schon bewerteter Ausschreibungen,
 Batch nach 461 s fertig, 16/16 Ergebnisse, Kosten 0,018 $ (halber Preis). 13 von 15 Sonnet-Bewertungen lagen innerhalb
 ±1 Punkt der gespeicherten; zwei wichen stärker ab (8→5, 7→3). Das ist die normale Streuung zwischen zwei Läufen bei

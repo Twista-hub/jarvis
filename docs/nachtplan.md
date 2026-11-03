@@ -60,17 +60,24 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
   Bietergemeinschaft finden, Auftragsbörse …).
 - `docs/abos.md`: Free 0 €, Basis 59 €, Pro 149 €, Business 399 € pro Monat, Länderpreise, Margen.
 
+### Nachgelegt (nach dem Nachtplan, 03.11. 00:00–00:20 UTC)
+- **Batch-API ist an** für den täglichen Alarm: nur geplanter Lauf (jetzt 04:17 UTC statt 05:17), höchstens 25 Minuten
+  je Firma, sonst direkte Bewertung; Erstlauf neuer Firmen bleibt direkt. Probe mit 48 Ausschreibungen: gleiche Qualität,
+  49 % billiger. Abschalten: in `.github/workflows/alarm.yml` `KI_BATCH` auf `'0'`.
+- **E-Rechnung (Top-1 der Ideenliste) gebaut:** In „Rechnungen“ gibt es neben „📄 Word“ jetzt „🧾 E-Rechnung“ – die
+  Rechnung als XRechnung 3.0 (UBL). Leitweg-ID für Behörden in der Kunden-Notiz als „Leitweg-ID: …“. Vom **offiziellen
+  KoSIT-Validator akzeptiert** (normale Rechnung und Kleinunternehmer, Workflow `xrechnung-pruefen.yml`).
+- **Plan-Struktur** aus dem Abo-Vorschlag im Code (`web/src/plaene.ts`, Grenzen je Plan), **nicht aktiv**, Preise
+  weiter „Preis folgt“.
+
 ### Bewusst nicht umgesetzt (Regeln aus CLAUDE.md, braucht dein OK)
 - **Abo-Preise und Stripe:** Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
   Punkt 7c war ein Vorschlag gefragt; `web/src/plaene.ts` bleibt abgeschaltet.
-- **Neue Arbeitsoberflächen-Funktionen:** Punkt 7b war ausdrücklich „nur Konzept, nichts bauen“. Sobald du die Top 10
-  priorisierst, baue ich sie der Reihe nach.
-- **Batch-API einschalten:** verschiebt den Zeitpunkt der Ergebnisse → Alarm-Zeitplan ändern; der Schalter liegt bereit.
+- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1 (E-Rechnung) ist gebaut; Nr. 2–10 baue ich nach deiner Reihenfolge.
 - **Anfragen an PLACSP und TenderNed:** Mails an Dritte nur nach deinem OK.
 
 ### Deine Entscheidungen (keine Eile)
 - **Abo-Preise** aus `docs/abos.md` freigeben oder ändern (erst danach Stripe).
-- **Batch-API einschalten?** Spart weitere 50 %, dafür muss der tägliche Alarm früher starten (z. B. 03:00).
 - **Anfragen um Erlaubnis** an PLACSP (Spanien, Entwurf `docs/anfragen/placsp-anfrage.md`) und ggf. TenderNed
   (Niederlande) – nur mit deinem OK.
 - Bleibt von vorher: Test mit echtem Konto, Max-Abo mit der Console verknüpfen (ab ca. 07./08.11.), SAM.gov-UEI,
