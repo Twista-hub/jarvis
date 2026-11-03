@@ -28,6 +28,10 @@ test("T17: Arbeitszeit-Hinweise nach ArbZG", () => {
   assert.deepEqual(h.get("a"), ["Pause unter 45 Min. bei über 9 Std."]);
   assert.deepEqual(h.get("b"), ["Pause unter 30 Min. bei über 6 Std."]);
   assert.deepEqual(h.get("c"), ["über 10 Std. am Tag"], "6 + 5 Std. am selben Tag");
+  // A-M6: recorded more than 7 days after the working day.
+  const spaet = hinweise([{ ...e("x", "2026-10-01", "08:00", "12:00", 0), erstellt: "2026-10-09T10:00:00Z" }, { ...e("y", "2026-10-01", "08:00", "12:00", 0), erstellt: "2026-10-08T10:00:00Z" }]);
+  assert.match(spaet.get("x")?.join() ?? "", /§ 17 MiLoG/);
+  assert.equal(spaet.get("y"), undefined);
 });
 
 test("T17: Formular prüft Datum, Zeiten und Pause", () => {
