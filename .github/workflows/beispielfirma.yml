@@ -8,7 +8,7 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anlegen, entfernen, suchlauf]
+        options: [anlegen, entfernen, suchlauf, pflegen]
         default: anlegen
       bestaetigung:
         description: "Zum Ausführen hier JA eintippen"
@@ -39,8 +39,11 @@ jobs:
           nutzer=$(psql "$DB_URL" -tAc "select m.user_id from public.mitglieder m join public.firmen f on f.id = m.firma_id where f.name = 'WP Digital Ranger' and m.rolle = 'inhaber' limit 1")
           [ -n "$nutzer" ] || { echo "::error::Konto nicht gefunden"; exit 1; }
           echo "::add-mask::$nutzer"; echo "NUTZER=$nutzer" >> "$GITHUB_ENV"
+      - name: Beispielfirma pflegen (kleine Korrekturen, Firma bleibt)
+        if: inputs.aktion == 'pflegen'
+        run: psql "$DB_URL" -v ON_ERROR_STOP=1 -tA -f supabase/demo/pflege.sql
       - name: Beispielfirma ${{ inputs.aktion }}
-        if: inputs.aktion != 'suchlauf'
+        if: inputs.aktion != 'suchlauf' && inputs.aktion != 'pflegen'
         run: |
           extra=""; [ "${{ inputs.aktion }}" = entfernen ] && extra="-v entfernen=1"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -v nutzer="$NUTZER" $extra -f supabase/demo/beispielfirma.sql 2>&1 | sed -E 's/[0-9a-f]{8}-[0-9a-f-]{27}/<id>/g'

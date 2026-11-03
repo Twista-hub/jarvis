@@ -168,11 +168,11 @@ test("T41: Stempeluhr wertet Pausen aus", () => {
 });
 
 test("T42: Übersetzung der Mitarbeiter-Seite", () => {
-  const s = `<!doctype html><html lang="de"><head><style>.Pause{}</style></head><body><h3>📅 Meine Schichten</h3><button name="stempel" value="pause">☕ Pause</button><input placeholder="z. B. Kind krank, Auto kaputt"><p>Urlaub &amp; Abwesenheit · Wochenende</p><textarea>Pause</textarea></body></html>`;
+  const s = `<!doctype html><html lang="de"><head><style>.Pause{}</style></head><body><h3>📅 Meine Schichten</h3><button name="stempel" value="pause">☕ Pause</button><input placeholder="z. B. Auto kaputt, Zug fällt aus"><p>Urlaub &amp; Abwesenheit · Wochenende</p><textarea>Pause</textarea></body></html>`;
   const en = uebersetzen(s, "en");
   assert.match(en, /<h3>📅 My shifts<\/h3>/);
   assert.match(en, /value="pause">☕ Break</, "Werte bleiben, Text wird übersetzt");
-  assert.match(en, /placeholder="e.g. child sick, car broken"/);
+  assert.match(en, /placeholder="e.g. car broke down, train cancelled"/);
   assert.match(en, /Leave (&amp;|&#38;) absence · Wochenende/, "keine Teilwörter (Wochenende ≠ Ende)");
   assert.match(en, /<style>\.Pause\{\}<\/style>/);
   assert.match(en, /<textarea>Pause<\/textarea>/);
