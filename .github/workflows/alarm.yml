@@ -3,7 +3,8 @@ name: Ausschreibungs-Alarm
 
 on:
   schedule:
-    - cron: "17 5 * * *"
+    # 04:17 UTC (05:17/06:17 Berlin): early enough for the Batch API (KI_BATCH below) before the first mails at 06:00 UTC.
+    - cron: "17 4 * * *"
     # Backup: GitHub sometimes drops scheduled runs (30.10. no run at 05:17). Skips if the report exists.
     - cron: "41 7 * * *"
   workflow_dispatch:
@@ -47,6 +48,10 @@ jobs:
           # First run of a new firm: the best 10 hits get a detailed Steckbrief at once (Benjamin, 01.11.2026); daily runs 4.
           MAX_STECKBRIEFE: ${{ inputs.firma != '' && '10' || '4' }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Batch API (50 % price, same quality: docs/ki-kosten.md) only for the scheduled daily run, never for a new
+          # firm's first run where someone waits. At most 25 minutes per firm, then direct rating. Off: set '0'.
+          KI_BATCH: ${{ github.event_name == 'schedule' && '1' || '0' }}
+          KI_BATCH_MINUTEN: "25"
           # US federal tenders (alarm/usa.py); empty = USA skipped.
           SAM_API_KEY: ${{ secrets.SAM_API_KEY }}
           # Reads the search profiles firms saved in the app (alarm/profile_db.py).
