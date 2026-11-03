@@ -412,5 +412,12 @@
  "später als 7 Tage nach dem Arbeitstag erfasst (§ 17 MiLoG)": "registrado más de 7 días después del día de trabajo (§ 17 MiLoG)",
  "Fristen, Lose, Preise und geforderte Nachweise sind mit den Originalunterlagen abgeglichen (der Steckbrief ist von einer KI erstellt).": "Plazos, lotes, precios y documentación exigida se han comprobado con los documentos originales (la ficha resumen la ha creado una IA).",
  "Bitte vor der Freigabe bestätigen, dass Fristen, Lose, Preise und Nachweise mit den Originalunterlagen abgeglichen sind.": "Antes de aprobar, confirma que plazos, lotes, precios y documentación se han comprobado con los documentos originales.",
- "Bitte bestätigen": "Confirma, por favor"
+ "Bitte bestätigen": "Confirma, por favor",
+ "Belege": "Recibos",
+ "Nachkalkulation": "Poscálculo",
+ "Umsatzsteuer": "IVA",
+ "Kunden-Portal": "Portal de clientes",
+ "Rundgänge & Wachbuch": "Rondas y libro de guardia",
+ "⏳ # laufen in # Tagen ab": "⏳ # caducan en # días",
+ "⏳ # läuft in # Tagen ab": "⏳ # caduca en # días"
 }
