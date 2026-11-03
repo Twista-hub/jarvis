@@ -91,6 +91,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103230000_leitweg_id.sql
 \ir ../migrations/20261103240000_portal_ablauf.sql
 \ir ../migrations/20261103250000_bewerber_fristen.sql
+\ir ../migrations/20261103260000_firmendaten_export.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1599,6 +1600,18 @@ select pruefe((select count(*) = 0 from public.us_bieterprofil), 'Fremde Firma s
 reset role;
 update public.mitglieder set aktiv = false where user_id = '00000000-0000-0000-0000-00000000000b';
 select set_config('test.uid', '', false);
+
+-- D13 / Data Act: full export only for owners/admins, no tokens, only the own firm.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+select pruefe((select (public.firmendaten_export(current_setting('test.firma')::uuid)) ? 'personal'), 'Inhaber exportiert alle Firmendaten');
+select pruefe(not ((public.firmendaten_export(current_setting('test.firma')::uuid)) ? 'kunden_portale'), 'Export enthält keine Portal-Tokens');
+select test_als('00000000-0000-0000-0000-00000000000c');
+do $$ begin
+  perform public.firmendaten_export(current_setting('test.firma')::uuid);
+  raise exception 'FEHLER: fremde Firma exportiert';
+exception when insufficient_privilege then null; end $$;
+reset role;
 
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.
 reset role;
