@@ -61,3 +61,21 @@ export async function archiv(request: Request, env: KontoEnv): Promise<Response 
   for (const c of f.s.cookies ?? []) h.append("set-cookie", c);
   return new Response(zip, { headers: h });
 }
+
+/** D13 / Data Act: all data of the firm as JSON files in one ZIP (owners and admins). Files (receipts, invoices) come
+ *  with /konto/archiv.zip; company documents can be downloaded under Firmenunterlagen. */
+export async function firmendaten(request: Request, env: KontoEnv): Promise<Response | null> {
+  if (new URL(request.url).pathname !== "/konto/firmendaten.zip") return null;
+  const f = await aktiveFirma(request, env);
+  if (!f) return weiterleiten("/konto");
+  if (!["inhaber", "admin"].includes(f.m.rolle)) return new Response("Nur für Inhaber und Admins", { status: 403 });
+  const r = await db<Record<string, unknown[]>>(f.s, env, "rpc/firmendaten_export", { method: "POST", body: JSON.stringify({ f: f.m.firma_id }) });
+  if (!r.ok) return new Response("Export fehlgeschlagen", { status: 502 });
+  const dateien: Record<string, Uint8Array> = {
+    "LIESMICH.txt": strToU8(`Alle Daten eurer Firma aus Jarvis (Art. 20 DSGVO, EU Data Act)\r\n\r\nJede Datei ist eine Tabelle im JSON-Format (UTF-8), eine Zeile pro Eintrag. Die Spaltennamen sind deutsch.\r\nRechnungen als Word/XRechnung und Belegfotos: /konto/archiv.zip (mit Finanzfreigabe). Firmenunterlagen: unter Firmenunterlagen als ZIP.\r\nFinanztabellen sind nur enthalten, wenn du eine Finanzfreigabe hast.\r\nExportiert am ${new Date().toISOString()}\r\n`),
+  };
+  for (const [tabelle, zeilen] of Object.entries(r.daten)) dateien[`${tabelle}.json`] = strToU8(JSON.stringify(zeilen, null, 1));
+  const h = new Headers({ "content-type": "application/zip", "content-disposition": `attachment; filename="Jarvis-Firmendaten-${new Date().toISOString().slice(0, 10)}.zip"`, "cache-control": "private, no-store" });
+  for (const c of f.s.cookies) h.append("set-cookie", c);
+  return new Response(zipSync(dateien, { level: 6 }), { headers: h });
+}
