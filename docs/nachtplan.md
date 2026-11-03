@@ -106,14 +106,13 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
   weiter „Preis folgt“.
 
 ### Bewusst nicht umgesetzt (Regeln aus CLAUDE.md, braucht dein OK)
-- **Abo-Preise und Stripe:** Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
+- **Abo-Preise und Stripe:** laut dir 03.11.: noch warten. Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
   Punkt 7c war ein Vorschlag gefragt; `web/src/plaene.ts` bleibt abgeschaltet.
 - **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1–3 und 6–9 (E-Rechnung, Mahnwesen, wiederkehrende Rechnungen, Belege per Foto, Bietergemeinschaft, Rundgänge & Wachbuch, Kunden-Portal) sind gebaut; Nr. 4 und 5 (DATEV) sind gebaut, die Nummern trägt die Firma selbst ein; Nr. 10 (Auftragsbörse) ist gebaut und wartet abgeschaltet auf Anwalt und dein OK nach deiner Reihenfolge (Nr. 10 Auftragsbörse erst nach anwaltlicher Prüfung der AGB).
-- **Anfragen an PLACSP und TenderNed:** Entwürfe liegen bereit (`docs/anfragen/placsp-anfrage.md`, `docs/anfragen/tenderned-anfrage.md`); Mails an Dritte nur nach deinem OK.
+- **Anfragen an PLACSP und TenderNed:** von dir freigegeben und am 03.11.2026 07:15 verschickt (PLACSP an datos.abiertos@hacienda.gob.es, TenderNed an functioneelbeheer@tenderned.nl; Kopie in kontakt@).
 
 ### Deine Entscheidungen (keine Eile)
 - **Abo-Preise** aus `docs/abos.md` freigeben oder ändern (erst danach Stripe).
-- **Anfragen um Erlaubnis** an PLACSP (Spanien, Entwurf `docs/anfragen/placsp-anfrage.md`) und ggf. TenderNed
-  (Niederlande) – nur mit deinem OK.
+- **Anfragen PLACSP/TenderNed:** verschickt, Antworten abwarten (Kopie in kontakt@).
 - Bleibt von vorher: Test mit echtem Konto, Max-Abo mit der Console verknüpfen (ab ca. 07./08.11.), SAM.gov-UEI,
   gogovjob.com, Zustellung der Tagesmail bestätigen.

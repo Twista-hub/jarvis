@@ -1,5 +1,7 @@
 # Anfrage an PLACSP
 
+> ✉️ **Gesendet am 03.11.2026 um 07:15 Uhr** an datos.abiertos@hacienda.gob.es von kontakt@wpdigitalranger.com (Kopie im Postfach kontakt@). Workflow „Anfrage senden“. Antwort abwarten.
+
 **Warum:** Die robots.txt der Plataforma de Contratación del Sector Público sperrt alle automatischen Abrufe
 (`Disallow: /`), auch die offiziellen Open-Data-Feeds (sindicación 643 und 1044). Die Lizenz des Ministeriums erlaubt die
 Weiterverwendung, aber wir wollen die robots.txt nicht übergehen. Mit einer schriftlichen Erlaubnis könnte Jarvis alle

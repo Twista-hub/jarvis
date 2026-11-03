@@ -1,5 +1,7 @@
 # Anfrage an TenderNed
 
+> ✉️ **Gesendet am 03.11.2026 um 07:15 Uhr** an functioneelbeheer@tenderned.nl von kontakt@wpdigitalranger.com (Kopie im Postfach kontakt@). Workflow „Anfrage senden“. Antwort abwarten.
+
 **Warum:** Die robots.txt von www.tenderned.nl sperrt die öffentliche Schnittstelle (`/papi/tenderned-rs-tns/…`) und den
 RSS-Feed für automatische Abrufe (Lese-Test 03.11.2026, `niederlande-test.yml`). Die Daten selbst sind laut
 data.overheid.nl **CC-0** („Alle aankondigingen op TenderNed zijn openbaar“). Mit einer Erlaubnis oder einem Zugang zur
