@@ -32,8 +32,8 @@ export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, konto
 ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">` : ""}
 <title>${escape(titel)} · Crewtender</title>
 <link rel="manifest" href="/manifest.webmanifest">
-<link rel="icon" href="/icon-192.png">
-<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" href="/icon-v2-192.png">
+<link rel="apple-touch-icon" href="/icon-v2-192.png">
 <meta name="theme-color" content="#1f5f8b">
 <script src="/app.js" defer></script>
 <style>

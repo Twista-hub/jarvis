@@ -295,7 +295,7 @@ if ("serviceWorker" in navigator) {
     });
     // Shows a notification on this device without the server: tells whether the phone displays them at all.
     if (test) test.addEventListener("click", function () {
-      reg.showNotification("Crewtender: Test", { body: "So sehen Crewtender-Nachrichten aus. Tippen öffnet die Trefferliste.", icon: "/icon-192.png", badge: "/icon-192.png", tag: "jarvis-test", data: { url: "/konto/treffer" } })
+      reg.showNotification("Crewtender: Test", { body: "So sehen Crewtender-Nachrichten aus. Tippen öffnet die Trefferliste.", icon: "/icon-v2-192.png", badge: "/icon-v2-192.png", tag: "jarvis-test", data: { url: "/konto/treffer" } })
         .then(function () { zeige("Test geschickt. Kommt nichts, sind Benachrichtigungen für Chrome im Handy abgeschaltet."); })
         .catch(function (e) { zeige("Test ging nicht: " + (e.message || e)); });
     });
@@ -330,7 +330,7 @@ self.addEventListener("push", function (e) {
     .catch(function () { return null; })
     .then(function (n) {
       n = n || { titel: "Crewtender: Neues", text: "Neue Ausschreibungen", url: "/konto" };
-      return self.registration.showNotification(n.titel, { body: n.text, icon: "/icon-192.png", badge: "/icon-192.png", tag: "jarvis", data: { url: n.url } });
+      return self.registration.showNotification(n.titel, { body: n.text, icon: "/icon-v2-192.png", badge: "/icon-v2-192.png", tag: "jarvis", data: { url: n.url } });
     }));
 });
 self.addEventListener("notificationclick", function (e) {
@@ -355,8 +355,8 @@ export const MANIFEST = JSON.stringify({
   theme_color: "#1f5f8b",
   lang: "de",
   icons: [
-    { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
-    { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
+    { src: "/icon-v2-192.png", sizes: "192x192", type: "image/png", purpose: "any maskable" },
+    { src: "/icon-v2-512.png", sizes: "512x512", type: "image/png", purpose: "any maskable" },
   ],
 });
 
@@ -364,6 +364,9 @@ const DATEIEN: Record<string, [string, string | (() => Uint8Array)]> = {
   "/app.js": ["text/javascript; charset=utf-8", APP_JS],
   "/sw.js": ["text/javascript; charset=utf-8", SW_JS],
   "/manifest.webmanifest": ["application/manifest+json", MANIFEST],
+  // New file names for the Crewtender mark (03.11.2026), so phones do not keep the cached old "J" icon.
+  "/icon-v2-192.png": ["image/png", () => Uint8Array.from(atob(ICON_192), (c) => c.charCodeAt(0))],
+  "/icon-v2-512.png": ["image/png", () => Uint8Array.from(atob(ICON_512), (c) => c.charCodeAt(0))],
   "/icon-192.png": ["image/png", () => Uint8Array.from(atob(ICON_192), (c) => c.charCodeAt(0))],
   "/icon-512.png": ["image/png", () => Uint8Array.from(atob(ICON_512), (c) => c.charCodeAt(0))],
 };
