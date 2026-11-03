@@ -133,6 +133,8 @@ export default {
     // The app lives at app.wpdigitalranger.com; the old workers.dev address forwards there (links in older mails keep working).
     const alt = new URL(request.url);
     if (alt.hostname.endsWith(".workers.dev")) return Response.redirect(`${ADRESSE}${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
+    // www.crewtender.eu forwards to the bare domain (one address for links, cookies and search engines).
+    if (alt.hostname === "www.crewtender.eu") return Response.redirect(`https://crewtender.eu${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
     let antwort: Response;
     try { antwort = await verarbeiten(request, env); }
     catch (e) {
