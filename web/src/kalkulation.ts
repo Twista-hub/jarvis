@@ -174,7 +174,7 @@ export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record
     const lohn = eg ? tariflohn(eg, tarif!) : proLos[los.nr]?.lohn || e.lohn;
     const auswaerts = !!proLos[los.nr]?.auswaerts;
     const preis = runden(stundenpreis(e, lohn, auswaerts).preis);
-    const stunden = mengen[los.nr] ?? (stundenEinheit(los.einheit) ? los.menge : 0);
+    const stunden = mengen[los.nr] ?? losStunden(los);
     return { los, stunden, netto: runden(stunden * preis), lohn, auswaerts, preisProStunde: preis, eg };
   });
   const netto = runden(zeilen.reduce((s, z) => s + z.netto, 0));
@@ -190,7 +190,7 @@ export function rechnen(eingaben: Partial<Eingaben>, lose: Los[], mengen: Record
   if (e.gewinn <= 0) warnungen.push("Ohne Aufschlag für Wagnis und Gewinn arbeitest du zum Selbstkostenpreis.");
   if (e.anteilNacht + e.anteilSonntag + e.anteilFeiertag > 100) warnungen.push("Nacht-, Sonntags- und Feiertagsanteil zusammen über 100 %. Bitte prüfen.");
   if (tarif && zeilen.some((z) => z.eg)) warnungen.push(...tarifHinweise(tarif));
-  if (lose.some((l) => !stundenEinheit(l.einheit))) warnungen.push("Manche Lose sind nicht in Stunden angegeben. Trag die Stunden dort selbst ein.");
+  if (lose.some((l) => !losStunden(l))) warnungen.push("Manche Lose sind nicht in Stunden angegeben. Trag die Stunden dort selbst ein.");
   return {
     schritte: basis.schritte,
     preisProStunde: runden(basis.preis),
@@ -253,6 +253,18 @@ export function zuschlagVergleich(netto: number, liste: Zuschlag[], selbstkosten
 
 export function stundenEinheit(einheit: string): boolean {
   return /stunde|std|^h$/i.test(einheit);
+}
+
+/** Suggested hours of a lot: its quantity when counted in hours, otherwise an hour figure from the note
+ * ("Gesamt 500 Std. in 2 Jahren" -> 250 when the lot's period is per year). 0 when nothing is known. */
+export function losStunden(los: Pick<Los, "menge" | "einheit" | "zeitraum" | "hinweis">): number {
+  if (stundenEinheit(los.einheit)) return los.menge;
+  const text = `${los.hinweis} ${los.einheit}`;
+  const m = text.match(/(\d{1,3}(?:\.\d{3})*|\d+)(?:,\d+)?\s*(?:Std\.?|Stunden)\b/i);
+  if (!m) return 0;
+  const gesamt = Number(m[1].replace(/\./g, ""));
+  const jahre = Number(text.match(/in\s+(\d+)\s+Jahren/i)?.[1] ?? 0);
+  return /jahr/i.test(los.zeitraum) && jahre > 1 ? Math.round(gesamt / jahre) : gesamt;
 }
 
 /** German number input: "14,50" or "1.234,5" -> number; empty or invalid -> fallback. */

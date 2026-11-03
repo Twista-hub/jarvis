@@ -68,3 +68,11 @@ test("old saved values without the new fields still calculate", () => {
   const alt = { lohn: 15, nebenkosten: 20, ausfall: 0, zuschlaege: 0, gemeinkosten: 10, gewinn: 10, sonstiges: 1 };
   assert.equal(rechnen(alt, [], {}).preisProStunde, 22.88);
 });
+
+test("Stunden je Los: aus der Menge oder aus dem Hinweis, passend zum Zeitraum", async () => {
+  const { losStunden } = await import("../src/kalkulation.ts");
+  assert.equal(losStunden({ menge: 1200, einheit: "Std.", zeitraum: "", hinweis: "" }), 1200);
+  assert.equal(losStunden({ menge: 1, einheit: "Person", zeitraum: "pro Jahr", hinweis: "07:00–21:00, 8 h; Gesamt 500 Std. in 2 Jahren" }), 250);
+  assert.equal(losStunden({ menge: 2, einheit: "Kräfte", zeitraum: "", hinweis: "Gesamt 1.600 Stunden" }), 1600);
+  assert.equal(losStunden({ menge: 3, einheit: "Personen", zeitraum: "", hinweis: "nach Bedarf" }), 0);
+});
