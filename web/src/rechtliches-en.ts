@@ -1,0 +1,158 @@
+// English translation of the legal pages (rechtliches.ts) for visitors with app language en. Translation for information;
+// the German version is binding (said on every page, with a link to it). Keep both in step: every change to the German
+// text needs the same change here (test/rechtliches-en.test.ts compares the section counts).
+import { escape } from "./seite.ts";
+import { FIRMA } from "./rechtliches.ts";
+
+const anschrift = () => `${escape(FIRMA.name)}, ${escape(FIRMA.firma)}<br>${escape(FIRMA.strasse)}<br>${escape(FIRMA.ort)}, Germany`;
+const mail = () => `<a href="mailto:${FIRMA.email}">${FIRMA.email}</a>`;
+
+/** Note on top of every English legal page, with the link to the binding German version. */
+export function hinweisDeutschEn(pfad: string): string {
+  return `<p class="hinweis">This translation is provided for information only. Only the <a href="/sprache?zu=de&amp;weiter=${encodeURIComponent(pfad)}" hreflang="de" lang="de">German version</a> is legally binding.</p>`;
+}
+
+export function impressumEn(): string {
+  return `<h2>Information pursuant to § 5 of the German Digital Services Act (DDG)</h2>
+<p>${anschrift()}</p>
+<h2>Contact</h2>
+<p>Email: ${mail()}<br>Contact form: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Phone: ${escape(FIRMA.telefon)}` : ""}</p>
+${FIRMA.ustId ? `<h2>VAT</h2><p>VAT identification number pursuant to § 27a of the German VAT Act (UStG): ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>VAT</h2><p>Small business pursuant to § 19 of the German VAT Act (UStG); therefore no VAT is charged.</p>` : ""}
+<h2>Responsible for the content</h2>
+<p>${escape(FIRMA.name)}, address as above.</p>
+<h2>Consumer dispute resolution</h2>
+<p>Jarvis is aimed exclusively at businesses. We are neither willing nor obliged to take part in dispute resolution proceedings before a consumer arbitration board.</p>
+<h2>Sources</h2>
+<p>Tenders: Federal procurement notice service of Germany (Bekanntmachungsservice des Bundes, oeffentlichevergabe.de), licence CC0; BOAMP, DILA (France), Licence Ouverte 2.0; TED, Publications Office of the EU (reuse with attribution); Biuletyn Zamówień Publicznych, UZP (Poland); Plataforma de serveis de contractació pública, Generalitat de Catalunya (Spain), Llicència oberta d'ús d'informació – Catalunya; SAM.gov and USAspending.gov (USA, public data of the US federal government); ANAC (Italy), licence CC BY 4.0; core data under the Austrian Federal Procurement Act (BVergG 2018) via data.gv.at (Austria), licence CC BY 4.0 (translated and summarised). Postcode coordinates: GeoNames, licence CC BY 4.0. Funding programmes: German federal funding database (Förderdatenbank des Bundes), licence CC BY-ND 4.0 DE (title and link only). The ratings and fact sheets are written by Jarvis itself.</p>
+`;
+}
+
+const DIENSTLEISTER_EN = [
+  ["Cloudflare, Inc., San Francisco (USA)", "Operation of the website, storage of uploaded documents (data centres in the EU), conversion of files into text", "EU-US Data Privacy Framework, standard contractual clauses"],
+  ["Supabase, Inc., San Francisco (USA)", "Sign-in and database (firms, members, tenders); servers in Frankfurt am Main", "Standard contractual clauses"],
+  ["Anthropic, PBC, San Francisco (USA)", "AI model Claude: reads tender notices and uploaded tender documents, creates firms' search profiles with a limited web search (firm name, website text, registered office), reads photos of receipts (amount, date, supplier), expiry dates on company certificates and lots from fact sheets, and writes ratings and fact sheets. No data from the personnel file. According to the provider, API data is not used for training and is stored only for a limited time", "Standard contractual clauses"],
+  ["Namecheap, Inc., Phoenix (USA)", "Mailbox kontakt@wpdigitalranger.com: sign-in links, invitations and messages", "Standard contractual clauses"],
+  ["GitHub, Inc. (Microsoft), San Francisco (USA)", "Daily evaluation of public tenders against the firms' search profiles; nightly encrypted backup", "EU-US Data Privacy Framework, standard contractual clauses"],
+];
+
+const tabelle = () =>
+  `<table><tr><th>Service provider</th><th>Purpose</th><th>Basis for the transfer</th></tr>${DIENSTLEISTER_EN.map((z) => `<tr>${z.map((x) => `<td>${escape(x)}</td>`).join("")}</tr>`).join("")}</table>`;
+
+export function datenschutzEn(): string {
+  return `<p class="klein">Version of ${FIRMA.standDatenschutz}</p>
+<h2>1. Controller</h2>
+<p>${anschrift()}<br>Email: ${mail()}</p>
+<h2>2. What Jarvis does</h2>
+<p>Every day Jarvis searches for public tenders, rates whether they suit a firm and writes fact sheets. Customers can upload tender documents, which Jarvis evaluates. In addition, Jarvis offers a workspace for staff, deployment planning, time recording, invoicing, customers and team chat. The firm is responsible for the data it enters there about its staff, its applicants and its customers; we process this data on its behalf (<a href="/avv">data processing agreement</a>). Jarvis is aimed exclusively at businesses.</p>
+<h2>3. What data we process</h2>
+<ul>
+<li><strong>When the site is visited:</strong> technically necessary data (IP address, time, page requested, browser). The operator of the servers (Cloudflare) stores it briefly for security and troubleshooting. Legal basis: Art. 6(1)(f) GDPR (secure operation).</li>
+<li><strong>Contact form:</strong> name, email address and message. We send them as an email to our mailbox (Namecheap) and use them only to reply. They are not stored in the database; we delete the email once the enquiry has been dealt with and no retention obligation applies. Legal basis: Art. 6(1)(b) GDPR (enquiry about a contract) or (f) (answering enquiries).</li>
+<li><strong>Account:</strong> name, email address, password (stored only in encrypted form), name, address and, optionally, phone number of the firm, time of registration, of consent and of sign-in, membership of firms, role in the business, access rights and areas. Legal basis: Art. 6(1)(b) GDPR (contract).</li>
+<li><strong>Firm data:</strong> firm name, locations, website (optional), search profile, tenders with status and notes, costing figures. During the automatic search used to set up the search profile, the firm name, website and registered office are sent to Anthropic's public web search; matching public sources are saved in the profile with their URL. Legal basis: Art. 6(1)(b) GDPR. For every new registration the operator receives a phone notification with the firm name in order to detect misuse (Art. 6(1)(f) GDPR).</li>
+<li><strong>Uploaded documents:</strong> tender documents of a tender. They may contain names and contact details of contact persons at the contracting authority. They are read only for the fact sheet and <strong>deleted after 30 days</strong>. Please do not upload documents containing data about your employees (e.g. CVs). The texts are sent to the AI service Anthropic to be read (see service providers).</li>
+<li><strong>Contact persons at contracting authorities and partner firms:</strong> name, role, business phone number and email address as well as a note and rating entered by the firm itself, contact persons for contracts and for enquiries to subcontractors. The firm is responsible for this data; we process it on its behalf. Visible only to that firm's office team; deleted when the firm deletes the entry or its account.</li>
+<li><strong>The firm's staff (deployment planning):</strong> name, trades, qualifications, pay grade, phone number, optionally email address and photo, availability, periods of absence (only “holiday”, “training” or “not available”, without health information), assignments at customers with their period (for the time limits under the German Temporary Agency Work Act, AÜG), start date, type of employment, weekly hours, driving licence classes, languages, postcode of residence (only for the distance to the place of work), proof of qualifications with expiry date and optionally an uploaded file, participation in safety briefings and a note on the workers, all entered by the firm itself. The firm is responsible for this data; we process it on its behalf (data processing agreement). Visible only to members with access to the location; stored until the firm deletes it. Jarvis does not send messages to these people itself; they go via WhatsApp, SMS or email from the firm's device.</li>
+<li><strong>Self-service by employees:</strong> if a firm links a worker's app access to their personnel file, that person sees only their own data: their own assignments, their own absences, their own certificates and safety briefings. They can request holiday (stored as “requested” until confirmed by the office) and upload their own certificates. They do not see other people's data.</li>
+<li><strong>Hours, shifts, announcements (since November 2026):</strong> timesheets (date, start, end, break, assignment, note, approved by whom and when), shifts (date, time, place, acceptance or refusal), announcements on the notice board with read confirmation (who read it and when), staff deadlines (end of probation, end of a fixed term, validity of residence title or work permit – only the date, no copy), driving licence checks (date, classes, who checked) and digitally confirmed safety briefings (date, time). Workers see only their own data from this. For phone notifications about new shifts and announcements we store the title and short text for at most 30 days. The firm is responsible, we process on its behalf; stored until the firm deletes it (changes to hours, shifts and checks remain in the change log for 12 months).</li>
+<li><strong>Customers, places of work, service records:</strong> the firm's customers (name, address, contact person, phone, email, note; billing rate only for people with finance permission) and places of work (address, on-site contact person, meeting point, clothing, instructions). Workers see only the place of work of their own shift. Jarvis calculates service records and premium hours (night, Sunday, public holiday) from the approved timesheets and stores nothing additional for this. If a worker reports a short-notice absence, we store only the day and the fact that it was at short notice, without a reason and without health information. For certificates of good conduct and health certificates Jarvis stores only the date of inspection, no copy.</li>
+<li><strong>Applications, protective equipment, checklists, holiday, ratings:</strong> applicant data (name, contact details, trade, source, status, interview date, note, uploaded documents) is visible only to case handlers, location managers and admins; it is deleted 6 months after a rejection (time limit under the German General Equal Treatment Act, AGG) or 30 days after hiring. In addition, protective equipment issued (item, size, date, replacement, return), onboarding and exit checklists with exit date, holiday accounts (entitlement, carry-over) and ratings of assignments by customers (stars, whether they would gladly have the worker again, note). Ratings and checklists are visible only to the office (not to read-only access such as the tax adviser); workers see their own protective equipment and their holiday account. The firm is responsible, we process on its behalf.</li>
+<li><strong>Team organisation:</strong> deputies (who stands in for whom from when until when, optional note), tasks (title, person responsible, due date, completed on) as well as vehicles and equipment (name, registration or inventory number, type of inspection and next inspection date). Visible to the firm's office team, not to workers; stored until the firm deletes it. During a deputyship, deadline reminders go to the deputy instead of the absent person. <strong>Team chat:</strong> messages (text, who, when) per firm, location or place of work; visible only to the people in that chat, deleted after 180 days. <strong>Patrols and guard book:</strong> scan of a checkpoint (who, when, which point) and entries in the guard book; visible to the office of the location concerned, not to read-only access. <strong>Customer portal:</strong> via a secret link, a customer of the firm sees the service records (totals without names), on request invoices and patrol rounds and, for incidents, only the time and site, no text; the customer can send reports. Only a hash of the link is stored; the firm can switch it off at any time. The firm is responsible, we process on its behalf.</li>
+<li><strong>Company documents, bid templates, bid folders and proof of submission:</strong> certificates, templates and receipts deliberately stored by the firm as well as bid drafts remain stored until they are deleted by the administration or until the firm account ends. Access is granted according to the rights assigned. The expiry date of a certificate prevents its use in a new bid folder after that date but does not delete the file automatically. If firm emails are switched on, expiry reminders are sent 30, 14, 7 and 2 days in advance to members with finance access.</li>
+<li><strong>Daily message:</strong> only if you choose a time yourself do we send you new matches and deadline reminders once a day by email or to your phone. For phone notifications we store the push address that your browser assigns for this purpose; the notification runs via your browser's push service (e.g. Google or Apple) but contains no text: your phone then fetches it directly from us. You can switch it off at any time in the overview under “Daily message”. Legal basis: Art. 6(1)(b) GDPR.</li>
+<li><strong>Invoicing, time recording, signatures (since November 2026):</strong> invoices (number, customer, month, items, amounts, sender and recipient details frozen when the invoice is issued; only with finance permission; issued invoices are not deleted but cancelled), receipts (date, supplier, amount, file; on request the AI service reads the photo of the receipt and the office checks the suggestion; receipts are cancelled instead of deleted), personnel number and birthday in the personnel file (birthday only for the reminder in the office), expenses with photo of the receipt (type, amount, date, note, approval), working time account (start date and opening balance; target and actual hours are calculated from the hours), clock-in times (clock in, break, resume, clock out with the server's time). With the time clock the phone asks once, optionally, for the location; at the moment of clocking we compare it with the postcode of the place of work and store only “at the place of work yes/no”, never the coordinates. Finger signatures (image, date, purpose) for receipt of protective equipment and for the monthly hours. Customer confirmation links: frozen list of the month's hours, name of the person confirming, remark, optional signature, time; the link is valid for 30 days, only a hash of the link is stored. Invitation links for workers without an email address (valid for 14 days, only a hash is stored). The firm is responsible, we process on its behalf. Jarvis does not send invoices or links itself.</li>
+<li><strong>Backups and error reports:</strong> every night the database is backed up in encrypted form (in Cloudflare storage with data centres in the EU; created via GitHub Actions). Daily backups are deleted after 14 days, monthly backups after one year; deleted data disappears from the backups at the latest by then. Technical error reports to the operator contain no names or email addresses and are deleted after 30 days.</li>
+<li><strong>Invitations:</strong> email address of the invited person, so that we can send the invitation link (for links for workers, only the name and the link to the personnel file).</li>
+</ul>
+<h2>4. Cookies</h2>
+<p>We set only technically necessary cookies: for sign-in (jv_at, jv_rt, jv_pkce), the firm last selected (jv_firma) and for your choices and use of the app: language, country, display and view (jv_psprache, jv_sprache, jv_land, jv_darstellung, jv_ansicht), recently opened tenders and last visit (jv_zuletzt, jv_gesehen) and whether the introduction has already been shown (jv_einfuehrung). There is no advertising, no analytics and no tracking. Legal basis: § 25(2) no. 2 of the German Telecommunications and Digital Services Data Protection Act (TDDDG).</p>
+<h2>5. Service providers</h2>
+<p>We use these service providers as processors (Art. 28 GDPR). Some are based in the USA. The transfer is safeguarded by the guarantees stated.</p>
+${tabelle()}
+<h2>6. Storage period</h2>
+<p>Uploaded documents and the fact sheets created from them: 30 days. Reusable company documents and templates: until deleted by the administration or until the firm account ends. Change log (who changed what in the firm and when, visible only to owners): 12 months. Phone notifications (title and short text): 30 days. Team chat: 180 days. A person's timesheets, clock-in times and temporary agency assignments: at least 2 years (§ 17 MiLoG); until then the person cannot be deleted. Bid drafts and text approvals as well as other account and firm data: as long as the account exists; they are deleted afterwards. The firm itself must keep invoices and receipts for 8 to 10 years (§ 147 AO, § 14b UStG); before the account is deleted we offer a complete archive for download for this purpose. Deleted automatically, in each case counted from the end of the calendar year: clock-in times, patrol scans and assignment ratings after 2 years, absences and guard book entries after 3 years. We delete a person's photos and certificate files together with the person.</p>
+<h2>7. Your rights</h2>
+<p>Under “My profile” you can download your data yourself, change your name and delete your account.</p>
+<p>You have the right of access, rectification, erasure, restriction of processing, data portability and to object to processing based on Art. 6(1)(f) GDPR. To do so, write to ${mail()}. You can also lodge a complaint with a data protection supervisory authority${FIRMA.aufsicht ? `, for example the one responsible for us: ${escape(FIRMA.aufsicht)}` : ""}.</p>
+<h2>8. Obligation to provide data</h2>
+<p>Registration is not possible without an email address. Everything else is optional.</p>`;
+}
+
+export function nutzungsbedingungenEn(): string {
+  return `<p class="klein">Version of ${FIRMA.stand}</p>
+<h2>1. Provider and scope</h2>
+<p>Jarvis is a service of ${escape(FIRMA.name)}, ${escape(FIRMA.firma)} (“we”). These terms apply to all firms and persons who use Jarvis (“customer”). Jarvis is aimed exclusively at entrepreneurs within the meaning of § 14 BGB (German Civil Code).</p>
+<h2>2. Service</h2>
+<ul>
+<li>Every day Jarvis searches for public tenders according to the customer's search profile, rates them and writes fact sheets from the public notice. In addition there is a workspace for staff, deployment planning, time recording, invoicing, customers and team chat. Functions based on German law (e.g. payroll, premiums, invoices, VAT) are available only for firms in Germany; they do not replace a check by a tax adviser or payroll accountant.</li>
+<li>The customer can upload tender documents. From these Jarvis writes a detailed fact sheet and helps with costing.</li>
+<li>Firms can store certificates and their own templates, edit bid drafts and download a bid folder. Bid versions must be approved by the firm's management before download. Submission is made by the customer via the channel provided by the contracting authority; creating or downloading a folder is not a submission. A receipt uploaded afterwards documents the submission reported by the customer.</li>
+<li>Jarvis does not itself download tender documents from portals whose terms prohibit this. The customer does the download personally via the link to the portal.</li>
+</ul>
+<h2>3. AI and no warranty</h2>
+<p>Ratings, fact sheets and cost calculations are produced by an AI. They may be incomplete or wrong. Only the original documents of the contracting authority are authoritative. Before every bid the customer checks deadlines, requirements and prices personally. Jarvis is not legal or tax advice. We do not guarantee that Jarvis finds every suitable tender.</p>
+<h2>4. Obligations of the customer</h2>
+<ul>
+<li>The customer uploads only documents that it is entitled to use and observes the terms of the procurement portals.</li>
+<li>The customer is responsible for the data it enters about its staff, its applicants and customers and informs these persons (Art. 13 GDPR). It does not enter health data or other special categories (Art. 9 GDPR) or criminal record data (Art. 10 GDPR) in free-text fields. It uses functions that can evaluate the performance or behaviour of employees (e.g. time clock, ratings, patrols) only to the extent permitted for it; where there is a works council, it observes the works council's co-determination rights (§ 87(1) no. 6 BetrVG).</li>
+<li>Access credentials are personal. The customer invites only people who work for it and removes them when they leave.</li>
+</ul>
+<h2>5. Prices</h2>
+<p>We agree prices and the package separately with each firm. During a preview or trial period Jarvis is free of charge; a trial period ends automatically without a paid package starting. For trials the volume of AI evaluations may be limited. Prices are exclusive of VAT, where applicable.</p>
+<h2>6. Availability</h2>
+<p>We strive for trouble-free operation but do not owe any particular level of availability. Maintenance and faults at service providers may lead to interruptions.</p>
+<h2>7. Liability</h2>
+<p>We are liable without limitation for intent, gross negligence and injury to life, body or health. In the case of simple negligence we are liable only for breach of essential contractual obligations, limited to the foreseeable, typical damage and at most to the remuneration for the last 12 months. In the case of free use (preview, trial period), we are liable, applying § 521 and § 599 BGB mutatis mutandis, only for intent and gross negligence, and therefore not for simple negligence. The first sentence remains unaffected in all cases. We are not liable for simple negligence for missed deadlines, tenders not found or lost tender procedures, insofar as they are based on information from the AI which the customer must check personally under section 3.</p>
+<h2>8. Data protection</h2>
+<p>Insofar as we process personal data on behalf of the customer, the <a href="/avv">data processing agreement</a> applies. More in the <a href="/datenschutz">privacy policy</a>.</p>
+<h2>9. Term and termination</h2>
+<p>Either party may terminate at any time with effect from the end of the month, unless otherwise agreed. Until the end, the customer can download its data (e.g. archive of all invoices and receipts, hours, payroll list). After the end we delete the firm's data within 30 days; it disappears from the encrypted backups after one year at the latest.</p>
+<h2>10. Final provisions</h2>
+<p>German law applies. The place of jurisdiction is, to the extent permitted, our registered office. We announce changes to these terms by email. Changes that do not put the customer in a worse position or only concern new functions are deemed accepted if the customer does not object within 4 weeks; we point out this consequence in the notice. Changes to prices or main services require the customer's consent; without consent, either party may terminate with effect from the end of the month.</p>`;
+}
+
+export function avvEn(): string {
+  return `<p>Agreement pursuant to Art. 28 GDPR between the firm that uses Jarvis (“controller”) and ${escape(FIRMA.name)}, ${escape(FIRMA.firma)} (“processor”). It applies upon use of Jarvis. Version of ${FIRMA.stand}.</p>
+<h2>1. Subject matter</h2>
+<p>The processor operates the Jarvis software for the controller in accordance with the <a href="/nutzungsbedingungen">terms of use</a>: tender search and evaluation, bids, personnel management, deployment planning, time recording, invoicing, applicant management, customer management with customer portal, patrols and guard book as well as team chat. Duration: as long as Jarvis is used.</p>
+<h2>2. Type of data and data subjects</h2>
+<ul>
+<li>Data: names, contact details and roles of users; firm and location data, notes and processing statuses; uploaded tender documents (possibly containing contact details of contact persons at contracting authorities); personnel data (master data, trades, qualifications and certificates with expiry date, pay grade and hourly wage, absences without reason, shifts, timesheets, clock-in times with “at the place of work yes/no”, expenses, safety briefings, protective equipment, ratings by customers, signatures, temporary agency assignments under the AÜG); applicant data; customers and places of work; invoices and receipts; patrol scans and guard book entries; chat messages. Special categories (Art. 9 GDPR) and criminal record data (Art. 10 GDPR) are not to be entered; for certificates of good conduct and health certificates Jarvis stores only the date of inspection.</li>
+<li>Data subjects: employees, temporary agency workers and applicants of the controller, users, customers and their contact persons, contact persons at contracting authorities and partner firms.</li>
+<li>Purpose: searching for, rating and evaluating tenders, preparing bids, personnel and deployment planning, time recording, invoicing and collaboration in the team.</li>
+</ul>
+<h2>3. Obligations of the processor</h2>
+<ul>
+<li>It processes the data only on documented instructions from the controller; use of the functions of Jarvis counts as an instruction. If it considers an instruction to be unlawful, it informs the controller without delay (Art. 28(3), second subparagraph, GDPR).</li>
+<li>Persons with access are bound to confidentiality.</li>
+<li>It takes the technical and organisational measures set out in section 6.</li>
+<li>It assists the controller with requests from data subjects and with the obligations under Art. 32 to 36 GDPR.</li>
+<li>It reports personal data breaches without delay, if possible within 24 hours.</li>
+<li>After the end of the engagement it deletes the data within 30 days or, on request, hands it over beforehand in common formats (CSV, Excel, Word, XRechnung, original files); it disappears from the encrypted backups after one year at the latest.</li>
+<li>It provides all information necessary to demonstrate compliance with these obligations and allows audits after prior notice.</li>
+</ul>
+<h2>4. Sub-processors</h2>
+<p>The controller approves these sub-processors. The processor contractually binds them to the same data protection obligations (Art. 28(4) GDPR). It informs the controller of new ones in advance by email; the controller may object for good cause within 14 days.</p>
+${tabelle()}
+<h2>5. Third countries</h2>
+<p>Transfers to the USA take place only on the basis of the guarantees stated in the table (Art. 44 et seq. GDPR).</p>
+<h2>6. Technical and organisational measures</h2>
+<ul>
+<li>Encrypted transmission (HTTPS), storage of documents in data centres in the EU.</li>
+<li>Sign-in with a password (stored only in encrypted form, at least 8 characters) or via an email link; session cookies only over HTTPS and not readable by scripts.</li>
+<li>Rights at database level: everyone sees only the data of their own firm and their own areas.</li>
+<li>Uploaded documents are deleted automatically after 30 days.</li>
+<li>Change log: changes to staff, locations, access and tenders are recorded with person and time, are visible only to owners and are deleted after 12 months.</li>
+<li>Access to the service providers is restricted to the processor and protected by strong authentication.</li>
+<li>Nightly encrypted backup of the database (AES-256) in Cloudflare storage with data centres in the EU; daily backups 14 days, monthly backups one year.</li>
+</ul>
+<h2>7. Final provisions</h2>
+<p>In the event of contradictions, this agreement takes precedence over the terms of use insofar as data protection is concerned. Anyone who needs a signed agreement can write to ${mail()}.</p>`;
+}
+
+export const RECHT_EN: Record<string, [string, () => string]> = {
+  "/impressum": ["Legal notice", impressumEn],
+  "/datenschutz": ["Privacy policy", datenschutzEn],
+  "/nutzungsbedingungen": ["Terms of use", nutzungsbedingungenEn],
+  "/avv": ["Data processing agreement (Art. 28 GDPR)", avvEn],
+};
