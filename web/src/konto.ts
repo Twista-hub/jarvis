@@ -15,6 +15,7 @@ import { aufgabenTeil } from "./aufgaben.ts";
 import { ungelesen } from "./brett.ts";
 import { chatUngelesen } from "./chat.ts";
 import { menueGruppieren } from "./menue.ts";
+import { naechsterSchritt } from "./naechster.ts";
 import { aktiv as aktivAm, vertretungHinweis, vertretungenLaden } from "./vertretung.ts";
 import { reichtTeil } from "./kapazitaet.ts";
 import { escape, hilfe, markdown, seite } from "./seite.ts";
@@ -1064,7 +1065,22 @@ ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief
   // Jump bar to the sections of this long page; only sections that exist.
   const sprung = [["#steckbrief", "Steckbrief"], teilnahme.includes('id="nachweise"') ? ["#nachweise", "Nachweise"] : null, finanzen ? [kalkulation, "Kalkulation"] : null, personalBlock ? ["#personal", "Personal"] : null, reichtBlock ? ["#kapazitaet", "Kapazität"] : null, aufgabenBlock ? ["#aufgaben", "Aufgaben"] : null, hochladen ? ["#unterlagen", "Unterlagen"] : null, termineBlock ? ["#termine", "Termine"] : null, partnerBlock ? ["#partner", "Partner"] : null, ["#notizen", "Notizen"]].filter((x): x is string[] => !!x);
   const sprungleiste = `<nav class="sprungleiste" aria-label="Abschnitte">${sprung.map(([href, text]) => `<a href="${escape(href)}">${text}</a>`).join("")}</nav>`;
-  return html(seite(v.titel, kopf + sprungleiste + verweise + teil + teilnahme + personalBlock + reichtBlock + aufgabenBlock + termineBlock + partnerBlock + notizBlock + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
+  // Rarely needed sections start folded (open when they already hold something), so the page stays short.
+  const zuklappen = (block: string, offen: boolean) => block.startsWith("<h2 id=")
+    ? block.replace(/^<h2 id="([a-z]+)">([\s\S]*?)<\/h2>/, (_, id: string, t: string) => `<details class="abschnitt" id="${id}"${offen ? " open" : ""}><summary><h2>${t}</h2></summary>`) + "</details>"
+    : block;
+  const kapazitaetKurz = zuklappen(reichtBlock, false);
+  const partnerKurz = zuklappen(partnerBlock, /\d+ angefragt/.test(partnerBlock));
+  const notizKurz = zuklappen(notizBlock, notizBlock.includes('<ul class="notizen">'));
+  // Next step box at the top (state, documents, offer approval).
+  const mappe = finanzen && v.status === "angebot" ? await db<{ freigabe_status: string }[]>(s, env, `angebotsmappen?vorgang_id=eq.${v.id}&firma_id=eq.${v.firma_id}&select=freigabe_status&order=erstellt.desc&limit=1`) : null;
+  const schritt = rolle === "leser" || rolle === "mitarbeiter" ? "" : naechsterSchritt({
+    id: v.id, status: v.status, frist: v.frist, mitUnterlagen: Boolean(aus?.text), laeuft: Boolean(aus && !aus.text),
+    mappe: (mappe?.ok && mappe.daten[0]?.freigabe_status as "wartet" | "genehmigt" | "abgelehnt") || "keine",
+    finanzen, darfAendern: ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), admin: ["inhaber", "admin"].includes(rolle),
+    kalkulation, portal: portal || null, heute: heuteBerlin,
+  });
+  return html(seite(v.titel, kopf + schritt + sprungleiste + verweise + teil + teilnahme + personalBlock + kapazitaetKurz + aufgabenBlock + termineBlock + partnerKurz + notizKurz + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
 }
 
 /** Steckbrief written from documents uploaded at this Vorgang: null = none, text "" = still running. */

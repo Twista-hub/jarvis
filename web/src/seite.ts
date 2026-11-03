@@ -891,6 +891,12 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .schicht-tag h3 { margin: 8px 0 2px; font-size: 14px; } .schicht-tag.heute h3 { color: var(--accent); } .schicht-tag.leer h3 { font-weight: 500; color: var(--muted); margin: 4px 0; }
   .schicht-liste li.offen { border-left: 3px solid #d68910; } .schicht-liste li.zugesagt { border-left: 3px solid #2e8b57; } .schicht-liste li.abgesagt { border-left: 3px solid var(--error); opacity: .75; } .schicht-liste li.frei { border-left: 3px dashed var(--line); }
   .schicht-antwort { display: flex; gap: 4px; } .schicht-antwort button { width: auto; min-height: 32px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
+  details.abschnitt { margin: 14px 0; } details.abschnitt > summary { cursor: pointer; list-style: none; } details.abschnitt > summary h2 { display: inline; margin: 0; }
+  details.abschnitt > summary::after { content: " ›"; color: var(--muted); } details.abschnitt[open] > summary::after { content: " ⌄"; }
+  .naechster-schritt { margin: 10px 0 14px; padding: 12px 14px; border: 2px solid var(--accent); border-radius: 14px; background: var(--card); }
+  .naechster-schritt h2 { margin: 2px 0 4px; font-size: 18px; } .naechster-schritt > p { margin: 4px 0; } .naechster-schritt .klein { margin: 0; font-weight: 600; color: var(--accent); }
+  .naechster-schritt .aktionsleiste { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; } .naechster-schritt form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; }
+  .naechster-schritt .aktionsleiste .knopf, .naechster-schritt .aktionsleiste button { width: auto; flex: 1 1 140px; }
   .chat-verlauf { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
   .chat-blase { position: relative; max-width: 85%; padding: 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); align-self: flex-start; }
   .chat-blase.eigen { align-self: flex-end; border-color: var(--accent); }
