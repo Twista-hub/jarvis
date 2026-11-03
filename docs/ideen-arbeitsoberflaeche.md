@@ -173,7 +173,7 @@ Reihenfolge nach Nutzen zu Aufwand und nach Umsatzchance.
 3. ✅ **Wiederkehrende Rechnungen (Nr. 19)** – gebaut 03.11.2026 (Vorlagen je Kunde, einmal pro Monat als Entwürfe): kleiner Aufwand und für Reinigung und Sicherheit jeden Monat spürbar.
 4. **Lohn-Export für DATEV (Nr. 3)**: Die Lohnliste ist schon da, es fehlt nur das passende Format, und das Lohnbüro spart jeden Monat Stunden.
 5. **DATEV-Export und Steuerberater-Zugang (Nr. 22)**: Jede kleine Firma hat einen Steuerberater, und der empfiehlt Jarvis weiter, wenn die Daten sauber kommen.
-6. **Belege per Foto (Nr. 21)**: Die Spesen mit Belegfoto gibt es schon, und damit wird Jarvis zum täglichen Werkzeug im Büro.
+6. ✅ **Belege per Foto (Nr. 21)** – gebaut 03.11.2026 (Foto/PDF erfassen, Summen je Kategorie und Steuersatz, CSV für die Steuerberatung; KI-Auslesen kommt erst mit Kosten-OK): Die Spesen mit Belegfoto gibt es schon, und damit wird Jarvis zum täglichen Werkzeug im Büro.
 7. **Bietergemeinschaft finden (Nr. 28)**: baut direkt auf dem Ausschreibungs-Kern auf und bringt Provision über den Erfolg-Plan.
 8. ✅ **Kontrollrundgang und Wachbuch (Nr. 11)** – gebaut 03.11.2026 (QR-Kontrollpunkte, Scan per Handy-Kamera, Wachbuch): Sicherheitsfirmen zahlen dafür heute extra, QR und Stempeluhr sind schon da.
 9. **Kunden-Portal (Nr. 40)**: Der Kundenlink steht schon, das Portal bindet Kunden und unterscheidet Jarvis von reinen Planungs-Apps.
