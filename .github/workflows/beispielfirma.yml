@@ -8,13 +8,14 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anlegen, entfernen]
+        options: [anlegen, entfernen, suchlauf]
         default: anlegen
       bestaetigung:
         description: "Zum Ausführen hier JA eintippen"
         default: ""
 permissions:
   contents: read
+  actions: write  # suchlauf: starts alarm.yml for the example firm only
 jobs:
   beispiel:
     if: inputs.bestaetigung == 'JA'
@@ -39,9 +40,20 @@ jobs:
           [ -n "$nutzer" ] || { echo "::error::Konto nicht gefunden"; exit 1; }
           echo "::add-mask::$nutzer"; echo "NUTZER=$nutzer" >> "$GITHUB_ENV"
       - name: Beispielfirma ${{ inputs.aktion }}
+        if: inputs.aktion != 'suchlauf'
         run: |
           extra=""; [ "${{ inputs.aktion }}" = entfernen ] && extra="-v entfernen=1"
           psql "$DB_URL" -v ON_ERROR_STOP=1 -q -v nutzer="$NUTZER" $extra -f supabase/demo/beispielfirma.sql 2>&1 | sed -E 's/[0-9a-f]{8}-[0-9a-f-]{27}/<id>/g'
+      - name: Echten Suchlauf nur für die Beispielfirma starten (kostet etwas KI)
+        if: inputs.aktion == 'suchlauf'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          firma=$(psql "$DB_URL" -tAc "select f.id from public.firmen f join public.mitglieder m on m.firma_id = f.id where f.name = 'Rheinland Facility Service GmbH (Beispiel)' and m.user_id = '$NUTZER' limit 1")
+          [ -n "$firma" ] || { echo "::error::Beispielfirma fehlt, erst anlegen"; exit 1; }
+          curl -sf -X POST -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/alarm.yml/dispatches" -d "{\"ref\":\"main\",\"inputs\":{\"firma\":\"$firma\"}}"
+          echo "Suchlauf gestartet (Workflow Ausschreibungs-Alarm)."
       - name: Ergebnis (nur Anzahlen)
         run: |
           psql "$DB_URL" -tA <<'SQL'
