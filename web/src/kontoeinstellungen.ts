@@ -163,8 +163,23 @@ export async function datenExport(s: Sitzung, env: KontoEnv): Promise<Record<str
     lesen(`push_abos?user_id=eq.${s.userId}&select=erstellt`),
     lesen(`kalender_abos?user_id=eq.${s.userId}&select=firma_id`),
   ]);
+  // D13: staff linked to a personnel record also get what the firm stores about them and what they may see themselves.
+  const personen = await lesen(`personal?user_id=eq.${s.userId}&select=id,firma_id,vorname,nachname,berufe,qualifikationen,status`) as { id: string }[];
+  const personalakte = await Promise.all(personen.map(async (p) => {
+    const [stunden, abwesenheiten, schichten, stempel, spesen, nachweise, unterweisungen] = await Promise.all([
+      lesen(`stundenzettel?personal_id=eq.${p.id}&select=datum,beginn,ende,pause_min,einsatz,notiz,status&order=datum&limit=5000`),
+      lesen(`personal_abwesenheiten?personal_id=eq.${p.id}&select=von,bis,grund,status&order=von&limit=2000`),
+      lesen(`schichten?personal_id=eq.${p.id}&select=datum,beginn,ende,ort,antwort&order=datum&limit=5000`),
+      lesen(`stempel?personal_id=eq.${p.id}&select=art,zeit,einsatz,am_ort&order=zeit&limit=20000`),
+      lesen(`spesen?personal_id=eq.${p.id}&select=datum,art,betrag,status&order=datum&limit=2000`),
+      lesen(`personal_nachweise?personal_id=eq.${p.id}&select=bezeichnung,erworben,gueltig_bis,datei_name&limit=500`),
+      lesen(`unterweisung_teilnahmen?personal_id=eq.${p.id}&select=datum,unterweisung_id&limit=2000`),
+    ]);
+    return { person: p, stunden, abwesenheiten, schichten, stempel, spesen, nachweise, unterweisungen };
+  }));
   return {
     hinweis: "Deine bei Jarvis gespeicherten Daten (Art. 15 und 20 DSGVO). Daten der Firmen selbst kann die jeweilige Firmenleitung anfordern.",
+    personalakte,
     exportiert_am: new Date().toISOString(),
     konto: { id: s.userId, email: s.email },
     firmenzugaenge: zugaenge, benachrichtigungen: nachrichten, notizen, eigene_termine: termine,
