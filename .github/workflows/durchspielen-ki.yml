@@ -8,6 +8,9 @@ on:
       bestaetigung:
         description: "Kostet etwas KI-Guthaben (ca. 1–3 $). Zum Starten JA eintippen"
         default: ""
+      nur:
+        description: "Nur diese Teile (kommagetrennt: recherche, belege, nachweise, steckbrief); leer = alle"
+        default: ""
 permissions:
   contents: read
 jobs:
@@ -63,6 +66,8 @@ jobs:
           for i in $(seq 1 60); do curl -s -o /dev/null http://127.0.0.1:8790/konto && break; sleep 1; done
           echo "App läuft"
       - name: KI-Abläufe durchspielen
+        env:
+          NUR: ${{ inputs.nur }}
         run: node web/scripts/durchspielen/ki-ablauf.mjs "$RUNNER_TEMP/belege" "$RUNNER_TEMP/nachweise" "$RUNNER_TEMP/unterlagen" | tee "$RUNNER_TEMP/ergebnis.txt"
       - name: Meldungen der App
         if: always()

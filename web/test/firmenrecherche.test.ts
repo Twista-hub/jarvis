@@ -8,7 +8,7 @@ const angaben = { name: "Beispiel GmbH", website: "https://firma.example", besch
 const suche = {
   stop_reason: "end_turn", content: [
     { type: "server_tool_use", name: "web_search", input: { query: "Beispiel GmbH Baesweiler" } },
-    { type: "text", text: "Die Firma verlegt Fliesen und Naturstein.", citations: [{ type: "web_search_result_location", title: "Firmenprofil", url: "https://branchen.example/firma" }] },
+    { type: "text", text: "Die Firma verlegt Fliesen und Naturstein.", citations: [{ type: "web_search_result_location", title: "Firmenprofil", url: "https://branchen.example/firma", cited_text: "Die Beispiel GmbH aus Baesweiler verlegt Fliesen." }] },
   ],
 };
 function fake(antworten: unknown[]) {
@@ -92,4 +92,25 @@ test("Suchfehler in HTTP-200-Antworten gelten nicht als Erfolg; pausierte Recher
   const endlos = fake([{ ...suche, stop_reason: "pause_turn" }, { ...suche, stop_reason: "pause_turn" }, { ...suche, stop_reason: "pause_turn" }]);
   await assert.rejects(() => rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, endlos.client), /unvollständig \(pause_turn\)/);
   assert.equal(endlos.aufrufe.length, 3);
+});
+
+test("Treffer gleichnamiger oder ähnlich heißender Firmen zählen nicht als Quelle", async () => {
+  const { namensKern, zuordenbar } = await import("../src/firmenrecherche.ts");
+  assert.equal(namensKern("WP Digital Ranger GmbH"), "wp digital ranger");
+  assert.equal(namensKern("Müller & Söhne e.K."), "müller söhne");
+  const a = { name: "WP Digital Ranger", website: "https://wpdigitalranger.com" };
+  assert.ok(zuordenbar("https://www.wpdigitalranger.com/leistungen", "", a), "eigene Website");
+  assert.ok(zuordenbar("https://branchenbuch.example/x", "WP Digital Ranger – Webdesign in Übach-Palenberg", a), "voller Name");
+  assert.ok(!zuordenbar("https://wp-digital.de/portal", "WP Digital Portal", a), "nur ähnlicher Name");
+  assert.ok(!zuordenbar("https://www.digital-ranger.uni-bayreuth.de/", "Digital Ranger Uni Bayreuth", a), "anderes Projekt");
+  const suche2 = { stop_reason: "end_turn", content: [
+    { type: "server_tool_use", name: "web_search", input: { query: "WP Digital Ranger" } },
+    { type: "text", text: "Treffer.", citations: [
+      { type: "web_search_result_location", title: "WP Digital", url: "https://wp-digital.de/portal", cited_text: "WP Digital Portal" },
+      { type: "web_search_result_location", title: "Leistungen", url: "https://wpdigitalranger.com/leistungen", cited_text: "Webseiten und Apps" }] },
+  ] };
+  const { client, aufrufe } = fake([suche2, { stop_reason: "end_turn", content: [{ type: "text", text: JSON.stringify({ websuche_beschreibung: "Webseiten", leistungen: [{ name: "Webseiten", cpv: [], woerter: ["webdesign"] }] }) }] }]);
+  const r = await rechercheProfil({ ANTHROPIC_API_KEY: "test" }, { ...a, beschreibung: "", orte: "", websiteText: "Webseiten" }, client);
+  assert.deepEqual(r.profil.websuche_quellen?.map((q) => q.url), ["https://wpdigitalranger.com/leistungen"]);
+  assert.match(aufrufe[0].system, /site:wpdigitalranger\.com/);
 });
