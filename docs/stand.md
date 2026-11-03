@@ -85,6 +85,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Plan-Struktur nach `docs/abos.md` in `web/src/plaene.ts` (Grenzen, nicht aktiv, Preise offen).
 - Mahnwesen: Zahlungsstatus, Summen offen/überfällig, Mahnschreiben 3 Stufen (`rechnungen.ts`, Migration `20261103020000`); Rechnungsinhalt per Trigger unveränderlich.
 - Wiederkehrende Rechnungen: Tabelle `rechnungsvorlagen` (Migration `20261103030000`), Monatsentwürfe per Knopf.
+- Rundgänge & Wachbuch: `web/src/rundgang.ts`, `/konto/rundgaenge`, Scan `/k/<token>` (RPC `rundgang_scannen`), Migration `20261103040000`.
 
 ### 02./03.11.2026 – Claude (Nacht: KI-Kosten, Italien, Niederlande, Ideen, Abos)
 - KI-Kosten: Prompt-Caching und Haiku-Vorfilter (Schwelle 3, Sonnet bewertet endgültig), gemessen 51/51 Treffer erhalten, ca. 40–45 % billiger (`docs/ki-kosten.md`). Batch-API als nächster Hebel vorgeschlagen.

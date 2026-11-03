@@ -67,6 +67,7 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261103010000_ausland_bestand_italien.sql
 \ir ../migrations/20261103020000_rechnungen_mahnwesen.sql
 \ir ../migrations/20261103030000_rechnungsvorlagen.sql
+\ir ../migrations/20261103040000_rundgang_wachbuch.sql
 grant usage on schema public to authenticated;
 grant select, insert, update, delete on all tables in schema public to authenticated;
 
@@ -1001,6 +1002,31 @@ set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.kunden) and (select count(*) = 0 from public.einsatzorte) and (select count(*) = 0 from public.kunden_preise), 'Fremde Firma sieht keine Kunden, Orte oder Preise');
 select pruefe(public.ausfall_melden((now() at time zone 'Europe/Berlin')::date, '') = -1, 'Ohne eigene Personalakte kein Ausfall');
+reset role;
+-- Idea 11: patrol checkpoints and guard log.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.kontrollpunkte (firma_id, einsatzort_id, name) values (:'firma', :'ort_halle', 'Notausgang Nord') returning token as kp_token \gset
+select set_config('test.kp', :'kp_token', false);
+select set_config('test.p_berlin', :'p_berlin', false);
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 0 from public.kontrollpunkte), 'Einsatzkraft sieht keine Kontrollpunkte (Token geheim)');
+select pruefe(public.rundgang_scannen(:'kp_token')->>'punkt' = 'Notausgang Nord', 'Einsatzkraft scannt Kontrollpunkt');
+select pruefe(public.rundgang_scannen(:'kp_token') is not null and (select count(*) = 1 from public.rundgang_scans), 'Doppelscan innerhalb einer Minute zählt einmal, eigener Scan sichtbar');
+select pruefe(public.rundgang_scannen('falsch') is null, 'Unbekannter Kontrollpunkt');
+insert into public.wachbuch (firma_id, einsatzort_id, personal_id, art, text) values (:'firma', :'ort_halle', :'p_berlin', 'vorfall', 'Tür 3 offen vorgefunden, verschlossen');
+do $$ begin
+  insert into public.wachbuch (firma_id, personal_id, text, zeit) values (current_setting('test.firma')::uuid, current_setting('test.p_berlin', true)::uuid, 'rückdatiert', now() - interval '1 day');
+  raise exception 'FEHLER: Wachbuch rückdatierbar';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  update public.wachbuch set text = 'geändert';
+  if found then raise exception 'FEHLER: Wachbuch nachträglich änderbar'; end if;
+exception when insufficient_privilege then null; end $$;
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe(public.rundgang_scannen(current_setting('test.kp')) is null and (select count(*) = 0 from public.wachbuch) and (select count(*) = 0 from public.rundgang_scans), 'Fremde Firma: kein Scan, kein Wachbuch');
+select test_als('00000000-0000-0000-0000-00000000000a');
+select pruefe((select count(*) = 1 from public.rundgang_scans) and (select count(*) = 1 and min(art) = 'vorfall' from public.wachbuch), 'Büro sieht Scans und Wachbuch');
 reset role;
 update public.mitglieder set aktiv = false, finanzen = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
 select set_config('test.uid', '', false);

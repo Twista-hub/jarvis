@@ -52,6 +52,7 @@ import { personalauswertung } from "./personalauswertung.ts";
 import { markt } from "./markt.ts";
 import { kundenlinkErstellen, kundenlinkOeffentlich } from "./kundenlink.ts";
 import { rechnungen } from "./rechnungen.ts";
+import { rundgaenge } from "./rundgang.ts";
 import { lohn } from "./lohn.ts";
 import { spesen } from "./spesen.ts";
 import { zeitkontoRoute } from "./zeitkonto.ts";
@@ -247,7 +248,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (uw) return uw;
     const ps = await personalsuche(request, env);
     if (ps) return ps;
-    for (const route of [kundenlinkOeffentlich, kundenlinkErstellen, rechnungen, lohn, spesen, zeitkontoRoute, kraefteEinladen, betreiber, organisation, vertretung, aufgaben, betriebsmittel, kapazitaetSeiteRoute, ich, stundenRoute, schichtenRoute, brett, personalfristen, kundenSeiteRoute, leistungsnachweis, psa, bewerber, checklisten, urlaub, bewertungen, personalauswertung]) {
+    for (const route of [kundenlinkOeffentlich, kundenlinkErstellen, rechnungen, rundgaenge, lohn, spesen, zeitkontoRoute, kraefteEinladen, betreiber, organisation, vertretung, aufgaben, betriebsmittel, kapazitaetSeiteRoute, ich, stundenRoute, schichtenRoute, brett, personalfristen, kundenSeiteRoute, leistungsnachweis, psa, bewerber, checklisten, urlaub, bewertungen, personalauswertung]) {
       const r = await route(request, env);
       if (r) return r;
     }
