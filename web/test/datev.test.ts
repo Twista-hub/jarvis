@@ -85,6 +85,9 @@ test("LODAS: Bewegungsdaten mit eigenen Lohnarten", () => {
   const daten = zeilen.slice(zeilen.indexOf("[Bewegungsdaten]") + 1).filter(Boolean);
   assert.deepEqual(daten, ["1;17;01.11.2026;160,50;1;1000;IMPORT Jarvis;", "1;17;01.11.2026;2,00;10;1100;IMPORT Jarvis;", "1;17;01.11.2026;12,50;2;7000;IMPORT Jarvis;"], "Nacht ohne Lohnart fehlt");
   assert.deepEqual(d.ohneNummer, ["Ohne, Nummer"]);
+  // § 3b windows go out as their own wage types (hours).
+  const sf = lodasDatei({ berater: "1234567", mandant: "42" }, "2026-11", [{ ...z[0], sf: { n25: 90, n40: 30, so50: 0, f125: 0, f150: 0 } } as never], { n25: "2001", n40: "2002", so50: "2003" });
+  assert.ok(sf.text.includes("1;17;01.11.2026;1,50;1;2001;IMPORT Jarvis;") && sf.text.includes("1;17;01.11.2026;0,50;1;2002;IMPORT Jarvis;") && !sf.text.includes(";2003;"));
 });
 
 test("Steuerbüro-Zugang: nur ansehen und herunterladen", async () => {

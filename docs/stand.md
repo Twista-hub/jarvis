@@ -100,6 +100,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Unternehmer-Häkchen** bei der Registrierung (nur B2B) und **Kontaktformular** `/kontakt` (zweiter Kontaktweg fürs Impressum, Mail nur an kontakt@).
 - **Löschfristen** (`20261103220000`): nachts vor der Datensicherung (`sicherung.yml`) Stempel, Rundgang-Scans, Bewertungen nach 2 J., Abwesenheiten, Wachbuch nach 3 J. (ab Jahresende). Person löschen entfernt auch Foto und Nachweisdateien in R2.
 - **Englische Rechtstexte**, **KI-Hinweise beim Hochladen**, **KI-Kennzeichnung** der Steckbriefe (AI Act Art. 50), KI-Ablaufdaten bis zur Prüfung markiert. Haftungssatz für kostenlose Nutzung klargestellt (alle Sprachen).
+- LODAS-Export mit § 3b-Lohnarten (unter Belege → DATEV-Einstellungen eintragen), Ansprechpartner-Namen vor der KI maskiert, Treffer-Einschätzung als KI gekennzeichnet.
 - Offen: siehe `docs/recht/pruefung-2026-11.md` (u. a., KI-Kennzeichnung, LODAS § 3b). Danach Hilfe-Center mit Anleitungen (Benjamin fragt nach „Wiki“).
 
 ### 03.11.2026 – Claude (KI-Kosten je Firmengröße, Pläne angepasst, Verbesserungen aus dem Durchspielen)

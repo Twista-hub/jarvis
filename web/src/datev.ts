@@ -70,7 +70,7 @@ export function cp1252(t: string): Uint8Array {
 }
 
 /** Wage types of the payroll office per value; empty = not exported. */
-export const LOHNARTEN = { stunden: "Arbeitsstunden", nacht: "Nachtstunden (Zuschlag)", sonntag: "Sonntagsstunden (Zuschlag)", feiertag: "Feiertagsstunden (Zuschlag)", urlaub: "Urlaubstage", spesen: "Spesen/Auslagen (€)" } as const;
+export const LOHNARTEN = { stunden: "Arbeitsstunden", nacht: "Nachtstunden (Zuschlag)", sonntag: "Sonntagsstunden (Zuschlag)", feiertag: "Feiertagsstunden (Zuschlag)", urlaub: "Urlaubstage", spesen: "Spesen/Auslagen (€)", n25: "§ 3b Nacht 25 % (Std.)", n40: "§ 3b Nacht 40 % (Std.)", so50: "§ 3b Sonntag 50 % (Std.)", f125: "§ 3b Feiertag 125 % (Std.)", f150: "§ 3b Feiertag 150 % (Std.)" } as const;
 export type Lohnarten = Partial<Record<keyof typeof LOHNARTEN, string>>;
 
 /** LODAS ASCII import (Bewegungsdaten, standard table). Value keys: 1 = hours, 2 = amount, 10 = days. */
@@ -79,6 +79,8 @@ export function lodasDatei(e: Pick<DatevEinstellung, "berater" | "mandant">, mon
   const zahl = (n: number) => n.toFixed(2).replace(".", ",");
   const werte: [keyof typeof LOHNARTEN, (z: Zeile) => number, number][] = [
     ["stunden", (z) => z.stunden / 60, 1], ["nacht", (z) => z.nacht / 60, 1], ["sonntag", (z) => z.sonntag / 60, 1], ["feiertag", (z) => z.feiertag / 60, 1], ["urlaub", (z) => z.urlaub, 10], ["spesen", (z) => z.spesen, 2],
+    // Tax-free surcharge hours by § 3b EStG window (A6 Rechtsprüfung); the payroll office maps them to its own wage types.
+    ["n25", (z) => (z.sf?.n25 ?? 0) / 60, 1], ["n40", (z) => (z.sf?.n40 ?? 0) / 60, 1], ["so50", (z) => (z.sf?.so50 ?? 0) / 60, 1], ["f125", (z) => (z.sf?.f125 ?? 0) / 60, 1], ["f150", (z) => (z.sf?.f150 ?? 0) / 60, 1],
   ];
   const ohneNummer = zeilen.filter((z) => !/^\d{1,5}$/.test(z.personalnummer)).map((z) => z.name);
   const daten = zeilen.filter((z) => /^\d{1,5}$/.test(z.personalnummer)).flatMap((z) => werte.flatMap(([k, wert, bs]) => {
