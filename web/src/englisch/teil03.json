@@ -412,5 +412,12 @@
  "später als 7 Tage nach dem Arbeitstag erfasst (§ 17 MiLoG)": "recorded more than 7 days after the working day (§ 17 MiLoG)",
  "Fristen, Lose, Preise und geforderte Nachweise sind mit den Originalunterlagen abgeglichen (der Steckbrief ist von einer KI erstellt).": "Deadlines, lots, prices and required evidence have been checked against the original documents (the fact sheet was created by AI).",
  "Bitte vor der Freigabe bestätigen, dass Fristen, Lose, Preise und Nachweise mit den Originalunterlagen abgeglichen sind.": "Before approving, please confirm that deadlines, lots, prices and evidence have been checked against the original documents.",
- "Bitte bestätigen": "Please confirm"
+ "Bitte bestätigen": "Please confirm",
+ "Belege": "Receipts",
+ "Nachkalkulation": "Job costing",
+ "Umsatzsteuer": "VAT",
+ "Kunden-Portal": "Customer portal",
+ "Rundgänge & Wachbuch": "Patrols & guard book",
+ "⏳ # laufen in # Tagen ab": "⏳ # expire within # days",
+ "⏳ # läuft in # Tagen ab": "⏳ # expires within # days"
 }

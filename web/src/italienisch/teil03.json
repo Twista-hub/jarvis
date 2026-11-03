@@ -412,5 +412,12 @@
   "später als 7 Tage nach dem Arbeitstag erfasst (§ 17 MiLoG)": "registrato oltre 7 giorni dopo il giorno lavorativo (§ 17 MiLoG)",
   "Fristen, Lose, Preise und geforderte Nachweise sind mit den Originalunterlagen abgeglichen (der Steckbrief ist von einer KI erstellt).": "Scadenze, lotti, prezzi e documenti richiesti sono stati verificati con la documentazione originale (la scheda riassuntiva è stata creata dall'IA).",
   "Bitte vor der Freigabe bestätigen, dass Fristen, Lose, Preise und Nachweise mit den Originalunterlagen abgeglichen sind.": "Prima dell'approvazione, conferma che scadenze, lotti, prezzi e documenti sono stati verificati con la documentazione originale.",
-  "Bitte bestätigen": "Conferma"
+  "Bitte bestätigen": "Conferma",
+  "Belege": "Ricevute",
+  "Nachkalkulation": "Consuntivo",
+  "Umsatzsteuer": "IVA",
+  "Kunden-Portal": "Portale clienti",
+  "Rundgänge & Wachbuch": "Ronde e registro di servizio",
+  "⏳ # laufen in # Tagen ab": "⏳ # scadono entro # giorni",
+  "⏳ # läuft in # Tagen ab": "⏳ # scade entro # giorni"
 }
