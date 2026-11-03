@@ -124,6 +124,9 @@ ${liste.length ? `<p class="gewerk-zahlen"><span><strong>${summe(offen)}</strong
 ${liste.length ? `<ul class="kontakt-liste">${liste.map((r) => `<li><div><strong>${escape(r.nummer)} · ${escape(kName(r.kunde_id))}</strong><span class="klein">${datum(r.datum)} · ${monatName(r.monat)} · ${euro(Number(r.netto))} netto · ${status(r)}</span></div><span class="knopf-zeile">${knoepfe(r)}<a class="knopf zweit" href="/konto/rechnungen/${r.id}.docx" download>📄 Word</a><a class="knopf zweit" href="/konto/rechnungen/${r.id}.xml" download title="E-Rechnung im Format XRechnung (z. B. für Behörden)">🧾 E-Rechnung</a><form method="post" action="/konto/rechnungen"><input type="hidden" name="loeschen" value="${r.id}"><button class="zweit" aria-label="Entwurf löschen">✕</button></form></span></li>`).join("")}</ul>` : `<p class="treffer-leer">Noch keine Rechnungen.</p>`}`;
 }
 
+/** Read-only view (tax adviser): all buttons that change something are forms; downloads are links and stay. */
+export const ohneFormulare = (h: string) => h.replace(/<form[\s\S]*?<\/form>/g, "");
+
 export async function rechnungen(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const docx = url.pathname.match(/^\/konto\/rechnungen\/([0-9a-f-]{36})\.(docx|xml|mahnung\.docx)$/);
@@ -131,7 +134,8 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
   const antwort = (t: string, status = 200) => html(seite("Rechnungen", `<p class="konto-zurueck"><a href="/konto/team" aria-label="Zurück zu Firma &amp; Team">←</a></p>${t}`, 0, "team"), status, f.s.cookies);
-  if (!f.finanzen || !["inhaber", "admin", "bearbeiter"].includes(f.m.rolle)) return antwort("<p>Rechnungen sehen Personen mit Finanzfreigabe.</p>", 403);
+  if (!f.finanzen || !["inhaber", "admin", "bearbeiter", "leser"].includes(f.m.rolle)) return antwort("<p>Rechnungen sehen Personen mit Finanzfreigabe.</p>", 403);
+  const nurLesen = f.m.rolle === "leser"; // tax adviser: read and download only
   const firma = f.m.firma_id;
   const heute = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
   const absender = async (): Promise<Absender> => {
@@ -161,6 +165,7 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     }
     return wordAntwort(rechnungDocx(x, kunde, await absender()), `${x.nummer}.docx`, f.s.cookies);
   }
+  if (request.method === "POST" && nurLesen) return antwort("<p>Mit Leserechten kannst du Rechnungen nur ansehen und herunterladen.</p>", 403);
   if (request.method === "POST") {
     const form = await request.formData();
     const zurueck = (h: string) => weiterleiten(`/konto/rechnungen?hinweis=${encodeURIComponent(h)}`, f.s.cookies);
@@ -235,5 +240,5 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
   ]);
   const fehlt = [!a.steuernummer && !a.ustid ? "Steuernummer oder USt-IdNr." : "", !a.strasse || !a.ort ? "Anschrift" : "", !a.zahlungshinweis ? "Zahlungshinweis (z. B. Bankverbindung)" : ""].filter(Boolean);
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt, heute, kleinunternehmer: a.kleinunternehmer })}${vorlagenBereich(vorlagen.ok ? vorlagen.daten : [], k.ok ? k.daten : [], heute.slice(0, 7))}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${nurLesen ? ohneFormulare(rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt: [], heute, kleinunternehmer: a.kleinunternehmer })) : rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt, heute, kleinunternehmer: a.kleinunternehmer }) + vorlagenBereich(vorlagen.ok ? vorlagen.daten : [], k.ok ? k.daten : [], heute.slice(0, 7))}`);
 }

@@ -11,6 +11,7 @@ import { zeitkonto, type Start, type ZPerson } from "./zeitkonto.ts";
 import { xlsxAntwort, xlsxDatei, type Zelle } from "./xlsx.ts";
 import { absatz, bild, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
 import { schluessel } from "./unterschrift.ts";
+import { cp1252, fehltDatev, lodasDatei, type Lohnarten } from "./datev.ts";
 
 export type LPerson = ZPerson & { personalnummer: string };
 type Abw = { personal_id: string; von: string; bis: string; grund: string; status?: string; kurzfristig?: boolean };
@@ -58,7 +59,7 @@ export function stundennachweisDocx(firma: string, p: { vorname: string; nachnam
 export async function lohn(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
   const nachweis = url.pathname.match(/^\/konto\/stunden\/([0-9a-f-]{36})\.docx$/);
-  if (!["/konto/lohn.xlsx", "/konto/lohn.csv"].includes(url.pathname) && !nachweis) return null;
+  if (!["/konto/lohn.xlsx", "/konto/lohn.csv", "/konto/lohn-lodas.txt"].includes(url.pathname) && !nachweis) return null;
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
   if (f.m.rolle === "mitarbeiter") return new Response("Nicht erlaubt", { status: 403 });
@@ -90,6 +91,17 @@ export async function lohn(request: Request, env: KontoEnv): Promise<Response | 
   ]);
   const stunden = st.ok ? st.daten : [], abw = a.ok ? a.daten : [];
   const z = lohnZeilen(p.ok ? p.daten : [], stunden, abw, sp.ok ? sp.daten : [], zk.ok ? zk.daten : [], stunden, abw, monat, land);
+  if (url.pathname.endsWith(".txt")) {
+    const e = await db<{ datev_berater: string; datev_mandant: string; lohnarten: Lohnarten }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=datev_berater,datev_mandant,lohnarten`);
+    const x = e.ok ? e.daten[0] : undefined, ein = { berater: x?.datev_berater ?? "", mandant: x?.datev_mandant ?? "" };
+    const la = x?.lohnarten ?? {};
+    if (fehltDatev(ein).length || !Object.values(la).some(Boolean)) return weiterleiten(`/konto/stunden?monat=${monat}&hinweis=${encodeURIComponent("Für LODAS fehlen Berater-/Mandantennummer oder Lohnarten: ein Admin trägt sie unter Belege → DATEV-Einstellungen ein.")}`, f.s.cookies);
+    const d = lodasDatei(ein, monat, z, la);
+    const h = new Headers({ "content-type": "text/plain; charset=windows-1252", "content-disposition": `attachment; filename="LODAS_${monat}.txt"`, "cache-control": "private, no-store" });
+    for (const c of f.s.cookies) h.append("set-cookie", c);
+    if (d.ohneNummer.length) h.set("x-jarvis-ohne-personalnummer", String(d.ohneNummer.length));
+    return new Response(cp1252(d.text), { headers: h });
+  }
   if (url.pathname.endsWith(".csv")) {
     const h = new Headers({ "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="Lohn_${monat}.csv"`, "cache-control": "private, no-store" });
     for (const c of f.s.cookies) h.append("set-cookie", c);

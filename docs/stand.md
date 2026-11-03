@@ -89,6 +89,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Belege per Foto: `web/src/belege.ts`, `/konto/belege` (Finanzfreigabe), Datei in `belege/<firma>/<id>`, CSV `/konto/belege.csv?monat=`; Tabelle `belege` (Migration `20261103050000`, nicht änderbar). KI-Auslesen offen (Kosten-OK).
 - Kunden-Portal: `web/src/kundenportal.ts`, Büro `/konto/kundenportal`, Kunde `/portal/<token>` (RPC `portal_abrufen`/`portal_melden`), Tabellen `kunden_portale`, `kunden_meldungen` (Migration `20261103060000`). Rechte-Test nutzt jetzt Supabase-Standardrechte (`alter default privileges`) statt pauschalem Grant nach den Migrationen.
 - Bietergemeinschaft: `web/src/bietergemeinschaft.ts` (Vorschläge aus eigenen Partnern, Word-Erklärung `/konto/vorgang/<id>/bietergemeinschaft.docx`), eingebunden in `partner.ts`.
+- DATEV: `web/src/datev.ts` (Buchungsstapel EXTF 700 `/konto/belege/datev.csv`, LODAS `/konto/lohn-lodas.txt`, Windows-1252), Einstellungen im Firmenprofil (Migration `20261103070000`), Steuerbüro = Leser mit Finanzfreigabe (Policies `steuerbuero_lesen`, Seiten nur lesen). Erster Import beim echten Steuer-/Lohnbüro noch offen.
 
 ### 02./03.11.2026 – Claude (Nacht: KI-Kosten, Italien, Niederlande, Ideen, Abos)
 - KI-Kosten: Prompt-Caching und Haiku-Vorfilter (Schwelle 3, Sonnet bewertet endgültig), gemessen 51/51 Treffer erhalten, ca. 40–45 % billiger (`docs/ki-kosten.md`). Batch-API als nächster Hebel vorgeschlagen.
