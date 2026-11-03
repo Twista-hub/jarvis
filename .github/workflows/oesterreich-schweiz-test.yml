@@ -1,22 +1,25 @@
-# Read-only check of national procurement sources for Austria (data.gv.at Kerndaten) and Switzerland (simap.ch):
-# robots.txt, terms/legal pages and one sample request each. Saves nothing.
-name: Österreich/Schweiz-Test
+# Read-only test of the Austrian source (alarm/oesterreich.py, Kerndaten via data.gv.at) for a given day.
+# Prints counts and the first notices; saves nothing.
+name: Österreich-Test
 on:
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Tag (JJJJ-MM-TT), leer = gestern"
+        required: false
 permissions:
   contents: read
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
-      - name: Österreich – größte Kerndatenquellen (robots.txt, Aufbau)
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Kerndaten lesen
         run: |
-          UA="JarvisAlarm/0.1 (WP Digital Ranger; kontakt@wpdigitalranger.com)"
-          for host in https://kdq.kerndaten.at http://ogd.ankoe.at https://www.ausschreibung.at https://evergabe.at https://vergabeplattform.at https://opendata.bbg.gv.at https://www.provia.at; do
-            echo "=== robots $host"; curl -sL -m 15 -A "$UA" "$host/robots.txt" | head -12; echo; done
-          for u in https://kdq.kerndaten.at "http://ogd.ankoe.at/api/v1/notices" "https://www.ausschreibung.at/OpenData/kdq?id=87BA5ED1" "https://evergabe.at/NetServer/kerndaten" "https://opendata.bbg.gv.at/kerndaten/bbg_kerndaten_viii-2-1.xml"; do
-            echo "=== $u"; curl -sL -m 30 -A "$UA" -o /tmp/k -w "HTTP %{http_code} %{content_type} %{size_download} Bytes\n" "$u"; head -c 1500 /tmp/k; echo
-            link=$(grep -oE '<(url|link|loc)>[^<]+' /tmp/k | head -1 | sed -E 's/<[a-z]+>//'); echo "--- erster Eintrag: $link"
-            if [ -n "$link" ]; then curl -sL -m 30 -A "$UA" "$(echo "$link" | sed 's/&amp;/\&/g')" | head -c 2500; echo; fi
-          done
+          TAG="${{ github.event.inputs.tag }}"
+          [ -z "$TAG" ] && TAG=$(date -u -d yesterday +%F)
+          python3 -u alarm/oesterreich.py "$TAG"

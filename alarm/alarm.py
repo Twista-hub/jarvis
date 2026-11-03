@@ -228,6 +228,7 @@ def kurzbrief(rel: dict, day: str) -> str:
             + ("**Land:** Frankreich · Quelle: BOAMP, DILA (Licence Ouverte 2.0)\n\n" if rel.get("_quelle") == "BOAMP" else "")
             + ("**Land:** Polen · Quelle: Biuletyn Zamówień Publicznych (UZP)\n\n" if rel.get("_quelle") == "BZP" else "")
             + ("**Land:** Spanien (Katalonien) · Quelle: Generalitat de Catalunya, Plataforma de serveis de contractació pública (Llicència oberta d'ús d'informació – Catalunya)\n\n" if rel.get("_quelle") == "Katalonien" else "")
+            + ("**Land:** Österreich · Quelle: Kerndaten nach BVergG 2018 über data.gv.at (CC BY 4.0), " + (rel.get("_at") or {}).get("kerndaten", "") + "\n\n" if rel.get("_quelle", "").startswith("Kerndaten") else "")
             + ("**Land:** Italien · Quelle: ANAC – Piattaforma Pubblicità a valore legale (CC BY 4.0), " + (rel.get("_anac") or {}).get("seite", "") + "\n\n" if rel.get("_quelle") == "ANAC" else "")
             + f"**Angebotsfrist:** {frist_lesbar(frist(t)) or 'nicht angegeben'}\n\n"
             + eckdaten(t)
@@ -425,11 +426,19 @@ def run(days: list[str]) -> str:
     inputs = gemeinsam if gemeinsam is not None else ((day, rel) for day in sorted(days, reverse=True) for _, rel in releases(fetch(day)))
     # Other European countries via TED, only for profiles that chose them (Germany comes from the Bekanntmachungsservice).
     ausland = sorted({l for p in profiles.values() for l in p.get("laender", ["DEU"]) if l != "DEU"})
+    oesterreich_titel: set = set()
+    if "AUT" in ausland:  # Austria: national Kerndaten (below and above the thresholds) from data.gv.at, TED copies dropped
+        import oesterreich
+        at = [(day, rel) for day in sorted(days, reverse=True) for rel in oesterreich.releases(day)]
+        oesterreich_titel = {str((r.get("tender") or {}).get("title", "")).lower() for _, r in at}
+        inputs = itertools.chain(inputs, at)
     if ausland:
         import ted
         # Catalan notices come complete from the Catalan open data portal (below and above the EU thresholds); TED copies
         # of them (NUTS ES51) would appear twice.
         def ohne_katalonien(rel: dict) -> bool:
+            if oesterreich_titel and rel.get("_land") == "AUT" and str((rel.get("tender") or {}).get("title", "")).lower() in oesterreich_titel:
+                return False
             return not ("ESP" in ausland and rel.get("_land") == "ESP" and re.search(r"\bES51\d?\b", place(rel)))
         inputs = itertools.chain(inputs, ((day, rel) for day in sorted(days, reverse=True) for rel in ted.releases(day, [l for l in ausland if l not in ("GBR", "USA", "FRA", "ITA")]) if ohne_katalonien(rel)))
     if "ESP" in ausland:  # Spain: Catalonia complete from its open data portal (PLACSP blocks robots), rest via TED
