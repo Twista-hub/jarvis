@@ -75,7 +75,7 @@ import { hinweisDeutschIt, RECHT_IT } from "./rechtliches-it.ts";
 import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
-import MUSTER from "../../alarm/steckbriefe/muster-bundesbank-leihpersonal-gastronomie.md";
+import MUSTER from "./muster-steckbrief.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
 import { usProfil, usRadar } from "./usprofil.ts";
 import { samAnleitungSeite } from "./samanleitung.ts";
