@@ -43,7 +43,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Firmen in der App:** „WP Digital Ranger“ (Benjamin) und „PerLease (Vorschau)“ mit 4 Regionen und 16 Standorten.
 - **Tarifdatenbank:** gemeinsamer, nur lesbarer Quellenkatalog plus firmenbezogene Auswahlkopien; 21 aktuell gruppierte Einträge werden bei neuen Firmen vorbelegt. Es sind 82 belegte Stundenwerte gespeichert (30 GVP über drei Stichtage und ausgewählte Mindestentgelte u. a. für Maler, Dachdecker, Pflege, Gerüstbau, Gebäudereinigung, Bildung, Flughafenluftsicherheit, Elektrohandwerk, Bodenabfertigung, allgemeiner Mindestlohn und AÜ-Lohnuntergrenze). Das bleibt ein belegter Anfangsbestand, keine Vollständigkeit: BMAS veröffentlicht keinen vollständigen offenen Satz der rund 90.000 Verträge; mehrere Verträge enthalten nur Gruppenzahlen statt Tätigkeitsmerkmale und Löhnen. Für Bayern/BW gefundene Originaltabellen erfordern vor Weiterverwendung die Zustimmung der Rechteinhaber.
 - **Zentraler Vergabekatalog (Code bereitgestellt):** eigener stündlicher Worker, gemeinsame offene Bekanntmachungen und neue Markt-/Teilnahmefunktionen. Aktivierung und Live-Datenstand über die Ausrollläufe prüfen; der Erstbestand wird schrittweise aufgebaut.
-- **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung, Förderdatenbank.
+- **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung (seit 03.11. über Bekanntmachungs-ID bzw. eForms-Tagesexport, vorher 404), Förderdatenbank.
 
 ## In Arbeit
 - Keine aktive Bearbeitung. GitHub-Suchlauf 41225815168 läuft selbstständig weiter; vor einem neuen Lauf dessen Ergebnis prüfen.
@@ -80,6 +80,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 03.11.2026 – Claude (eForms-Abruf repariert)
+- Ursache der 404 („eForms nicht geladen“ 8×, „eForms geladen“ 0× im Alarm 41631964906; Steckbrief-Vergleich ebenso): Die Notice-API `oeffentlichevergabe.de/api/notices/<id>?format=eforms` kennt nur die **Bekanntmachungs-ID** (BT-701 = OCDS-Release-`id`, Dateiname `<id>-01.json`). Die UUID in der `ocid` ist die **Verfahrens-ID** (BT-04, `cbc:ContractFolderID`) und stimmt nur bei manchen Erstbekanntmachungen überein. Der Katalog speicherte in `roh` nur die `ocid`, daher 404. `noticeVersion=1` liefert immer 404 (Version heißt „01“), entfernt.
+- Geprüft mit lesendem Workflow `eforms-probe.yml` (`diagnose/eforms_probe.py`, ohne Secrets): robots.txt 404 (keine Sperren), Daten CC0 wie bisher (`alarm/quellen.md`). Tag 02.11.: 89 Bekanntmachungen, nur 51 mit ocid-UUID = Bekanntmachungs-ID; Tagesexport `notice-exports?pubDay=…&format=eforms.zip` (276 KB) enthält alle 89 XML.
+- Fix `alarm/alarm.py` `eforms_text`: 1. Notice-API mit Release-ID, 2. eForms-Tagesexport des Veröffentlichungstags (deutsche Zeit aus `roh.date`; Abgleich per Dateiname oder `ContractFolderID`; ein Download je Tag und Lauf), 3. zuletzt Verfahrens-ID. Katalog (`web/src/katalog-daten.ts`) speichert künftig `roh.id` (Version bleibt gleich, keine Neubewertung). Test `alarm/test_eforms.py` mit gespeicherter Probe (`alarm/testdaten/eforms/`), in `pruefen.yml`.
+- Prüfen 41641447058, Katalog-Ausrollen 41641446941 und Web-Ausrollen 41641446991 grün. Live-Probe (Lauf 41641452273): 4 von 4 Katalogzeilen ohne Release-ID → „eForms geladen“ (11.840–24.007 Zeichen, Fristen enthalten). Tests: 111 Python, 351 Web, Typprüfung grün.
+- Offen: im nächsten Alarm (04.11., 04:17 UTC) „eForms geladen“ im Log bestätigen.
 
 ### 03.11.2026 – Claude (KI-Kosten je Firmengröße, Pläne angepasst, Verbesserungen aus dem Durchspielen)
 - Umgesetzt aus dem Durchspielen: Kasten „Nächster Schritt“ oben auf der Ausschreibungsseite (`web/src/naechster.ts`, Status-Knöpfe direkt), selten gebrauchte Abschnitte zugeklappt, Mehr-Menü in 6 Gruppen (`web/src/menue.ts`), Chat lädt neue Nachrichten alle 15 s von selbst, Unterlagen-Symbol steht hinter der ganzen geschätzten Angabe.
