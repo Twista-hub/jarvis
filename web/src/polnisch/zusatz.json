@@ -217,5 +217,11 @@
  "Senden hat nicht geklappt.": "Wysyłanie nie powiodło się.",
  "Der Team-Chat ist nur für das Team, nicht für Lesezugänge.": "Czat zespołu jest tylko dla zespołu, nie dla dostępów tylko do odczytu.",
  "noch keine Nachricht": "brak wiadomości",
- "Passt das zu euch? #/#": "Czy pasuje do firmy? #/#"
+ "Passt das zu euch? #/#": "Czy pasuje do firmy? #/#",
+ "Konto & Suche": "Konto i wyszukiwanie",
+ "Ausschreibungen & Angebote": "Przetargi i oferty",
+ "Planung & Personal": "Planowanie i personel",
+ "Abrechnung & Kunden": "Rozliczenia i klienci",
+ "Firma": "Firma",
+ "Weitere": "Więcej"
 }
