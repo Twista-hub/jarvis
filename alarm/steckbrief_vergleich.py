@@ -191,6 +191,12 @@ def main() -> None:
         for name in ("opus", "sonnet"):
             z = zeile[name]
             print(f"   {name:6} {z['kosten']:.3f} $ {z['sekunden']:4d} s  Punkte {z['punkte']:2d}  falsch {z['falsch']} (schwer {z['falsch_schwer']})  Lücken {z['luecken']}")
+            v = uo if name == "opus" else us
+            for x in v["falsche_angaben"]:
+                print(f"      {'‼' if x['schwer'] else '–'} falsch: {x['angabe'][:160]} | Quelle: {x['laut_quelle'][:160]}")
+            for x in v["wichtige_luecken"]:
+                print(f"      · fehlt: {x[:160]}")
+        print(f"   Urteil: {u['begruendung'][:400]}")
     (out / "ergebnis.json").write_text(json.dumps(ergebnis, ensure_ascii=False, indent=1), encoding="utf-8")
     if ergebnis:
         summe = lambda n, k: sum(z[n][k] for z in ergebnis)  # noqa: E731
