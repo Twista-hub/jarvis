@@ -80,6 +80,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103120000_datenschutz_ausfall_portal_link.sql
 \ir ../migrations/20261103130000_land_der_firma.sql
 \ir ../migrations/20261103140000_leser_rundgang_rechte.sql
+\ir ../migrations/20261103150000_personal_aufbewahrung.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1563,6 +1564,16 @@ select set_config('test.uid', '', false);
 -- Deleting a login: a firm with only this person disappears with it; a firm with other members stays.
 reset role;
 select id as neufirma2 from public.firmen where name='Neu GmbH' \gset
+-- Rechtsprüfung A2: a person with time-clock events younger than 2 years cannot be deleted (§ 17 MiLoG).
+select set_config('test.p_berlin_id', :'p_berlin', false);
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+do $$ begin
+  delete from public.personal where id = current_setting('test.p_berlin_id')::uuid;
+  raise exception 'FEHLER: Person mit Stempelzeiten gelöscht';
+exception when insufficient_privilege then null; end $$;
+reset role;
+select pruefe(exists (select 1 from public.personal where id = :'p_berlin'), 'Person mit aufbewahrungspflichtigen Zeiten bleibt erhalten');
 delete from auth.users where id='00000000-0000-0000-0000-0000000000d1';
 select pruefe(not exists (select 1 from public.firmen where id=:'neufirma2'), 'Kontolöschung entfernt Firma ohne weitere Mitglieder');
 delete from auth.users where id='00000000-0000-0000-0000-00000000000a';
