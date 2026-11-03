@@ -1,12 +1,11 @@
-# Anfrage an PLACSP (Entwurf, nicht verschickt)
+# Anfrage an PLACSP
 
 **Warum:** Die robots.txt der Plataforma de Contratación del Sector Público sperrt alle automatischen Abrufe
 (`Disallow: /`), auch die offiziellen Open-Data-Feeds (sindicación 643 und 1044). Die Lizenz des Ministeriums erlaubt die
 Weiterverwendung, aber wir wollen die robots.txt nicht übergehen. Mit einer schriftlichen Erlaubnis könnte Jarvis alle
 spanischen Ausschreibungen (rund 580 pro Tag statt nur der EU-weiten) zeigen.
 
-**An:** Buzón de la Plataforma de Contratación del Sector Público – Formular/Adresse auf
-https://contrataciondelestado.es/wps/portal/plataforma (Rubrik „Contacto“ / „Soporte“). Versand nur nach OK von Benjamin.
+**An:** datos.abiertos@hacienda.gob.es (Kontakt des Ministerio de Hacienda für die PLACSP-Open-Data-Sätze laut datos.gob.es; die PLACSP-Seite selbst nennt keine Mailadresse). Versand von Benjamin am 03.11.2026 freigegeben.
 
 **Betreff:** Solicitud de autorización para el acceso automatizado a los ficheros de sindicación (datos abiertos)
 

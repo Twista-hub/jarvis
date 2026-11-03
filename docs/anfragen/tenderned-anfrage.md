@@ -1,4 +1,4 @@
-# Anfrage an TenderNed (Entwurf, nicht verschickt)
+# Anfrage an TenderNed
 
 **Warum:** Die robots.txt von www.tenderned.nl sperrt die öffentliche Schnittstelle (`/papi/tenderned-rs-tns/…`) und den
 RSS-Feed für automatische Abrufe (Lese-Test 03.11.2026, `niederlande-test.yml`). Die Daten selbst sind laut
@@ -7,7 +7,7 @@ TenderNed-XML-API könnte Jarvis alle niederländischen Ausschreibungen zeigen, 
 (rund 50 neue Verfahren pro Werktag), statt nur der EU-weiten aus TED.
 
 **An:** functioneelbeheer@tenderned.nl (laut data.overheid.nl Kontakt für Datennutzung und XML-API-Zugang).
-Versand nur nach OK von Benjamin.
+Versand von Benjamin am 03.11.2026 freigegeben.
 
 **Betreff:** Verzoek om toestemming voor geautomatiseerd ophalen van aankondigingen (TNS / XML-API)
 
