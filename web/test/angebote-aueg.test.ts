@@ -27,6 +27,8 @@ const u = (von: string, bis: string | null, entleiher = "Messe Berlin GmbH", per
 test("N13: Equal Pay nach 9 und Höchstdauer nach 18 Monaten", () => {
   const [f] = fristen([u("2026-03-01", null)], "2026-11-01");
   assert.deepEqual([f.equalPay, f.hoechst], ["2026-12-01", "2027-08-31"]);
+  // Without a collective agreement for temporary agency work Equal Pay applies from day 1 (§ 8 Abs. 1 AÜG).
+  assert.equal(fristen([u("2026-03-01", null)], "2026-11-01", false)[0].equalPay, "2026-03-01");
   assert.equal(plusMonate("2026-08-31", 6), "2027-02-28");
   assert.equal(plusMonate("2027-08-31", 6), "2028-02-29");
 });
