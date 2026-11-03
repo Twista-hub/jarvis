@@ -253,3 +253,17 @@ test("T45: Geburtstage und Jubiläen, Personalnummer", () => {
   const f = new FormData(); f.set("personalnummer", "  P-0042  "); f.set("geburtstag", "1990-02-30");
   assert.deepEqual([akteAusFormular(f).personalnummer, akteAusFormular(f).geburtstag], ["P-0042", null]);
 });
+
+test("§ 13b: Rechnung ohne Umsatzsteuer mit Pflichthinweis, XRechnung Kategorie AE", async () => {
+  const { xrechnungXml } = await import("../src/xrechnung.ts");
+  const p = [{ text: "Unterhaltsreinigung", menge: 10, einheit: "Std.", preis: 30, betrag: 300 }];
+  const a: Absender = { name: "Muster GmbH", strasse: "Hauptstr. 1", plz: "52531", ort: "Übach-Palenberg", telefon: "", email: "info@muster.invalid", steuernummer: "202/123/45678", ustid: "", kleinunternehmer: false, zahlungshinweis: "IBAN DE00 1234" };
+  const r: Rechnung = { id: "r", kunde_id: "k", nummer: "RE-2026-0010", monat: "2026-10", datum: "2026-11-02", positionen: p, netto: 300, ust_satz: 0, erstellt: "", status: "ausgestellt", absender: a, empfaenger: { name: "Reinigung Partner GmbH", strasse: "Weg 1", plz: "50667", ort: "Köln", ustid: "DE111222333" }, kleinunternehmer: false, ust_betrag: 0, reverse_charge: true };
+  const t = docText(rechnungDocx(r, null, a));
+  assert.ok(t.includes("Steuerschuldnerschaft des Leistungsempfängers") && t.includes("DE111222333") && !t.includes("Umsatzsteuer300"));
+  assert.ok(!t.includes("zzgl."));
+  const x = xrechnungXml(r, { id: "k", name: "Reinigung Partner GmbH", strasse: "Weg 1", plz: "50667", ort: "Köln" } as never, a);
+  assert.match(x, /<cbc:ID>AE<\/cbc:ID>/);
+  assert.match(x, /VATEX-EU-AE/);
+  assert.match(x, /<cbc:CompanyID>DE111222333<\/cbc:CompanyID>/);
+});

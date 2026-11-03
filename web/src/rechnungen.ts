@@ -13,11 +13,11 @@ import { adresse, type Kunde } from "./kunden.ts";
 import { fehlendFuerXRechnung, xrechnungXml } from "./xrechnung.ts";
 
 export type Position = { text: string; menge: number; einheit: string; preis: number; betrag: number };
-export type Empfaenger = { name: string; ansprechpartner?: string; strasse?: string; plz?: string; ort?: string; email?: string; leitweg?: string };
+export type Empfaenger = { name: string; ansprechpartner?: string; strasse?: string; plz?: string; ort?: string; email?: string; leitweg?: string; ustid?: string };
 export type Rechnung = { id: string; kunde_id: string | null; nummer: string; monat: string; datum: string; positionen: Position[]; netto: number | string; ust_satz: number | string; erstellt: string; bezahlt_am?: string | null; mahnstufe?: number; gemahnt_am?: string | null; zahlungsziel_tage?: number;
-  status?: "entwurf" | "ausgestellt"; art?: "rechnung" | "storno"; bezug_nummer?: string; storniert_durch?: string | null; absender?: Omit<Absender, "kleinunternehmer"> | null; empfaenger?: Empfaenger | null; kleinunternehmer?: boolean | null; ust_betrag?: number | string | null };
+  status?: "entwurf" | "ausgestellt"; art?: "rechnung" | "storno"; bezug_nummer?: string; storniert_durch?: string | null; absender?: Omit<Absender, "kleinunternehmer"> | null; empfaenger?: Empfaenger | null; kleinunternehmer?: boolean | null; ust_betrag?: number | string | null; reverse_charge?: boolean };
 /** Columns the pages read. */
-export const RECHNUNG_SPALTEN = "id,kunde_id,nummer,monat,datum,positionen,netto,ust_satz,erstellt,bezahlt_am,mahnstufe,gemahnt_am,zahlungsziel_tage,status,art,bezug_nummer,storniert_durch,absender,empfaenger,kleinunternehmer,ust_betrag";
+export const RECHNUNG_SPALTEN = "id,kunde_id,nummer,monat,datum,positionen,netto,ust_satz,erstellt,bezahlt_am,mahnstufe,gemahnt_am,zahlungsziel_tage,status,art,bezug_nummer,storniert_durch,absender,empfaenger,kleinunternehmer,ust_betrag,reverse_charge";
 export const istEntwurf = (r: Pick<Rechnung, "status">) => r.status === "entwurf";
 /** VAT of an invoice: frozen amount once issued, otherwise computed from today's small-business setting. */
 export const ustVon = (r: Rechnung, kleinunternehmer: boolean) => r.ust_betrag !== null && r.ust_betrag !== undefined && !istEntwurf(r) ? Number(r.ust_betrag) : (r.kleinunternehmer ?? kleinunternehmer) ? 0 : rund((Number(r.netto) * Number(r.ust_satz)) / 100);
@@ -28,6 +28,10 @@ export function beteiligte(r: Rechnung, kunde: Kunde | null, a: Absender): { a: 
   return { a: { ...r.absender, kleinunternehmer: !!r.kleinunternehmer }, kunde: e ? { ...(kunde ?? {}), id: kunde?.id ?? "", bereich_id: kunde?.bereich_id ?? null, name: e.name, ansprechpartner: e.ansprechpartner ?? "", strasse: e.strasse ?? "", plz: e.plz ?? "", ort: e.ort ?? "", email: e.email ?? "", telefon: kunde?.telefon ?? "", notiz: e.leitweg ? `Leitweg-ID: ${e.leitweg}` : "" } as Kunde : kunde };
 }
 export const KU_HINWEIS = "Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung nach § 19 Abs. 1 UStG.";
+/** § 14a Abs. 5 UStG: mandatory wording when the customer owes the VAT (§ 13b). */
+export const RC_HINWEIS = "Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG).";
+/** Reverse charge: frozen once issued; for a draft from today's customer setting (never for small businesses). */
+export const istReverseCharge = (r: Rechnung, kunde: Kunde | null, kleinunternehmer: boolean) => istEntwurf(r) ? !!kunde?.ust_13b && !kleinunternehmer : !!r.reverse_charge;
 export const neueEntwurfsnummer = () => `ENTWURF-${crypto.randomUUID().slice(0, 8)}`;
 export type Preis = { satz: number; nacht: number; sonntag: number; feiertag: number };
 const euro = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
@@ -51,7 +55,8 @@ export type Absender = { name: string; strasse: string; plz: string; ort: string
 export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeute: Absender): Uint8Array {
   const { a, kunde } = beteiligte(r, kundeHeute, absenderHeute);
   const entwurf = istEntwurf(r), storno = r.art === "storno";
-  const netto = Number(r.netto), ust = ustVon(r, a.kleinunternehmer);
+  const rc = istReverseCharge(r, kundeHeute, a.kleinunternehmer);
+  const netto = Number(r.netto), ust = rc ? 0 : ustVon(r, a.kleinunternehmer);
   const faellig = tagePlus(r.datum, r.zahlungsziel_tage ?? 14);
   const titel = entwurf ? "Rechnungsentwurf – nicht versenden" : storno ? `Stornorechnung ${r.nummer}` : `Rechnung ${r.nummer}`;
   const kopf: string[][] = entwurf ? [["Leistungszeitraum", monatName(r.monat)], ["Rechnungsnummer", "wird beim Ausstellen vergeben"]]
@@ -61,8 +66,9 @@ export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeut
     + ueberschrift(titel, 30)
     + tabelle(kopf, [3200, 6400])
     + tabelle([["Pos.", "Leistung", "Menge", "Einzelpreis", "Betrag"], ...r.positionen.map((p, i) => [String(i + 1), p.text, `${zahl(p.menge)} ${p.einheit}`, euro(p.preis), euro(p.betrag)]),
-      ["", "Summe netto", "", "", euro(netto)], ...(a.kleinunternehmer ? [] : [["", `zzgl. ${zahl(Number(r.ust_satz)).replace(",00", "")} % Umsatzsteuer`, "", "", euro(ust)]]), ["", "Rechnungsbetrag", "", "", euro(netto + ust)]], [600, 4300, 1400, 1600, 1700], true)
+      ["", "Summe netto", "", "", euro(netto)], ...(a.kleinunternehmer || rc ? [] : [["", `zzgl. ${zahl(Number(r.ust_satz)).replace(",00", "")} % Umsatzsteuer`, "", "", euro(ust)]]), ["", "Rechnungsbetrag", "", "", euro(netto + ust)]], [600, 4300, 1400, 1600, 1700], true)
     + (a.kleinunternehmer ? absatz(KU_HINWEIS, { abstand: 160 }) : "")
+    + (rc ? absatz(`${RC_HINWEIS}${(r.empfaenger?.ustid || kundeHeute?.ustid) ? ` USt-IdNr. des Leistungsempfängers: ${r.empfaenger?.ustid || kundeHeute?.ustid}` : ""}`, { abstand: 160 }) : "")
     + (storno ? absatz(`Diese Stornorechnung hebt die Rechnung ${r.bezug_nummer ?? ""} vollständig auf.`, { abstand: 300 })
       : absatz(`Zahlbar ohne Abzug bis ${entwurf ? `${r.zahlungsziel_tage ?? 14} Tage nach Rechnungsdatum` : datum(faellig)}.${a.zahlungshinweis ? `\n${a.zahlungshinweis}` : ""}`, { abstand: 300 }))
     + absatz([a.steuernummer ? `Steuernummer: ${a.steuernummer}` : "", a.ustid ? `USt-IdNr.: ${a.ustid}` : "", a.telefon ? `Telefon: ${a.telefon}` : "", a.email ? `E-Mail: ${a.email}` : ""].filter(Boolean).join(" · ") || "Steuernummer bitte im Firmenprofil eintragen.", { grau: true, groesse: 16 }));

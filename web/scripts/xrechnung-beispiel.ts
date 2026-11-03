@@ -1,4 +1,5 @@
-// Writes two sample XRechnungen (regular VAT with IBAN, small business § 19 without IBAN) for the KoSIT validator.
+// Writes three sample XRechnungen (regular VAT with IBAN, small business § 19 without IBAN, reverse charge § 13b) for the
+// KoSIT validator.
 import { writeFileSync } from "node:fs";
 import { xrechnungXml } from "../src/xrechnung.ts";
 import type { Absender, Rechnung } from "../src/rechnungen.ts";
@@ -12,3 +13,4 @@ const a: Absender = { name: "Muster Reinigung GmbH", strasse: "Hauptstraße 1", 
   steuernummer: "", ustid: "DE123456789", kleinunternehmer: false, zahlungshinweis: "IBAN DE89 3704 0044 0532 0130 00, BIC COBADEFFXXX" };
 writeFileSync(process.argv[2] ?? "regel.xml", xrechnungXml(r, k, a, "05334-12345-67"));
 writeFileSync(process.argv[3] ?? "klein.xml", xrechnungXml({ ...r, nummer: "RE-2026-0008" }, k, { ...a, ustid: "", steuernummer: "203/123/45678", kleinunternehmer: true, zahlungshinweis: "Bitte überweisen Sie auf unser Konto." }));
+writeFileSync(process.argv[4] ?? "13b.xml", xrechnungXml({ ...r, nummer: "RE-2026-0009", ust_satz: 0, ust_betrag: 0, reverse_charge: true, empfaenger: { name: k.name, strasse: k.strasse, plz: k.plz, ort: k.ort, ustid: "DE987654321" } }, k, a, "05334-12345-67"));

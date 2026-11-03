@@ -5,7 +5,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 
-export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; email: string; notiz: string; bz_tarif?: string; bz_prozente?: (number | string)[] };
+export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; email: string; notiz: string; bz_tarif?: string; bz_prozente?: (number | string)[]; ust_13b?: boolean; ustid?: string };
 export type Einsatzort = { id: string; kunde_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; treffpunkt: string; kleidung: string; hinweise: string };
 export type Preis = { kunde_id: string; satz: number | string; zuschlag_nacht?: number | string; zuschlag_sonntag?: number | string; zuschlag_feiertag?: number | string };
 // T38: sector surcharge agreements (temporary work). Only the metal/electrical preset is filled in; please check against the current agreement.
@@ -26,6 +26,8 @@ ${bereiche.length ? `<label>Standort<select name="bereich"><option value="">ganz
 ${preis !== null ? `<label>Verrechnungssatz (€/Std., netto)<input name="satz" inputmode="decimal" maxlength="9" value="${escape(preis)}" placeholder="z. B. 32,50"></label><fieldset class="ganz"><legend>Zuschläge auf der Rechnung (% vom Satz)</legend><div class="drei"><label>Nacht<input name="z_nacht" inputmode="decimal" maxlength="6" value="${escape(zuschlaege[0])}"></label><label>Sonntag<input name="z_sonntag" inputmode="decimal" maxlength="6" value="${escape(zuschlaege[1])}"></label><label>Feiertag<input name="z_feiertag" inputmode="decimal" maxlength="6" value="${escape(zuschlaege[2])}"></label></div></fieldset>` : ""}
 <details class="ganz bz-felder"${(k.bz_prozente ?? []).length ? " open" : ""}><summary class="klein">Branchenzuschläge Zeitarbeit (TV BZ)</summary><label>Tarif<input name="bz_tarif" maxlength="80" list="bz-vorlagen" value="${escape(k.bz_tarif ?? "")}" placeholder="z. B. Metall- und Elektroindustrie (TV BZ ME)"></label><datalist id="bz-vorlagen">${Object.keys(BZ_VORLAGEN).map((v) => `<option value="${v}">`).join("")}</datalist>
 <p class="klein">Zuschlag in % nach Einsatzdauer beim Kunden:</p><div class="fuenf">${BZ_STUFEN.map((st, i) => `<label title="nach ${st}">${st.replace(" Wochen", " Wo.").replace(" Monate", " Mon.")}<input name="bz_${i}" inputmode="decimal" maxlength="5" value="${escape(String((k.bz_prozente ?? [])[i] ?? ""))}"></label>`).join("")}</div><p class="klein">Leer lassen, wenn kein Branchenzuschlag gilt. Bei der Vorlage Metall/Elektro füllt Jarvis 15/20/30/45/50 % aus; bitte mit dem aktuellen Tarifvertrag abgleichen.</p></details>
+<label>USt-IdNr. des Kunden<input name="ustid" maxlength="20" value="${escape(k.ustid ?? "")}" placeholder="DE123456789"></label>
+<label class="zeile ganz"><input type="checkbox" name="ust_13b"${k.ust_13b ? " checked" : ""}>Kunde schuldet die Umsatzsteuer (§ 13b UStG): z. B. Gebäudereinigung für einen Gebäudereiniger oder Bauleistung für ein Bauunternehmen. Rechnungen dann ohne Umsatzsteuer mit Hinweis. Nachweis (z. B. USt 1 TG) beim Kunden anfordern und ablegen.</label>
 <label class="ganz">Notiz<input name="notiz" maxlength="500" value="${escape(k.notiz ?? "")}"></label></div>`;
 
 const ortFelder = (o: Partial<Einsatzort>) => `<div class="aueg-form">
@@ -67,7 +69,7 @@ ${ohne.length ? `<h2>Einsatzorte ohne Kunde</h2><ul class="ort-liste">${ohne.map
 
 export async function kundenLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string, finanzen: boolean) {
   const [k, o, p] = await Promise.all([
-    db<Kunde[]>(s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz,bz_tarif,bz_prozente&order=name&limit=1000`),
+    db<Kunde[]>(s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz,bz_tarif,bz_prozente,ust_13b,ustid&order=name&limit=1000`),
     db<Einsatzort[]>(s, env, `einsatzorte?firma_id=eq.${firma}&select=id,kunde_id,name,strasse,plz,ort,ansprechpartner,telefon,treffpunkt,kleidung,hinweise&order=name&limit=3000`),
     finanzen ? db<Preis[]>(s, env, `kunden_preise?firma_id=eq.${firma}&select=kunde_id,satz,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag&limit=1000`) : Promise.resolve(null),
   ]);
@@ -105,7 +107,7 @@ export async function kunden(request: Request, env: KontoEnv): Promise<Response 
     let bz = [0, 1, 2, 3, 4].map((i) => pz(`bz_${i}`));
     if (bz.every((x) => x === null) && BZ_VORLAGEN[bzTarif]) bz = BZ_VORLAGEN[bzTarif];
     const zeile = { firma_id: firma, name: t("name", 160), strasse: t("strasse", 160), plz, ort: t("ort", 100), ansprechpartner: t("ansprechpartner", 160), telefon: t("telefon", 60), email: t("email", 200), notiz: t("notiz", 500), bereich_id: uuid("bereich") || null,
-      bz_tarif: bzTarif, bz_prozente: bz.some((x) => x !== null) ? bz.map((x) => x ?? 0) : [] };
+      bz_tarif: bzTarif, bz_prozente: bz.some((x) => x !== null) ? bz.map((x) => x ?? 0) : [], ust_13b: form.get("ust_13b") === "on", ustid: t("ustid", 20).toUpperCase().replace(/\s/g, "") };
     if (zeile.name.length < 2) return zurueck("Bitte einen Namen angeben.");
     const r = id ? await db<{ id: string }[]>(f.s, env, `kunden?id=eq.${id}&firma_id=eq.${firma}&select=id`, { method: "PATCH", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) })
       : await db<{ id: string }[]>(f.s, env, "kunden?select=id", { method: "POST", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) });
