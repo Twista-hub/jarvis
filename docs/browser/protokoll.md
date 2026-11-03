@@ -5,7 +5,8 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 ## Konten-Übersicht Crewtender
 | Dienst | Name / @ | Status | Link |
 |---|---|---|---|
-| Domain crewtender.eu | Namecheap | gekauft 03.11.2026 (Benjamin) | |
+| Domain crewtender.eu | Namecheap → Cloudflare | gekauft 03.11.2026 (Benjamin), Cloudflare aktiv | |
+| E-Mail hello@crewtender.eu | Cloudflare Email Routing → kontakt@wpdigitalranger.com | aktiv 03.11.2026 | |
 | Instagram | – | offen | |
 | Facebook-Seite | – | offen | |
 | LinkedIn-Seite | – | offen | |
@@ -18,7 +19,11 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 - Cloudflare-Nameserver: `hugh.ns.cloudflare.com`, `irma.ns.cloudflare.com`. Nächster Schritt: bei Namecheap eintragen.
 - Namecheap: Nameserver auf Custom DNS (hugh/irma.ns.cloudflare.com) umgestellt.
 - Cloudflare-Status: **Active** („Your domain is now protected by Cloudflare“), 03.11.2026. Nächster Schritt: Email Routing.
-- Email Routing: Zieladresse kontakt@wpdigitalranger.com hinzugefügt, Status **Pending**. Wartet darauf, dass Benjamin den Bestätigungslink in der Mail klickt. Erst danach lässt sich die Regel hello@crewtender.eu → kontakt@wpdigitalranger.com anlegen.
+- Email Routing: Zieladresse kontakt@wpdigitalranger.com hinzugefügt, von Benjamin bestätigt.
+- Regel **hello@crewtender.eu → kontakt@wpdigitalranger.com** angelegt, Status Active.
+- Mit Benjamins OK die 6 vom DNS-Scan übernommenen Namecheap-Mail-Einträge gelöscht (MX eforward1–5.registrar-servers.com, TXT spf.efwd). Danach die Cloudflare-Einträge hinzugefügt: MX route1–3.mx.cloudflare.net, SPF, DKIM. A- und www-CNAME der Namecheap-Parkseite sind noch da, die räumt Claude Code auf.
+- Catch-all bleibt vorerst aus (optional, nach Benjamins Entscheidung).
+- **Stand Auftrag crewtender-domain: Domain gekauft 03.11.2026, Cloudflare-Konto Benschiffer79@gmail.com's Account, Status Active, hello@crewtender.eu aktiv.** → Claude Code Bescheid geben: Domain fertig.
 
 ### 03.11.2026 – Claude Code
 - Ordner angelegt. Auftrag: `docs/auftraege/crewtender-konten.md`.
