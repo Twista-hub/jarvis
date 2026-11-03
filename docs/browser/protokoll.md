@@ -18,6 +18,7 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 - Cloudflare-Nameserver: `hugh.ns.cloudflare.com`, `irma.ns.cloudflare.com`. Nächster Schritt: bei Namecheap eintragen.
 - Namecheap: Nameserver auf Custom DNS (hugh/irma.ns.cloudflare.com) umgestellt.
 - Cloudflare-Status: **Active** („Your domain is now protected by Cloudflare“), 03.11.2026. Nächster Schritt: Email Routing.
+- Email Routing: Zieladresse kontakt@wpdigitalranger.com hinzugefügt, Status **Pending**. Wartet darauf, dass Benjamin den Bestätigungslink in der Mail klickt. Erst danach lässt sich die Regel hello@crewtender.eu → kontakt@wpdigitalranger.com anlegen.
 
 ### 03.11.2026 – Claude Code
 - Ordner angelegt. Auftrag: `docs/auftraege/crewtender-konten.md`.
