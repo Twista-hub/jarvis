@@ -22,7 +22,7 @@ export async function belegLesen(env: KiEnv, daten: Uint8Array, mime: string, fi
   const quelle = { type: "base64" as const, media_type: mime as never, data: base64(daten) };
   const antwort = await Promise.race([
     apiClient(env, firma).messages.create({
-      model: LESER.modell, max_tokens: 400,
+      model: LESER.modell, max_tokens: 1500,
       output_config: { effort: "low", format: { type: "json_schema", schema: LESER.schema } },
       system: LESER.system,
       messages: [{ role: "user", content: [mime === "application/pdf" ? { type: "document", source: quelle } : { type: "image", source: quelle }, { type: "text", text: LESER.frage }] as never }],

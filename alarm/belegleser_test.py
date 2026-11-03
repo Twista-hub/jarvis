@@ -40,7 +40,7 @@ def main() -> None:
         pdf = datei.endswith(".pdf")
         quelle = {"type": "base64", "media_type": "application/pdf" if pdf else "image/jpeg", "data": daten}
         antwort = client.messages.create(
-            model=modell, max_tokens=400, system=LESER["system"],
+            model=modell, max_tokens=1500, system=LESER["system"],
             output_config={"effort": "low", "format": {"type": "json_schema", "schema": LESER["schema"]}},
             messages=[{"role": "user", "content": [{"type": "document" if pdf else "image", "source": quelle}, {"type": "text", "text": LESER["frage"]}]}],
         )
@@ -65,7 +65,7 @@ def main() -> None:
         print(f"  {feld:<10} {sum(r[3][feld] for r in ergebnisse)}/{n}")
     kern = sum(r[3]["datum"] and r[3]["brutto"] and r[3]["ust_satz"] for r in ergebnisse)
     print(f"  Datum+Betrag+Steuersatz alle richtig: {kern}/{n}")
-    falsch_sicher = sum(r[2].get("sicher") and not (r[3]["datum"] and r[3]["brutto"]) for r in ergebnisse)
+    falsch_sicher = sum(bool(r[2].get("sicher")) and not (r[3]["datum"] and r[3]["brutto"]) for r in ergebnisse)
     print(f"  'sicher' gemeldet, aber Datum oder Betrag falsch: {falsch_sicher}")
 
 
