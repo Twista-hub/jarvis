@@ -133,6 +133,10 @@ jobs:
           psql "$DB_URL" -tAc "select table_name from information_schema.tables where table_schema='public' order by 1"
           psql "$DB_URL" -c "select f.id, f.name, f.paket, f.erstellt::date, count(m.*) as mitglieder, (select count(*) from public.vorgaenge v where v.firma_id = f.id) as vorgaenge from public.firmen f left join public.mitglieder m on m.firma_id = f.id group by f.id order by f.erstellt"
 
+      - name: Mitgliedschaften (nur lesend, E-Mails gekürzt)
+        run: |
+          psql "$DB_URL" -c "select regexp_replace(u.email, '^(.{3})[^@]*', '\\1…') as wer, f.name as firma, m.rolle, m.aktiv, m.finanzen, m.erstellt::date from public.mitglieder m join auth.users u on u.id = m.user_id join public.firmen f on f.id = m.firma_id order by u.email, m.erstellt"
+
       - name: KI-Budget (nur lesend)
         run: |
           psql "$DB_URL" -c "select monat, limit_usd, reserviert from jarvis_katalog.ki_budget order by monat desc limit 2"

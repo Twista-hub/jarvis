@@ -142,10 +142,10 @@ export const EINFUEHRUNG = `<details class="hilfe-einfuehrung" open><summary><st
 ].map(([href, titel, text]) => `<li><a href="${href}"><strong>${titel}</strong></a><span class="klein">${text}</span></li>`).join("")}</ol></details>`;
 
 /** I5: frequent questions with a search field (works without scripts as plain sections) and a contact button. */
-export function hilfeSeite(email: string): string {
+export function hilfeSeite(email: string, buero = true): string {
   const betreff = encodeURIComponent("Frage zu Jarvis");
   const text = encodeURIComponent(`Hallo,\n\nmeine Frage:\n\n\n---\nKonto: ${email}`);
-  return `${EINFUEHRUNG}<label class="hilfe-suche"><span class="unsichtbar">Hilfe durchsuchen</span><input type="search" placeholder="🔍 Frage suchen, z. B. Handy oder Fristen" data-hilfe-suche></label>
+  return `${buero ? EINFUEHRUNG : ""}<label class="hilfe-suche"><span class="unsichtbar">Hilfe durchsuchen</span><input type="search" placeholder="🔍 Frage suchen, z. B. Handy oder Fristen" data-hilfe-suche></label>
 ${HILFE.map(([titel, fragen]) => `<section class="hilfe-gruppe"><h2>${titel}</h2>${fragen.map(([f, a]) => `<details class="hilfe-frage"><summary>${escape(f)}</summary><p>${escape(a)}</p></details>`).join("")}</section>`).join("")}
 <p class="hilfe-leer" data-hilfe-leer hidden>Keine passende Frage gefunden. Schreib uns einfach.</p>
 <section class="hilfe-kontakt"><h2>✉️ Noch Fragen?</h2><p>Schreib uns einfach, am besten mit kurzer Beschreibung, wo es hakt.</p><p><a class="knopf" href="mailto:kontakt@wpdigitalranger.com?subject=${betreff}&body=${text}">Nachricht schreiben</a></p><p class="klein">Öffnet dein Mailprogramm. kontakt@wpdigitalranger.com</p></section>`;
@@ -177,7 +177,12 @@ export async function kontoEinstellungen(request: Request, env: KontoEnv): Promi
   if (!["/konto/profil/name", "/konto/daten.json", "/konto/loeschen", "/konto/hilfe"].includes(p)) return null;
   const s = await sitzung(request, env);
   if (!s) return weiterleiten(`/anmelden?weiter=${encodeURIComponent(p === "/konto/daten.json" ? "/konto/profil#daten" : p)}`);
-  if (p === "/konto/hilfe") return html(seite("Hilfe", `<p class="konto-zurueck"><a href="/konto/einstellungen" aria-label="Zurück zu den Einstellungen">←</a></p>${hilfeSeite(s.email)}`, 0, "einstellungen"), 200, s.cookies);
+  if (p === "/konto/hilfe") {
+    // The step-by-step introduction leads to office pages; staff (only role "mitarbeiter") get the questions only.
+    const m = await db<{ rolle: string }[]>(s, env, `mitglieder?user_id=eq.${s.userId}&aktiv=eq.true&select=rolle`);
+    const buero = !m.ok || !m.daten.length || m.daten.some((x) => x.rolle !== "mitarbeiter");
+    return html(seite("Hilfe", `<p class="konto-zurueck"><a href="/konto/einstellungen" aria-label="Zurück zu den Einstellungen">←</a></p>${hilfeSeite(s.email, buero)}`, 0, "einstellungen"), 200, s.cookies);
+  }
   if (p === "/konto/daten.json") {
     const headers = new Headers({ "content-type": "application/json; charset=utf-8", "content-disposition": `attachment; filename="jarvis-meine-daten-${new Date().toISOString().slice(0, 10)}.json"`, "cache-control": "private, no-store" });
     for (const c of s.cookies) headers.append("set-cookie", c);

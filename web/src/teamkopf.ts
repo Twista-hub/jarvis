@@ -38,7 +38,7 @@ export function anlaesse(personen: { vorname: string; nachname: string; status?:
 const wann = (tag: string, heute: string) => tag === heute ? "heute" : tag === plusTage(heute, 1) ? "morgen" : new Date(`${tag}T12:00:00Z`).toLocaleDateString("de-DE", { weekday: "short", day: "2-digit", month: "2-digit" });
 export const anlassText = (a: Anlass, heute: string) => a.art === "geburtstag" ? `🎂 ${escape(a.name)} hat ${wann(a.tag, heute)} Geburtstag` : `🎉 ${escape(a.name)}: ${a.jahre} ${a.jahre === 1 ? "Jahr" : "Jahre"} dabei (${wann(a.tag, heute)})`;
 
-export function teamKopfHtml(w: Warnungen, aueg: boolean, admin = false, o: { finanzen?: boolean; heute?: string } = {}): string {
+export function teamKopfHtml(w: Warnungen, aueg: boolean, admin = false, o: { finanzen?: boolean; heute?: string; leser?: boolean } = {}): string {
   const heute = o.heute ?? new Date().toISOString().slice(0, 10);
   const punkte = [
     w.rueckfragen ? `❓ <a href="/konto/leistungsnachweis">${w.rueckfragen} ${w.rueckfragen === 1 ? "Rückfrage" : "Rückfragen"} von Kunden zum Leistungsnachweis</a>` : "",
@@ -49,7 +49,7 @@ export function teamKopfHtml(w: Warnungen, aueg: boolean, admin = false, o: { fi
     w.zertifikate ? `🏅 <a href="/konto/firmenprofil">${w.zertifikate} ${w.zertifikate === 1 ? "Zertifikat läuft" : "Zertifikate laufen"} ab</a>` : "",
     w.antraege ? `🌴 ${w.antraege} ${w.antraege === 1 ? "Urlaubsantrag wartet" : "Urlaubsanträge warten"} (bei der Person unter ✏️ bestätigen)` : "",
     w.pruefungen ? `🚐 <a href="/konto/betriebsmittel">${w.pruefungen} ${w.pruefungen === 1 ? "Prüfung (TÜV, UVV …) fällig" : "Prüfungen (TÜV, UVV …) fällig"}</a>` : "",
-    w.bewerber ? `📨 <a href="/konto/bewerber">${w.bewerber} ${w.bewerber === 1 ? "neue Bewerbung" : "neue Bewerbungen"}</a>` : "",
+    w.bewerber && !o.leser ? `📨 <a href="/konto/bewerber">${w.bewerber} ${w.bewerber === 1 ? "neue Bewerbung" : "neue Bewerbungen"}</a>` : "",
     w.checklisten ? `🚪 <a href="/konto/checklisten">${w.checklisten} offene ${w.checklisten === 1 ? "Checkliste" : "Checklisten"} (Einstieg/Austritt)</a>` : "",
     w.psa ? `🦺 <a href="/konto/psa">${w.psa} PSA-Austausch fällig</a>` : "",
     w.stunden ? `⏱️ <a href="/konto/stunden">${w.stunden} ${w.stunden === 1 ? "Stundenzettel wartet" : "Stundenzettel warten"} auf Freigabe</a>` : "",
@@ -64,12 +64,12 @@ export function teamKopfHtml(w: Warnungen, aueg: boolean, admin = false, o: { fi
   const gruppe = (titel: string, k: string[]) => `<h3 class="werkzeug-gruppe">${titel}</h3><div class="konto-kacheln team-werkzeuge">${k.filter(Boolean).join("")}</div>`;
   return `${punkte.length ? `<aside class="team-warnungen" role="status">${punkte.slice(0, punkte.length > 6 ? 5 : 6).map((p) => `<span>${p}</span>`).join("")}${punkte.length > 6 ? `<details class="mehr-warnungen"><summary>+ ${punkte.length - 5} weitere Hinweise</summary><div class="mehr-liste">${punkte.slice(5).map((p) => `<span>${p}</span>`).join("")}</div></details>` : ""}</aside>` : ""}
 ${gruppe("Planung", [kachel("/konto/schichten", "📅", "Schichtplan", "Schichten planen, Zusagen sehen"), kachel("/konto/disposition", "🗓️", "Disposition", "Wer ist wann wo"), kachel("/konto/urlaub", "🌴", "Urlaub", "Urlaubskonto und Teamkalender"), kachel("/konto/kapazitaet", "📊", "Kapazität", "Frei in den nächsten 3 Monaten"), kachel("/konto/vertretung", "🔁", "Vertretung", "Urlaub, Fristen weitergeben"), kachel("/konto/aufgaben", "✅", "Aufgaben", "Wer macht was bis wann")])}
-${gruppe("Personal", [kachel("/konto/personalsuche", "🔍", "Personalsuche", "Beruf, Qualifikation, frei, Umkreis"), kachel("/konto/bewerber", "📨", "Bewerber", "Bewerbungen bis zur Einstellung"), kachel("/konto/checklisten", "🚪", "Einstieg & Austritt", "Checklisten pro Person"), kachel("/konto/personalfristen", "⏳", "Personalfristen", "Probezeit, Befristung, Führerschein"), kachel("/konto/unterweisungen", "📋", "Unterweisungen", "Arbeitsschutz, Hygiene, fällig"), kachel("/konto/psa", "🦺", "Schutzausrüstung", "Ausgabe, Größen, Austausch"), kachel("/konto/bewertungen", "⭐", "Bewertungen", "Rückmeldungen der Kunden"), admin ? kachel("/konto/kraefte-einladen", "📲", "Einsatzkräfte einladen", "Link per WhatsApp oder SMS") : "", kachel("/konto/personalauswertung", "📈", "Auswertung", "Köpfe, Stunden, Ein- und Austritte")])}
+${gruppe("Personal", [kachel("/konto/personalsuche", "🔍", "Personalsuche", "Beruf, Qualifikation, frei, Umkreis"), o.leser ? "" : kachel("/konto/bewerber", "📨", "Bewerber", "Bewerbungen bis zur Einstellung"), kachel("/konto/checklisten", "🚪", "Einstieg & Austritt", "Checklisten pro Person"), kachel("/konto/personalfristen", "⏳", "Personalfristen", "Probezeit, Befristung, Führerschein"), kachel("/konto/unterweisungen", "📋", "Unterweisungen", "Arbeitsschutz, Hygiene, fällig"), kachel("/konto/psa", "🦺", "Schutzausrüstung", "Ausgabe, Größen, Austausch"), kachel("/konto/bewertungen", "⭐", "Bewertungen", "Rückmeldungen der Kunden"), admin ? kachel("/konto/kraefte-einladen", "📲", "Einsatzkräfte einladen", "Link per WhatsApp oder SMS") : "", kachel("/konto/personalauswertung", "📈", "Auswertung", "Köpfe, Stunden, Ein- und Austritte")])}
 ${gruppe("Abrechnung &amp; Kunden", [kachel("/konto/stunden", "⏱️", "Stundenzettel", "Freigeben, Lohnliste"), kachel("/konto/zeitkonto", "⚖️", "Arbeitszeitkonto", "Soll, Ist, Überstunden"), kachel("/konto/spesen", "🧾", "Spesen", "Belege prüfen und freigeben"), o.finanzen ? kachel("/konto/rechnungen", "💶", "Rechnungen", "Entwürfe aus dem Leistungsnachweis") : "", o.finanzen ? kachel("/konto/belege", "📸", "Belege", "Firmenbelege per Foto, CSV") : "", o.finanzen ? kachel("/konto/nachkalkulation", "🧮", "Nachkalkulation", "Deckungsbeitrag je Kunde") : "", kachel("/konto/leistungsnachweis", "🧾", "Leistungsnachweis", "Stunden pro Kunde zum Unterschreiben"), kachel("/konto/kunden", "🏢", "Kunden & Einsatzorte", "Adressen, Treffpunkt, Verrechnungssatz"), kachel("/konto/kundenportal", "🔗", "Kunden-Portal", "Link für Kunden, Meldungen"), BOERSE_AKTIV ? kachel("/konto/boerse", "🔁", "Auftragsbörse", "Aufträge mit anderen Firmen teilen") : "", kachel("/konto/rundgaenge", "🛡️", "Rundgänge & Wachbuch", "QR-Kontrollpunkte, Vorfälle"), aueg ? kachel("/konto/aueg", "🛡️", "AÜG-Wächter", "Equal Pay, Höchstdauer") : ""])}
 ${gruppe("Firma", [kachel("/konto/firmenprofil", "🏛️", "Firmenprofil", "Stammdaten, Umsatz, Zertifikate, Eigenerklärung"), kachel("/konto/brett", "📌", "Schwarzes Brett", "Mitteilungen mit Lesebestätigung"), kachel("/konto/organigramm", "🧭", "Organigramm", "Aufbau der Firma"), kachel("/konto/betriebsmittel", "🚐", "Fahrzeuge & Geräte", "TÜV, UVV, Wartung"), admin ? kachel("/konto/rechte", "🔐", "Rechte", "Wer darf was") : ""])}`;
 }
 
-export async function teamKopf(s: Sitzung, env: KontoEnv, firma: string, heute: string, aueg: boolean, admin = false, finanzen = false): Promise<string> {
+export async function teamKopf(s: Sitzung, env: KontoEnv, firma: string, heute: string, aueg: boolean, admin = false, finanzen = false, leser = false): Promise<string> {
   const [n, z, u, t, p, prof, bm, an, sz, sa, pf, fk, af, ps, bw, cl, sp, rf, gb] = await Promise.all([
     db<{ gueltig_bis: string }[]>(s, env, `personal_nachweise?firma_id=eq.${firma}&gueltig_bis=lte.${plusTage(heute, 60)}&select=gueltig_bis&limit=2000`),
     db<{ id: string }[]>(s, env, `firmen_zertifikate?firma_id=eq.${firma}&gueltig_bis=lte.${plusTage(heute, 90)}&select=id`),
@@ -104,5 +104,5 @@ export async function teamKopf(s: Sitzung, env: KontoEnv, firma: string, heute: 
     spesen: sp.ok ? sp.daten.length : 0, rueckfragen: rf.ok ? rf.daten.length : 0, anlaesse: anlaesse(gb.ok ? gb.daten : [], heute),
     fuehrerschein: kontrollStaende(fp, fk.ok ? fk.daten : [], heute).filter((x) => x.stufe !== "gruen").length,
   };
-  return teamKopfHtml(w, aueg, admin, { finanzen, heute });
+  return teamKopfHtml(w, aueg, admin, { finanzen, heute, leser });
 }
