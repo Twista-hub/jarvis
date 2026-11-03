@@ -887,6 +887,12 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .schicht-tag h3 { margin: 8px 0 2px; font-size: 14px; } .schicht-tag.heute h3 { color: var(--accent); } .schicht-tag.leer h3 { font-weight: 500; color: var(--muted); margin: 4px 0; }
   .schicht-liste li.offen { border-left: 3px solid #d68910; } .schicht-liste li.zugesagt { border-left: 3px solid #2e8b57; } .schicht-liste li.abgesagt { border-left: 3px solid var(--error); opacity: .75; } .schicht-liste li.frei { border-left: 3px dashed var(--line); }
   .schicht-antwort { display: flex; gap: 4px; } .schicht-antwort button { width: auto; min-height: 32px; padding: 2px 10px; font-size: 13px; white-space: nowrap; }
+  .chat-verlauf { display: flex; flex-direction: column; gap: 6px; margin: 10px 0; }
+  .chat-blase { position: relative; max-width: 85%; padding: 6px 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); align-self: flex-start; }
+  .chat-blase.eigen { align-self: flex-end; border-color: var(--accent); }
+  .chat-blase p { margin: 2px 0; overflow-wrap: anywhere; } .chat-blase form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; position: absolute; top: 2px; right: 2px; }
+  .chat-blase button { width: auto; min-height: 24px; padding: 0 6px; font-size: 12px; } .chat-blase .klein { padding-right: 22px; }
+  .standort-zeile.chat-neu { border-color: var(--accent); }
   .mitteilung { margin: 8px 0; padding: 10px 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
   .mitteilung.neu { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
   .mitteilung h3 { margin: 0 0 2px; font-size: 16px; } .mitteilung > p { margin: 4px 0; }

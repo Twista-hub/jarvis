@@ -202,5 +202,19 @@
  "Suchgebiet in Italien": "Zone de recherche en Italie",
  "Bundesländer in Österreich": "Länder d'Autriche",
  "ganz Österreich": "toute l'Autriche",
- "Jarvis zeigt nur Ausschreibungen aus den gewählten Bundesländern. Keine Auswahl bedeutet ganz Österreich. Ändern kostet nichts extra.": "Jarvis n'affiche que les appels d'offres des Länder sélectionnés. Aucune sélection signifie toute l'Autriche. La modification est sans frais supplémentaires."
+ "Jarvis zeigt nur Ausschreibungen aus den gewählten Bundesländern. Keine Auswahl bedeutet ganz Österreich. Ändern kostet nichts extra.": "Jarvis n'affiche que les appels d'offres des Länder sélectionnés. Aucune sélection signifie toute l'Autriche. La modification est sans frais supplémentaires.",
+ "Team-Chat": "Chat d'équipe",
+ "Firma, Standorte, Einsatzorte": "Entreprise, sites, lieux d'intervention",
+ "Mit Büro und Kollegen": "Avec le bureau et les collègues",
+ "Ganze Firma": "Toute l'entreprise",
+ "Du bist noch in keinem Chat.": "Tu n'es encore dans aucun chat.",
+ "← Alle Chats": "← Tous les chats",
+ "↻ Aktualisieren": "↻ Actualiser",
+ "Noch keine Nachricht. Schreib die erste.": "Pas encore de message. Écris le premier.",
+ "Nachricht": "Message",
+ "💬 Chat zu diesem Einsatzort": "💬 Chat pour ce lieu d'intervention",
+ "Diesen Chat gibt es nicht oder du bist nicht dabei.": "Ce chat n'existe pas ou tu n'en fais pas partie.",
+ "Senden hat nicht geklappt.": "L'envoi n'a pas fonctionné.",
+ "Der Team-Chat ist nur für das Team, nicht für Lesezugänge.": "Le chat d'équipe est réservé à l'équipe, pas aux accès en lecture seule.",
+ "noch keine Nachricht": "pas encore de message"
 }

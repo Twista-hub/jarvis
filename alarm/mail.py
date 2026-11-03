@@ -198,6 +198,7 @@ def warteschlange(con, schl) -> int:
     if zeilen:
         con.execute("update public.push_warteschlange set gesendet = now() where id = any(%s)", ([z[0] for z in zeilen],))
     con.execute("delete from public.push_warteschlange where erstellt < now() - interval '30 days'")
+    con.execute("delete from public.chat_nachrichten where erstellt < now() - interval '180 days'")  # team chat retention
     return gesendet
 
 

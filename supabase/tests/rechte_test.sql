@@ -75,6 +75,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103070000_datev.sql
 \ir ../migrations/20261103080000_auftragsboerse.sql
 \ir ../migrations/20261103090000_nachkalkulation.sql
+\ir ../migrations/20261103100000_team_chat.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -959,6 +960,64 @@ select pruefe(not public.schicht_antworten((select id from public.schichten), 'a
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.stundenzettel) and (select count(*) = 0 from public.schichten) and (select count(*) = 0 from public.mitteilungen) and (select count(*) = 0 from public.fuehrerschein_kontrollen), 'Fremde Firma sieht keine Stunden, Schichten, Mitteilungen oder Kontrollen');
 reset role;
+-- Idee 39: team chat per firm, location and site (who is in a room = who reads, writes and gets the notification).
+delete from public.push_warteschlange;
+insert into public.einsatzorte (firma_id, name) values (:'firma', 'Messe Halle 3') returning id as ort_messe \gset
+insert into public.einsatzorte (firma_id, name) values (:'firma', 'Hafen Lager') returning id as ort_hafen \gset
+update public.schichten set einsatzort_id = :'ort_messe' where personal_id = :'p_berlin';
+select set_config('test.ort_hafen', :'ort_hafen', false);
+select set_config('test.hamburg', :'hamburg', false);
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.chat_nachrichten (firma_id, text) values (:'firma', 'Hallo zusammen');
+insert into public.chat_nachrichten (firma_id, bereich_id, text) values (:'firma', :'berlin', 'Berlin: Schlüssel liegt im Büro');
+insert into public.chat_nachrichten (firma_id, einsatzort_id, text) values (:'firma', :'ort_messe', 'Treffpunkt Eingang Süd');
+do $$ begin
+  insert into public.chat_nachrichten (firma_id, bereich_id, text) values (current_setting('test.firma')::uuid, current_setting('test.hamburg')::uuid, 'Hamburg?');
+  raise exception 'FEHLER: Bearbeiter Berlin schreibt in den Hamburg-Chat';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.chat_nachrichten (firma_id, text, user_id) values (current_setting('test.firma')::uuid, 'Unter fremdem Namen', '00000000-0000-0000-0000-00000000000a');
+  raise exception 'FEHLER: Chat-Nachricht unter fremdem Namen';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.chat_nachrichten (firma_id, bereich_id, einsatzort_id, text) values (current_setting('test.firma')::uuid, current_setting('test.berlin')::uuid, current_setting('test.ort_hafen')::uuid, 'Beides');
+  raise exception 'FEHLER: Nachricht in zwei Räumen';
+exception when insufficient_privilege or check_violation then null; end $$;
+reset role;
+select pruefe((select count(*) = 3 from public.push_warteschlange where user_id = '00000000-0000-0000-0000-0000000000e1' and titel like '💬%'), 'Einsatzkraft bekommt Handy-Nachrichten aus Firma, eigenem Standort und eigenem Einsatzort');
+select pruefe((select count(*) = 0 from public.push_warteschlange where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-00000000000c') and titel like '💬%'), 'Keine Chat-Nachricht an den Absender oder an fremde Firmen');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 3 from public.chat_nachrichten), 'Einsatzkraft liest Firma, eigenen Standort und eigenen Einsatzort');
+insert into public.chat_nachrichten (firma_id, einsatzort_id, text) values (:'firma', :'ort_messe', 'Bin unterwegs');
+do $$ begin
+  insert into public.chat_nachrichten (firma_id, einsatzort_id, text) values (current_setting('test.firma')::uuid, current_setting('test.ort_hafen')::uuid, 'Fremder Einsatzort');
+  raise exception 'FEHLER: Einsatzkraft schreibt in den Chat eines fremden Einsatzorts';
+exception when insufficient_privilege then null; end $$;
+select pruefe((select bool_or(name = 'Ganze Firma') and bool_or(name = 'Messe Halle 3') and not bool_or(name in ('Hamburg', 'Hafen Lager')) from public.meine_chats(:'firma')), 'Räume der Einsatzkraft: Firma, Standort, eigener Einsatzort');
+select pruefe((select sum(ungelesen) = 3 from public.meine_chats(:'firma')), 'Ungelesen zählt fremde Nachrichten, nicht die eigene');
+insert into public.chat_gelesen (firma_id, raum) values (:'firma', 'firma');
+select pruefe((select ungelesen = 0 from public.meine_chats(:'firma') where bereich_id is null and einsatzort_id is null), 'Nach dem Öffnen ist der Firmen-Chat gelesen');
+delete from public.chat_nachrichten where text = 'Hallo zusammen';
+select pruefe((select count(*) = 1 from public.chat_nachrichten where text = 'Hallo zusammen'), 'Einsatzkraft löscht keine fremde Nachricht');
+delete from public.chat_nachrichten where text = 'Bin unterwegs';
+select pruefe((select count(*) = 0 from public.chat_nachrichten where text = 'Bin unterwegs'), 'Einsatzkraft zieht eigene Nachricht zurück');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.chat_nachrichten) and (select count(*) = 0 from public.chat_gelesen) and (select count(*) = 0 from public.meine_chats(:'firma')), 'Fremde Firma sieht keinen Chat');
+reset role;
+update public.schichten set datum = current_date - 20 where personal_id = :'p_berlin';
+update public.mitglieder set rolle = 'leser' where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 2 from public.chat_nachrichten) and not exists (select 1 from public.meine_chats(:'firma') where name = 'Messe Halle 3'), 'Nach 14 Tagen ohne Schicht ist der Einsatzort-Chat weg');
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select count(*) = 0 from public.chat_nachrichten) and (select count(*) = 0 from public.meine_chats(:'firma')), 'Leser (Steuerbüro) ist in keinem Chat');
+select test_als('00000000-0000-0000-0000-00000000000a');
+delete from public.chat_nachrichten where text = 'Treffpunkt Eingang Süd';
+select pruefe((select count(*) = 2 from public.chat_nachrichten), 'Inhaber kann jede Nachricht entfernen');
+reset role;
+update public.mitglieder set rolle = 'bearbeiter' where user_id = '00000000-0000-0000-0000-00000000000b';
 update public.mitglieder set aktiv = false where user_id in ('00000000-0000-0000-0000-00000000000b', '00000000-0000-0000-0000-0000000000e1');
 select set_config('test.uid', '', false);
 
