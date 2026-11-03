@@ -90,7 +90,7 @@ export function sitemap(adresse: string): string {
   const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...FR_PFADE, ...LAND_PFADE, "/demo", "/us/sam-registration", "/datenschutz", "/impressum"];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pfade.map((p) => `<url><loc>${adresse}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
 }
-export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /einladung\nDisallow: /auftrag/\nSitemap: ${adresse}/sitemap.xml\n`;
+export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /portal/\nDisallow: /einladung\nDisallow: /auftrag/\nSitemap: ${adresse}/sitemap.xml\n`;
 
 type GewerkEnv = { SUPABASE_URL: string; SUPABASE_KEY: string; WARTEN?: (p: Promise<unknown>) => void };
 

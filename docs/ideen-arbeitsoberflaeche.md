@@ -176,7 +176,7 @@ Reihenfolge nach Nutzen zu Aufwand und nach Umsatzchance.
 6. ✅ **Belege per Foto (Nr. 21)** – gebaut 03.11.2026 (Foto/PDF erfassen, Summen je Kategorie und Steuersatz, CSV für die Steuerberatung; KI-Auslesen kommt erst mit Kosten-OK): Die Spesen mit Belegfoto gibt es schon, und damit wird Jarvis zum täglichen Werkzeug im Büro.
 7. **Bietergemeinschaft finden (Nr. 28)**: baut direkt auf dem Ausschreibungs-Kern auf und bringt Provision über den Erfolg-Plan.
 8. ✅ **Kontrollrundgang und Wachbuch (Nr. 11)** – gebaut 03.11.2026 (QR-Kontrollpunkte, Scan per Handy-Kamera, Wachbuch): Sicherheitsfirmen zahlen dafür heute extra, QR und Stempeluhr sind schon da.
-9. **Kunden-Portal (Nr. 40)**: Der Kundenlink steht schon, das Portal bindet Kunden und unterscheidet Jarvis von reinen Planungs-Apps.
+9. ✅ **Kunden-Portal (Nr. 40)** – gebaut 03.11.2026 (geheimer Link je Kunde: Leistungsnachweise als Summen, Rechnungen und Kontrollgänge zuschaltbar, Mängel melden mit Handy-Nachricht): Der Kundenlink steht schon, das Portal bindet Kunden und unterscheidet Jarvis von reinen Planungs-Apps.
 10. **Auftragsbörse unter Firmen (Nr. 26)**: Der Aufwand ist groß, aber jede neue Firma macht die Börse wertvoller, und die Provision läuft über den Erfolg-Plan.
 
 Vorschlag zur Reihenfolge beim Bauen: zuerst die Geld-Strecke (Nr. 17, 18, 19), dann die Steuerberater-Strecke (Nr. 3, 22, 21), danach die Branchen-Extras (Nr. 11, 40) und zuletzt die Firmen-Netzwerke (Nr. 28, 26). Vor der Börse sollten die Rechtstexte (AGB, Plattformpflichten) anwaltlich geprüft sein.

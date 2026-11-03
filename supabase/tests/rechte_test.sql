@@ -8,6 +8,8 @@ create schema auth;
 create table auth.users (id uuid primary key, email text, raw_user_meta_data jsonb);
 create function auth.uid() returns uuid language sql stable as $$ select coalesce(nullif(current_setting('test.uid', true), ''), nullif(current_setting('request.jwt.claim.sub', true), ''))::uuid $$;
 grant usage on schema auth to authenticated;
+-- Like Supabase: new tables in public get all table rights for authenticated (a migration's revoke then applies).
+alter default privileges in schema public grant select, insert, update, delete on tables to authenticated;
 \ir ../migrations/20261029120000_firmen_und_rechte.sql
 \ir ../migrations/20261030010000_firmen_freigabe.sql
 \ir ../migrations/20261030200000_einrichtung.sql
@@ -69,8 +71,8 @@ grant usage on schema auth to authenticated;
 \ir ../migrations/20261103030000_rechnungsvorlagen.sql
 \ir ../migrations/20261103040000_rundgang_wachbuch.sql
 \ir ../migrations/20261103050000_belege.sql
+\ir ../migrations/20261103060000_kundenportal.sql
 grant usage on schema public to authenticated;
-grant select, insert, update, delete on all tables in schema public to authenticated;
 
 insert into auth.users (id, email) values
   ('00000000-0000-0000-0000-00000000000a', 'chef@perlease.test'),
@@ -648,7 +650,7 @@ select pruefe((select stand = 'gemerkt' from public.foerder_bewertungen where fi
 do $$ begin
   update public.foerder_bewertungen set punkte = 10;
   raise exception 'FEHLER: Punkte der KI-Bewertung geändert';
-exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+exception when insufficient_privilege then null; when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.foerder_bewertungen), 'Fremde Firma sieht keine Förderbewertungen');
 update public.foerder_bewertungen set stand = 'ausgeblendet';
@@ -1139,6 +1141,58 @@ do $$ begin
   raise exception 'FEHLER: anonym lesbar';
 exception when insufficient_privilege then null; end $$;
 reset role;
+-- Idea 40: customer portal (secret link per customer, read and report without login).
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'kunde_berlin', 'RE-2026-0002', '2026-11', current_date, 500);
+insert into public.nachweis_freigaben (firma_id, kunde_id, monat, titel, inhalt, token_hash) values (:'firma', :'kunde_berlin', '2026-10', 'Messe Berlin GmbH', '{"zeilen":[{"name":"Protokoll Berlin"}],"summe":{"std":12.5}}', encode(sha256(convert_to('nachweis-portal', 'UTF8')), 'hex'));
+insert into public.kunden_portale (firma_id, kunde_id, token_hash, rechnungen_zeigen, berichte_zeigen) values (:'firma', :'kunde_berlin', encode(sha256(convert_to('portal-geheim-1', 'UTF8')), 'hex'), true, true);
+select test_als('00000000-0000-0000-0000-0000000000e1');
+do $$ begin
+  insert into public.kunden_portale (firma_id, kunde_id, token_hash) values (current_setting('test.firma')::uuid, (select id from public.kunden limit 1), 'x');
+  raise exception 'FEHLER: Einsatzkraft legt Kundenportal an';
+exception when insufficient_privilege then null; end $$;
+reset role;
+update public.mitglieder set finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+update public.kunden_portale set rechnungen_zeigen = false;
+do $$ begin
+  update public.kunden_portale set rechnungen_zeigen = true;
+  raise exception 'FEHLER: Rechnungen im Portal ohne Finanzfreigabe einschaltbar';
+exception when insufficient_privilege then null; end $$;
+reset role;
+update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
+update public.kunden_portale set rechnungen_zeigen = true;
+set role anon;
+select pruefe(public.portal_abrufen('falsch') is null, 'Portal nur mit richtigem Link');
+select pruefe((select (d->>'kunde') = 'Messe Berlin GmbH' and jsonb_array_length(d->'rechnungen') = 1 and (d->'rechnungen'->0->>'nummer') = 'RE-2026-0002'
+  and jsonb_array_length(d->'nachweise') = 1 and (d->'nachweise'->0->'summe'->>'std') = '12.5' and d::text not like '%Protokoll Berlin%'
+  and jsonb_array_length(d->'vorfaelle') = 1 and (d->'orte'->0->>'scans')::int = 1 from public.portal_abrufen('portal-geheim-1') d),
+  'Portal zeigt nur Rechnungen, Summen und Berichte dieses Kunden, keine Namen');
+select pruefe(public.portal_melden('portal-geheim-1', 'mangel', 'Mülleimer in Halle 3 nicht geleert', 'Frau Meier'), 'Kunde meldet Mangel ohne Anmeldung');
+select pruefe(not public.portal_melden('falsch', 'mangel', 'Test Test', '') and not public.portal_melden('portal-geheim-1', 'quatsch', 'Test Test', ''), 'Melden nur mit gültigem Link und gültiger Art');
+do $$ begin
+  perform 1 from public.kunden_meldungen;
+  raise exception 'FEHLER: Meldungen anonym lesbar';
+exception when insufficient_privilege then null; end $$;
+reset role;
+select pruefe((select count(*) = 1 from public.push_warteschlange where titel = '⚠️ Mangel gemeldet' and user_id = '00000000-0000-0000-0000-00000000000b'), 'Büro bekommt Handy-Nachricht zur Meldung');
+do $$ begin for i in 1..12 loop perform public.portal_melden('portal-geheim-1', 'wunsch', 'Wunsch Nummer ' || i, ''); end loop; end $$;
+select pruefe((select count(*) = 10 from public.kunden_meldungen), 'Höchstens 10 Meldungen pro Tag');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+update public.kunden_meldungen set erledigt_am = now() where art = 'mangel';
+do $$ begin
+  update public.kunden_meldungen set text = 'geändert';
+  raise exception 'FEHLER: Kundenmeldung inhaltlich änderbar';
+exception when insufficient_privilege then null; end $$;
+select pruefe((select count(*) = 1 from public.kunden_meldungen where erledigt_am is not null), 'Büro hakt Meldung ab');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.kunden_portale) and (select count(*) = 0 from public.kunden_meldungen), 'Fremde Firma sieht keine Portale und Meldungen');
+reset role;
+update public.kunden_portale set aktiv = false;
+select pruefe(public.portal_abrufen('portal-geheim-1') is null, 'Gesperrter Portal-Link zeigt nichts');
 -- Link invitation without e-mail links the personnel record.
 update public.personal set user_id = null where id = :'p_hamburg';
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e2', 'neu.kraft@perlease.test');
