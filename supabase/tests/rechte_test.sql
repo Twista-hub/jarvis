@@ -73,6 +73,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103050000_belege.sql
 \ir ../migrations/20261103060000_kundenportal.sql
 \ir ../migrations/20261103070000_datev.sql
+\ir ../migrations/20261103080000_auftragsboerse.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1226,6 +1227,50 @@ select test_als('00000000-0000-0000-0000-00000000000b');
 select pruefe((select count(*) = 0 from public.rechnungen) and (select count(*) = 0 from public.belege), 'Leser ohne Finanzfreigabe sieht keine Rechnungen und Belege');
 reset role;
 update public.mitglieder set rolle = 'bearbeiter', finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
+-- Idea 26: job exchange between firms (switched off in the web app until the terms are checked).
+reset role;
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000f1', 'partner@boerse.test');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-0000000000f1');
+select public.firma_anlegen('Selbst GmbH') as selbst \gset
+select set_config('test.selbst', :'selbst', false);
+select test_als('00000000-0000-0000-0000-00000000000a');
+insert into public.boerse_auftraege (firma_id, titel, gewerk, plz, ort) values (:'firma', 'Glasreinigung Bürohaus', 'Reinigung', '10115', 'Berlin') returning id as job \gset
+select set_config('test.job', :'job', false);
+do $$ begin
+  insert into public.boerse_interessen (auftrag_id, firma_id) values (current_setting('test.job')::uuid, current_setting('test.firma')::uuid);
+  raise exception 'FEHLER: Interesse am eigenen Auftrag';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.boerse_auftraege (firma_id, titel, ablauf) values (current_setting('test.firma')::uuid, 'Zu lang', current_date + 400);
+  raise exception 'FEHLER: Börsen-Auftrag länger als 90 Tage';
+exception when insufficient_privilege then null; end $$;
+select test_als('00000000-0000-0000-0000-0000000000f1');
+select pruefe((select count(*) = 1 from public.boerse_auftraege) and (select name = 'Perlease GmbH' from public.boerse_firmennamen(array[current_setting('test.firma')::uuid])), 'Andere Firma sieht offenen Auftrag mit Firmennamen');
+select pruefe((select count(*) = 0 from public.firmen where id = :'firma'), 'Firmendaten selbst bleiben unsichtbar');
+insert into public.boerse_interessen (auftrag_id, firma_id, nachricht) values (:'job', :'selbst', 'Wir haben freie Kapazität') returning id as interesse \gset
+select pruefe((select count(*) = 0 from public.boerse_kontakt(:'interesse')), 'Kein Kontakt vor der Annahme');
+update public.boerse_interessen set status = 'angenommen' where id = :'interesse';
+select pruefe((select status = 'offen' from public.boerse_interessen where id = :'interesse'), 'Interessent nimmt sich nicht selbst an');
+do $$ begin
+  update public.boerse_auftraege set titel = 'gekapert';
+  if found then raise exception 'FEHLER: fremder Börsen-Auftrag änderbar'; end if;
+end $$;
+insert into public.boerse_meldungen (auftrag_id, grund) values (:'job', 'Verdacht auf Scheinselbstständigkeit');
+select test_als('00000000-0000-0000-0000-00000000000a');
+select pruefe((select count(*) = 1 from public.boerse_interessen) and (select name = 'Selbst GmbH' from public.boerse_firmennamen(array[current_setting('test.selbst')::uuid])), 'Auftraggeber sieht Interesse und Firmennamen');
+do $$ begin
+  perform 1 from public.boerse_meldungen;
+  raise exception 'FEHLER: Börsen-Meldungen für Firmen lesbar';
+exception when insufficient_privilege then null; end $$;
+update public.boerse_interessen set status = 'angenommen' where id = :'interesse';
+select pruefe((select firma = 'Selbst GmbH' from public.boerse_kontakt(:'interesse')), 'Nach Annahme: Kontakt des Interessenten');
+select test_als('00000000-0000-0000-0000-0000000000f1');
+select pruefe((select firma = 'Perlease GmbH' from public.boerse_kontakt(:'interesse')), 'Nach Annahme: Kontakt des Auftraggebers');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.boerse_auftraege) and (select count(*) = 0 from public.boerse_firmennamen(array[current_setting('test.firma')::uuid])) and (select count(*) = 0 from public.boerse_kontakt(current_setting('test.job')::uuid)), 'Ohne Firma: keine Börse');
+reset role;
+select pruefe((select count(*) = 1 from public.push_warteschlange where titel = '🤝 Interesse an deinem Auftrag' and user_id = '00000000-0000-0000-0000-00000000000a'), 'Auftraggeber bekommt Handy-Nachricht zum Interesse');
 -- Link invitation without e-mail links the personnel record.
 update public.personal set user_id = null where id = :'p_hamburg';
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e2', 'neu.kraft@perlease.test');
