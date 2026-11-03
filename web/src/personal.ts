@@ -507,6 +507,8 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     const form = await request.formData();
     if (form.get("aktion") === "loeschen") {
       const r = await db(f.s, env, `personal?id=eq.${pid}`, { method: "DELETE" });
+      // Art. 17 DSGVO: the person's files go with the record (photo, uploaded certificates; D6 Rechtsprüfung).
+      if (r.ok && env.DATEN) await personDateienLoeschen(env.DATEN, kraft.firma_id, pid);
       // Records under retention (§ 17 MiLoG) block the deletion in the database; its message says until when.
       const grund = r.ok ? "" : /"message":"(Aufbewahrungspflicht[^"]+)"/.exec(r.fehler)?.[1] ?? "";
       return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent(r.ok ? `${kraft.vorname} ist gelöscht.` : grund ? `${grund} (Austritt über „Checklisten → Austritt“)` : "Löschen hat nicht geklappt.")}`, f.s.cookies);
@@ -552,4 +554,17 @@ ${url.searchParams.get("hinweis") ? `<p role="status"><strong>${escape(url.searc
 ${hilfe("Was passiert beim Senden?", "WhatsApp, SMS oder E-Mail öffnet die jeweilige App mit einem vorbereiteten Text. Du kannst ihn vor dem Senden ändern. Jarvis verschickt die Nachricht nicht selbst.")}
 ${gewaehlt && darfAendern ? `<form method="post" action="/konto/vorgang/${gewaehlt.id}/einsatz"><input type="hidden" name="personal" value="${pid}"><input type="hidden" name="status" value="angefragt"><input type="hidden" name="zurueck" value="/konto/personal/${pid}/nachricht?vorgang=${gewaehlt.id}"><button>📨 Bei der Ausschreibung als „angefragt“ eintragen</button></form>` : ""}
 <p class="klein">Die Nachricht geht von deinem Handy aus, mit deiner Nummer bzw. deinem Mailprogramm. Jarvis verschickt selbst nichts.</p>`);
+}
+
+/** Removes a deleted person's files from R2: photo and everything under personal_nachweise/<firma>/<person>/. */
+export async function personDateienLoeschen(r2: Pick<R2Bucket, "delete" | "list">, firma: string, person: string): Promise<number> {
+  const keys = [`personal-fotos/${firma}/${person}`];
+  let cursor: string | undefined;
+  do {
+    const l = await r2.list({ prefix: `personal_nachweise/${firma}/${person}/`, cursor });
+    keys.push(...l.objects.map((o) => o.key));
+    cursor = l.truncated ? l.cursor : undefined;
+  } while (cursor);
+  for (let i = 0; i < keys.length; i += 1000) await r2.delete(keys.slice(i, i + 1000));
+  return keys.length;
 }

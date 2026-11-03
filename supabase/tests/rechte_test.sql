@@ -87,6 +87,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103190000_rechnungen_13b.sql
 \ir ../migrations/20261103200000_probezeit_ki_budget.sql
 \ir ../migrations/20261103210000_rechnungsvorlage.sql
+\ir ../migrations/20261103220000_loeschfristen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1613,4 +1614,19 @@ delete from auth.users where id='00000000-0000-0000-0000-0000000000d1';
 select pruefe(not exists (select 1 from public.firmen where id=:'neufirma2'), 'Kontolöschung entfernt Firma ohne weitere Mitglieder');
 delete from auth.users where id='00000000-0000-0000-0000-00000000000a';
 select pruefe(exists (select 1 from public.firmen where id=:'firma') and not exists (select 1 from public.mitglieder where user_id='00000000-0000-0000-0000-00000000000a'), 'Kontolöschung des letzten Inhabers klappt, Firma mit Team bleibt');
+-- Rechtsprüfung D7: deletion periods count from the end of the calendar year; younger rows stay.
+reset role;
+select count(*) as stempel_vorher from public.stempel \gset
+select pruefe(:stempel_vorher > 0, 'Testdaten enthalten Stempelzeiten');
+select pruefe((select count(*) = 0 from jarvis_intern.loeschfristen() where geloescht > 0), 'Löschfristen löschen keine aktuellen Daten');
+select pruefe((select count(*) from public.stempel) = :stempel_vorher, 'Aktuelle Stempelzeiten bleiben');
+select pruefe((select sum(geloescht) >= 0 from jarvis_intern.loeschfristen((current_date + interval '5 years')::date)), 'Löschfristen laufen in der Zukunft durch');
+select pruefe((select count(*) = 0 from public.stempel), 'Stempelzeiten nach Ablauf gelöscht');
+set role authenticated;
+do $$ begin
+  perform jarvis_intern.loeschfristen();
+  raise exception 'FEHLER: Nutzer darf Löschfristen auslösen';
+exception when insufficient_privilege then null; end $$;
+reset role;
+
 \echo ALLE TESTS OK

@@ -1,6 +1,7 @@
 # Nightly backup of the database (all app data incl. logins), encrypted with the password in the secret
 # BACKUP_PASSWORT and stored in Cloudflare R2 (bucket jarvis-auftraege, folder sicherung/). Keeps 14 days plus the
 # backup of the 1st of every month for one year. Restore: see docs/sicherung.md.
+# Before the backup, expired rows are deleted (jarvis_intern.loeschfristen, deletion periods per Art. 5 Abs. 1 e DSGVO).
 name: Datensicherung
 on:
   schedule:
@@ -28,6 +29,10 @@ jobs:
           sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
           sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+      - name: Löschfristen anwenden (vor der Sicherung, Migration 20261103220000)
+        run: |
+          VERB="host=aws-1-eu-central-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.juuuifrcxmitkqudqngq sslmode=require"
+          /usr/lib/postgresql/17/bin/psql "$VERB" -v ON_ERROR_STOP=1 -tA -c "select tabelle || ': ' || geloescht from jarvis_intern.loeschfristen()"
       - name: Sichern
         run: |
           set -euo pipefail
