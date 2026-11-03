@@ -13,6 +13,11 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 03.11.2026 – Browser-Chat: Links auf crewtender.eu umgestellt
+- Auf Benjamins Wunsch überall https://crewtender.eu statt app.wpdigitalranger.com: Facebook-Link, LinkedIn-Kontaktinfo (Website, Geschäftlich).
+- Facebook-Impressum jetzt ohne persönlichen Namen: „Crewtender ist ein Angebot von WP Digital Ranger. Impressum: https://crewtender.eu/impressum“. Der volle Name steht nur auf der Impressum-Seite selbst (Pflicht beim Einzelunternehmen).
+- **Für Claude Code:** crewtender.eu zeigt noch die Namecheap-Weiterleitung (A-Record + www-CNAME), https antwortet nicht. Die App muss auf https://crewtender.eu laufen, und https://crewtender.eu/impressum muss das Impressum zeigen.
+
 ### 03.11.2026 – Browser-Chat: LinkedIn
 - Benjamin hat ein persönliches LinkedIn-Konto angelegt (mit seiner geschäftlichen Adresse bei WP Digital Ranger).
 - Profil eingerichtet (Englisch): Headline „Founder of Crewtender · Public tenders & crew planning for trades and service companies | WP Digital Ranger“, Branche Softwareentwicklung, Info-Text (Handwerk/Bau zuerst, dann Reinigung, Sicherheit, Personal, Catering), Website https://app.wpdigitalranger.com (Geschäftlich). Premium und Verifizierung nicht genutzt.
