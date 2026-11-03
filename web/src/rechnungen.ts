@@ -79,6 +79,28 @@ export function mahnungDocx(r: Rechnung, kunde: Kunde | null, a: Absender, heute
     + absatz(`${a.zahlungshinweis ? `${a.zahlungshinweis}\n\n` : ""}Mit freundlichen Grüßen\n${a.name}`, { abstand: 300 }));
 }
 
+export type Vorlage = { id: string; kunde_id: string; text: string; betrag: number | string; aktiv: boolean; letzter_monat: string | null };
+
+/** Positions of a recurring invoice: one flat line "<text> <month>". */
+export function vorlagePositionen(v: Vorlage, monat: string): Position[] {
+  const b = rund(Number(v.betrag));
+  return [{ text: `${v.text} ${monatName(monat)}`, menge: 1, einheit: "pauschal", preis: b, betrag: b }];
+}
+
+/** Templates still to be billed for this month (active, not yet billed for it). */
+export const offeneVorlagen = (l: Vorlage[], monat: string) => l.filter((v) => v.aktiv && (v.letzter_monat ?? "") < monat);
+
+export function vorlagenBereich(vorlagen: Vorlage[], kunden: Kunde[], monat: string): string {
+  const kName = (id: string) => kunden.find((k) => k.id === id)?.name ?? "Kunde gelöscht";
+  const offen = offeneVorlagen(vorlagen, monat);
+  return `<details${vorlagen.length ? "" : " open"}><summary>🔁 Wiederkehrende Rechnungen (${vorlagen.length})</summary>
+<p class="klein">Feste Monatsbeträge, z. B. Unterhaltsreinigung pauschal. Einmal pro Monat erstellt Jarvis daraus nummerierte Entwürfe.</p>
+${vorlagen.length ? `<ul class="kontakt-liste">${vorlagen.map((v) => `<li><div><strong>${escape(kName(v.kunde_id))}</strong><span class="klein">${escape(v.text)} · ${euro(Number(v.betrag))} netto / Monat${v.letzter_monat ? ` · zuletzt ${monatName(v.letzter_monat)}` : ""}${v.aktiv ? "" : " · pausiert"}</span></div><form method="post" action="/konto/rechnungen"><input type="hidden" name="vorlage_weg" value="${v.id}"><button class="zweit" aria-label="Vorlage löschen">✕</button></form></li>`).join("")}</ul>` : ""}
+${offen.length ? `<form method="post" action="/konto/rechnungen"><input type="hidden" name="vorlagen_monat" value="${monat}"><button>Rechnungen für ${monatName(monat)} erstellen (${offen.length})</button></form>` : vorlagen.length ? `<p class="klein">✓ Für ${monatName(monat)} sind alle wiederkehrenden Rechnungen erstellt.</p>` : ""}
+${kunden.length ? `<form method="post" action="/konto/rechnungen" class="formular-zeile"><label>Kunde <select name="vorlage_kunde" required>${kunden.map((k) => `<option value="${k.id}">${escape(k.name)}</option>`).join("")}</select></label><label>Leistung <input name="vorlage_text" required maxlength="200" placeholder="Unterhaltsreinigung pauschal"></label><label>Betrag netto (€) <input name="vorlage_betrag" required inputmode="decimal" placeholder="1200"></label><button class="zweit">Vorlage speichern</button></form>` : `<p class="klein">Zuerst unter Kunden &amp; Einsatzorte einen Kunden anlegen.</p>`}
+</details>`;
+}
+
 export function rechnungenSeite(liste: Rechnung[], kunden: Kunde[], o: { fehlt: string[]; heute?: string; kleinunternehmer?: boolean }): string {
   const kName = (id: string | null) => kunden.find((k) => k.id === id)?.name ?? "Kunde gelöscht";
   const heute = o.heute ?? new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
@@ -153,6 +175,35 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
       const r = await db(f.s, env, `rechnungen?id=eq.${mahnen}&firma_id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ mahnstufe: stufe, gemahnt_am: heute }) });
       return zurueck(r.ok ? `${MAHNSTUFE[stufe]} vorbereitet: bitte „📄 ${MAHNSTUFE[stufe]}“ herunterladen und selbst versenden.` : "Speichern hat nicht geklappt.");
     }
+    const vk = String(form.get("vorlage_kunde") ?? "");
+    if (/^[0-9a-f-]{36}$/.test(vk)) {
+      const betrag = Number(String(form.get("vorlage_betrag") ?? "").replace(/\./g, "").replace(",", "."));
+      const text = String(form.get("vorlage_text") ?? "").trim().slice(0, 200);
+      if (!(betrag > 0) || text.length < 2) return zurueck("Leistung und Betrag angeben.");
+      const r = await db(f.s, env, "rechnungsvorlagen", { method: "POST", body: JSON.stringify({ firma_id: firma, kunde_id: vk, text, betrag: rund(betrag) }) });
+      return zurueck(r.ok ? "Vorlage gespeichert." : "Vorlage konnte nicht gespeichert werden.");
+    }
+    const vw = String(form.get("vorlage_weg") ?? "");
+    if (/^[0-9a-f-]{36}$/.test(vw)) { const r = await db(f.s, env, `rechnungsvorlagen?id=eq.${vw}&firma_id=eq.${firma}`, { method: "DELETE" }); return zurueck(r.ok ? "Vorlage gelöscht." : "Löschen hat nicht geklappt."); }
+    const vm = String(form.get("vorlagen_monat") ?? "");
+    if (/^\d{4}-(0[1-9]|1[0-2])$/.test(vm)) {
+      const [vl, alt] = await Promise.all([
+        db<Vorlage[]>(f.s, env, `rechnungsvorlagen?firma_id=eq.${firma}&select=id,kunde_id,text,betrag,aktiv,letzter_monat&limit=500`),
+        db<{ nummer: string }[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&nummer=like.RE-${heute.slice(0, 4)}-*&select=nummer&limit=10000`),
+      ]);
+      const nummern = alt.ok ? alt.daten.map((x) => x.nummer) : [];
+      let n = 0;
+      for (const v of offeneVorlagen(vl.ok ? vl.daten : [], vm)) {
+        const pos = vorlagePositionen(v, vm);
+        for (let versuch = 0; versuch < 3; versuch++) {
+          const nummer = naechsteNummer(nummern, heute.slice(0, 4));
+          nummern.push(nummer);
+          const r = await db<{ id: string }[]>(f.s, env, "rechnungen?select=id", { method: "POST", headers: { prefer: "return=representation" }, body: JSON.stringify({ firma_id: firma, kunde_id: v.kunde_id, nummer, monat: vm, datum: heute, positionen: pos, netto: pos[0].betrag, ust_satz: 19 }) });
+          if (r.ok && r.daten.length) { n++; await db(f.s, env, `rechnungsvorlagen?id=eq.${v.id}&firma_id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ letzter_monat: vm }) }); break; }
+        }
+      }
+      return zurueck(n ? `${n} Rechnungsentwürfe für ${monatName(vm)} erstellt.` : "Keine Entwürfe erstellt.");
+    }
     const weg = String(form.get("loeschen") ?? "");
     if (/^[0-9a-f-]{36}$/.test(weg)) { const r = await db(f.s, env, `rechnungen?id=eq.${weg}&firma_id=eq.${firma}`, { method: "DELETE" }); return zurueck(r.ok ? "Entwurf gelöscht. Achtung: Die Nummer wird nicht neu vergeben." : "Löschen hat nicht geklappt."); }
     const kid = String(form.get("kunde") ?? ""), monat = String(form.get("monat") ?? "");
@@ -176,6 +227,7 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     }
     return zurueck("Rechnung konnte nicht angelegt werden.");
   }
+  const vorlagen = await db<Vorlage[]>(f.s, env, `rechnungsvorlagen?firma_id=eq.${firma}&select=id,kunde_id,text,betrag,aktiv,letzter_monat&order=erstellt&limit=500`);
   const [l, k, a] = await Promise.all([
     db<Rechnung[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&select=id,kunde_id,nummer,monat,datum,positionen,netto,ust_satz,erstellt,bezahlt_am,mahnstufe,gemahnt_am,zahlungsziel_tage&order=erstellt.desc&limit=500`),
     db<Kunde[]>(f.s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz&limit=1000`),
@@ -183,5 +235,5 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
   ]);
   const fehlt = [!a.steuernummer && !a.ustid ? "Steuernummer oder USt-IdNr." : "", !a.strasse || !a.ort ? "Anschrift" : "", !a.zahlungshinweis ? "Zahlungshinweis (z. B. Bankverbindung)" : ""].filter(Boolean);
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt, heute, kleinunternehmer: a.kleinunternehmer })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt, heute, kleinunternehmer: a.kleinunternehmer })}${vorlagenBereich(vorlagen.ok ? vorlagen.daten : [], k.ok ? k.daten : [], heute.slice(0, 7))}`);
 }
