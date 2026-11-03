@@ -1023,7 +1023,7 @@ ${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke
 ${eigenerZurueck || (kontoBereich ? `<p class="konto-zurueck"><a href="/konto" aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←</span></a></p>` : "")}
 ${kopf}
 ${inhalt.replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace(/<\/table>/g, "</table></div>")}
-<p class="klein">WP Digital Ranger · <a href="/impressum">Impressum</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> · <a href="/avv">Auftragsverarbeitung</a></p>
+<p class="klein">WP Digital Ranger · <a href="/impressum">Impressum</a> · <a href="/kontakt">Kontakt</a> · <a href="/datenschutz">Datenschutz</a> · <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> · <a href="/avv">Auftragsverarbeitung</a></p>
 </main>${kontoBereich !== undefined ? kontoNavigation(kontoBereich) : ""}</body>
 </html>`;
 }

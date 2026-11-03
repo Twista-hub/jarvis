@@ -28,6 +28,8 @@ test("registration needs name, firm, address, e-mail, password and consent", () 
   assert.match(registrierungPruefen({ ...w, plz: "123" }, "geheim123", true, false), /Postleitzahl/);
   assert.match(registrierungPruefen(w, "kurz", true, false), /8 Zeichen/);
   assert.match(registrierungPruefen(w, "geheim123", false, false), /zustimmen/);
+  assert.match(registrierungPruefen(w, "geheim123", true, false, false), /nur für Unternehmen/, "B2B only");
+  assert.equal(registrierungPruefen({ vorname: "Eva", nachname: "Muster", email: "eva@muster.de" }, "geheim123", true, true, false), "", "invited staff confirm nothing");
   assert.equal(registrierungPruefen({ vorname: "Eva", nachname: "Muster", email: "eva@muster.de" }, "geheim123", true, true), "", "invited people need no firm");
 });
 
@@ -61,13 +63,14 @@ test("company website is normalized and restricted to HTTPS addresses", () => {
 
 test("sign-up sends the firm data and no PKCE challenge, so the mail link works in any browser", async (t) => {
   const aufrufe = mockAuth(t, () => [200, { id: "u1" }]);
-  const r = await anmeldung(formular("/registrieren", { vorname: "Eva", nachname: "Muster", firma: "Muster GmbH", website: "www.muster.de", strasse: "Weg 1", plz: "52531", ort: "Übach", email: "Eva@Muster.de", passwort: "geheim123", zustimmung: "ja", weiter: "/konto" }), env);
+  const r = await anmeldung(formular("/registrieren", { vorname: "Eva", nachname: "Muster", firma: "Muster GmbH", website: "www.muster.de", strasse: "Weg 1", plz: "52531", ort: "Übach", email: "Eva@Muster.de", passwort: "geheim123", unternehmer: "ja", zustimmung: "ja", weiter: "/konto" }), env);
   assert.equal(r?.status, 200);
   assert.match(await r!.text(), /Fast geschafft/);
   const signup = aufrufe.find((a) => a.pfad.startsWith("/auth/v1/signup"))!;
   assert.equal(signup.body.email, "eva@muster.de");
   assert.equal(signup.body.data.firma, "Muster GmbH");
   assert.equal(signup.body.data.website, "https://www.muster.de");
+  assert.match(signup.body.data.unternehmer, /^\d{4}-/, "B2B confirmation is recorded");
   assert.equal(signup.body.code_challenge, undefined);
   assert.match(decodeURIComponent(decodeURIComponent(signup.pfad)), /redirect_to=https:\/\/jarvis\.test\/anmelden\/fertig\?weiter=\/konto/);
 });

@@ -25,7 +25,7 @@ export function impressum(): string {
   return `<h2>Angaben gemäß § 5 DDG</h2>
 <p>${anschrift()}</p>
 <h2>Kontakt</h2>
-<p>E-Mail: <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
+<p>E-Mail: <a href="mailto:${FIRMA.email}">${FIRMA.email}</a><br>Kontaktformular: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>Umsatzsteuer</h2><p>Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>Umsatzsteuer</h2><p>Kleinunternehmer nach § 19 UStG, daher keine Umsatzsteuer.</p>` : ""}
 <h2>Verantwortlich für den Inhalt</h2>
 <p>${escape(FIRMA.name)}, Anschrift wie oben.</p>
@@ -55,6 +55,7 @@ export function datenschutz(): string {
 <h2>3. Welche Daten wir verarbeiten</h2>
 <ul>
 <li><strong>Beim Aufruf der Seite:</strong> technisch nötige Daten (IP-Adresse, Zeitpunkt, aufgerufene Seite, Browser). Sie werden vom Betreiber der Server (Cloudflare) kurz zur Sicherheit und Fehlersuche gespeichert. Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO (sicherer Betrieb).</li>
+<li><strong>Kontaktformular:</strong> Name, E-Mail-Adresse und Nachricht. Wir schicken sie als E-Mail an unser Postfach (Namecheap) und nutzen sie nur zur Beantwortung. Keine Speicherung in der Datenbank; die Mail löschen wir, wenn die Anfrage erledigt ist und keine Aufbewahrungspflicht besteht. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Anfrage zu einem Vertrag) oder lit. f (Beantwortung von Anfragen).</li>
 <li><strong>Konto:</strong> Name, E-Mail-Adresse, Passwort (nur verschlüsselt gespeichert), Name, Anschrift und freiwillig Telefonnummer der Firma, Zeitpunkt der Registrierung, der Zustimmung und der Anmeldung, Zugehörigkeit zu Firmen, Funktion im Betrieb, Zugriffsrechte und Bereiche. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO (Vertrag).</li>
 <li><strong>Firmendaten:</strong> Firmenname, Standorte, freiwillig angegebene Website, Suchprofil, Ausschreibungen mit Stand und Notizen, Kalkulationswerte. Bei der automatischen Suche zum Einrichten des Suchprofils werden Firmenname, Website und Firmensitz an die öffentliche Websuche von Anthropic übermittelt; passende öffentliche Fundstellen werden mit URL im Profil gespeichert. Rechtsgrundlage: Art. 6 Abs. 1 lit. b DSGVO. Bei jeder neuen Anmeldung erhält der Betreiber eine Handy-Nachricht mit dem Firmennamen, um Missbrauch zu erkennen (Art. 6 Abs. 1 lit. f DSGVO).</li>
 <li><strong>Hochgeladene Unterlagen:</strong> Vergabeunterlagen einer Ausschreibung. Sie können Namen und Kontaktdaten von Ansprechpartnern des Auftraggebers enthalten. Sie werden nur für den Steckbrief gelesen und <strong>nach 30 Tagen gelöscht</strong>. Bitte keine Unterlagen mit Daten eurer Mitarbeiter hochladen (z. B. Lebensläufe). Die Texte gehen zum Lesen an den KI-Dienst Anthropic (siehe Dienstleister).</li>

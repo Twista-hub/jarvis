@@ -16,7 +16,7 @@ export function impressumPl(): string {
   return `<h2>Informacje zgodnie z § 5 niemieckiej ustawy o usługach cyfrowych (DDG)</h2>
 <p>${anschrift()}</p>
 <h2>Kontakt</h2>
-<p>E-mail: ${mail()}${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
+<p>E-mail: ${mail()}<br>Formularz kontaktowy: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>Podatek VAT</h2><p>Numer identyfikacyjny VAT zgodnie z § 27a niemieckiej ustawy o podatku od towarów i usług (UStG): ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>Podatek VAT</h2><p>Mały przedsiębiorca w rozumieniu § 19 niemieckiej ustawy o podatku od towarów i usług (UStG), w związku z czym podatek VAT nie jest naliczany.</p>` : ""}
 <h2>Odpowiedzialny za treść</h2>
 <p>${escape(FIRMA.name)}, adres jak wyżej.</p>
@@ -46,6 +46,7 @@ export function datenschutzPl(): string {
 <h2>3. Jakie dane przetwarzamy</h2>
 <ul>
 <li><strong>Przy wyświetlaniu strony:</strong> dane niezbędne z technicznego punktu widzenia (adres IP, czas, wyświetlona strona, przeglądarka). Operator serwerów (Cloudflare) przechowuje je krótko w celu zapewnienia bezpieczeństwa i wyszukiwania błędów. Podstawa prawna: art. 6 ust. 1 lit. f RODO (bezpieczne działanie serwisu).</li>
+<li><strong>Formularz kontaktowy:</strong> imię i nazwisko, adres e-mail i wiadomość. Wysyłamy je e-mailem do naszej skrzynki (Namecheap) i wykorzystujemy wyłącznie do udzielenia odpowiedzi. Nie zapisujemy ich w bazie danych; e-mail usuwamy po załatwieniu sprawy, o ile nie istnieje obowiązek przechowywania. Podstawa prawna: art. 6 ust. 1 lit. b RODO (zapytanie dotyczące umowy) lub lit. f (odpowiadanie na zapytania).</li>
 <li><strong>Konto:</strong> imię i nazwisko, adres e-mail, hasło (przechowywane wyłącznie w postaci zaszyfrowanej), nazwa, adres i – dobrowolnie – numer telefonu firmy, data rejestracji, wyrażenia zgody i logowania, przynależność do firm, funkcja w przedsiębiorstwie, uprawnienia dostępu i obszary. Podstawa prawna: art. 6 ust. 1 lit. b RODO (umowa).</li>
 <li><strong>Dane firmy:</strong> nazwa firmy, lokalizacje, dobrowolnie podana strona internetowa, profil wyszukiwania, przetargi wraz ze statusem i notatkami, wartości kalkulacji. Podczas automatycznego wyszukiwania służącego do utworzenia profilu wyszukiwania nazwa firmy, strona internetowa i siedziba firmy są przekazywane do publicznego wyszukiwania internetowego Anthropic; pasujące publiczne źródła są zapisywane w profilu wraz z adresem URL. Podstawa prawna: art. 6 ust. 1 lit. b RODO. Przy każdej nowej rejestracji operator otrzymuje powiadomienie na telefon z nazwą firmy, aby wykrywać nadużycia (art. 6 ust. 1 lit. f RODO).</li>
 <li><strong>Przesłane dokumenty:</strong> dokumenty zamówienia dotyczące przetargu. Mogą zawierać imiona, nazwiska i dane kontaktowe osób kontaktowych zamawiającego. Są one odczytywane wyłącznie na potrzeby karty przetargu i <strong>usuwane po 30 dniach</strong>. Prosimy nie przesyłać dokumentów zawierających dane Państwa pracowników (np. życiorysów). Teksty są przekazywane do odczytu do usługi AI Anthropic (zob. Usługodawcy).</li>
