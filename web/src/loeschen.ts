@@ -100,7 +100,7 @@ export function firmenListe(firmen: BetreiberFirma[]): string {
     const paketOpt = PAKETE.map((p) => `<option${p === f.paket ? " selected" : ""}>${p}</option>`).join("");
     return `<li id="firma-${escape(f.id)}"><div><strong>${escape(f.name)}</strong><span class="klein">${escape(f.inhaber ?? "kein Inhaber")} · ${f.mitglieder} ${f.mitglieder === 1 ? "Mitglied" : "Mitglieder"} · seit ${tag(f.erstellt)} · zuletzt angemeldet ${tag(f.letzte_anmeldung)}${f.website ? ` · ${escape(f.website)}` : ""}</span><span class="klein">Plan ${escape(f.paket)} · KI ${escape(kiStand(budget, Number(f.ki_verbraucht ?? 0)))}</span>
 <form method="post" action="/konto/betreiber" class="zeile-form"><input type="hidden" name="aktion" value="firma"><input type="hidden" name="firma" value="${escape(f.id)}"><input type="hidden" name="ki_alt" value="${budget === null ? "" : budget}"><input type="hidden" name="paket_alt" value="${escape(f.paket)}">
-<label>KI-Grenze<select name="ki">${kiOpt}</select></label><label>Plan<select name="paket">${paketOpt}</select></label><button>Speichern</button></form></div></li>`;
+<label>KI-Grenze<select name="ki">${kiOpt}</select></label><label>Plan<select name="paket">${paketOpt}</select></label><button>Speichern</button></form><a class="klein" href="/konto/betreiber/rechnungen?firma=${escape(f.id)}">🧾 Rechnung schreiben</a></div></li>`;
   }).join("")}</ul>`;
 }
 
@@ -149,5 +149,5 @@ export async function betreiber(request: Request, env: KontoEnv): Promise<Respon
     loeschen = `${hinweis ? `<p class="hinweis" role="status">${escape(hinweis)}</p>` : ""}${betreiberSeite(mail, t.ok ? t.daten : [])}`;
   }
   const f = await db<BetreiberFirma[]>(s, env, "rpc/betreiber_firmen", { method: "POST", body: "{}" });
-  return antwort(`<h2>Zugang löschen</h2>${loeschen}<h2>Firmen${f.ok ? ` (${f.daten.length})` : ""}</h2><p class="klein">KI-Grenze: „ohne Grenze“ für zahlende Kunden und Tester, „Probe 5,50 $“ für neue Firmen mit eigener Website, „Demo“ ohne KI. Der Plan wird später von der Abrechnung gesetzt.</p>${f.ok ? firmenListe(f.daten) : `<p class="hinweis">Firmenliste konnte nicht geladen werden.</p>`}`);
+  return antwort(`<p><a href="/konto/betreiber/rechnungen">🧾 Kundenrechnungen (WP Digital Ranger an Crewtender-Kunden)</a></p><h2>Zugang löschen</h2>${loeschen}<h2>Firmen${f.ok ? ` (${f.daten.length})` : ""}</h2><p class="klein">KI-Grenze: „ohne Grenze“ für zahlende Kunden und Tester, „Probe 5,50 $“ für neue Firmen mit eigener Website, „Demo“ ohne KI. Der Plan wird später von der Abrechnung gesetzt.</p>${f.ok ? firmenListe(f.daten) : `<p class="hinweis">Firmenliste konnte nicht geladen werden.</p>`}`);
 }
