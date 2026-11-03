@@ -31,16 +31,16 @@ def kompakt(punkte, titel, wert, extra=''):
     return f'''<div class="karte" style="padding:24px 34px 70px;{extra}"><div style="display:flex;align-items:center;gap:18px"><span class="punkte" style="flex:0 0 auto">{punkte}/10</span><span style="flex:1;min-width:0;font-size:26px;font-weight:750;color:#14202b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{titel}</span><span style="flex:0 0 auto;font-size:40px;font-weight:850;letter-spacing:-.02em;color:#0f3a5a">{wert}</span></div></div>'''
 
 # 1 — stacked tender cards, navy, money focus
-p1 = BASE + f'''<div class="post" style="background:radial-gradient(900px 700px at 85% 0%,rgba(79,179,234,.35),transparent 60%),radial-gradient(800px 700px at 0% 100%,rgba(22,138,173,.35),transparent 60%),linear-gradient(165deg,#0f2840 0%,#15324b 55%,#0c2236 100%);color:#fff">
+p1 = BASE + f'''<div class="post" style="background:radial-gradient(900px 700px at 90% 0%,rgba(160,220,250,.55),transparent 60%),radial-gradient(800px 700px at 0% 100%,rgba(22,138,173,.45),transparent 60%),linear-gradient(165deg,#2b84c2 0%,#1f6fa8 50%,#1b5d8f 100%);color:#fff">
 <div class="marke" style="left:72px;top:64px">{LOGO}Crewtender</div>
 <div style="position:absolute;left:72px;right:72px;top:170px">
-<div style="font-size:24px;font-weight:700;color:#7cc6f0;letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px">Public tenders · Every morning</div>
-<div style="font-size:76px;font-weight:850;line-height:1.02;letter-spacing:-.025em">Contracts worth<br><span style="background:linear-gradient(90deg,#7cc6f0,#ffffff);-webkit-background-clip:text;color:transparent">millions.</span> Found for you.</div></div>
+<div style="font-size:24px;font-weight:700;color:#d4efff;letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px">Public tenders · Every morning</div>
+<div style="font-size:76px;font-weight:850;line-height:1.02;letter-spacing:-.025em">Contracts worth<br><span style="background:linear-gradient(90deg,#bfe7ff,#ffffff);-webkit-background-clip:text;color:transparent">millions.</span> Found for you.</div></div>
 {kompakt(6,"Winter service, 40 properties","€210,000","left:120px;top:500px;width:840px")}
 {kompakt(7,"Facility services, 11 daycare centres","€640,000","left:120px;top:604px;width:840px")}
 {kompakt(8,"Security, city hall and museum","€1,350,000","left:120px;top:708px;width:840px")}
 {karte(9,"bid in progress","Cleaning of 6 schools and administration buildings","4 lots · 48 months · 24 km away".split(" · "),"€2,100,000",26,26,"left:120px;top:812px;width:840px")}
-<div class="fuss" style="color:#d7e9f6"><span style="font-weight:700">crewtender.eu</span><span class="klein">Example tenders for illustration</span></div></div></body></html>'''
+<div class="fuss" style="color:#eaf6fd"><span style="font-weight:700">crewtender.eu</span><span class="klein">Example tenders for illustration</span></div></div></body></html>'''
 
 # 2 — big number, light glass
 p2 = BASE + f'''<div class="post" style="background:radial-gradient(800px 600px at 100% 0%,rgba(124,198,240,.6),transparent 60%),radial-gradient(700px 600px at 0% 100%,rgba(22,138,173,.3),transparent 65%),linear-gradient(160deg,#eef8fe 0%,#d6ecfa 55%,#c2e2f6 100%);color:#102a40">
@@ -68,11 +68,11 @@ front = f'''<div style="position:absolute;left:192px;right:48px;top:600px;height
 <div style="display:grid;gap:14px;font-size:23px;color:#3a3a36;margin:10px 0 26px">
 <div>📅 <b>Deadline</b> in 26 days · site visit on day 9</div><div>📦 <b>4 lots</b> · 48 months · 6 buildings</div><div>✅ <b>Evidence</b> insurance, references, ISO 9001</div><div>🧮 <b>Your price</b> €31.40 per hour</div></div>
 <div class="wert"><b>€2,100,000</b><span>est. contract value</span></div></div>'''
-p3 = BASE + f'''<div class="post" style="background:linear-gradient(165deg,#0f2840 0%,#15324b 60%,#0c2236 100%);color:#fff">
+p3 = BASE + f'''<div class="post" style="background:radial-gradient(900px 700px at 90% 0%,rgba(160,220,250,.55),transparent 60%),radial-gradient(800px 700px at 0% 100%,rgba(22,138,173,.45),transparent 60%),linear-gradient(165deg,#2b84c2 0%,#1f6fa8 50%,#1b5d8f 100%);color:#fff">
 <div class="marke" style="left:72px;top:64px">{LOGO}Crewtender</div>
-<div style="position:absolute;left:72px;right:72px;top:160px;font-size:62px;font-weight:850;line-height:1.05;letter-spacing:-.02em">From tender to team.<br><span style="color:#7cc6f0">One app.</span></div>
+<div style="position:absolute;left:72px;right:72px;top:160px;font-size:62px;font-weight:850;line-height:1.05;letter-spacing:-.02em">From tender to team.<br><span style="color:#cdeeff">One app.</span></div>
 {tabhtml}{front}
-<div class="fuss" style="color:#d7e9f6"><span style="font-weight:700">crewtender.eu</span><span class="klein">Example data for illustration</span></div></div></body></html>'''
+<div class="fuss" style="color:#eaf6fd"><span style="font-weight:700">crewtender.eu</span><span class="klein">Example data for illustration</span></div></div></body></html>'''
 
 # 4 — three phones layered with real app screenshots (German demo)
 def phone(img, style):
