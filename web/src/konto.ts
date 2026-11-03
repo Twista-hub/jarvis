@@ -213,6 +213,14 @@ async function suchstatus(request: Request, env: KontoEnv): Promise<Response> {
   return Response.json({ laeuft: sucheLaeuft(r.daten[0]), treffer: zwischenstand(r.daten[0])?.treffer ?? 0 }, { headers });
 }
 
+/** Probezeit-Schutz (migration 20261103200000): demo mode without website, or trial AI budget used up. */
+export function probeHinweis(k: { budget: number | null; verbraucht: number } | null): string {
+  if (!k || k.budget === null || k.budget === undefined) return "";
+  if (Number(k.budget) === 0) return `<p class="hinweis">🎬 <strong>Demo-Modus:</strong> Jarvis zeigt passende Ausschreibungen nach Stichworten, aber noch ohne KI-Bewertung und Steckbriefe. Die Probezeit mit KI startet, sobald ihr eure <a href="/konto/einrichtung">Firmenwebsite</a> angebt.</p>`;
+  if (Number(k.verbraucht) >= Number(k.budget) - 0.05) return `<p class="hinweis">Das KI-Kontingent der Probezeit ist aufgebraucht. Treffer nach Stichworten gibt es weiter; für KI-Bewertungen und Steckbriefe schreibt uns gern.</p>`;
+  return "";
+}
+
 async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unterseite = "", dateiProfil: (firma: string) => { beschreibung: string } | undefined = () => undefined): Promise<Response> {
   const s = await sitzung(request, env);
   if (!s) return html(seite("Anmelden", anmeldeFormular("", new URL(request.url).pathname + new URL(request.url).search, "Melde dich an, um Ausschreibungen, Bereiche und Mitarbeiter deiner Firma zu verwalten.")));
@@ -289,7 +297,8 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const bald = fristen.filter((v) => v.frist!.slice(0, 10) >= heute && v.frist!.slice(0, 10) <= in7Tagen).length;
   const neu = liste.filter((v) => ["neu", "pruefen"].includes(v.status) && (!v.frist || Date.parse(v.frist) > Date.now())).length;
   const labels: Record<string, string> = { treffer: "Ausschreibungen", fristen: "Fristen", unterlagen: "Unterlagen prüfen", kalkulation: "Kalkulation", team: "Firma & Team", einstellungen: "Einstellungen", profil: "Mein Profil", suchprofil: "Suchprofil" };
-  const rahmen = (body: string) => `${kopf}${body}`;
+  let probe = ""; // Probezeit-Schutz banner, filled below for the main overview
+  const rahmen = (body: string) => `${kopf}${probe}${body}`;
   const meldungen = suchmeldung(suchstand, m.firma_id);
   // Real numbers for the remaining overview tiles (only on the overview itself).
   const [ablaufZahl, freigabeZahl, aboZahl, foerderZahl] = !unterseite ? await Promise.all([
@@ -312,11 +321,13 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     m.rolle === "mitarbeiter" ? db<{ id: string }[]>(s, env, `personal?firma_id=eq.${m.firma_id}&user_id=eq.${s.userId}&select=id`).then((r) => r.ok && r.daten.length > 0) : Promise.resolve(false),
   ]) : [[], [], false];
   // T19: unread notices on the notice board, for everyone (staff included).
-  const [brettZahl, ausfallZahl, chatZahl] = !unterseite ? await Promise.all([
+  const [brettZahl, ausfallZahl, chatZahl, kontingent] = !unterseite ? await Promise.all([
     ungelesen(s, env, m.firma_id, heute),
     m.rolle !== "mitarbeiter" ? db<{ id: string }[]>(s, env, `personal_abwesenheiten?firma_id=eq.${m.firma_id}&kurzfristig=is.true&von=lte.${heute}&bis=gte.${heute}&select=id&limit=200`).then((r) => r.ok ? r.daten.length : 0) : Promise.resolve(0),
     m.rolle !== "leser" ? chatUngelesen(s, env, m.firma_id) : Promise.resolve(0),
-  ]) : [0, 0, 0];
+    ["inhaber", "admin"].includes(m.rolle) ? db<{ budget: number | null; verbraucht: number } | null>(s, env, "rpc/ki_kontingent", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }).then((r) => (r.ok ? r.daten : null)) : Promise.resolve(null),
+  ]) : [0, 0, 0, null];
+  probe = probeHinweis(kontingent);
   const zugaenge = mitglieder.ok ? mitglieder.daten.filter((x) => x.aktiv !== false).length : 0;
   // N13: AÜG-Wächter tile for firms that record assignments (temporary work), with the deadlines in 60 days.
   const auegFristen = !unterseite && m.rolle !== "mitarbeiter" ? fristen_aueg(await auegLaden(s, env, m.firma_id), heute) : [];

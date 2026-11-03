@@ -85,6 +85,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103170000_zeitarbeit_tarif.sql
 \ir ../migrations/20261103180000_belege_storno.sql
 \ir ../migrations/20261103190000_rechnungen_13b.sql
+\ir ../migrations/20261103200000_probezeit_ki_budget.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -725,6 +726,17 @@ insert into public.auftraggeber_kontakte (firma_id, auftraggeber_schluessel, nam
 select pruefe((select count(*) = 1 from public.auftraggeber_kontakte), 'Kontakt beim Auftraggeber gespeichert');
 select pruefe((select count(*) = 0 from public.ki_kosten_firma(:'firma')), 'Bearbeiter sieht keine KI-Kosten');
 reset role;
+-- Probezeit-Schutz: a new firm is in demo mode (no AI); a unique website gives a 5.50 $ trial budget.
+select pruefe((select ki_budget_usd = 0 from public.firmen where id = :'firma'), 'Neue Firma startet im Demo-Modus ohne KI');
+select pruefe(jarvis_katalog.ki_reservieren_fuer(0.01, 'test', :'firma') is null, 'Demo-Modus: keine KI-Anfrage');
+update public.firmen set website = 'https://www.test-reinigung.example/kontakt' where id = :'firma';
+select pruefe((select ki_budget_usd = 5.50 from public.firmen where id = :'firma'), 'Mit eigener Website: Probezeit mit 5,50 $ KI');
+insert into public.firmen (name, website) values ('Zweite Anmeldung', 'https://test-reinigung.example') returning id as zweite \gset
+select pruefe((select ki_budget_usd = 0 from public.firmen where id = :'zweite'), 'Gleiche Website: keine zweite Probezeit');
+update public.firmen set website = 'https://gmail.com' where id = :'zweite';
+select pruefe((select ki_budget_usd = 0 from public.firmen where id = :'zweite'), 'Freemail-Domain zählt nicht');
+delete from public.firmen where id = :'zweite';
+select pruefe(jarvis_katalog.ki_reservieren_fuer(6, 'test', :'firma') is null, 'Mehr als das Probe-Kontingent geht nicht');
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.01, 'test', :'firma') is not null, 'KI-Buchung mit Firma');
 select pruefe((select count(*) = 1 from jarvis_katalog.ki_kosten where firma_id = :'firma'), 'KI-Buchung ist der Firma zugeordnet');
 update public.mitglieder set rolle = 'admin' where user_id = '00000000-0000-0000-0000-00000000000b';

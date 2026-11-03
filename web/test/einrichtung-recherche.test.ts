@@ -77,7 +77,8 @@ test("Fehler bei erneuter Recherche erhalten Formularwerte und überschreiben ke
   assert.match(html, /Noch nicht gespeicherte Firmenbeschreibung/);
   assert.match(html, /value="https:\/\/neu.example"/);
   assert.match(html, /Firmenrecherche wurde nicht abgeschlossen/);
-  assert.equal(schreibt.filter((x) => !x.pfad.includes("fehler_melden")).length, 0, "kein Profil überschrieben");
+  // The new website is saved before the research (it unlocks the trial AI budget); the search profile stays untouched.
+  assert.equal(schreibt.filter((x) => !x.pfad.includes("fehler_melden") && x.pfad !== "firmen").length, 0, "kein Profil überschrieben");
   assert.equal(schreibt.filter((x) => x.pfad.includes("fehler_melden")).length, 1, "Betreiber wird benachrichtigt");
 });
 
@@ -115,7 +116,7 @@ test("Budgetfehler beim Erstlauf hält die Eingaben dauerhaft und zeigt den klar
   dienst.recherche = async () => { throw new Error("Connection error.", { cause: new Error("KI-Budget ist erreicht") }); };
   const r = await einrichtung(request(form), env, () => "", dienst);
   const html = await r!.text();
-  assert.match(html, /KI-Tages- oder Monatsbudget/);
+  assert.match(html, /KI-Budget ist erreicht/);
   assert.doesNotMatch(html, /Connection error/);
   assert.match(html, /Firmenprüfung erneut versuchen/);
   assert.doesNotMatch(html, /data-auto-einrichtung|Speichern und Ausschreibungen suchen/);

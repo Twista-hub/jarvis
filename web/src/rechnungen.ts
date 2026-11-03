@@ -6,7 +6,7 @@
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
-import { absatz, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
+import { absatz, bild, bildMasse, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
 import { mitLand, einsatzLaender, dezimal, landDerFirma, minuten, naechsterMonat, type Eintrag } from "./stunden.ts";
 import { summe, zuschlag } from "./zuschlaege.ts";
 import { adresse, type Kunde } from "./kunden.ts";
@@ -33,6 +33,12 @@ export const RC_HINWEIS = "Steuerschuldnerschaft des Leistungsempfängers (§ 13
 /** Reverse charge: frozen once issued; for a draft from today's customer setting (never for small businesses). */
 export const istReverseCharge = (r: Rechnung, kunde: Kunde | null, kleinunternehmer: boolean) => istEntwurf(r) ? !!kunde?.ust_13b && !kleinunternehmer : !!r.reverse_charge;
 export const neueEntwurfsnummer = () => `ENTWURF-${crypto.randomUUID().slice(0, 8)}`;
+/** Invoice template from the firm profile (Rechnungsvorlage): logo, opening and closing text, footer lines. */
+export type Vorlage2 = { logo?: { bytes: Uint8Array; typ: "png" | "jpeg" } | null; einleitung?: string; schluss?: string; fuss?: string[] };
+/** Footer from the firm profile: legal form, register, management, contact (shown small at the end). */
+export function fusszeilen(p: { rechtsform?: string; registergericht?: string; registernummer?: string; geschaeftsfuehrung?: string; website?: string }): string[] {
+  return [p.registergericht && p.registernummer ? `${p.registergericht} ${p.registernummer}` : "", p.geschaeftsfuehrung ? `Geschäftsführung: ${p.geschaeftsfuehrung}` : "", p.website ?? ""].filter(Boolean);
+}
 export type Preis = { satz: number; nacht: number; sonntag: number; feiertag: number };
 const euro = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 const zahl = (n: number) => n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -52,7 +58,7 @@ export function positionen(l: Eintrag[], p: Preis, land: string, monat: string):
 }
 
 export type Absender = { name: string; strasse: string; plz: string; ort: string; telefon: string; email: string; steuernummer: string; ustid: string; kleinunternehmer: boolean; zahlungshinweis: string };
-export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeute: Absender): Uint8Array {
+export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeute: Absender, vorlage: Vorlage2 = {}): Uint8Array {
   const { a, kunde } = beteiligte(r, kundeHeute, absenderHeute);
   const entwurf = istEntwurf(r), storno = r.art === "storno";
   const rc = istReverseCharge(r, kundeHeute, a.kleinunternehmer);
@@ -61,9 +67,12 @@ export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeut
   const titel = entwurf ? "Rechnungsentwurf – nicht versenden" : storno ? `Stornorechnung ${r.nummer}` : `Rechnung ${r.nummer}`;
   const kopf: string[][] = entwurf ? [["Leistungszeitraum", monatName(r.monat)], ["Rechnungsnummer", "wird beim Ausstellen vergeben"]]
     : [["Rechnungsdatum", datum(r.datum)], ["Leistungszeitraum", monatName(r.monat)], ["Rechnungsnummer", r.nummer], ...(storno ? [["Storno der Rechnung", r.bezug_nummer ?? ""]] : [])];
-  return wordDokument(absatz([a.name, adresse(a)].filter(Boolean).join(" · "), { grau: true, groesse: 16, abstand: 240 })
+  const masse = vorlage.logo ? bildMasse(vorlage.logo.bytes) : null;
+  const logoHoehe = 1.6, logoBreite = masse && masse.h ? Math.min(7, logoHoehe * masse.w / masse.h) : 4;
+  return wordDokument((vorlage.logo ? bild(1, logoBreite, logoHoehe) : "") + absatz([a.name, adresse(a)].filter(Boolean).join(" · "), { grau: true, groesse: 16, abstand: 240 })
     + absatz([kunde?.name ?? "", kunde?.ansprechpartner ? `z. Hd. ${kunde.ansprechpartner}` : "", kunde?.strasse ?? "", [kunde?.plz, kunde?.ort].filter(Boolean).join(" ")].filter(Boolean).join("\n"), { abstand: 400 })
     + ueberschrift(titel, 30)
+    + (vorlage.einleitung && !storno ? absatz(vorlage.einleitung, { abstand: 200 }) : "")
     + tabelle(kopf, [3200, 6400])
     + tabelle([["Pos.", "Leistung", "Menge", "Einzelpreis", "Betrag"], ...r.positionen.map((p, i) => [String(i + 1), p.text, `${zahl(p.menge)} ${p.einheit}`, euro(p.preis), euro(p.betrag)]),
       ["", "Summe netto", "", "", euro(netto)], ...(a.kleinunternehmer || rc ? [] : [["", `zzgl. ${zahl(Number(r.ust_satz)).replace(",00", "")} % Umsatzsteuer`, "", "", euro(ust)]]), ["", "Rechnungsbetrag", "", "", euro(netto + ust)]], [600, 4300, 1400, 1600, 1700], true)
@@ -71,7 +80,9 @@ export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeut
     + (rc ? absatz(`${RC_HINWEIS}${(r.empfaenger?.ustid || kundeHeute?.ustid) ? ` USt-IdNr. des Leistungsempfängers: ${r.empfaenger?.ustid || kundeHeute?.ustid}` : ""}`, { abstand: 160 }) : "")
     + (storno ? absatz(`Diese Stornorechnung hebt die Rechnung ${r.bezug_nummer ?? ""} vollständig auf.`, { abstand: 300 })
       : absatz(`Zahlbar ohne Abzug bis ${entwurf ? `${r.zahlungsziel_tage ?? 14} Tage nach Rechnungsdatum` : datum(faellig)}.${a.zahlungshinweis ? `\n${a.zahlungshinweis}` : ""}`, { abstand: 300 }))
-    + absatz([a.steuernummer ? `Steuernummer: ${a.steuernummer}` : "", a.ustid ? `USt-IdNr.: ${a.ustid}` : "", a.telefon ? `Telefon: ${a.telefon}` : "", a.email ? `E-Mail: ${a.email}` : ""].filter(Boolean).join(" · ") || "Steuernummer bitte im Firmenprofil eintragen.", { grau: true, groesse: 16 }));
+    + (vorlage.schluss ? absatz(vorlage.schluss, { abstand: 300 }) : "")
+    + absatz([a.steuernummer ? `Steuernummer: ${a.steuernummer}` : "", a.ustid ? `USt-IdNr.: ${a.ustid}` : "", a.telefon ? `Telefon: ${a.telefon}` : "", a.email ? `E-Mail: ${a.email}` : "", ...(vorlage.fuss ?? [])].filter(Boolean).join(" · ") || "Steuernummer bitte im Firmenprofil eintragen.", { grau: true, groesse: 16 }),
+    vorlage.logo ? [{ id: 1, png: vorlage.logo.bytes, typ: vorlage.logo.typ }] : []);
 }
 
 const MAHNSTUFE = ["", "Zahlungserinnerung", "1. Mahnung", "2. Mahnung"];
