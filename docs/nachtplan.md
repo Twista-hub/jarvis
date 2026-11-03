@@ -67,13 +67,17 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
 - **E-Rechnung (Top-1 der Ideenliste) gebaut:** In „Rechnungen“ gibt es neben „📄 Word“ jetzt „🧾 E-Rechnung“ – die
   Rechnung als XRechnung 3.0 (UBL). Leitweg-ID für Behörden in der Kunden-Notiz als „Leitweg-ID: …“. Vom **offiziellen
   KoSIT-Validator akzeptiert** (normale Rechnung und Kleinunternehmer, Workflow `xrechnung-pruefen.yml`).
+- **Zahlungsstatus und Mahnwesen (Top-2) gebaut:** Rechnungen zeigen „offen / X Tage überfällig / bezahlt“, oben die
+  Summen; Knöpfe „✓ Bezahlt“ und „✉️ Zahlungserinnerung → 1. Mahnung → 2. Mahnung“ mit Word-Schreiben (neue Frist 7 Tage,
+  keine Gebühren). Jarvis verschickt nichts. Rechnungsinhalt ist jetzt in der Datenbank unveränderlich (nur Zahlungs- und
+  Mahnstatus änderbar) – vorher wären Beträge nachträglich änderbar gewesen.
 - **Plan-Struktur** aus dem Abo-Vorschlag im Code (`web/src/plaene.ts`, Grenzen je Plan), **nicht aktiv**, Preise
   weiter „Preis folgt“.
 
 ### Bewusst nicht umgesetzt (Regeln aus CLAUDE.md, braucht dein OK)
 - **Abo-Preise und Stripe:** Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
   Punkt 7c war ein Vorschlag gefragt; `web/src/plaene.ts` bleibt abgeschaltet.
-- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1 (E-Rechnung) ist gebaut; Nr. 2–10 baue ich nach deiner Reihenfolge.
+- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1 (E-Rechnung) und Nr. 2 (Mahnwesen) sind gebaut; Nr. 3–10 nach deiner Reihenfolge.
 - **Anfragen an PLACSP und TenderNed:** Mails an Dritte nur nach deinem OK.
 
 ### Deine Entscheidungen (keine Eile)

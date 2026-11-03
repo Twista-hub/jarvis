@@ -11,7 +11,7 @@ import { adresse, type Kunde } from "./kunden.ts";
 import { xrechnungXml } from "./xrechnung.ts";
 
 export type Position = { text: string; menge: number; einheit: string; preis: number; betrag: number };
-export type Rechnung = { id: string; kunde_id: string | null; nummer: string; monat: string; datum: string; positionen: Position[]; netto: number | string; ust_satz: number | string; erstellt: string };
+export type Rechnung = { id: string; kunde_id: string | null; nummer: string; monat: string; datum: string; positionen: Position[]; netto: number | string; ust_satz: number | string; erstellt: string; bezahlt_am?: string | null; mahnstufe?: number; gemahnt_am?: string | null; zahlungsziel_tage?: number };
 export type Preis = { satz: number; nacht: number; sonntag: number; feiertag: number };
 const euro = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
 const zahl = (n: number) => n.toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -49,16 +49,62 @@ export function rechnungDocx(r: Rechnung, kunde: Kunde | null, a: Absender): Uin
     + absatz([a.steuernummer ? `Steuernummer: ${a.steuernummer}` : "", a.ustid ? `USt-IdNr.: ${a.ustid}` : "", a.telefon ? `Telefon: ${a.telefon}` : "", a.email ? `E-Mail: ${a.email}` : ""].filter(Boolean).join(" · ") || "Steuernummer bitte im Firmenprofil eintragen.", { grau: true, groesse: 16 }));
 }
 
-export function rechnungenSeite(liste: Rechnung[], kunden: Kunde[], o: { fehlt: string[] }): string {
+const tagePlus = (d: string, n: number) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);
+const MAHNSTUFE = ["", "Zahlungserinnerung", "1. Mahnung", "2. Mahnung"];
+
+/** Payment status of an invoice on a given day (Berlin date): paid, open until the due date, or overdue by n days. */
+export function zahlstatus(r: Rechnung, heute: string): { art: "bezahlt" | "offen" | "ueberfaellig"; faellig: string; tage: number } {
+  const faellig = tagePlus(r.datum, r.zahlungsziel_tage ?? 14);
+  if (r.bezahlt_am) return { art: "bezahlt", faellig, tage: 0 };
+  const tage = Math.round((Date.parse(`${heute}T12:00:00Z`) - Date.parse(`${faellig}T12:00:00Z`)) / 86400_000);
+  return tage > 0 ? { art: "ueberfaellig", faellig, tage } : { art: "offen", faellig, tage };
+}
+
+/** Dunning letter for the current level (1 reminder, 2 first, 3 second dunning); new deadline 7 days, no fees added. */
+export function mahnungDocx(r: Rechnung, kunde: Kunde | null, a: Absender, heute: string): Uint8Array {
+  const netto = Number(r.netto), betragGesamt = netto + (a.kleinunternehmer ? 0 : rund((netto * Number(r.ust_satz)) / 100));
+  const stufe = Math.min(3, Math.max(1, r.mahnstufe ?? 1));
+  const frist = datum(tagePlus(heute, 7));
+  const text = stufe === 1
+    ? `sicher ist es Ihrer Aufmerksamkeit entgangen: Für unsere Rechnung ${r.nummer} vom ${datum(r.datum)} konnten wir noch keinen Zahlungseingang feststellen. Wir bitten Sie, den Betrag bis zum ${frist} zu überweisen. Sollten Sie inzwischen bezahlt haben, betrachten Sie dieses Schreiben bitte als gegenstandslos.`
+    : stufe === 2
+      ? `leider ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} trotz Zahlungserinnerung weiterhin offen. Wir bitten Sie, den Betrag bis spätestens ${frist} zu begleichen.`
+      : `trotz Zahlungserinnerung und Mahnung ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} noch immer nicht bezahlt. Bitte überweisen Sie den Betrag bis spätestens ${frist}. Nach Ablauf dieser Frist behalten wir uns weitere Schritte vor.`;
+  return wordDokument(absatz([a.name, adresse(a)].filter(Boolean).join(" · "), { grau: true, groesse: 16, abstand: 240 })
+    + absatz([kunde?.name ?? "", kunde?.ansprechpartner ? `z. Hd. ${kunde.ansprechpartner}` : "", kunde?.strasse ?? "", [kunde?.plz, kunde?.ort].filter(Boolean).join(" ")].filter(Boolean).join("\n"), { abstand: 400 })
+    + absatz(datum(heute), { abstand: 240 })
+    + ueberschrift(`${MAHNSTUFE[stufe]} zur Rechnung ${r.nummer}`, 28)
+    + absatz(`Sehr geehrte Damen und Herren,\n\n${text}`, { abstand: 240 })
+    + tabelle([["Rechnung", r.nummer], ["Rechnungsdatum", datum(r.datum)], ["Fällig seit", datum(zahlstatus(r, heute).faellig)], ["Offener Betrag", euro(betragGesamt)], ["Zahlbar bis", frist]], [3200, 6400])
+    + absatz(`${a.zahlungshinweis ? `${a.zahlungshinweis}\n\n` : ""}Mit freundlichen Grüßen\n${a.name}`, { abstand: 300 }));
+}
+
+export function rechnungenSeite(liste: Rechnung[], kunden: Kunde[], o: { fehlt: string[]; heute?: string; kleinunternehmer?: boolean }): string {
   const kName = (id: string | null) => kunden.find((k) => k.id === id)?.name ?? "Kunde gelöscht";
+  const heute = o.heute ?? new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
+  const brutto = (r: Rechnung) => Number(r.netto) * (o.kleinunternehmer ? 1 : 1 + Number(r.ust_satz) / 100);
+  const offen = liste.filter((r) => zahlstatus(r, heute).art !== "bezahlt"), ueber = offen.filter((r) => zahlstatus(r, heute).art === "ueberfaellig");
+  const summe = (l: Rechnung[]) => euro(l.reduce((n, r) => n + brutto(r), 0));
+  const status = (r: Rechnung) => {
+    const z = zahlstatus(r, heute);
+    return z.art === "bezahlt" ? `✅ bezahlt am ${datum(r.bezahlt_am!)}` : z.art === "ueberfaellig" ? `<strong class="frist-bald">⚠️ ${z.tage} Tage überfällig</strong>${r.mahnstufe ? ` · ${MAHNSTUFE[r.mahnstufe]} am ${datum(r.gemahnt_am ?? heute)}` : ""}` : `offen, fällig ${datum(z.faellig)}`;
+  };
+  const knoepfe = (r: Rechnung) => {
+    const z = zahlstatus(r, heute);
+    const form = (feld: string, text: string, label: string) => `<form method="post" action="/konto/rechnungen"><input type="hidden" name="${feld}" value="${r.id}"><button class="zweit" ${label ? `aria-label="${label}"` : ""}>${text}</button></form>`;
+    return z.art === "bezahlt" ? form("offen", "↩︎", "Wieder als offen markieren")
+      : form("bezahlt", "✓ Bezahlt", "") + (z.art === "ueberfaellig" && (r.mahnstufe ?? 0) < 3 ? form("mahnen", `✉️ ${MAHNSTUFE[(r.mahnstufe ?? 0) + 1]}`, "") : "")
+        + (r.mahnstufe ? `<a class="knopf zweit" href="/konto/rechnungen/${r.id}.mahnung.docx" download>📄 ${MAHNSTUFE[r.mahnstufe]}</a>` : "");
+  };
   return `<p class="klein">Rechnungsentwürfe aus dem Leistungsnachweis (dort pro Kunde „🧾 Rechnung“). Die Nummern laufen pro Jahr fortlaufend. Jarvis verschickt nichts; bitte prüfen und selbst versenden. „🧾 E-Rechnung“ lädt die Rechnung als XRechnung (für Behörden; Leitweg-ID bei Bedarf in der Kunden-Notiz als „Leitweg-ID: …“).</p>
 ${o.fehlt.length ? `<p class="hinweis">⚠️ Für vollständige Rechnungen fehlt im <a href="/konto/firmenprofil">Firmenprofil</a>: ${o.fehlt.join(", ")}</p>` : ""}
-${liste.length ? `<ul class="kontakt-liste">${liste.map((r) => `<li><div><strong>${escape(r.nummer)} · ${escape(kName(r.kunde_id))}</strong><span class="klein">${datum(r.datum)} · ${monatName(r.monat)} · ${euro(Number(r.netto))} netto</span></div><span class="knopf-zeile"><a class="knopf zweit" href="/konto/rechnungen/${r.id}.docx" download>📄 Word</a><a class="knopf zweit" href="/konto/rechnungen/${r.id}.xml" download title="E-Rechnung im Format XRechnung (z. B. für Behörden)">🧾 E-Rechnung</a><form method="post" action="/konto/rechnungen"><input type="hidden" name="loeschen" value="${r.id}"><button class="zweit" aria-label="Entwurf löschen">✕</button></form></span></li>`).join("")}</ul>` : `<p class="treffer-leer">Noch keine Rechnungen.</p>`}`;
+${liste.length ? `<p class="gewerk-zahlen"><span><strong>${summe(offen)}</strong> offen (${offen.length})</span>${ueber.length ? ` <span><strong>${summe(ueber)}</strong> überfällig (${ueber.length})</span>` : ""}</p>` : ""}
+${liste.length ? `<ul class="kontakt-liste">${liste.map((r) => `<li><div><strong>${escape(r.nummer)} · ${escape(kName(r.kunde_id))}</strong><span class="klein">${datum(r.datum)} · ${monatName(r.monat)} · ${euro(Number(r.netto))} netto · ${status(r)}</span></div><span class="knopf-zeile">${knoepfe(r)}<a class="knopf zweit" href="/konto/rechnungen/${r.id}.docx" download>📄 Word</a><a class="knopf zweit" href="/konto/rechnungen/${r.id}.xml" download title="E-Rechnung im Format XRechnung (z. B. für Behörden)">🧾 E-Rechnung</a><form method="post" action="/konto/rechnungen"><input type="hidden" name="loeschen" value="${r.id}"><button class="zweit" aria-label="Entwurf löschen">✕</button></form></span></li>`).join("")}</ul>` : `<p class="treffer-leer">Noch keine Rechnungen.</p>`}`;
 }
 
 export async function rechnungen(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
-  const docx = url.pathname.match(/^\/konto\/rechnungen\/([0-9a-f-]{36})\.(docx|xml)$/);
+  const docx = url.pathname.match(/^\/konto\/rechnungen\/([0-9a-f-]{36})\.(docx|xml|mahnung\.docx)$/);
   if (url.pathname !== "/konto/rechnungen" && !docx) return null;
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
@@ -75,11 +121,15 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     return { name: a?.name ?? "", strasse: a?.strasse ?? "", plz: a?.plz ?? "", ort: a?.ort ?? "", telefon: a?.telefon ?? "", email: p?.email ?? "", ustid: p?.ustid ?? "", steuernummer: p?.steuernummer ?? "", kleinunternehmer: !!p?.kleinunternehmer, zahlungshinweis: p?.zahlungshinweis ?? "" };
   };
   if (docx) {
-    const r = await db<Rechnung[]>(f.s, env, `rechnungen?id=eq.${docx[1]}&firma_id=eq.${firma}&select=id,kunde_id,nummer,monat,datum,positionen,netto,ust_satz,erstellt`);
+    const r = await db<Rechnung[]>(f.s, env, `rechnungen?id=eq.${docx[1]}&firma_id=eq.${firma}&select=id,kunde_id,nummer,monat,datum,positionen,netto,ust_satz,erstellt,bezahlt_am,mahnstufe,gemahnt_am,zahlungsziel_tage`);
     const x = r.ok ? r.daten[0] : undefined;
     if (!x) return new Response("Nicht gefunden", { status: 404 });
     const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz`) : null;
     const kunde = k?.ok ? k.daten[0] ?? null : null;
+    if (docx[2] === "mahnung.docx") {
+      if (!x.mahnstufe) return new Response("Noch keine Mahnung", { status: 404 });
+      return wordAntwort(mahnungDocx(x, kunde, await absender(), heute), `${MAHNSTUFE[x.mahnstufe].replace(/\W+/g, "-")}-${x.nummer}.docx`, f.s.cookies);
+    }
     if (docx[2] === "xml") {
       // Leitweg-ID of public buyers (BT-10): from the customer note ("Leitweg-ID: 05315-…"), otherwise the invoice number.
       const leitweg = /Leitweg(?:-ID)?:?\s*([0-9A-Za-z-]{5,46})/i.exec(kunde?.notiz ?? "")?.[1] ?? "";
@@ -92,6 +142,17 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
   if (request.method === "POST") {
     const form = await request.formData();
     const zurueck = (h: string) => weiterleiten(`/konto/rechnungen?hinweis=${encodeURIComponent(h)}`, f.s.cookies);
+    for (const [feld, daten, text] of [["bezahlt", { bezahlt_am: heute }, "Als bezahlt markiert."], ["offen", { bezahlt_am: null }, "Wieder offen."]] as const) {
+      const id = String(form.get(feld) ?? "");
+      if (/^[0-9a-f-]{36}$/.test(id)) { const r = await db(f.s, env, `rechnungen?id=eq.${id}&firma_id=eq.${firma}`, { method: "PATCH", body: JSON.stringify(daten) }); return zurueck(r.ok ? text : "Speichern hat nicht geklappt."); }
+    }
+    const mahnen = String(form.get("mahnen") ?? "");
+    if (/^[0-9a-f-]{36}$/.test(mahnen)) {
+      const alt = await db<{ mahnstufe: number }[]>(f.s, env, `rechnungen?id=eq.${mahnen}&firma_id=eq.${firma}&select=mahnstufe`);
+      const stufe = Math.min(3, (alt.ok ? alt.daten[0]?.mahnstufe ?? 0 : 0) + 1);
+      const r = await db(f.s, env, `rechnungen?id=eq.${mahnen}&firma_id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ mahnstufe: stufe, gemahnt_am: heute }) });
+      return zurueck(r.ok ? `${MAHNSTUFE[stufe]} vorbereitet: bitte „📄 ${MAHNSTUFE[stufe]}“ herunterladen und selbst versenden.` : "Speichern hat nicht geklappt.");
+    }
     const weg = String(form.get("loeschen") ?? "");
     if (/^[0-9a-f-]{36}$/.test(weg)) { const r = await db(f.s, env, `rechnungen?id=eq.${weg}&firma_id=eq.${firma}`, { method: "DELETE" }); return zurueck(r.ok ? "Entwurf gelöscht. Achtung: Die Nummer wird nicht neu vergeben." : "Löschen hat nicht geklappt."); }
     const kid = String(form.get("kunde") ?? ""), monat = String(form.get("monat") ?? "");
@@ -116,11 +177,11 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     return zurueck("Rechnung konnte nicht angelegt werden.");
   }
   const [l, k, a] = await Promise.all([
-    db<Rechnung[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&select=id,kunde_id,nummer,monat,datum,positionen,netto,ust_satz,erstellt&order=erstellt.desc&limit=500`),
+    db<Rechnung[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&select=id,kunde_id,nummer,monat,datum,positionen,netto,ust_satz,erstellt,bezahlt_am,mahnstufe,gemahnt_am,zahlungsziel_tage&order=erstellt.desc&limit=500`),
     db<Kunde[]>(f.s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz&limit=1000`),
     absender(),
   ]);
   const fehlt = [!a.steuernummer && !a.ustid ? "Steuernummer oder USt-IdNr." : "", !a.strasse || !a.ort ? "Anschrift" : "", !a.zahlungshinweis ? "Zahlungshinweis (z. B. Bankverbindung)" : ""].filter(Boolean);
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${rechnungenSeite(l.ok ? l.daten : [], k.ok ? k.daten : [], { fehlt, heute, kleinunternehmer: a.kleinunternehmer })}`);
 }
