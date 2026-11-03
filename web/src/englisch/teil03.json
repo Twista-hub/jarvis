@@ -228,5 +228,10 @@
  "Bitte eine gültige E-Mail-Adresse angeben, damit wir antworten können.": "Please enter a valid email address so we can reply.",
  "Bitte schreib uns etwas mehr (mindestens 10 Zeichen).": "Please write a little more (at least 10 characters).",
  "Heute sind schon sehr viele Nachrichten eingegangen. Bitte schreib uns direkt an": "We have already received a great many messages today. Please write to us directly at",
- "Die Nachricht konnte gerade nicht gesendet werden. Bitte schreib uns direkt an": "The message could not be sent right now. Please write to us directly at"
+ "Die Nachricht konnte gerade nicht gesendet werden. Bitte schreib uns direkt an": "The message could not be sent right now. Please write to us directly at",
+ "Das Foto geht dafür an den KI-Dienst Claude (Anthropic, USA), der es nicht zum Training nutzt.": "For this the photo is sent to the AI service Claude (Anthropic, USA), which does not use it for training.",
+ "Dafür gehen sie an den KI-Dienst Claude (Anthropic, USA), der sie nicht zum Training nutzt.": "For this they are sent to the AI service Claude (Anthropic, USA), which does not use them for training.",
+ "🤖 Die Dateien werden zur Auswertung an den KI-Dienst Claude (Anthropic, USA) übermittelt und nach 30 Tagen gelöscht. Keine Personalakten oder Gesundheitsdaten hochladen.": "🤖 The files are sent to the AI service Claude (Anthropic, USA) for analysis and deleted after 30 days. Do not upload personnel files or health data.",
+ "🔍 KI-Datum, bitte prüfen": "🔍 AI date, please check",
+ "Von der KI aus dem Dokument gelesen. Unter Ändern prüfen und speichern.": "Read from the document by the AI. Check and save under Edit."
 }
