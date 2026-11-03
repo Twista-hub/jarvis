@@ -36,9 +36,13 @@ export function kontoSeite(personen: Person[], konten: Konto[], abw: Abw[], o: {
   const aktiv = personen.filter((p) => p.status !== "nicht");
   const zeilen = aktiv.map((p) => ({ p, s: stand(p.id, o.jahr, konten, abw, o.land) }));
   const ohne = zeilen.filter((z) => !z.s.eingetragen).length;
+  // A-M3: statutory minimum leave § 3 BUrlG = 24 working days on a 6-day week, i.e. 20 days on a 5-day week (part-time pro rata).
+  const wenig = zeilen.filter((z) => z.s.eingetragen && z.s.anspruch < 20);
+  const mindest = wenig.length ? `<p class="hinweis">⚠️ Weniger als 20 Urlaubstage bei ${wenig.map((z) => escape(name(z.p))).join(", ")}. Gesetzlicher Mindesturlaub bei 5-Tage-Woche: 20 Tage (§ 3 BUrlG), bei weniger Arbeitstagen anteilig. Bitte prüfen.</p>` : "";
   return `<nav class="dispo-nav"><a class="knopf zweit" href="/konto/urlaub?jahr=${o.jahr - 1}" aria-label="Vorjahr">‹</a><strong>Urlaub ${o.jahr}</strong><a class="knopf zweit" href="/konto/urlaub?jahr=${o.jahr + 1}" aria-label="Nächstes Jahr">›</a></nav>
 <nav class="ordner-chips" aria-label="Ansicht"><a href="/konto/urlaub?jahr=${o.jahr}" aria-current="page">Urlaubskonto</a><a href="/konto/urlaub?ansicht=kalender">📅 Teamkalender</a></nav>
 <p class="klein">Gezählt werden Werktage (Mo–Fr) ohne Feiertage. Bestätigter Urlaub gilt als genommen, Anträge stehen extra. Anspruch und Übertrag aus dem Vorjahr trägst du hier ein.</p>
+${mindest}<p class="klein">Resturlaub verfällt nur, wenn ihr die Beschäftigten rechtzeitig auf den Rest und den Verfall hingewiesen habt (BAG). Jarvis zeigt jeder Einsatzkraft mit App-Zugang ihren Rest mit diesem Hinweis; für Beschäftigte ohne App den Hinweis schriftlich geben.</p>
 ${aktiv.length ? `<form method="post" action="/konto/urlaub"><input type="hidden" name="jahr" value="${o.jahr}"><div class="tabelle-scroll"><table class="auswertung-tabelle urlaub-tabelle"><thead><tr><th>Person</th><th title="Anspruch">Anspr.</th><th title="Übertrag aus dem Vorjahr">Übertr.</th><th title="genommen">genom.</th><th title="beantragt">beantr.</th><th>Rest</th></tr></thead><tbody>${zeilen.map(({ p, s }) => `<tr${s.rest < 0 ? ' class="minus"' : ""}><td>${escape(name(p))}</td><td>${o.darfAendern ? `<input name="anspruch_${p.id}" inputmode="decimal" maxlength="5" value="${s.eingetragen ? zahl(s.anspruch) : ""}" aria-label="Anspruch ${escape(name(p))}">` : zahl(s.anspruch)}</td><td>${o.darfAendern ? `<input name="uebertrag_${p.id}" inputmode="decimal" maxlength="5" value="${s.eingetragen && s.uebertrag ? zahl(s.uebertrag) : ""}" aria-label="Übertrag ${escape(name(p))}">` : zahl(s.uebertrag)}</td><td>${zahl(s.genommen)}</td><td>${s.beantragt ? zahl(s.beantragt) : "–"}</td><td><strong>${s.eingetragen ? zahl(s.rest) : "–"}</strong></td></tr>`).join("")}</tbody></table></div>
 ${o.darfAendern ? `<div class="stunden-knoepfe"><button>Speichern</button>${ohne ? `<label class="zeile-inline">Für alle ${ohne} ohne Eintrag<input name="standard" inputmode="decimal" maxlength="5" placeholder="z. B. 24"> Tage</label>` : ""}</div>` : ""}</form>` : `<p class="treffer-leer">Noch kein Personal.</p>`}`;
 }
@@ -65,7 +69,7 @@ ${kritisch.length ? `<p class="hinweis">⚠️ An ${kritisch.length} ${kritisch.
 }
 
 export function meinUrlaubText(s: Stand, jahr: number): string {
-  return s.eingetragen ? `<p class="klein urlaub-konto">Urlaub ${jahr}: ${zahl(s.anspruch)}${s.uebertrag ? ` + ${zahl(s.uebertrag)} aus dem Vorjahr` : ""} Tage · genommen ${zahl(s.genommen)}${s.beantragt ? ` · beantragt ${zahl(s.beantragt)}` : ""} · <strong>Rest ${zahl(s.rest)}</strong></p>` : "";
+  return s.eingetragen ? `<p class="klein urlaub-konto">Urlaub ${jahr}: ${zahl(s.anspruch)}${s.uebertrag ? ` + ${zahl(s.uebertrag)} aus dem Vorjahr` : ""} Tage · genommen ${zahl(s.genommen)}${s.beantragt ? ` · beantragt ${zahl(s.beantragt)}` : ""} · <strong>Rest ${zahl(s.rest)}</strong></p>${s.rest > 0 ? `<p class="klein">Bitte plane deinen Resturlaub rechtzeitig. Nicht genommener Urlaub verfällt in der Regel am 31.12.${jahr}, übertragener Urlaub am 31.03.${jahr + 1} (§ 7 Abs. 3 BUrlG).</p>` : ""}` : "";
 }
 
 export async function urlaub(request: Request, env: KontoEnv): Promise<Response | null> {
