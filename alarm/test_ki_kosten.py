@@ -48,8 +48,6 @@ class KiKosten(unittest.TestCase):
         self.assertTrue(r[1]["vorfilter"])
 
 
-if __name__ == "__main__":
-    unittest.main()
 
 
 class Batch(unittest.TestCase):
@@ -94,3 +92,18 @@ class Batch(unittest.TestCase):
         self.assertNotIn("fallbacks", gesendet[0][0]["params"], "Batch kennt keine Ersatzmodell-Regel")
         self.assertEqual({k: v["grund"] for k, v in r[0].items()}, {0: "Sonnet", 1: "Haiku"})
         self.assertEqual({k: v["grund"] for k, v in r[1].items()}, {0: "Haiku"})
+
+
+class Kostenmodell(unittest.TestCase):
+    def test_rechnung(self):
+        import kostenmodell as k
+        self.assertAlmostEqual(k.euro(1), 1.071)
+        teile = k.kosten({"bewertung": 1000, "steckbrief": 2}, {**k.STUECK, "einrichtung": 0})
+        self.assertAlmostEqual(teile["summe"], 1000 * 0.002 + 2 * 1.80)
+        # The proposed quotas keep at least 60 % margin even when every quota is used up with the largest Steckbrief.
+        for plan in ("Basis", "Pro", "Business"):
+            self.assertGreater(k.obergrenze(plan)["marge"], 0.6, plan)
+        self.assertEqual(len(k.tabelle()), 8)
+
+if __name__ == "__main__":
+    unittest.main()
