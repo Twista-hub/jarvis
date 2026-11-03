@@ -124,7 +124,7 @@ Ziel: Eine Firma braucht neben Jarvis kein zweites Programm mehr für Planung, P
 
 | Nr | Idee | Nutzen für die Firma | Aufwand | baut auf | Rechtliche Hinweise | Abo |
 |---|---|---|---|---|---|---|
-| 39 | **Team-Chat je Einsatz und Standort mit automatischer Übersetzung** in die Sprache der Kraft | Firmen-Infos landen nicht mehr in privaten WhatsApp-Gruppen. | M | Brett (T19), Mitarbeiter-Sprachen (T42), Handy-Nachrichten | DSGVO: Firmendaten bleiben in der Firma; Löschfristen; Übersetzung über offizielle KI-API | Basis |
+| 39 | ✅ (03.11., ohne Übersetzung) **Team-Chat je Einsatz und Standort mit automatischer Übersetzung** in die Sprache der Kraft | Firmen-Infos landen nicht mehr in privaten WhatsApp-Gruppen. | M | Brett (T19), Mitarbeiter-Sprachen (T42), Handy-Nachrichten | DSGVO: Firmendaten bleiben in der Firma; Löschfristen; Übersetzung über offizielle KI-API | Basis |
 | 40 | **Kunden-Portal**: Kunde sieht Stunden, Leistungsnachweise, Berichte, Rechnungen und meldet Mängel | Weniger Anrufe, Kunde fühlt sich gut betreut und bleibt. | M | Kundenlink (T40), Leistungsnachweis (T29), Rechnungen | AVV mit der Firma; Kunde sieht nur seine Objekte; keine Personaldaten außer Vornamen | Pro |
 
 ### 12. Auswertungen & Dashboards
