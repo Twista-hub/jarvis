@@ -14,21 +14,24 @@ const name = (p: Pick<Person, "vorname" | "nachname">) => `${p.vorname} ${p.nach
 
 export type Schnitt = { schnitt: number; anzahl: number; nichtWieder: string[] };
 /** Average stars and the customers that do not want the person again (latest rating per customer counts). */
-export function schnitt(liste: Bewertung[], pid: string, kundenName: (id: string | null, einsatz: string) => string): Schnitt | null {
+export function schnitt(liste: Bewertung[], pid: string, kundenName: (id: string | null, einsatz: string) => string, heute = new Date().toISOString().slice(0, 10)): Schnitt | null {
   const l = liste.filter((b) => b.personal_id === pid);
   if (!l.length) return null;
   const letzte = new Map<string, Bewertung>();
   for (const b of [...l].sort((a, c) => a.datum.localeCompare(c.datum))) letzte.set(b.kunde_id ?? `e:${b.einsatz.toLowerCase()}`, b);
-  return { schnitt: Math.round((l.reduce((s, b) => s + b.sterne, 0) / l.length) * 10) / 10, anzahl: l.length, nichtWieder: [...letzte.values()].filter((b) => b.wieder === "nein").map((b) => kundenName(b.kunde_id, b.einsatz)) };
+  return { schnitt: Math.round((l.reduce((s, b) => s + b.sterne, 0) / l.length) * 10) / 10, anzahl: l.length, nichtWieder: [...letzte.values()].filter((b) => nochGesperrt(b, heute)).map((b) => kundenName(b.kunde_id, b.einsatz)) };
 }
 export const schnittText = (s: Schnitt | null) => s ? `⭐ ${s.schnitt.toLocaleString("de-DE")} (${s.anzahl})${s.nichtWieder.length ? ` · 🚫 nicht wieder bei ${s.nichtWieder.join(", ")}` : ""}` : "";
 
 /** People a customer does not want again (latest rating for that customer says "nein"). */
-export function gesperrtFuer(liste: Bewertung[], kunde: string | null): Set<string> {
+/** "Nicht wieder" expires after 12 months (data minimisation, Rechtsprüfung: low): older ratings no longer block. */
+const SPERRE_TAGE = 365;
+const nochGesperrt = (b: Bewertung, heute: string) => b.wieder === "nein" && Date.parse(`${b.datum}T12:00:00Z`) >= Date.parse(`${heute}T12:00:00Z`) - SPERRE_TAGE * 86400_000;
+export function gesperrtFuer(liste: Bewertung[], kunde: string | null, heute = new Date().toISOString().slice(0, 10)): Set<string> {
   if (!kunde) return new Set();
   const letzte = new Map<string, Bewertung>();
   for (const b of liste.filter((x) => x.kunde_id === kunde).sort((a, c) => a.datum.localeCompare(c.datum))) letzte.set(b.personal_id, b);
-  return new Set([...letzte.values()].filter((b) => b.wieder === "nein").map((b) => b.personal_id));
+  return new Set([...letzte.values()].filter((b) => nochGesperrt(b, heute)).map((b) => b.personal_id));
 }
 
 export function bewertungenSeite(liste: Bewertung[], personen: Person[], kunden: { id: string; name: string }[], o: { heute: string; darfAendern: boolean }): string {
