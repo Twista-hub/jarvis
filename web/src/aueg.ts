@@ -39,7 +39,9 @@ export function fristen(liste: Ueberlassung[], heute: string, tarif: boolean | n
     for (const u of sortiert) {
       const vorher = kette[kette.length - 1];
       const ende = vorher ? vorher.bis ?? heute : null;
-      if (vorher && u.von > plusMonate(ende!, 3)) kette = [];
+      // § 1 Abs. 1b / § 8 Abs. 4 AÜG: counted on if "not more than three months" lie in between (A-M1): the gap starts
+      // the day after the end, so a new start exactly three months later still continues the count.
+      if (vorher && u.von > plusMonate(plusTage(ende!, 1), 3)) kette = [];
       kette.push(u);
     }
     let luecken = 0;
@@ -51,7 +53,7 @@ export function fristen(liste: Ueberlassung[], heute: string, tarif: boolean | n
     const beginn = kette[0].von;
     // Still relevant while assigned, or until a new assignment within three months could continue the count.
     const aktiv = !letzte.bis || letzte.bis >= heute;
-    if (!aktiv && plusMonate(letzte.bis!, 3) < heute) continue;
+    if (!aktiv && plusMonate(plusTage(letzte.bis!, 1), 3) < heute) continue;
     ergebnis.push({ personal_id: letzte.personal_id, entleiher: letzte.entleiher, beginn, aktiv, einsaetze: kette, unterbrechungTage: luecken,
       equalPay: tarif === false ? beginn : plusTage(plusMonate(beginn, 9), luecken), hoechst: plusTage(plusMonate(beginn, 18), luecken - 1) });
   }
@@ -94,7 +96,7 @@ export function personHinweise(liste: Frist[], heute: string): Record<string, st
   return r;
 }
 
-export function auegSeite(liste: Frist[], personal: { id: string; vorname: string; nachname: string }[], o: { heute: string; darfAendern: boolean; entleiher: string[]; bz?: Record<string, number[]>; tarif?: boolean | null }): string {
+export function auegSeite(liste: Frist[], personal: { id: string; vorname: string; nachname: string }[], o: { heute: string; darfAendern: boolean; entleiher: string[]; bz?: Record<string, number[]>; tarif?: boolean | null; erlaubnis?: { bis: string | null } | null }): string {
   const name = (id: string) => { const p = personal.find((x) => x.id === id); return p ? `${p.vorname} ${p.nachname}`.trim() : "Unbekannt"; };
   const dringend = liste.filter((f) => ["rot", "gelb"].includes(fristStatus(f, o.heute).stufe));
   const karte = (f: Frist) => {
@@ -114,8 +116,10 @@ export function auegSeite(liste: Frist[], personal: { id: string; vorname: strin
   return `<p class="klein">Für jede Leiharbeitskraft und jeden Kunden: ab wann Equal Pay gilt (nach 9 Monaten) und wann die Höchstüberlassungsdauer (18 Monate) endet. Frühere Einsätze beim selben Kunden zählen mit, wenn dazwischen nicht mehr als 3 Monate liegen; die Unterbrechungen selbst zählen nicht.</p>
 ${dringend.length ? `<aside class="ablauf-warnung"><strong>⚠️ ${dringend.length} ${dringend.length === 1 ? "Frist" : "Fristen"} in den nächsten 60 Tagen</strong><ul>${dringend.map((f) => `<li><span>${escape(name(f.personal_id))} · ${escape(f.entleiher)}</span><span class="${fristStatus(f, o.heute).stufe === "rot" ? "abgelaufen" : "bald"}">${escape(fristStatus(f, o.heute).text.replace(/ \(in .*\)/, ""))}</span></li>`).join("")}</ul></aside>` : ""}
 ${o.tarif === false ? `<p class="hinweis">⚠️ Laut Firmenprofil wendet ihr <strong>keinen Tarifvertrag der Zeitarbeit</strong> an: Equal Pay gilt dann <strong>ab dem ersten Tag</strong> (§ 8 Abs. 1 AÜG).</p>` : o.tarif == null ? `<p class="hinweis">Equal Pay erst nach 9 Monaten gilt nur, wenn ihr einen Tarifvertrag der Zeitarbeit anwendet (z. B. GVP/BAP oder iGZ). Ohne Tarifvertrag gilt Equal Pay ab dem ersten Tag. Bitte im <a href="/konto/firmenprofil">Firmenprofil</a> angeben.</p>` : ""}
+${erlaubnisHinweis(o.erlaubnis, o.heute)}
 ${formular}
 ${liste.length ? `<ul class="aueg-liste">${liste.map(karte).join("")}</ul>` : `<p class="treffer-leer">Noch keine Einsätze eingetragen.</p>`}
+<p class="klein">Vor jedem Einsatz: den Vertrag mit dem Kunden ausdrücklich als Arbeitnehmerüberlassung bezeichnen und die Leiharbeitskraft namentlich benennen (§ 1 Abs. 1 Satz 5 und 6 AÜG), sonst droht ein Arbeitsverhältnis mit dem Kunden. Keine Überlassung in Betriebe des Bauhauptgewerbes (§ 1b AÜG).</p>
 <p class="klein">Ohne Gewähr, keine Rechtsberatung. Tarifverträge der Einsatzbranche können eine andere Höchstdauer erlauben, Branchenzuschlagstarifverträge verschieben Equal Pay bis auf 15 Monate. Grundlage: § 1 Abs. 1b und § 8 Abs. 4 AÜG.</p>`;
 }
 
@@ -156,14 +160,29 @@ export async function aueg(request: Request, env: KontoEnv): Promise<Response | 
     }
     return weiterleiten(`/konto/aueg?hinweis=${encodeURIComponent(hinweis)}`, f.s.cookies);
   }
-  const [liste, personal, kunden, prof] = await Promise.all([
+  const [liste, personal, kunden, prof, unterlagen] = await Promise.all([
     auegLaden(f.s, env, f.m.firma_id),
     db<{ id: string; vorname: string; nachname: string }[]>(f.s, env, `personal?firma_id=eq.${f.m.firma_id}&select=id,vorname,nachname&order=vorname&limit=2000`),
     db<{ name: string; bz_prozente: (number | string)[] }[]>(f.s, env, `kunden?firma_id=eq.${f.m.firma_id}&select=name,bz_prozente&limit=1000`),
     db<{ zeitarbeit_tarif: boolean | null }[]>(f.s, env, `firmenprofil?firma_id=eq.${f.m.firma_id}&select=zeitarbeit_tarif`),
+    db<{ name: string; gueltig_bis: string | null }[]>(f.s, env, `firmenunterlagen?firma_id=eq.${f.m.firma_id}&select=name,gueltig_bis&limit=500`),
   ]);
   const tarif = prof.ok ? prof.daten[0]?.zeitarbeit_tarif ?? null : null;
+  const erl = unterlagen.ok ? unterlagen.daten.filter((d) => /(ü|ue|u)berlassung|a(ü|ue)g/i.test(d.name)).sort((x, y) => (y.gueltig_bis ?? "9999").localeCompare(x.gueltig_bis ?? "9999"))[0] : undefined;
+  const erlaubnis = !unterlagen.ok ? undefined : erl ? { bis: erl.gueltig_bis } : null;
   const entleiher = [...new Map(liste.map((u) => [entleiherSchluessel(u.entleiher), u.entleiher])).values()].sort((a, b) => a.localeCompare(b, "de"));
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${auegSeite(fristen(liste, heute, tarif), personal.ok ? personal.daten : [], { heute, darfAendern, entleiher, tarif, bz: Object.fromEntries((kunden.ok ? kunden.daten : []).filter((k) => (k.bz_prozente ?? []).length).map((k) => [entleiherSchluessel(k.name), k.bz_prozente.map(Number)])) })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${auegSeite(fristen(liste, heute, tarif), personal.ok ? personal.daten : [], { heute, darfAendern, entleiher, tarif, erlaubnis, bz: Object.fromEntries((kunden.ok ? kunden.daten : []).filter((k) => (k.bz_prozente ?? []).length).map((k) => [entleiherSchluessel(k.name), k.bz_prozente.map(Number)])) })}`);
+}
+
+/** A-M2: without a valid permit (§ 1 AÜG) temporary agency contracts are void (§§ 9, 10 AÜG). The permit is looked up
+ *  among the company documents ("Erlaubnis zur Arbeitnehmerüberlassung", with expiry date). */
+export function erlaubnisHinweis(e: { bis: string | null } | null | undefined, heute: string): string {
+  if (e === undefined) return "";
+  if (e === null) return `<p class="hinweis">⚠️ Keine Erlaubnis zur Arbeitnehmerüberlassung unter <a href="/konto/firmenunterlagen">Firmenunterlagen</a> gefunden. Ohne gültige Erlaubnis sind Überlassungsverträge unwirksam (§§ 9, 10 AÜG). Bitte mit Ablaufdatum hochladen; unbefristete Erlaubnisse ohne Datum.</p>`;
+  if (!e.bis) return "";
+  const tage = Math.round((Date.parse(`${e.bis}T12:00:00Z`) - Date.parse(`${heute}T12:00:00Z`)) / 86400_000);
+  if (tage < 0) return `<p class="fehler">⛔ Die Erlaubnis zur Arbeitnehmerüberlassung ist seit ${e.bis.split("-").reverse().join(".")} abgelaufen. Ohne Erlaubnis keine Überlassung (§§ 9, 10 AÜG).</p>`;
+  if (tage <= 90) return `<p class="hinweis">⚠️ Die Erlaubnis zur Arbeitnehmerüberlassung läuft am ${e.bis.split("-").reverse().join(".")} ab. Verlängerung spätestens 3 Monate vorher bei der Bundesagentur für Arbeit beantragen (§ 2 Abs. 4 AÜG).</p>`;
+  return "";
 }
