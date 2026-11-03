@@ -28,6 +28,7 @@ _robots: dict = {}
 
 
 def holen(url: str, limit: int = 25_000_000, timeout: int = 30) -> bytes:
+    url = urllib.parse.quote(url, safe=":/?&=%#~+@!$,;'()*[]")  # umlauts in paths (e.g. WKO …/KDQ_Kärnten.xml)
     req = urllib.request.Request(url, headers={"User-Agent": UA, "Accept": "application/xml, application/json, */*"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         return r.read(limit + 1)[:limit]
@@ -133,8 +134,10 @@ def lesen(xml: bytes, url: str) -> dict | None:
         nuts = _text(_finde(ort, ["CountrySubentityCode"])) if ort is not None else ""
         org = _finde(w, ["Organization"])
         auftraggeber = _text(_finde(org, ["PartyName", "Name"])) if org is not None else ""
-        if not plz and org is not None:
-            plz, stadt = _text(_finde(org, ["PostalZone"])), stadt or _text(_finde(org, ["CityName"]))
+        # The buyer's address only stands in when the notice names no place of performance at all: ASFINAG (Vienna)
+        # builds in Tyrol, so its seat must not become the place when a NUTS code is given.
+        if not plz and not nuts and not stadt and org is not None:
+            plz, stadt, nuts = _text(_finde(org, ["PostalZone"])), _text(_finde(org, ["CityName"])), _text(_finde(org, ["CountrySubentityCode"]))
         wert = _text(_finde(w, ["EstimatedOverallContractAmount"]))
         frist = f"{frist_d[:10]}T{(frist_z or '23:59:00')[:8]}" if frist_d else ""
         doku = _text(_finde(w, ["CallForTendersDocumentReference", "URI"]))

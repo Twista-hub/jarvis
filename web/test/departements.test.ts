@@ -54,3 +54,14 @@ test("Comunidades: Formular mit Spanien, Speichern", async () => {
   const form = new FormData(); form.append("laender", "ESP"); form.append("comunidades", "ES51");
   assert.deepEqual(ausFormular(form).comunidades, ["ES51"]);
 });
+
+test("Bundesländer: Formular mit Österreich, Speichern", async () => {
+  const { bundeslaenderBereinigen } = await import("../src/bundeslaender.ts");
+  assert.deepEqual(bundeslaenderBereinigen(["at33", "AT13", "XX"]), ["AT13", "AT33"]);
+  const leer = { beschreibung: "", website_beschreibung: "", websuche_beschreibung: "", websuche_quellen: [], leistungen: [], ausschluss: [], ausschluss_cpv: [], standorte: [] };
+  const html = profilFormular("f", { ...leer, laender: ["AUT"], bundeslaender: ["AT33"] }, "");
+  assert.match(html, /name="bundeslaender" value="AT33" checked/);
+  assert.doesNotMatch(profilFormular("f", { ...leer, laender: ["DEU"] }, ""), /name="bundeslaender"/);
+  const form = new FormData(); form.append("laender", "AUT"); form.append("bundeslaender", "AT32");
+  assert.deepEqual(ausFormular(form).bundeslaender, ["AT32"]);
+});

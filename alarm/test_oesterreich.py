@@ -53,6 +53,28 @@ class Oesterreich(unittest.TestCase):
         self.assertEqual((a["titel"], a["cpv"], a["nuts"], a["plz"], a["frist"]), ("Winterdienst Gemeindestraßen", ["90620000"], "AT341", "6764", "2099-11-20"))
         self.assertIsNone(oesterreich.lesen(ZUSCHLAG, "https://x.at/kd/c"), "Zuschläge werden übersprungen")
 
+    def test_ort_der_ausfuehrung_statt_sitz(self):
+        # ASFINAG case: buyer in Vienna, place of performance only as NUTS (Tyrol) → no Vienna postal code.
+        xml = EFORMS.replace(b"<cbc:CityName>Graz</cbc:CityName><cbc:PostalZone>8020</cbc:PostalZone><cbc:CountrySubentityCode listName=\"nuts\">AT221", b"<cbc:CountrySubentityCode listName=\"nuts\">AT332")
+        a = oesterreich.lesen(xml, "https://x.at/kd/t")
+        self.assertEqual((a["plz"], a["ort"], a["nuts"]), ("", "", "AT332"))
+        # Without any place of performance the buyer's address stands in.
+        ohne = EFORMS.split(b"<cac:RealizedLocation>")[0] + EFORMS.split(b"</cac:RealizedLocation>")[1]
+        self.assertEqual(oesterreich.lesen(ohne, "https://x.at/kd/u")["plz"], "8010")
+
+    def test_bundeslaender_im_suchgebiet(self):
+        import profile_db
+        tirol = oesterreich.als_release(oesterreich.lesen(EFORMS.replace(b"AT221", b"AT332"), "https://x.at/kd/t"), "2026-11-03")
+        profil = {"suchorte": [{"name": "Kassel", "plz_praefixe": ["34"]}]}
+        self.assertTrue(profile_db.im_suchgebiet(profil, tirol), "keine Bundesland-Wahl = ganz Österreich, deutsche Orte zählen nicht")
+        self.assertTrue(profile_db.im_suchgebiet(dict(profil, bundeslaender=["AT33"]), tirol))
+        self.assertFalse(profile_db.im_suchgebiet(dict(profil, bundeslaender=["AT13", "AT12"]), tirol))
+        ted = {"_land": "AUT", "tender": {"items": [{"deliveryLocation": {"description": "Wien (AT130)"}}]}}
+        self.assertTrue(profile_db.im_suchgebiet({"bundeslaender": ["AT13"]}, ted))
+        self.assertFalse(profile_db.im_suchgebiet({"bundeslaender": ["AT33"]}, ted))
+        self.assertEqual(profile_db.aus_db("f", "P", "Reinigung", {"bundeslaender": ["at33", "XX1"]}).get("bundeslaender"), ["AT33"])
+        self.assertNotIn("bundeslaender", profile_db.aus_db("f", "P", "Reinigung", {}))
+
     def test_robots_und_ki_signal(self):
         alt = oesterreich.holen
         try:
