@@ -8,6 +8,7 @@ import { absatz, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word
 import { dezimal, landDerFirma, minuten, naechsterMonat, type Eintrag } from "./stunden.ts";
 import { summe, zuschlag } from "./zuschlaege.ts";
 import { adresse, type Kunde } from "./kunden.ts";
+import { xrechnungXml } from "./xrechnung.ts";
 
 export type Position = { text: string; menge: number; einheit: string; preis: number; betrag: number };
 export type Rechnung = { id: string; kunde_id: string | null; nummer: string; monat: string; datum: string; positionen: Position[]; netto: number | string; ust_satz: number | string; erstellt: string };
@@ -50,14 +51,14 @@ export function rechnungDocx(r: Rechnung, kunde: Kunde | null, a: Absender): Uin
 
 export function rechnungenSeite(liste: Rechnung[], kunden: Kunde[], o: { fehlt: string[] }): string {
   const kName = (id: string | null) => kunden.find((k) => k.id === id)?.name ?? "Kunde gelöscht";
-  return `<p class="klein">Rechnungsentwürfe aus dem Leistungsnachweis (dort pro Kunde „🧾 Rechnung“). Die Nummern laufen pro Jahr fortlaufend. Jarvis verschickt nichts; bitte prüfen und selbst versenden.</p>
+  return `<p class="klein">Rechnungsentwürfe aus dem Leistungsnachweis (dort pro Kunde „🧾 Rechnung“). Die Nummern laufen pro Jahr fortlaufend. Jarvis verschickt nichts; bitte prüfen und selbst versenden. „🧾 E-Rechnung“ lädt die Rechnung als XRechnung (für Behörden; Leitweg-ID bei Bedarf in der Kunden-Notiz als „Leitweg-ID: …“).</p>
 ${o.fehlt.length ? `<p class="hinweis">⚠️ Für vollständige Rechnungen fehlt im <a href="/konto/firmenprofil">Firmenprofil</a>: ${o.fehlt.join(", ")}</p>` : ""}
-${liste.length ? `<ul class="kontakt-liste">${liste.map((r) => `<li><div><strong>${escape(r.nummer)} · ${escape(kName(r.kunde_id))}</strong><span class="klein">${datum(r.datum)} · ${monatName(r.monat)} · ${euro(Number(r.netto))} netto</span></div><span class="knopf-zeile"><a class="knopf zweit" href="/konto/rechnungen/${r.id}.docx" download>📄 Word</a><form method="post" action="/konto/rechnungen"><input type="hidden" name="loeschen" value="${r.id}"><button class="zweit" aria-label="Entwurf löschen">✕</button></form></span></li>`).join("")}</ul>` : `<p class="treffer-leer">Noch keine Rechnungen.</p>`}`;
+${liste.length ? `<ul class="kontakt-liste">${liste.map((r) => `<li><div><strong>${escape(r.nummer)} · ${escape(kName(r.kunde_id))}</strong><span class="klein">${datum(r.datum)} · ${monatName(r.monat)} · ${euro(Number(r.netto))} netto</span></div><span class="knopf-zeile"><a class="knopf zweit" href="/konto/rechnungen/${r.id}.docx" download>📄 Word</a><a class="knopf zweit" href="/konto/rechnungen/${r.id}.xml" download title="E-Rechnung im Format XRechnung (z. B. für Behörden)">🧾 E-Rechnung</a><form method="post" action="/konto/rechnungen"><input type="hidden" name="loeschen" value="${r.id}"><button class="zweit" aria-label="Entwurf löschen">✕</button></form></span></li>`).join("")}</ul>` : `<p class="treffer-leer">Noch keine Rechnungen.</p>`}`;
 }
 
 export async function rechnungen(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
-  const docx = url.pathname.match(/^\/konto\/rechnungen\/([0-9a-f-]{36})\.docx$/);
+  const docx = url.pathname.match(/^\/konto\/rechnungen\/([0-9a-f-]{36})\.(docx|xml)$/);
   if (url.pathname !== "/konto/rechnungen" && !docx) return null;
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
@@ -78,7 +79,15 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     const x = r.ok ? r.daten[0] : undefined;
     if (!x) return new Response("Nicht gefunden", { status: 404 });
     const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz`) : null;
-    return wordAntwort(rechnungDocx(x, k?.ok ? k.daten[0] ?? null : null, await absender()), `${x.nummer}.docx`, f.s.cookies);
+    const kunde = k?.ok ? k.daten[0] ?? null : null;
+    if (docx[2] === "xml") {
+      // Leitweg-ID of public buyers (BT-10): from the customer note ("Leitweg-ID: 05315-…"), otherwise the invoice number.
+      const leitweg = /Leitweg(?:-ID)?:?\s*([0-9A-Za-z-]{5,46})/i.exec(kunde?.notiz ?? "")?.[1] ?? "";
+      const h = new Headers({ "content-type": "application/xml; charset=utf-8", "content-disposition": `attachment; filename="${x.nummer}.xml"` });
+      for (const c of f.s.cookies ?? []) h.append("set-cookie", c);
+      return new Response(xrechnungXml(x, kunde, await absender(), leitweg), { headers: h });
+    }
+    return wordAntwort(rechnungDocx(x, kunde, await absender()), `${x.nummer}.docx`, f.s.cookies);
   }
   if (request.method === "POST") {
     const form = await request.formData();
