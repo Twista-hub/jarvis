@@ -4,7 +4,12 @@ compatibility_date = "2026-09-20"
 compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 # Own address (DNS at Cloudflare). The workers.dev address stays reachable during the switch.
-routes = [{ pattern = "app.wpdigitalranger.com", custom_domain = true }]
+# crewtender.eu is the public address of Crewtender (since 03.11.2026); www forwards to it (index.ts).
+routes = [
+  { pattern = "app.wpdigitalranger.com", custom_domain = true },
+  { pattern = "crewtender.eu", custom_domain = true },
+  { pattern = "www.crewtender.eu", custom_domain = true },
+]
 
 # Uploaded documents and Steckbriefe; a lifecycle rule deletes auftraege/ after 30 days.
 [[r2_buckets]]
