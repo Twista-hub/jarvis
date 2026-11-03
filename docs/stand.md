@@ -81,6 +81,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 03.11.2026 – Claude Code (Startseite, App-Symbol)
+- Neue Startseite (hellblauer Glas-Look, Crewtender-Zeichen, Knöpfe untereinander, Karten „So funktioniert's“, „Und wenn der Auftrag da ist“, „Und noch viel mehr“), neue öffentliche Kopfzeile mit Logo und „Anmelden“.
+- App-Symbol = Crewtender-Zeichen (`web/src/icons.ts`, Adressen `/icon-v2-192.png` und `/icon-v2-512.png` wegen Handy-Cache), Logo oben in der App getauscht. Von Benjamin am Handy bestätigt.
+
 ### 03.11.2026 – Claude Code (crewtender.eu an der App)
 - crewtender.eu und www.crewtender.eu sind Custom Domains des Workers jarvis-alarm (Workflow `domain-anbinden.yml`, jetzt auch in `web/wrangler.toml`). www leitet auf crewtender.eu weiter. app.wpdigitalranger.com läuft parallel weiter.
 - Der CI-Schlüssel darf für crewtender.eu Custom Domains anbinden, aber keine DNS-Einträge ändern (nur wpdigitalranger.com). Mail-Einträge (MX/SPF/DKIM) bleiben unberührt.
