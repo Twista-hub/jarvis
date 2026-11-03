@@ -76,6 +76,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103080000_auftragsboerse.sql
 \ir ../migrations/20261103090000_nachkalkulation.sql
 \ir ../migrations/20261103100000_team_chat.sql
+\ir ../migrations/20261103110000_rechnungen_gobd.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1149,7 +1150,7 @@ update public.personal set berufe = '{Servicekraft}', status = 'verfuegbar' wher
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000b');
 do $$ begin
-  insert into public.rechnungen (firma_id, nummer, monat, datum) values (current_setting('test.firma')::uuid, 'RE-1', '2026-11', current_date);
+  insert into public.rechnungen (firma_id, nummer, monat, datum) values (current_setting('test.firma')::uuid, 'ENTWURF-1', '2026-11', current_date);
   raise exception 'FEHLER: Rechnung ohne Finanzfreigabe';
 exception when insufficient_privilege then null; end $$;
 insert into public.schichten (firma_id, bereich_id, datum, beginn, ende, ort, beruf) values (:'firma', :'berlin', current_date + 5, '06:00', '14:00', 'Offen Berlin', 'Servicekraft') returning id as offen_ok \gset
@@ -1160,19 +1161,59 @@ select pruefe((select count(*) = 1 from public.push_warteschlange where user_id 
 update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000b');
-insert into public.rechnungen (firma_id, nummer, monat, datum, netto) values (:'firma', 'RE-2026-0001', '2026-11', current_date, 100);
+-- GoBD (Rechtsprüfung 03.11.2026): draft → issue with counter number → frozen; cancel instead of delete.
 do $$ begin
-  insert into public.rechnungen (firma_id, nummer, monat, datum) values (current_setting('test.firma')::uuid, 'RE-2026-0001', '2026-11', current_date);
-  raise exception 'FEHLER: doppelte Rechnungsnummer';
-exception when unique_violation then null; end $$;
-update public.rechnungen set bezahlt_am = current_date, mahnstufe = 1, gemahnt_am = current_date where nummer = 'RE-2026-0001';
-select pruefe((select bezahlt_am = current_date and mahnstufe = 1 from public.rechnungen where nummer = 'RE-2026-0001'), 'Zahlungsstatus und Mahnstufe änderbar (Finanzfreigabe)');
+  insert into public.rechnungen (firma_id, nummer, monat, datum) values (current_setting('test.firma')::uuid, 'RE-2026-0099', '2026-11', current_date);
+  raise exception 'FEHLER: Rechnung mit eigener Nummer statt Entwurf';
+exception when check_violation or insufficient_privilege then null; end $$;
+do $$ begin
+  insert into public.rechnungen (firma_id, nummer, monat, datum, status) values (current_setting('test.firma')::uuid, 'ENTWURF-x', '2026-11', current_date, 'ausgestellt');
+  raise exception 'FEHLER: Rechnung direkt als ausgestellt angelegt';
+exception when check_violation or insufficient_privilege then null; end $$;
+insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'kunde_berlin', 'ENTWURF-a1', '2026-11', current_date, 100) returning id as re1 \gset
+insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'kunde_berlin', 'ENTWURF-a2', '2026-11', current_date, 50) returning id as re_weg \gset
+do $$ begin
+  perform public.rechnung_ausstellen((select id from public.rechnungen where nummer = 'ENTWURF-a1'));
+  raise exception 'FEHLER: Ausstellen ohne Steuernummer';
+exception when raise_exception then null; end $$;
+reset role;
+update public.firmen set strasse = 'Teststr. 1', plz = '10115', ort = 'Berlin' where id = :'firma';
+insert into public.firmenprofil (firma_id, steuernummer) values (:'firma', '12/345/67890') on conflict (firma_id) do update set steuernummer = excluded.steuernummer;
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select public.rechnung_ausstellen(:'re1') as nr1 \gset
+select pruefe(:'nr1' = 'RE-' || extract(year from now() at time zone 'Europe/Berlin')::int || '-0001', 'Ausstellen vergibt die erste Nummer aus dem Zähler');
+select pruefe((select status = 'ausgestellt' and absender->>'steuernummer' = '12/345/67890' and empfaenger->>'name' is not null and ust_betrag = 19 from public.rechnungen where id = :'re1'), 'Ausgestellte Rechnung friert Absender, Empfänger und Steuer ein');
+delete from public.rechnungen where id = :'re_weg';
+select pruefe((select count(*) = 0 from public.rechnungen where id = :'re_weg'), 'Entwurf lässt sich löschen');
+do $$ begin
+  delete from public.rechnungen where nummer like 'RE-%';
+  raise exception 'FEHLER: ausgestellte Rechnung gelöscht';
+exception when insufficient_privilege then null; end $$;
+update public.rechnungen set bezahlt_am = current_date, mahnstufe = 1, gemahnt_am = current_date where id = :'re1';
+select pruefe((select bezahlt_am = current_date and mahnstufe = 1 from public.rechnungen where id = :'re1'), 'Zahlungsstatus und Mahnstufe änderbar (Finanzfreigabe)');
+reset role;
+update public.firmenprofil set steuernummer = '99/999/99999', kleinunternehmer = true where firma_id = :'firma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select absender->>'steuernummer' = '12/345/67890' and not kleinunternehmer and ust_betrag = 19 from public.rechnungen where id = :'re1'), 'Spätere Änderung im Firmenprofil ändert alte Rechnungen nicht');
+select public.rechnung_stornieren(:'re1') as nr2 \gset
+select pruefe((select art = 'storno' and netto = -100 and ust_betrag = -19 and bezug_nummer = :'nr1' from public.rechnungen where nummer = :'nr2') and (select storniert_durch is not null from public.rechnungen where id = :'re1'), 'Storno erzeugt Gegenrechnung mit eigener Nummer');
+select pruefe(right(:'nr2', 4) = '0002', 'Storno-Nummer folgt lückenlos');
+do $$ begin
+  perform public.rechnung_stornieren((select id from public.rechnungen where art = 'rechnung' and status = 'ausgestellt' limit 1));
+  raise exception 'FEHLER: doppelt storniert';
+exception when raise_exception then null; end $$;
+reset role;
+update public.firmenprofil set kleinunternehmer = false where firma_id = :'firma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
 insert into public.rechnungsvorlagen (firma_id, kunde_id, text, betrag) values (:'firma', :'kunde_berlin', 'Unterhaltsreinigung pauschal', 1200);
 insert into public.belege (firma_id, datum, lieferant, kategorie, brutto) values (:'firma', current_date, 'Tankstelle', 'fahrzeug', 80);
 select pruefe((select count(*) = 1 from public.belege), 'Beleg mit Finanzfreigabe erfassen');
 select pruefe((select count(*) = 1 from public.rechnungsvorlagen), 'Rechnungsvorlage mit Finanzfreigabe anlegen');
 do $$ begin
-  update public.rechnungen set netto = 1 where nummer = 'RE-2026-0001';
+  update public.rechnungen set netto = 1 where nummer like 'RE-%';
   raise exception 'FEHLER: Rechnungsbetrag nachträglich änderbar';
 exception when insufficient_privilege then null; end $$;
 insert into public.nachweis_freigaben (firma_id, monat, titel, inhalt, token_hash) values (:'firma', '2026-11', 'Messe Berlin', '{"zeilen":[]}', encode(sha256(convert_to('geheim-123', 'UTF8')), 'hex'));
@@ -1206,7 +1247,9 @@ reset role;
 -- Idea 40: customer portal (secret link per customer, read and report without login).
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000b');
-insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'kunde_berlin', 'RE-2026-0002', '2026-11', current_date, 500);
+insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'kunde_berlin', 'ENTWURF-p1', '2026-11', current_date, 500) returning id as re_portal \gset
+select public.rechnung_ausstellen(:'re_portal');
+insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'kunde_berlin', 'ENTWURF-p2', '2026-11', current_date, 7);
 insert into public.nachweis_freigaben (firma_id, kunde_id, monat, titel, inhalt, token_hash) values (:'firma', :'kunde_berlin', '2026-10', 'Messe Berlin GmbH', '{"zeilen":[{"name":"Protokoll Berlin"}],"summe":{"std":12.5}}', encode(sha256(convert_to('nachweis-portal', 'UTF8')), 'hex'));
 insert into public.kunden_portale (firma_id, kunde_id, token_hash, rechnungen_zeigen, berichte_zeigen) values (:'firma', :'kunde_berlin', encode(sha256(convert_to('portal-geheim-1', 'UTF8')), 'hex'), true, true);
 select test_als('00000000-0000-0000-0000-0000000000e1');
@@ -1228,7 +1271,7 @@ update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000
 update public.kunden_portale set rechnungen_zeigen = true;
 set role anon;
 select pruefe(public.portal_abrufen('falsch') is null, 'Portal nur mit richtigem Link');
-select pruefe((select (d->>'kunde') = 'Messe Berlin GmbH' and jsonb_array_length(d->'rechnungen') = 1 and (d->'rechnungen'->0->>'nummer') = 'RE-2026-0002'
+select pruefe((select (d->>'kunde') = 'Messe Berlin GmbH' and jsonb_array_length(d->'rechnungen') = 3 and d::text not like '%ENTWURF%' and (d->'rechnungen'->0->>'nummer') like 'RE-%-0003'
   and jsonb_array_length(d->'nachweise') = 1 and (d->'nachweise'->0->'summe'->>'std') = '12.5' and d::text not like '%Protokoll Berlin%'
   and jsonb_array_length(d->'vorfaelle') = 1 and (d->'orte'->0->>'scans')::int = 1 from public.portal_abrufen('portal-geheim-1') d),
   'Portal zeigt nur Rechnungen, Summen und Berichte dieses Kunden, keine Namen');
