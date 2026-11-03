@@ -7,7 +7,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { absatz, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
-import { dezimal, landDerFirma, minuten, naechsterMonat, type Eintrag } from "./stunden.ts";
+import { mitLand, einsatzLaender, dezimal, landDerFirma, minuten, naechsterMonat, type Eintrag } from "./stunden.ts";
 import { summe, zuschlag } from "./zuschlaege.ts";
 import { adresse, type Kunde } from "./kunden.ts";
 import { fehlendFuerXRechnung, xrechnungXml } from "./xrechnung.ts";
@@ -249,10 +249,11 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     const kid = String(form.get("kunde") ?? ""), monat = String(form.get("monat") ?? "");
     if (!/^[0-9a-f-]{36}$/.test(kid) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(monat)) return zurueck("Kunde oder Monat fehlt.");
     const [l, pr, land] = await Promise.all([
-      db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&kunde_id=eq.${kid}&status=eq.freigegeben&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status&limit=10000`),
+      db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&kunde_id=eq.${kid}&status=eq.freigegeben&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id&limit=10000`),
       db<{ satz: number | string; zuschlag_nacht: number | string; zuschlag_sonntag: number | string; zuschlag_feiertag: number | string }[]>(f.s, env, `kunden_preise?firma_id=eq.${firma}&kunde_id=eq.${kid}&select=satz,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag`),
       landDerFirma(f.s, env, firma),
     ]);
+    if (l.ok) l.daten = mitLand(l.daten, await einsatzLaender(f.s, env, firma));
     const p = pr.ok ? pr.daten[0] : undefined;
     if (!p) return zurueck("Für diesen Kunden ist kein Verrechnungssatz hinterlegt (Kunden & Einsatzorte).");
     if (!l.ok || !l.daten.length) return zurueck("Keine freigegebenen Stunden für diesen Kunden und Monat.");

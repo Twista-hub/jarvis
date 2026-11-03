@@ -4,7 +4,7 @@
 // T39: Stundennachweis per person as Word, with the staff member's signature when there is one for that month.
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, weiterleiten, type KontoEnv } from "./konto.ts";
-import { dezimal, landDerFirma, minuten, naechsterMonat, type Eintrag } from "./stunden.ts";
+import { dezimal, einsatzLaender, landDerFirma, minuten, mitLand, naechsterMonat, type Eintrag } from "./stunden.ts";
 import { summe, zuschlag } from "./zuschlaege.ts";
 import { arbeitstage } from "./urlaub.ts";
 import { zeitkonto, type Start, type ZPerson } from "./zeitkonto.ts";
@@ -71,10 +71,11 @@ export async function lohn(request: Request, env: KontoEnv): Promise<Response | 
   if (nachweis) {
     const [p, l, u, fn] = await Promise.all([
       db<LPerson[]>(f.s, env, `personal?id=eq.${nachweis[1]}&firma_id=eq.${firma}&select=id,vorname,nachname,personalnummer`),
-      db<Eintrag[]>(f.s, env, `stundenzettel?personal_id=eq.${nachweis[1]}&firma_id=eq.${firma}&status=eq.freigegeben&datum=gte.${von}&datum=lt.${bis}&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status&limit=500`),
+      db<Eintrag[]>(f.s, env, `stundenzettel?personal_id=eq.${nachweis[1]}&firma_id=eq.${firma}&status=eq.freigegeben&datum=gte.${von}&datum=lt.${bis}&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id&limit=500`),
       db<{ id: string; erstellt: string }[]>(f.s, env, `unterschriften?personal_id=eq.${nachweis[1]}&firma_id=eq.${firma}&art=eq.stunden&bezug=eq.${monat}&select=id,erstellt&order=erstellt.desc&limit=1`),
       db<{ name: string }[]>(f.s, env, `firmen?id=eq.${firma}&select=name`),
     ]);
+    if (l.ok) l.daten = mitLand(l.daten, await einsatzLaender(f.s, env, firma));
     const person = p.ok ? p.daten[0] : undefined;
     if (!person) return new Response("Nicht gefunden", { status: 404 });
     const ux = u.ok ? u.daten[0] : undefined, obj = ux ? await env.DATEN?.get(schluessel.person(firma, ux.id)) : null;
@@ -84,12 +85,12 @@ export async function lohn(request: Request, env: KontoEnv): Promise<Response | 
   const jahr = `${Number(monat.slice(0, 4)) - 1}-01-01`;
   const [p, st, a, sp, zk] = await Promise.all([
     db<LPerson[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,personalnummer,status,wochenstunden,eintritt&limit=5000`),
-    db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&status=eq.freigegeben&datum=gte.${jahr}&datum=lt.${bis}&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status&limit=100000`),
+    db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&status=eq.freigegeben&datum=gte.${jahr}&datum=lt.${bis}&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id&limit=100000`),
     db<Abw[]>(f.s, env, `personal_abwesenheiten?firma_id=eq.${firma}&status=eq.bestaetigt&bis=gte.${jahr}&von=lt.${bis}&select=personal_id,von,bis,grund,status,kurzfristig&limit=20000`),
     db<Spese[]>(f.s, env, `spesen?firma_id=eq.${firma}&status=eq.freigegeben&datum=gte.${von}&datum=lt.${bis}&select=personal_id,betrag,status&limit=10000`),
     db<Start[]>(f.s, env, `zeitkonten?firma_id=eq.${firma}&select=personal_id,ab,startsaldo_min&limit=5000`),
   ]);
-  const stunden = st.ok ? st.daten : [], abw = a.ok ? a.daten : [];
+  const stunden = st.ok ? mitLand(st.daten, await einsatzLaender(f.s, env, firma)) : [], abw = a.ok ? a.daten : [];
   const z = lohnZeilen(p.ok ? p.daten : [], stunden, abw, sp.ok ? sp.daten : [], zk.ok ? zk.daten : [], stunden, abw, monat, land);
   if (url.pathname.endsWith(".txt")) {
     const e = await db<{ datev_berater: string; datev_mandant: string; lohnarten: Lohnarten }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=datev_berater,datev_mandant,lohnarten`);

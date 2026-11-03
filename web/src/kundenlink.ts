@@ -4,7 +4,7 @@
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
-import { dezimal, landDerFirma, minuten, naechsterMonat, type Eintrag } from "./stunden.ts";
+import { mitLand, einsatzLaender, dezimal, landDerFirma, minuten, naechsterMonat, type Eintrag } from "./stunden.ts";
 import { summe, zuschlag } from "./zuschlaege.ts";
 import { gruppieren, type Gruppe } from "./leistungsnachweis.ts";
 import type { Kunde } from "./kunden.ts";
@@ -92,6 +92,7 @@ export async function kundenlinkErstellen(request: Request, env: KontoEnv): Prom
     db<{ id: string; vorname: string; nachname: string }[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname&limit=3000`),
     landDerFirma(f.s, env, firma),
   ]);
+  if (l.ok) l.daten = mitLand(l.daten, await einsatzLaender(f.s, env, firma));
   const g = gruppieren(l.ok ? l.daten : [], k.ok ? k.daten : []).find((x) => kid ? x.kunde?.id === kid : x.schluessel === `e:${einsatz}`);
   const zurueck = (h: string) => weiterleiten(`/konto/leistungsnachweis?monat=${monat}&hinweis=${encodeURIComponent(h)}`, f.s.cookies);
   if (!g || !g.eintraege.length) return zurueck("Keine freigegebenen Stunden für diesen Kunden.");

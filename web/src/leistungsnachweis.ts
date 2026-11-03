@@ -6,7 +6,7 @@ import { escape, seite } from "./seite.ts";
 import { absatz, bild, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
 import type { Freigabe } from "./kundenlink.ts";
 import { schluessel } from "./unterschrift.ts";
-import { dezimal, landDerFirma, minuten, naechsterMonat, stunden, vorMonat, type Eintrag } from "./stunden.ts";
+import { mitLand, einsatzLaender, dezimal, landDerFirma, minuten, naechsterMonat, stunden, vorMonat, type Eintrag } from "./stunden.ts";
 import { summe, zuschlag, zuschlagText } from "./zuschlaege.ts";
 import { adresse, type Kunde } from "./kunden.ts";
 
@@ -87,6 +87,7 @@ export async function leistungsnachweis(request: Request, env: KontoEnv): Promis
     db<{ name: string; strasse: string | null; plz: string | null; ort: string | null }[]>(f.s, env, `firmen?id=eq.${firma}&select=name,strasse,plz,ort`),
     db<Freigabe[]>(f.s, env, `nachweis_freigaben?firma_id=eq.${firma}&monat=eq.${monat}&select=id,kunde_id,einsatz,monat,titel,bestaetigt_am,bestaetigt_name,anmerkung,rueckfrage,unterschrift,gueltig_bis,erstellt&order=erstellt.desc&limit=500`),
   ]);
+  if (l.ok) l.daten = mitLand(l.daten, await einsatzLaender(f.s, env, firma));
   const freigaben = fg.ok ? fg.daten : [];
   const gruppen = gruppieren(l.ok ? l.daten : [], k.ok ? k.daten : []);
   const saetze = pr?.ok ? Object.fromEntries(pr.daten.map((x) => [x.kunde_id, Number(x.satz)])) : null;

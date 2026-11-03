@@ -22,6 +22,25 @@ export const naechsterMonat = (m: string) => { const [j, mo] = m.split("-").map(
 export const vorMonat = (m: string) => { const [j, mo] = m.split("-").map(Number); return mo === 1 ? `${j - 1}-12` : `${j}-${String(mo - 1).padStart(2, "0")}`; };
 const monatName = (m: string) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
+/** Federal state of the place of work per customer (Rechtsprüfung A4): the postal code of the customer's site if it has
+ *  exactly one, else of the customer. Entries without customer keep the firm's state. */
+export async function einsatzLaender(sz: Sitzung, env: KontoEnv, firma: string): Promise<Map<string, string>> {
+  const [k, o] = await Promise.all([
+    db<{ id: string; plz: string | null }[]>(sz, env, `kunden?firma_id=eq.${firma}&select=id,plz&limit=2000`),
+    db<{ kunde_id: string | null; plz: string | null }[]>(sz, env, `einsatzorte?firma_id=eq.${firma}&select=kunde_id,plz&limit=5000`),
+  ]);
+  const m = new Map<string, string>();
+  for (const x of k.ok ? k.daten : []) {
+    const orte = (o.ok ? o.daten : []).filter((y) => y.kunde_id === x.id && landAusPlz(y.plz));
+    const land = orte.length === 1 ? landAusPlz(orte[0].plz) : landAusPlz(x.plz);
+    if (land) m.set(x.id, land);
+  }
+  return m;
+}
+/** Entries with the federal state of their place of work (for holidays and surcharges). */
+export const mitLand = <T extends { kunde_id?: string | null }>(l: T[], laender: Map<string, string>): (T & { land?: string })[] =>
+  l.map((e) => (e.kunde_id && laender.has(e.kunde_id) ? { ...e, land: laender.get(e.kunde_id) } : e));
+
 /** Federal state for public holidays: chosen in the company profile, else from the firm's postal code. */
 export async function landDerFirma(sz: Sitzung, env: KontoEnv, firma: string): Promise<string> {
   const [p, f] = await Promise.all([
@@ -154,11 +173,11 @@ export async function stundenRoute(request: Request, env: KontoEnv): Promise<Res
   }
   const monat = monatWahl(url.searchParams.get("monat"));
   const [l, p, land] = await Promise.all([
-    db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status&order=datum,beginn&limit=10000`),
+    db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id&order=datum,beginn&limit=10000`),
     db<Person[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname&order=vorname&limit=3000`),
     landDerFirma(f.s, env, firma),
   ]);
-  const liste = l.ok ? l.daten : [], personen = p.ok ? p.daten : [];
+  const liste = l.ok ? mitLand(l.daten, await einsatzLaender(f.s, env, firma)) : [], personen = p.ok ? p.daten : [];
   if (url.pathname.endsWith(".xlsx")) return xlsxAntwort(stundenExcel(liste, personen, monat, land), `Stunden_${monat}.xlsx`, f.s.cookies);
   const hinweis = url.searchParams.get("hinweis");
   return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${stundenSeite(liste, personen, { monat, heute, nurOffen: !url.searchParams.has("alle"), darfAendern, land })}`);

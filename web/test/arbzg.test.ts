@@ -26,3 +26,15 @@ test("Ersatzvorschläge ohne Verstoß gegen das Arbeitszeitgesetz", () => {
   const schichten = [offen, s("spaet", "2026-11-03", "14:00", "23:00", "p1")];
   assert.deepEqual(ersatzVorschlaege(offen, undefined, personen, schichten, [], []).map((p) => p.id), ["p2"], "Eva hätte nur 7 Std. Ruhe");
 });
+
+test("Feiertag nach dem Einsatzort: Allerheiligen in NRW, nicht in Hessen", async () => {
+  const { zuschlag } = await import("../src/zuschlaege.ts");
+  const { mitLand } = await import("../src/stunden.ts");
+  const e = { datum: "2026-11-01", beginn: "08:00", ende: "16:00", pause_min: 0 };
+  // 01.11.2026 is a Sunday; with a Hessian firm it counts as Sunday, at a site in NRW as public holiday.
+  assert.equal(zuschlag(e, "HE").feiertag, 0);
+  assert.equal(zuschlag({ ...e, land: "NW" }, "HE").feiertag, 480);
+  const [x, y] = mitLand([{ ...e, kunde_id: "k1" }, { ...e, kunde_id: "k2" }], new Map([["k1", "NW"]]));
+  assert.equal(x.land, "NW");
+  assert.equal(y.land, undefined);
+});

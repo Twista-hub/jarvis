@@ -6,7 +6,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { euro } from "./spesen.ts";
-import { landDerFirma, minuten, naechsterMonat, vorMonat, type Eintrag } from "./stunden.ts";
+import { mitLand, einsatzLaender, landDerFirma, minuten, naechsterMonat, vorMonat, type Eintrag } from "./stunden.ts";
 import { zuschlag } from "./zuschlaege.ts";
 
 export type Werte = { lohn: number; nebenkosten: number; nacht: number; sonntag: number; feiertag: number };
@@ -119,6 +119,7 @@ export async function nachkalkulationRoute(request: Request, env: KontoEnv): Pro
     db<{ id: string; vorname: string; nachname: string }[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname&limit=5000`),
     landDerFirma(f.s, env, firma),
   ]);
+  if (st.ok) st.daten = mitLand(st.daten, await einsatzLaender(f.s, env, firma));
   const w0 = we.ok ? we.daten[0] : undefined;
   const werte: Werte = w0 ? { lohn: Number(w0.lohn), nebenkosten: Number(w0.nebenkosten), nacht: Number(w0.nacht), sonntag: Number(w0.sonntag), feiertag: Number(w0.feiertag) } : STANDARD;
   const loehne = new Map((lo.ok ? lo.daten : []).map((x) => [x.personal_id, Number(x.stundenlohn)]));
