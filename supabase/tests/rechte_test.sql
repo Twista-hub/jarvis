@@ -94,6 +94,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103260000_firmendaten_export.sql
 \ir ../migrations/20261103270000_unterweisung_archiv.sql
 \ir ../migrations/20261103280000_ki_protokoll.sql
+\ir ../migrations/20261103290000_protokoll_datensparsam.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -549,6 +550,9 @@ update public.bereiche set ansprechpartner = 'Frau Berg', telefon = '030 123' wh
 select pruefe((select count(*) >= 1 from public.aenderungsprotokoll where bereich = 'personal' and aktion = 'UPDATE' and datensatz = 'Protokoll Berlin'
   and aenderungen @> '[{"feld": "status", "alt": "verfuegbar", "neu": "einsatz"}]'), 'Protokoll hält Statusänderung mit alt und neu fest');
 select pruefe((select count(*) = 1 from public.aenderungsprotokoll where bereich = 'bereiche' and aktion = 'UPDATE' and wer <> ''), 'Protokoll nennt, wer den Standort geändert hat');
+update public.personal set notiz = 'Streng vertraulich' where id = :'p_berlin';
+select pruefe((select count(*) = 0 from public.aenderungsprotokoll where aenderungen::text like '%Streng vertraulich%')
+  and (select count(*) = 1 from public.aenderungsprotokoll where aenderungen @> '[{"feld": "notiz", "neu": "geändert"}]'), 'D10: Protokoll speichert keine Notiztexte');
 do $$ begin
   insert into public.aenderungsprotokoll (firma_id, bereich, aktion) values (current_setting('test.firma')::uuid, 'x', 'INSERT');
   raise exception 'FEHLER: Protokoll von Hand beschrieben';
