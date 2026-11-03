@@ -9,9 +9,13 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 | E-Mail hello@crewtender.eu | Cloudflare Email Routing → kontakt@wpdigitalranger.com | aktiv 03.11.2026 | |
 | Instagram | – | offen | |
 | Facebook-Seite | Crewtender (Kategorie Software) | angelegt 03.11.2026 unter Benjamins persönlichem Profil | https://www.facebook.com/profile.php?id=61596423171638 |
-| LinkedIn-Seite | – | offen | |
+| LinkedIn-Seite | – | gesperrt bis frühestens 04.11.2026 (neues Konto, LinkedIn verlangt 1 Tag Wartezeit) | |
 
 ## Einträge
+
+### 03.11.2026 – Browser-Chat: LinkedIn
+- Benjamin hat ein persönliches LinkedIn-Konto angelegt (mit seiner geschäftlichen Adresse bei WP Digital Ranger).
+- Unternehmensseite noch nicht möglich: LinkedIn meldet „Funktion nicht verfügbar … warten Sie bitte mindestens einen Tag“. Ab 04.11.2026 erneut versuchen.
 
 ### 03.11.2026 – Browser-Chat: Bilder und Facebook-Seite
 - Bilder erstellt (Farben der WP-Digital-Ranger-Marke, Zeichen: offenes „C“ mit Häkchen und zwei „Crew“-Punkten): `docs/design/crewtender/` → profil.png (1080×1080), facebook-titel.png (1640×624), linkedin-titel.png (1128×191), crewtender-zeichen.svg.
