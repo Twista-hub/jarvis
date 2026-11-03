@@ -80,7 +80,7 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
 - **Abo-Preise und Stripe:** Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
   Punkt 7c war ein Vorschlag gefragt; `web/src/plaene.ts` bleibt abgeschaltet.
 - **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1–3 (E-Rechnung, Mahnwesen, wiederkehrende Rechnungen) sind gebaut; Nr. 4–10 nach deiner Reihenfolge (Nr. 10 Auftragsbörse erst nach anwaltlicher Prüfung der AGB).
-- **Anfragen an PLACSP und TenderNed:** Mails an Dritte nur nach deinem OK.
+- **Anfragen an PLACSP und TenderNed:** Entwürfe liegen bereit (`docs/anfragen/placsp-anfrage.md`, `docs/anfragen/tenderned-anfrage.md`); Mails an Dritte nur nach deinem OK.
 
 ### Deine Entscheidungen (keine Eile)
 - **Abo-Preise** aus `docs/abos.md` freigeben oder ändern (erst danach Stripe).
