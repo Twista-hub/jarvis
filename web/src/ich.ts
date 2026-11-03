@@ -145,7 +145,7 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
     }
     if (t("aktion", 20) === "uebernehmen" && ID.test(t("id", 36))) {
       const r = await db<string>(f.s, env, "rpc/schicht_uebernehmen", { method: "POST", body: JSON.stringify({ s: t("id", 36) }) });
-      const text: Record<string, string> = { ok: "Schicht übernommen. Sie steht jetzt unter „Meine Schichten“.", vergeben: "Zu spät, jemand anderes war schneller.", abwesend: "Du bist an dem Tag als abwesend eingetragen.", doppelt: "Du hast zu der Zeit schon eine Schicht.", nicht_passend: "Diese Schicht passt nicht zu deinem Beruf oder Standort.", vorbei: "Die Schicht ist vorbei." };
+      const text: Record<string, string> = { ok: "Schicht übernommen. Sie steht jetzt unter „Meine Schichten“.", vergeben: "Zu spät, jemand anderes war schneller.", abwesend: "Du bist an dem Tag als abwesend eingetragen.", doppelt: "Du hast zu der Zeit schon eine Schicht.", nicht_passend: "Diese Schicht passt nicht zu deinem Beruf oder Standort.", vorbei: "Die Schicht ist vorbei.", arbzg: "Das geht nicht: Mit dieser Schicht hättest du zu wenig Ruhezeit oder mehr als 10 Stunden Arbeit am Tag (Arbeitszeitgesetz)." };
       return weiterleiten(`/konto/ich?hinweis=${encodeURIComponent(r.ok ? text[String(r.daten)] ?? "Das ging nicht." : "Das ging nicht.")}#schichten`, f.s.cookies);
     }
     if (t("aktion", 20) === "unterschrift" && ["psa", "stunden"].includes(t("art", 10))) {
