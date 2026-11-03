@@ -1,0 +1,41 @@
+# Quality comparison Opus 5.5 vs. Sonnet 5.5 for the Steckbrief (alarm/steckbrief_vergleich.py). Costs real API money
+# (hard cap GRENZE_DOLLAR), writes nothing to the database. Texts only in the artifact (7 days), the log shows numbers.
+name: Steckbrief-Vergleich
+on:
+  workflow_dispatch:
+    inputs:
+      bekanntmachungen:
+        description: "Anzahl öffentlicher Bekanntmachungen (0–8)"
+        default: "6"
+      unterlagen:
+        description: "Bundesbank-Unterlagen: keine, kern (3 PDFs) oder alle"
+        default: "kern"
+      grenze:
+        description: "Kostengrenze in $"
+        default: "4"
+permissions:
+  contents: read
+jobs:
+  vergleichen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q anthropic "psycopg[binary]" cryptography && sudo apt-get install -y -q poppler-utils >/dev/null
+      - name: Vergleichen
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GRENZE_DOLLAR: ${{ inputs.grenze }}
+          ANZAHL: ${{ inputs.bekanntmachungen }}
+          AUSWAHL: ${{ inputs.unterlagen }}
+        run: cd alarm && python steckbrief_vergleich.py "$ANZAHL" "$AUSWAHL" "$RUNNER_TEMP/vergleich"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: steckbrief-vergleich
+          path: ${{ runner.temp }}/vergleich
+          retention-days: 7
