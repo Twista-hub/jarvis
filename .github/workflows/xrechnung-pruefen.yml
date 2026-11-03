@@ -20,7 +20,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - name: Beispielrechnungen erzeugen
-        run: node --experimental-strip-types web/scripts/xrechnung-beispiel.ts regel.xml klein.xml
+        run: node --experimental-strip-types web/scripts/xrechnung-beispiel.ts regel.xml klein.xml 13b.xml
       - name: KoSIT-Validator und XRechnung-Konfiguration laden
         env:
           GH_TOKEN: ${{ github.token }}
@@ -36,15 +36,15 @@ jobs:
           SZ=$(find konfig -name scenarios.xml | head -1)
           mkdir -p bericht
           if [ -n "$JAR" ]; then
-            java -jar "$JAR" -s "$SZ" -r "$(dirname "$SZ")" -o bericht -h regel.xml klein.xml || true
+            java -jar "$JAR" -s "$SZ" -r "$(dirname "$SZ")" -o bericht -h regel.xml klein.xml 13b.xml || true
           else
             # Newer releases ship the validator jar plus its libraries: start the command line class via the classpath.
             CP=$(find validator -name "*.jar" | tr '\n' ':')
-            java -cp "$CP" de.kosit.validationtool.cmd.CommandLineApplication -s "$SZ" -r "$(dirname "$SZ")" -o bericht -h regel.xml klein.xml || true
+            java -cp "$CP" de.kosit.validationtool.cmd.CommandLineApplication -s "$SZ" -r "$(dirname "$SZ")" -o bericht -h regel.xml klein.xml 13b.xml || true
           fi
           ls bericht
           ok=1
-          for f in regel klein; do
+          for f in regel klein 13b; do
             r=$(ls bericht/${f}-report.xml 2>/dev/null | head -1)
             if [ -z "$r" ]; then echo "$f: kein Bericht"; ok=0; continue; fi
             if grep -q "<rep:accept" "$r"; then echo "$f: AKZEPTIERT"; else echo "$f: ABGELEHNT"; ok=0; fi

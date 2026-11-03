@@ -30,13 +30,16 @@ export function fehlendFuerXRechnung(a: Absender, k: Kunde | null): string[] {
 /** Without a VAT ID (e.g. small businesses, § 19 UStG) the tax number is also the seller identifier BT-29 (BR-CO-26). */
 export function xrechnungXml(r: Rechnung, k: Kunde | null, a: Absender, kaeuferReferenz = ""): string {
   const netto = Number(r.netto);
-  const satz = a.kleinunternehmer ? 0 : Number(r.ust_satz);
+  const rc = !!r.reverse_charge; // § 13b: category AE, the buyer owes the VAT
+  const satz = a.kleinunternehmer || rc ? 0 : Number(r.ust_satz);
   const ust = r.ust_betrag !== null && r.ust_betrag !== undefined ? Number(r.ust_betrag) : Math.round(netto * satz) / 100;
   const faellig = new Date(Date.parse(`${r.datum}T12:00:00Z`) + (r.zahlungsziel_tage ?? 14) * 86400_000).toISOString().slice(0, 10);
   const [jahr, monat] = r.monat.split("-").map(Number);
   const ende = new Date(Date.UTC(jahr, monat, 0)).toISOString().slice(0, 10);
-  const kategorie = a.kleinunternehmer ? "E" : "S";
-  const steuer = (tag: string) => `<cac:${tag}><cbc:ID>${kategorie}</cbc:ID><cbc:Percent>${betrag(satz)}</cbc:Percent>${tag === "TaxCategory" && a.kleinunternehmer ? "<cbc:TaxExemptionReason>Kein Ausweis von Umsatzsteuer, da Kleinunternehmer gemäß § 19 UStG</cbc:TaxExemptionReason>" : ""}<cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:${tag}>`;
+  const kategorie = rc ? "AE" : a.kleinunternehmer ? "E" : "S";
+  const grund = rc ? "<cbc:TaxExemptionReasonCode>VATEX-EU-AE</cbc:TaxExemptionReasonCode><cbc:TaxExemptionReason>Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG)</cbc:TaxExemptionReason>"
+    : a.kleinunternehmer ? "<cbc:TaxExemptionReason>Kein Ausweis von Umsatzsteuer, da Kleinunternehmer gemäß § 19 UStG</cbc:TaxExemptionReason>" : "";
+  const steuer = (tag: string) => `<cac:${tag}><cbc:ID>${kategorie}</cbc:ID><cbc:Percent>${betrag(satz)}</cbc:Percent>${tag === "TaxCategory" ? grund : ""}<cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:${tag}>`;
   const b = bank(a.zahlungshinweis);
   const zahlung = b.iban
     ? `<cac:PaymentMeans><cbc:PaymentMeansCode>58</cbc:PaymentMeansCode><cac:PayeeFinancialAccount><cbc:ID>${x(b.iban)}</cbc:ID><cbc:Name>${x(a.name)}</cbc:Name>${b.bic ? `<cac:FinancialInstitutionBranch><cbc:ID>${x(b.bic)}</cbc:ID></cac:FinancialInstitutionBranch>` : ""}</cac:PayeeFinancialAccount></cac:PaymentMeans>`
@@ -51,11 +54,11 @@ export function xrechnungXml(r: Rechnung, k: Kunde | null, a: Absender, kaeuferR
 <cbc:IssueDate>${r.datum}</cbc:IssueDate>
 <cbc:DueDate>${faellig}</cbc:DueDate>
 <cbc:InvoiceTypeCode>380</cbc:InvoiceTypeCode>
-${a.kleinunternehmer ? "<cbc:Note>Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung nach § 19 Abs. 1 UStG.</cbc:Note>\n" : ""}<cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
+${a.kleinunternehmer ? "<cbc:Note>Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung nach § 19 Abs. 1 UStG.</cbc:Note>\n" : ""}${rc ? "<cbc:Note>Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG).</cbc:Note>\n" : ""}<cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
 <cbc:BuyerReference>${x(kaeuferReferenz.trim() || r.nummer)}</cbc:BuyerReference>
 <cac:InvoicePeriod><cbc:StartDate>${r.monat}-01</cbc:StartDate><cbc:EndDate>${ende}</cbc:EndDate></cac:InvoicePeriod>
 <cac:AccountingSupplierParty><cac:Party><cbc:EndpointID schemeID="EM">${x(a.email)}</cbc:EndpointID>${!a.ustid && a.steuernummer ? `<cac:PartyIdentification><cbc:ID>${x(a.steuernummer)}</cbc:ID></cac:PartyIdentification>` : ""}<cac:PartyName><cbc:Name>${x(a.name)}</cbc:Name></cac:PartyName>${adresse(a.strasse, a.plz, a.ort)}${a.ustid ? `<cac:PartyTaxScheme><cbc:CompanyID>${x(a.ustid)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}${a.steuernummer ? `<cac:PartyTaxScheme><cbc:CompanyID>${x(a.steuernummer)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>FC</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}<cac:PartyLegalEntity><cbc:RegistrationName>${x(a.name)}</cbc:RegistrationName></cac:PartyLegalEntity><cac:Contact><cbc:Name>${x(a.name)}</cbc:Name><cbc:Telephone>${x(a.telefon || "nicht angegeben")}</cbc:Telephone><cbc:ElectronicMail>${x(a.email)}</cbc:ElectronicMail></cac:Contact></cac:Party></cac:AccountingSupplierParty>
-<cac:AccountingCustomerParty><cac:Party><cbc:EndpointID schemeID="EM">${x(k?.email || a.email)}</cbc:EndpointID><cac:PartyName><cbc:Name>${x(k?.name ?? "")}</cbc:Name></cac:PartyName>${adresse(k?.strasse ?? "", k?.plz ?? "", k?.ort ?? "")}<cac:PartyLegalEntity><cbc:RegistrationName>${x(k?.name ?? "")}</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingCustomerParty>
+<cac:AccountingCustomerParty><cac:Party><cbc:EndpointID schemeID="EM">${x(k?.email || a.email)}</cbc:EndpointID><cac:PartyName><cbc:Name>${x(k?.name ?? "")}</cbc:Name></cac:PartyName>${adresse(k?.strasse ?? "", k?.plz ?? "", k?.ort ?? "")}${r.empfaenger?.ustid ? `<cac:PartyTaxScheme><cbc:CompanyID>${x(r.empfaenger.ustid)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}<cac:PartyLegalEntity><cbc:RegistrationName>${x(k?.name ?? "")}</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingCustomerParty>
 ${zahlung}
 <cac:PaymentTerms><cbc:Note>Zahlbar ohne Abzug bis ${faellig}.${a.zahlungshinweis ? ` ${x(a.zahlungshinweis)}` : ""}</cbc:Note></cac:PaymentTerms>
 <cac:TaxTotal><cbc:TaxAmount currencyID="EUR">${betrag(ust)}</cbc:TaxAmount><cac:TaxSubtotal><cbc:TaxableAmount currencyID="EUR">${betrag(netto)}</cbc:TaxableAmount><cbc:TaxAmount currencyID="EUR">${betrag(ust)}</cbc:TaxAmount>${steuer("TaxCategory")}</cac:TaxSubtotal></cac:TaxTotal>
