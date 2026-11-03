@@ -10,12 +10,22 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 | Instagram | @crew_tender (Unternehmenskonto, Kategorie Software; Anmeldung mit kontakt@wpdigitalranger.com, laut Benjamin 03.11.) | angelegt 03.11.2026 (Benjamin), eingerichtet | https://www.instagram.com/crew_tender/ |
 | Facebook-Seite | Crewtender (Kategorie Software) | angelegt 03.11.2026 unter Benjamins persönlichem Profil | https://www.facebook.com/profile.php?id=61596423171638 |
 | LinkedIn-Seite | – | gesperrt bis frühestens 04.11.2026 (neues Konto, LinkedIn verlangt 1 Tag Wartezeit) | |
+| Bluesky | @crewtender.eu (Anmeldung kontakt@wpdigitalranger.com) | angelegt 03.11.2026 (Benjamin), eingerichtet, Domain-Handle verifiziert; E-Mail-Bestätigung bei Benjamin offen | https://bsky.app/profile/crewtender.eu |
+| Mastodon | @crewtender@mastodon.social (Anmeldung kontakt@wpdigitalranger.com) | angelegt 03.11.2026 (Benjamin), eingerichtet | https://mastodon.social/@crewtender |
 
 ## Regel für Anmeldungen (Benjamin, 03.11.2026)
 - **Alle Crewtender-Konten werden mit kontakt@wpdigitalranger.com angemeldet** (eine Adresse, echtes Postfach).
 - hello@crewtender.eu ist nur die **öffentliche** Kontaktadresse in Profilen und auf der Website (leitet an kontakt@ weiter).
 
 ## Einträge
+
+### 03.11.2026 – Browser-Chat: Bluesky und Mastodon
+- **Bluesky:** RestockHero war angemeldet, deshalb über „Weiteren Account hinzufügen“ gearbeitet, an RestockHero nichts geändert. Benjamin hat das Konto mit kontakt@wpdigitalranger.com angelegt (crewtender.bsky.social).
+- Profil: Anzeigename „Crewtender“, Logo (profil.png), Banner (facebook-titel.png), Bio „Find public tenders, write bids, plan your crew – the app for trades and service companies. 🌐 crewtender.eu · ✉️ hello@crewtender.eu“.
+- Handle auf **@crewtender.eu** umgestellt: Cloudflare-DNS TXT `_atproto` angelegt (Wert `did=did:plc:b3idabsinmfvxsddvyr4i23h`, öffentlich), Bluesky meldet „Domain verifiziert“. MX- und Mail-TXT-Einträge nicht angefasst. Offen: Benjamin bestätigt die E-Mail in Bluesky.
+- **Mastodon:** Mit Benjamins OK RestockHero bei mastodon.social abgemeldet (Wiederanmeldung macht Benjamin). Benjamin hat **@crewtender@mastodon.social** mit kontakt@wpdigitalranger.com angelegt.
+- Profil: Anzeigename „Crewtender“, Logo, Banner (beide mit Bildbeschreibung), gleiche Bio. Zusatzfelder: Website → https://crewtender.eu, Legal notice → https://crewtender.eu/impressum.
+- Nichts gepostet, keine Nachrichten.
 
 ### 03.11.2026 – Claude Code: Umzug abgeschlossen
 - Alle Links in App und Mails zeigen auf https://crewtender.eu, app.wpdigitalranger.com leitet weiter. Website-Felder in Facebook/LinkedIn/Instagram bleiben https://crewtender.eu.
