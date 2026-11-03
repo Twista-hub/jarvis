@@ -23,7 +23,9 @@ export function plusMonate(d: string, n: number): string {
 export const entleiherSchluessel = (n: string) => n.toLowerCase().replace(/ä/g, "ae").replace(/ö/g, "oe").replace(/ü/g, "ue").replace(/ß/g, "ss").replace(/\b(gmbh|ag|kg|e\.?\s?v|mbh|co)\b/g, "").replace(/[^a-z0-9]+/g, " ").trim();
 
 /** The current chain of assignments per worker and hirer with its two key dates. */
-export function fristen(liste: Ueberlassung[], heute: string): Frist[] {
+/** tarif: false = the firm applies no collective agreement for temporary agency work → Equal Pay from day 1 (§ 8 Abs. 1, 2
+ *  AÜG; Rechtsprüfung 03.11.2026 A3). true or unknown (null) = after 9 months (§ 8 Abs. 4); unknown is pointed out on the page. */
+export function fristen(liste: Ueberlassung[], heute: string, tarif: boolean | null = null): Frist[] {
   const gruppen = new Map<string, Ueberlassung[]>();
   for (const u of liste) {
     const k = `${u.personal_id}|${entleiherSchluessel(u.entleiher)}`;
@@ -51,7 +53,7 @@ export function fristen(liste: Ueberlassung[], heute: string): Frist[] {
     const aktiv = !letzte.bis || letzte.bis >= heute;
     if (!aktiv && plusMonate(letzte.bis!, 3) < heute) continue;
     ergebnis.push({ personal_id: letzte.personal_id, entleiher: letzte.entleiher, beginn, aktiv, einsaetze: kette, unterbrechungTage: luecken,
-      equalPay: plusTage(plusMonate(beginn, 9), luecken), hoechst: plusTage(plusMonate(beginn, 18), luecken - 1) });
+      equalPay: tarif === false ? beginn : plusTage(plusMonate(beginn, 9), luecken), hoechst: plusTage(plusMonate(beginn, 18), luecken - 1) });
   }
   return ergebnis.sort((a, b) => a.equalPay.localeCompare(b.equalPay));
 }
@@ -92,7 +94,7 @@ export function personHinweise(liste: Frist[], heute: string): Record<string, st
   return r;
 }
 
-export function auegSeite(liste: Frist[], personal: { id: string; vorname: string; nachname: string }[], o: { heute: string; darfAendern: boolean; entleiher: string[]; bz?: Record<string, number[]> }): string {
+export function auegSeite(liste: Frist[], personal: { id: string; vorname: string; nachname: string }[], o: { heute: string; darfAendern: boolean; entleiher: string[]; bz?: Record<string, number[]>; tarif?: boolean | null }): string {
   const name = (id: string) => { const p = personal.find((x) => x.id === id); return p ? `${p.vorname} ${p.nachname}`.trim() : "Unbekannt"; };
   const dringend = liste.filter((f) => ["rot", "gelb"].includes(fristStatus(f, o.heute).stufe));
   const karte = (f: Frist) => {
@@ -111,6 +113,7 @@ export function auegSeite(liste: Frist[], personal: { id: string; vorname: strin
 <label class="ganz">Notiz (freiwillig)<input name="notiz" maxlength="300"></label><button class="ganz">Speichern</button></form></details>` : "";
   return `<p class="klein">Für jede Leiharbeitskraft und jeden Kunden: ab wann Equal Pay gilt (nach 9 Monaten) und wann die Höchstüberlassungsdauer (18 Monate) endet. Frühere Einsätze beim selben Kunden zählen mit, wenn dazwischen nicht mehr als 3 Monate liegen; die Unterbrechungen selbst zählen nicht.</p>
 ${dringend.length ? `<aside class="ablauf-warnung"><strong>⚠️ ${dringend.length} ${dringend.length === 1 ? "Frist" : "Fristen"} in den nächsten 60 Tagen</strong><ul>${dringend.map((f) => `<li><span>${escape(name(f.personal_id))} · ${escape(f.entleiher)}</span><span class="${fristStatus(f, o.heute).stufe === "rot" ? "abgelaufen" : "bald"}">${escape(fristStatus(f, o.heute).text.replace(/ \(in .*\)/, ""))}</span></li>`).join("")}</ul></aside>` : ""}
+${o.tarif === false ? `<p class="hinweis">⚠️ Laut Firmenprofil wendet ihr <strong>keinen Tarifvertrag der Zeitarbeit</strong> an: Equal Pay gilt dann <strong>ab dem ersten Tag</strong> (§ 8 Abs. 1 AÜG).</p>` : o.tarif == null ? `<p class="hinweis">Equal Pay erst nach 9 Monaten gilt nur, wenn ihr einen Tarifvertrag der Zeitarbeit anwendet (z. B. GVP/BAP oder iGZ). Ohne Tarifvertrag gilt Equal Pay ab dem ersten Tag. Bitte im <a href="/konto/firmenprofil">Firmenprofil</a> angeben.</p>` : ""}
 ${formular}
 ${liste.length ? `<ul class="aueg-liste">${liste.map(karte).join("")}</ul>` : `<p class="treffer-leer">Noch keine Einsätze eingetragen.</p>`}
 <p class="klein">Ohne Gewähr, keine Rechtsberatung. Tarifverträge der Einsatzbranche können eine andere Höchstdauer erlauben, Branchenzuschlagstarifverträge verschieben Equal Pay bis auf 15 Monate. Grundlage: § 1 Abs. 1b und § 8 Abs. 4 AÜG.</p>`;
@@ -153,12 +156,14 @@ export async function aueg(request: Request, env: KontoEnv): Promise<Response | 
     }
     return weiterleiten(`/konto/aueg?hinweis=${encodeURIComponent(hinweis)}`, f.s.cookies);
   }
-  const [liste, personal, kunden] = await Promise.all([
+  const [liste, personal, kunden, prof] = await Promise.all([
     auegLaden(f.s, env, f.m.firma_id),
     db<{ id: string; vorname: string; nachname: string }[]>(f.s, env, `personal?firma_id=eq.${f.m.firma_id}&select=id,vorname,nachname&order=vorname&limit=2000`),
     db<{ name: string; bz_prozente: (number | string)[] }[]>(f.s, env, `kunden?firma_id=eq.${f.m.firma_id}&select=name,bz_prozente&limit=1000`),
+    db<{ zeitarbeit_tarif: boolean | null }[]>(f.s, env, `firmenprofil?firma_id=eq.${f.m.firma_id}&select=zeitarbeit_tarif`),
   ]);
+  const tarif = prof.ok ? prof.daten[0]?.zeitarbeit_tarif ?? null : null;
   const entleiher = [...new Map(liste.map((u) => [entleiherSchluessel(u.entleiher), u.entleiher])).values()].sort((a, b) => a.localeCompare(b, "de"));
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${auegSeite(fristen(liste, heute), personal.ok ? personal.daten : [], { heute, darfAendern, entleiher, bz: Object.fromEntries((kunden.ok ? kunden.daten : []).filter((k) => (k.bz_prozente ?? []).length).map((k) => [entleiherSchluessel(k.name), k.bz_prozente.map(Number)])) })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${auegSeite(fristen(liste, heute, tarif), personal.ok ? personal.daten : [], { heute, darfAendern, entleiher, tarif, bz: Object.fromEntries((kunden.ok ? kunden.daten : []).filter((k) => (k.bz_prozente ?? []).length).map((k) => [entleiherSchluessel(k.name), k.bz_prozente.map(Number)])) })}`);
 }
