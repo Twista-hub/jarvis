@@ -8,15 +8,19 @@ import { escape, seite } from "./seite.ts";
 import { euro } from "./spesen.ts";
 import { ustAus } from "./belege.ts";
 
-export type ReZeile = { datum: string; netto: number | string; ust_satz: number | string; bezahlt_am?: string | null };
+export type ReZeile = { datum: string; netto: number | string; ust_satz: number | string; bezahlt_am?: string | null; monat?: string; art?: string; ust_betrag?: number | string | null; kleinunternehmer?: boolean | null };
 export type BeZeile = { datum: string; brutto: number | string; ust_satz: number | string };
 export type Periode = { schluessel: string; name: string; umsatz19: number; umsatz7: number; umsatz0: number; ust: number; vorsteuer: number; zahllast: number; anzahl: number };
 export const GRENZE_VORJAHR = 25_000, GRENZE_LAUFEND = 100_000;
 const rund = (n: number) => Math.round(n * 100) / 100;
 const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
-/** Date that counts: invoice date (accrual) or payment date (cash basis; unpaid invoices do not count yet). */
-const stichtag = (r: ReZeile, ist: boolean) => ist ? r.bezahlt_am ?? null : r.datum;
+/** Date that counts for the VAT return: accrual basis = end of the month the service was performed (§ 13 Abs. 1 Nr. 1a
+ *  UStG; a cancellation corrects the period in which it is issued, § 17 UStG); cash basis = payment date (unpaid
+ *  invoices do not count yet). */
+const stichtag = (r: ReZeile, ist: boolean) => ist ? r.bezahlt_am ?? null : r.monat && r.art !== "storno" ? `${r.monat}-01` : r.datum;
+/** Turnover for the small-business limits: by invoice date or payment date as before. */
+const umsatztag = (r: ReZeile, ist: boolean) => ist ? r.bezahlt_am ?? null : r.datum;
 
 export function perioden(re: ReZeile[], be: BeZeile[], o: { jahr: number; quartal: boolean; ist: boolean; kleinunternehmer: boolean }): Periode[] {
   const anzahl = o.quartal ? 4 : 12;
@@ -25,9 +29,10 @@ export function perioden(re: ReZeile[], be: BeZeile[], o: { jahr: number; quarta
   for (const r of re) {
     const d = stichtag(r, o.ist);
     if (!d || Number(d.slice(0, 4)) !== o.jahr) continue;
-    const p = leer[teil(d)], netto = Number(r.netto), satz = o.kleinunternehmer ? 0 : Number(r.ust_satz);
+    const ku = r.kleinunternehmer ?? o.kleinunternehmer;
+    const p = leer[teil(d)], netto = Number(r.netto), satz = ku ? 0 : Number(r.ust_satz);
     if (satz === 19) p.umsatz19 += netto; else if (satz === 7) p.umsatz7 += netto; else p.umsatz0 += netto;
-    p.ust += netto * satz / 100;
+    p.ust += r.ust_betrag !== null && r.ust_betrag !== undefined ? Number(r.ust_betrag) : netto * satz / 100;
     p.anzahl++;
   }
   if (!o.kleinunternehmer) for (const b of be) {
@@ -40,7 +45,7 @@ export function perioden(re: ReZeile[], be: BeZeile[], o: { jahr: number; quarta
 
 /** Turnover per calendar year (gross for small businesses = net, as no VAT is charged). */
 export function jahresumsatz(re: ReZeile[], jahr: number, ist: boolean): number {
-  return rund(re.filter((r) => { const d = stichtag(r, ist); return d && Number(d.slice(0, 4)) === jahr; }).reduce((n, r) => n + Number(r.netto), 0));
+  return rund(re.filter((r) => { const d = umsatztag(r, ist); return d && Number(d.slice(0, 4)) === jahr; }).reduce((n, r) => n + Number(r.netto), 0));
 }
 
 export type Waechter = { stufe: "ok" | "gelb" | "rot"; text: string };
@@ -85,7 +90,7 @@ export async function umsatzsteuer(request: Request, env: KontoEnv): Promise<Res
   const jahr = /^20\d{2}$/.test(url.searchParams.get("jahr") ?? "") ? Number(url.searchParams.get("jahr")) : heuteJahr;
   const quartal = url.searchParams.get("zeitraum") === "quartal", ist = url.searchParams.get("ist") === "1";
   const [re, be, pr] = await Promise.all([
-    db<ReZeile[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&datum=gte.${jahr - 1}-01-01&select=datum,netto,ust_satz,bezahlt_am&limit=20000`),
+    db<ReZeile[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&status=eq.ausgestellt&datum=gte.${jahr - 1}-01-01&select=datum,netto,ust_satz,bezahlt_am,monat,art,ust_betrag,kleinunternehmer&limit=20000`),
     db<BeZeile[]>(f.s, env, `belege?firma_id=eq.${firma}&datum=gte.${jahr}-01-01&datum=lt.${jahr + 1}-01-01&select=datum,brutto,ust_satz&limit=20000`),
     db<{ kleinunternehmer: boolean }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=kleinunternehmer`),
   ]);

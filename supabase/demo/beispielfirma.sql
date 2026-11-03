@@ -275,15 +275,31 @@ begin
     (f, p[4], heute - 15, 'material', 23.89, 'Baumarkt: Ersatzteile Spender', 'abgelehnt', u, now() - interval '12 days');
 
   -- ---------- Rechnungen, Belege ----------
-  insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, positionen, netto, ust_satz, erstellt_von, bezahlt_am, mahnstufe, gemahnt_am, zahlungsziel_tage) values
-    (f, k_stadt, to_char(heute, 'YYYY') || '-0041', vvm, (date_trunc('month', heute) - interval '1 month')::date + 2,
+  -- Issued invoices (GoBD since 03.11.2026): first into a temporary table, then frozen with sender/recipient snapshot.
+  create temp table tmp_re (like public.rechnungen including defaults) on commit drop;
+  insert into tmp_re (firma_id, kunde_id, nummer, monat, datum, positionen, netto, ust_satz, erstellt_von, bezahlt_am, mahnstufe, gemahnt_am, zahlungsziel_tage) values
+    (f, k_stadt, 'RE-' || to_char(heute, 'YYYY') || '-0041', vvm, (date_trunc('month', heute) - interval '1 month')::date + 2,
       '[{"text":"Unterhaltsreinigung Rathaus und Grundschule","menge":312,"einheit":"Std.","preis":29.90,"betrag":9328.80}]', 9328.80, 19, u, (date_trunc('month', heute) - interval '1 month')::date + 15, 0, null, 14),
-    (f, k_log, to_char(heute, 'YYYY') || '-0042', vvm, (date_trunc('month', heute) - interval '1 month')::date + 2,
+    (f, k_log, 'RE-' || to_char(heute, 'YYYY') || '-0042', vvm, (date_trunc('month', heute) - interval '1 month')::date + 2,
       '[{"text":"Arbeitnehmerüberlassung Lagerhelfer","menge":168,"einheit":"Std.","preis":32.80,"betrag":5510.40},{"text":"Werkschutz Nacht inkl. Nachtzuschlag","menge":176,"einheit":"Std.","preis":41.00,"betrag":7216.00}]', 12726.40, 19, u, null, 1, heute - 6, 14),
-    (f, k_stadt, to_char(heute, 'YYYY') || '-0047', vm, date_trunc('month', heute)::date + 1,
+    (f, k_stadt, 'RE-' || to_char(heute, 'YYYY') || '-0047', vm, date_trunc('month', heute)::date + 1,
       '[{"text":"Unterhaltsreinigung Rathaus und Grundschule","menge":298,"einheit":"Std.","preis":29.90,"betrag":8910.20}]', 8910.20, 19, u, null, 0, null, 14),
-    (f, k_bank, to_char(heute, 'YYYY') || '-0048', vm, date_trunc('month', heute)::date + 1,
+    (f, k_bank, 'RE-' || to_char(heute, 'YYYY') || '-0048', vm, date_trunc('month', heute)::date + 1,
       '[{"text":"Unterhaltsreinigung Filiale Markt, monatliche Pauschale","menge":1,"einheit":"Monat","preis":1450.00,"betrag":1450.00}]', 1450.00, 19, u, date_trunc('month', heute)::date + 5, 0, null, 14);
+  perform set_config('jarvis.rechnung_fn', '1', true);
+  insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, positionen, netto, ust_satz, erstellt_von, bezahlt_am, mahnstufe, gemahnt_am,
+    zahlungsziel_tage, status, art, absender, empfaenger, kleinunternehmer, ust_betrag, ausgestellt_am)
+  select t.firma_id, t.kunde_id, t.nummer, t.monat, t.datum, t.positionen, t.netto, t.ust_satz, t.erstellt_von, t.bezahlt_am, t.mahnstufe, t.gemahnt_am,
+    t.zahlungsziel_tage, 'ausgestellt', 'rechnung',
+    jsonb_build_object('name', fi.name, 'strasse', coalesce(fi.strasse, ''), 'plz', coalesce(fi.plz, ''), 'ort', coalesce(fi.ort, ''), 'telefon', coalesce(fi.telefon, ''),
+      'email', coalesce(fp.email, ''), 'ustid', coalesce(fp.ustid, ''), 'steuernummer', coalesce(fp.steuernummer, ''), 'zahlungshinweis', coalesce(fp.zahlungshinweis, '')),
+    jsonb_build_object('name', k.name, 'ansprechpartner', coalesce(k.ansprechpartner, ''), 'strasse', coalesce(k.strasse, ''), 'plz', coalesce(k.plz, ''),
+      'ort', coalesce(k.ort, ''), 'email', coalesce(k.email, ''), 'leitweg', ''),
+    false, round(t.netto * t.ust_satz / 100, 2), t.datum::timestamptz
+  from tmp_re t join public.firmen fi on fi.id = t.firma_id left join public.firmenprofil fp on fp.firma_id = t.firma_id join public.kunden k on k.id = t.kunde_id;
+  perform set_config('jarvis.rechnung_fn', '', true);
+  insert into jarvis_intern.rechnungsnummern (firma_id, jahr, letzte) values (f, extract(year from heute)::int, 48)
+    on conflict (firma_id, jahr) do update set letzte = greatest(jarvis_intern.rechnungsnummern.letzte, 48);
   insert into public.belege (firma_id, datum, lieferant, kategorie, brutto, ust_satz, notiz, erstellt_von) values
     (f, heute - 3, 'Tankstelle am Ring', 'fahrzeug', 84.20, 19, 'AC-RF 101', u),
     (f, heute - 5, 'Reinigungsbedarf Rheinland', 'material', 612.45, 19, 'Mikrofasertücher, Konzentrat', u),

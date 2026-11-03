@@ -12,7 +12,7 @@ import { euro } from "./spesen.ts";
 export type PortalDaten = {
   firma: string; kunde: string; kleinunternehmer: boolean;
   nachweise: { monat: string; titel: string; summe: { std?: number } | null; bestaetigt_am: string | null; rueckfrage: boolean; abgelaufen: boolean }[];
-  rechnungen: { nummer: string; datum: string; monat: string; netto: number | string; ust_satz: number | string; bezahlt_am: string | null; zahlungsziel_tage: number | null }[] | null;
+  rechnungen: { nummer: string; datum: string; monat: string; netto: number | string; ust_satz: number | string; bezahlt_am: string | null; zahlungsziel_tage: number | null; ust_betrag?: number | string | null; kleinunternehmer?: boolean | null; art?: string; bezug_nummer?: string; storniert?: boolean }[] | null;
   orte: { name: string; scans: number; letzter: string | null }[] | null;
   vorfaelle: { zeit: string; ort: string; text: string }[] | null;
   meldungen: { art: string; text: string; erstellt: string; erledigt_am: string | null }[];
@@ -27,9 +27,11 @@ const stunden = (n: number | undefined) => (n ?? 0).toLocaleString("de-DE", { mi
 export function portalSeite(d: PortalDaten, token: string, heute: string, hinweis = ""): string {
   const nachweise = d.nachweise.length ? `<ul class="kontakt-liste">${d.nachweise.map((n) => `<li><div><strong>${monatName(n.monat)} · ${escape(n.titel)}</strong><span class="klein">${stunden(n.summe?.std)} Std. · ${n.bestaetigt_am ? n.rueckfrage ? `❓ Rückfrage am ${datum(n.bestaetigt_am)}` : `✅ bestätigt am ${datum(n.bestaetigt_am)}` : n.abgelaufen ? "Link abgelaufen" : "⏳ wartet auf Ihre Bestätigung (Link per Nachricht)"}</span></div></li>`).join("")}</ul>` : `<p class="treffer-leer">Noch keine Leistungsnachweise.</p>`;
   const rechnungen = d.rechnungen === null ? "" : `<h2>💶 Rechnungen</h2>${d.rechnungen.length ? `<ul class="kontakt-liste">${d.rechnungen.map((r) => {
-    const satz = d.kleinunternehmer ? 0 : Number(r.ust_satz), brutto = Math.round(Number(r.netto) * (100 + satz)) / 100;
-    const z = zahlstatus({ datum: r.datum, bezahlt_am: r.bezahlt_am, zahlungsziel_tage: r.zahlungsziel_tage ?? 14 } as Rechnung, heute);
-    return `<li><div><strong>${escape(r.nummer)} · ${euro(brutto)}</strong><span class="klein">${datum(r.datum)} · ${monatName(r.monat)} · ${z.art === "bezahlt" ? "✅ bezahlt" : z.art === "ueberfaellig" ? `⏰ fällig seit ${datum(z.faellig)}` : `offen, fällig ${datum(z.faellig)}`}</span></div></li>`;
+    const satz = (r.kleinunternehmer ?? d.kleinunternehmer) ? 0 : Number(r.ust_satz);
+    const brutto = r.ust_betrag !== null && r.ust_betrag !== undefined ? Number(r.netto) + Number(r.ust_betrag) : Math.round(Number(r.netto) * (100 + satz)) / 100;
+    const z = zahlstatus({ datum: r.datum, bezahlt_am: r.bezahlt_am, zahlungsziel_tage: r.zahlungsziel_tage ?? 14, art: r.art === "storno" ? "storno" : "rechnung", storniert_durch: r.storniert ? "x" : null } as Rechnung, heute);
+    const stand = r.art === "storno" ? `↩︎ Storno zu ${escape(r.bezug_nummer ?? "")}` : z.art === "storniert" ? "↩︎ storniert" : z.art === "bezahlt" ? "✅ bezahlt" : z.art === "ueberfaellig" ? `⏰ fällig seit ${datum(z.faellig)}` : `offen, fällig ${datum(z.faellig)}`;
+    return `<li><div><strong>${escape(r.nummer)} · ${euro(brutto)}</strong><span class="klein">${datum(r.datum)} · ${monatName(r.monat)} · ${stand}</span></div></li>`;
   }).join("")}</ul><p class="klein">Rechnungen erhalten Sie weiterhin direkt von ${escape(d.firma)}.</p>` : `<p class="treffer-leer">Noch keine Rechnungen.</p>`}`;
   const berichte = d.orte === null ? "" : `<h2>🛡️ Kontrollgänge</h2>${d.orte.length ? `<table class="tabelle"><thead><tr><th>Objekt</th><th>Scans (14 Tage)</th><th>Letzter Kontrollgang</th></tr></thead><tbody>${d.orte.map((o) => `<tr><td>${escape(o.name)}</td><td>${o.scans}</td><td>${o.letzter ? zeitpunkt(o.letzter) : "–"}</td></tr>`).join("")}</tbody></table>` : `<p class="treffer-leer">Keine Objekte hinterlegt.</p>`}
 ${d.vorfaelle?.length ? `<h3>Vorfälle (30 Tage)</h3><ul class="kontakt-liste">${d.vorfaelle.map((v) => `<li><div><strong>${zeitpunkt(v.zeit)} · ${escape(v.ort)}</strong><span class="klein">${escape(v.text)}</span></div></li>`).join("")}</ul>` : ""}`;

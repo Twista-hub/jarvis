@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { strFromU8, unzipSync } from "fflate";
 import type { Eintrag } from "../src/stunden.ts";
-import { naechsteNummer, positionen, rechnungDocx, rechnungenSeite, type Absender, type Rechnung } from "../src/rechnungen.ts";
+import { neueEntwurfsnummer, positionen, rechnungDocx, rechnungenSeite, type Absender, type Rechnung } from "../src/rechnungen.ts";
 import { lohnCsv, lohnExcel, lohnZeilen, stundennachweisDocx } from "../src/lohn.ts";
 import { hm, zeitkonto, zeitkontoSeite } from "../src/zeitkonto.ts";
 import { meineSpesenTeil, spesenSeite, type Spese } from "../src/spesen.ts";
@@ -34,15 +34,29 @@ test("T34: Positionen mit Zuschlägen, Nummernkreis, Word-Rechnung", () => {
   assert.ok(p.some((x) => x.text.startsWith("Nachtzuschlag 25") && x.preis === 7.5));
   assert.ok(p.some((x) => x.text.startsWith("Feiertagszuschlag 100")), "3.10. Tag der Deutschen Einheit");
   assert.equal(positionen(l, { satz: 30, nacht: 0, sonntag: 0, feiertag: 0 }, "", "2026-10").length, 1);
-  assert.equal(naechsteNummer(["RE-2026-0007", "RE-2025-0099", "X"], "2026"), "RE-2026-0008");
-  assert.equal(naechsteNummer([], "2027"), "RE-2027-0001");
+  // Numbers come from the database counter when issuing (migration 20261103110000); drafts carry a placeholder.
+  assert.match(neueEntwurfsnummer(), /^ENTWURF-[0-9a-f]{8}$/);
   const r: Rechnung = { id: "r", kunde_id: "k1", nummer: "RE-2026-0008", monat: "2026-10", datum: "2026-11-02", positionen: p, netto: p.reduce((n, x) => n + x.betrag, 0), ust_satz: 19, erstellt: "" };
   const a: Absender = { name: "Muster GmbH", strasse: "Hauptstr. 1", plz: "52531", ort: "Übach-Palenberg", telefon: "", email: "", steuernummer: "202/123/45678", ustid: "", kleinunternehmer: false, zahlungshinweis: "IBAN DE00 1234" };
   const t = docText(rechnungDocx(r, { id: "k1", name: "Messe Berlin GmbH", strasse: "Messedamm 22", plz: "14055", ort: "Berlin" } as never, a));
   for (const s of ["Rechnung RE-2026-0008", "Leistungszeitraum", "Oktober 2026", "Messe Berlin GmbH", "19 % Umsatzsteuer", "Steuernummer: 202/123/45678", "IBAN DE00 1234", "16.11.2026"]) assert.ok(t.includes(s), s);
   const klein = docText(rechnungDocx(r, null, { ...a, kleinunternehmer: true }));
-  assert.ok(klein.includes("§ 19 UStG") && !klein.includes("zzgl."));
+  assert.ok(klein.includes("Kleinunternehmerregelung nach § 19 Abs. 1 UStG") && !klein.includes("zzgl."));
   assert.match(rechnungenSeite([r], [], { fehlt: ["Steuernummer"] }), /Steuernummer[\s\S]*RE-2026-0008/);
+  // GoBD: an issued invoice prints the frozen sender and VAT, not today's profile; a draft has no number and no XML.
+  const frei: Rechnung = { ...r, status: "ausgestellt", absender: { ...a, name: "Alte Firma GmbH", steuernummer: "111/111/11111" }, kleinunternehmer: false, ust_betrag: 99.99, empfaenger: { name: "Kunde damals" } };
+  const t2 = docText(rechnungDocx(frei, { id: "k1", name: "Kunde heute" } as never, { ...a, kleinunternehmer: true, name: "Neue Firma" }));
+  for (const s of ["Alte Firma GmbH", "111/111/11111", "Kunde damals", "99,99"]) assert.ok(t2.includes(s), s);
+  assert.ok(!t2.includes("Neue Firma") && !t2.includes("Kunde heute"));
+  const entwurf: Rechnung = { ...r, nummer: "ENTWURF-1234abcd", status: "entwurf" };
+  const t3 = docText(rechnungDocx(entwurf, null, a));
+  assert.ok(t3.includes("Rechnungsentwurf – nicht versenden") && !t3.includes("ENTWURF-1234abcd"));
+  const liste = rechnungenSeite([entwurf, { ...frei, id: "r2" }, { ...frei, id: "r3", nummer: "RE-2026-0009", art: "storno", bezug_nummer: "RE-2026-0008" }], [], { fehlt: [] });
+  assert.match(liste, /name="ausstellen"/);
+  assert.match(liste, /name="stornieren"/);
+  assert.match(liste, /Stornorechnung zu RE-2026-0008/);
+  assert.doesNotMatch(liste, /r3\.xml/, "keine E-Rechnung für Stornos");
+  assert.equal((liste.match(/name="loeschen"/g) ?? []).length, 1, "nur der Entwurf ist löschbar");
 });
 
 test("T35: Lohnliste mit Zuschlägen, Spesen, Zeitkonto; CSV sicher", () => {

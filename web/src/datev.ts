@@ -31,11 +31,14 @@ const cent = (n: number | string) => Math.round(Number(n) * 100);
 const ymd = (d: string) => d.replace(/-/g, "");
 
 /** Postings for one month: outgoing invoices (gross, debtor to revenue) and receipts (expense to creditor, with input tax key). */
-export function buchungenAus(rechnungen: Pick<Rechnung, "nummer" | "datum" | "netto" | "ust_satz">[], belege: Beleg[], e: DatevEinstellung, kundeName: (r: Pick<Rechnung, "nummer">) => string = () => ""): Buchung[] {
+export function buchungenAus(rechnungen: (Pick<Rechnung, "nummer" | "datum" | "netto" | "ust_satz"> & Partial<Pick<Rechnung, "ust_betrag" | "kleinunternehmer" | "art" | "bezug_nummer">>)[], belege: Beleg[], e: DatevEinstellung, kundeName: (r: Pick<Rechnung, "nummer">) => string = () => ""): Buchung[] {
   const k = KONTEN[e.skr];
   const aus = rechnungen.map((r): Buchung => {
-    const satz = e.kleinunternehmer ? 0 : Number(r.ust_satz);
-    return { cent: Math.round(cent(r.netto) * (100 + satz) / 100), seite: "S", konto: k.debitor, gegenkonto: e.kleinunternehmer ? k.erloesKu : k.erloes, datum: r.datum, beleg1: r.nummer, text: `Rechnung ${r.nummer} ${kundeName(r)}` };
+    // Issued invoices carry their frozen small-business status and VAT amount (GoBD); a cancellation is posted on the credit side.
+    const ku = r.kleinunternehmer ?? e.kleinunternehmer;
+    const brutto = r.ust_betrag !== null && r.ust_betrag !== undefined ? cent(r.netto) + cent(r.ust_betrag) : Math.round(cent(r.netto) * (100 + (ku ? 0 : Number(r.ust_satz))) / 100);
+    const storno = r.art === "storno" || brutto < 0;
+    return { cent: Math.abs(brutto), seite: storno ? "H" : "S", konto: k.debitor, gegenkonto: ku ? k.erloesKu : k.erloes, datum: r.datum, beleg1: r.nummer, text: `${storno ? `Storno ${r.bezug_nummer ?? ""}` : "Rechnung"} ${r.nummer} ${kundeName(r)}`.replace(/\s+/g, " ") };
   });
   const ein = belege.map((b): Buchung => ({ cent: cent(b.brutto), seite: "S", konto: (k as Record<string, string>)[b.kategorie] ?? k.sonstiges, gegenkonto: k.kreditor, bu: e.kleinunternehmer ? "" : BU_VORSTEUER[Number(b.ust_satz)] ?? "", datum: b.datum, beleg1: `B${ymd(b.datum).slice(2)}${b.id.slice(0, 6)}`, text: `${b.lieferant}${b.notiz ? ` ${b.notiz}` : ""}` }));
   return [...aus, ...ein].filter((b) => b.cent > 0).sort((a, b) => a.datum.localeCompare(b.datum));

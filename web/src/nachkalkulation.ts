@@ -112,7 +112,7 @@ export async function nachkalkulationRoute(request: Request, env: KontoEnv): Pro
     db<Ort[]>(f.s, env, `einsatzorte?firma_id=eq.${firma}&select=id,kunde_id&limit=3000`),
     db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&datum=gte.${von}&datum=lt.${planBis}&einsatzort_id=not.is.null&antwort=neq.abgesagt&select=datum,beginn,ende,einsatzort_id,personal_id&limit=20000`),
     db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&status=eq.freigegeben&datum=gte.${von}&datum=lt.${bis}&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id&limit=20000`),
-    db<(Rechnung & { monat: string })[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&monat=eq.${monat}&select=kunde_id,netto,monat&limit=2000`),
+    db<(Rechnung & { monat: string })[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&status=eq.ausgestellt&monat=eq.${monat}&select=kunde_id,netto,monat&limit=2000`),
     db<Preis[]>(f.s, env, `kunden_preise?firma_id=eq.${firma}&select=kunde_id,satz,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag&limit=1000`),
     db<{ personal_id: string; stundenlohn: number | string }[]>(f.s, env, `personal_loehne?firma_id=eq.${firma}&select=personal_id,stundenlohn&limit=5000`),
     db<Werte[]>(f.s, env, `nachkalkulation_werte?firma_id=eq.${firma}&select=lohn,nebenkosten,nacht,sonntag,feiertag`),

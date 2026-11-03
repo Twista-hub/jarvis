@@ -24,9 +24,9 @@
 ### Hoch
 | # | Befund | Norm | Stelle | Vorschlag | Stand |
 |---|---|---|---|---|---|
-| S1 | Alte Rechnungen ändern sich nachträglich: Absender, Kunde, Kleinunternehmer-Häkchen werden beim Download frisch gelesen; gelöschter Kunde → Empfänger fehlt | GoBD, § 14 Abs. 4 UStG | rechnungen.ts, datev.ts, umsatzsteuer.ts, kundenportal.ts | Beim Ausstellen alles einfrieren (Absender, Empfänger, Steuersatz, Steuerbetrag, Hinweis) | 🔧 |
-| S2 | Ausgestellte Rechnungen lassen sich spurlos löschen, keine Stornorechnung | GoBD, § 146 Abs. 4 AO | rechnungen.ts:213, Migration 20261101200000 | Status Entwurf/ausgestellt, Löschen nur Entwurf (DB-Sperre), Storno mit eigener Nummer | 🔧 |
-| S3 | Rechnungsnummer kann doppelt vergeben werden (höchste + 1; nach Löschen der letzten wieder dieselbe) | § 14 Abs. 4 Nr. 4 UStG | rechnungen.ts:32 | Zähler pro Firma und Jahr in der DB, Nummer erst beim Ausstellen | 🔧 |
+| S1 | Alte Rechnungen ändern sich nachträglich: Absender, Kunde, Kleinunternehmer-Häkchen werden beim Download frisch gelesen; gelöschter Kunde → Empfänger fehlt | GoBD, § 14 Abs. 4 UStG | rechnungen.ts, datev.ts, umsatzsteuer.ts, kundenportal.ts | Beim Ausstellen alles einfrieren (Absender, Empfänger, Steuersatz, Steuerbetrag, Hinweis) | ✅ \|
+| S2 | Ausgestellte Rechnungen lassen sich spurlos löschen, keine Stornorechnung | GoBD, § 146 Abs. 4 AO | rechnungen.ts:213, Migration 20261101200000 | Status Entwurf/ausgestellt, Löschen nur Entwurf (DB-Sperre), Storno mit eigener Nummer | ✅ \|
+| S3 | Rechnungsnummer kann doppelt vergeben werden (höchste + 1; nach Löschen der letzten wieder dieselbe) | § 14 Abs. 4 Nr. 4 UStG | rechnungen.ts:32 | Zähler pro Firma und Jahr in der DB, Nummer erst beim Ausstellen | ✅ \|
 | S4 | Keine Umkehr der Steuerschuld (§ 13b) für Reinigung an Gebäudereiniger und Bauleistungen | § 13b Abs. 2 Nr. 4/8, § 14a Abs. 5 UStG | rechnungen.ts, xrechnung.ts, datev.ts | Kunde als „§ 13b“ markieren → 0 %, Pflichthinweis, XRechnung AE, eigenes Erlöskonto | ⏳ |
 | S5 | Belege samt Datei löschbar | § 147 AO, GoBD | belege.ts:154 | Stornieren mit Grund statt Löschen, Datei behalten | ⏳ |
 | S6 | Konto löschen vernichtet Rechnungen und Belege sofort, ohne Warnung und Export; Datenschutzerklärung verspricht Aufbewahrung | § 147 AO, § 14b UStG | kontoeinstellungen.ts:54, loeschen.ts | Warnung + Komplettexport (Rechnungen, Belege, DATEV) vor dem Löschen; Text anpassen | ⏳ |
@@ -35,22 +35,22 @@
 ### Mittel
 | # | Befund | Stelle | Stand |
 |---|---|---|---|
-| S8 | USt-Übersicht ordnet nach Rechnungsdatum statt Leistungsmonat (Soll-Versteuerung, § 13 Abs. 1 Nr. 1a UStG) | umsatzsteuer.ts:19 | 🔧 |
+| S8 | USt-Übersicht ordnet nach Rechnungsdatum statt Leistungsmonat (Soll-Versteuerung, § 13 Abs. 1 Nr. 1a UStG) | umsatzsteuer.ts:19 | ✅ Leistungsmonat; Storno im Monat des Stornos (§ 17) |
 | S9 | Vorsteuer auch aus Einträgen ohne Beleg; ab 250 € keine Prüfung der ordnungsgemäßen Rechnung | umsatzsteuer.ts:33, belege.ts:77 | ⏳ |
 | S10 | Bewirtung als Reisekosten gebucht, Anlass/Teilnehmer fehlen (§ 4 Abs. 5 Nr. 2 EStG) | belegleser.json, datev.ts | ⏳ |
 | S11 | E-Rechnungen (XML) lassen sich nicht als Beleg annehmen (Empfangspflicht seit 2025) | belege.ts:17 | ⏳ |
-| S12 | Hinweis „E-Rechnung für Behörden“ ab 2027 irreführend (B2B-Pflicht 2027/2028) | rechnungen.ts:121 | 🔧 |
+| S12 | Hinweis „E-Rechnung für Behörden“ ab 2027 irreführend (B2B-Pflicht 2027/2028) | rechnungen.ts:121 | ✅ Hinweistext |
 | S13 | Kleinunternehmer-Wächter: Gründungsjahr, vereinnahmte Entgelte, Umsätze außerhalb Jarvis | umsatzsteuer.ts:42 | ⏳ ⚖️ |
-| S14 | XRechnung: Prüffunktion nie aufgerufen, Land fest DE, BT-49/BT-48, Platzhalter-Telefon, nur Kategorie S/E | xrechnung.ts | 🔧 teilweise |
-| S15 | Zahlungsziel 14 Tage fest, Mahnung liest `zahlungsziel_tage` | rechnungen.ts:40, xrechnung.ts | 🔧 |
-| S16 | Leistungstext fest „Personalgestellung“ (sachlich falsch, Anschein von AÜG) | rechnungen.ts:25 | 🔧 |
+| S14 | XRechnung: Prüffunktion nie aufgerufen, Land fest DE, BT-49/BT-48, Platzhalter-Telefon, nur Kategorie S/E | xrechnung.ts | ✅ Prüfung vor dem Download, nur ausgestellte Rechnungen; ⏳ Land, BT-48, weitere Kategorien, Storno als E-Rechnung |
+| S15 | Zahlungsziel 14 Tage fest, Mahnung liest `zahlungsziel_tage` | rechnungen.ts:40, xrechnung.ts | ✅ |
+| S16 | Leistungstext fest „Personalgestellung“ (sachlich falsch, Anschein von AÜG) | rechnungen.ts:25 | ✅ neutral „Leistungen <Monat> lt. Leistungsnachweis“; ⏳ je Kunde einstellbar |
 | S17 | Hinweis auf Aufbewahrungspflicht bei Leistungen an Privatpersonen fehlt (§ 14 Abs. 4 Nr. 9 UStG) | rechnungen.ts | ⏳ |
 | S18 | DATEV: alle Belege gegen Kreditor 70000 (auch bar), kein § 13b-Schlüssel für Auslandsbelege, Arbeitskleidung als Fremdleistung | datev.ts | ⏳ ⚖️ |
 | S19 | Spesen als eine Lohnart; Pauschalen/Kilometergeld fehlen | spesen.ts, datev.ts | ⏳ |
 | S20 | Belege mit mehreren Steuersätzen werden mit dem höchsten Satz gerechnet | belege.ts:71 | ⏳ |
 
 ### Niedrig
-S21 Kleinunternehmer-Text nennt die Befreiung nicht ausdrücklich (🔧) · S22 fehlende Steuernummer wird auf die Rechnung gedruckt statt zu sperren (🔧) · S23 Verzugszinsen/40-€-Pauschale optional anbieten (⏳) · S24 Rechnungsdatum = Erstellung des Entwurfs (🔧 Datum beim Ausstellen) · S25 Leitweg-ID-Feld je Kunde (⏳) · S26 Belegdateien gelöschter Firmen bleiben in R2 (⏳) · S27 Nachkalkulation ohne Ausfallzeiten (⏳) · S28 LODAS-Schlüssel vom Lohnbüro bestätigen (⚖️)
+S21 Kleinunternehmer-Text nennt die Befreiung nicht ausdrücklich (✅) · S22 fehlende Steuernummer wird auf die Rechnung gedruckt statt zu sperren (✅ Ausstellen gesperrt) · S23 Verzugszinsen/40-€-Pauschale optional anbieten (⏳) · S24 Rechnungsdatum = Erstellung des Entwurfs (✅ Datum beim Ausstellen) · S25 Leitweg-ID-Feld je Kunde (⏳) · S26 Belegdateien gelöschter Firmen bleiben in R2 (⏳) · S27 Nachkalkulation ohne Ausfallzeiten (⏳) · S28 LODAS-Schlüssel vom Lohnbüro bestätigen (⚖️)
 
 ## 2. Arbeitsrecht und Lohn
 
@@ -96,11 +96,30 @@ D15 Freitextfelder ohne Hinweis „keine Gesundheitsangaben“ · D16 Lesebestä
 
 ## 5. Rechtstexte und Länderpflichten
 
-(Bericht folgt)
+### Hoch
+| # | Befund | Norm | Stelle | Vorschlag | Stand |
+|---|---|---|---|---|---|
+| R1 | AVV deckt nur den „Ausschreibungs-Alarm“ ab, nicht Personal, Bewerber, Stunden, Stempel, Belege, Unterschriften, Kunden, Wachbuch, Chat; Pflichten aus Art. 28 Abs. 3 S. 3 und Abs. 4 fehlen; Nutzungsbedingungen § 4 „möglichst keine Mitarbeiterdaten“ widerspricht dem Produkt | Art. 28 DSGVO | rechtliches.ts:92–140 | AVV § 1/§ 2 neu, Pflichten ergänzen, AGB § 2/§ 4 anpassen | ⏳ ⚖️ |
+| R2 | Alarm committete täglich Trefferlisten, Bewertungen und Suchprofile der Kundenfirmen ins öffentliche Repo | Art. 5 Abs. 1 f, 32 DSGVO | alarm.yml | Speicherung privat in R2, Versionsgeschichte bereinigt | ✅ (03.11.) ⚖️ Art. 33 bewerten |
+
+### Mittel
+R-M1 Datenschutzerklärung: Chat, Rundgang/Wachbuch, Kundenportal, Belegleser (KI), Betreiber-Meldung bei Anmeldung fehlen; Rechtsgrundlagen teils fehlend (⏳) · R-M2 `push_nachrichten` nie gelöscht (= D8) (⏳) · R-M3 Impressum ohne zweiten schnellen Kontaktweg (Kontaktformular reicht) (⏳) · R-M4 keine englischen Rechtstexte (US/UK/NL) (⏳) · R-M5 Haftungsklausel: Satz 3 ohne Vorbehalt Vorsatz/grobe Fahrlässigkeit, Deckel 0 € in der Testphase (⏳ ⚖️) · R-M6 Änderungsfiktion zu weit, Abo-/Testphasen-Regeln fehlen, keine Unternehmer-Bestätigung bei der Registrierung (⏳) · R-M7 Datenexport bei Vertragsende uneinheitlich (AGB/AVV/abos.md), Data Act (⏳ ⚖️)
+
+### Niedrig
+Quellenangaben ANAC, data.gv.at, Find a Tender, USAspending, GeoNames im Impressum; Lizenzlinks · Download-Werkzeug ohne Portal-Liste · Komfort-Cookies kürzen · KI-Kennzeichnung („🤖 KI-Bewertung“) · DSA-Kontaktstelle · AVV-TOM zur Sicherung widersprüchlich · DPF-Status der Dienstleister prüfen · Wirtschafts-ID nachtragen
 
 ## 6. KI-Einsatz
 
-(Bericht folgt)
+Einordnung: Benjamin ist **Anbieter** der KI-Funktionen (nachgelagert auf Claude), die Kundenfirmen sind Betreiber. Alle KI-Funktionen betreffen Ausschreibungen, Belege, Firmennachweise und die Firmenrecherche: **kein Hochrisiko**. Die Personalfunktionen (Personalsuche, Ersatzvorschläge, Bewertungen, Auswertung, Bewerber) nutzen **keine KI**, sondern feste Regeln; Art. 22 DSGVO wird nicht ausgelöst (Mensch entscheidet per Klick).
+
+### Hoch
+K1 AVV veraltet (= R1) (⏳ ⚖️) · K2 Führungszeugnis geht automatisch zum Ablaufdatum-Lesen an Anthropic (Art. 10 DSGVO) → keine Automatik für Führungszeugnis/Gewerbezentralregister (⏳) · K3 Datenschutzerklärung nennt nicht alle KI-Zwecke (Belege, Nachweise, Lose, Förderbewertung, Website-Text); DPF/SCC, Speicherdauer bei Anthropic (⏳ ⚖️)
+
+### Mittel
+K4 Steckbriefe mit Personennamen/Mailadressen lagen im Repo (✅ jetzt privat, 30 Tage) – zusätzlich Kontaktpersonen vor dem Prompt entfernen (⏳) · K5 Hinweis „geht an KI-Dienst in den USA“ direkt beim Hochladen (⏳) · K6 maschinenlesbare KI-Kennzeichnung (Art. 50 Abs. 2, Fristen prüfen) (⏳) · K7 Modell/Antwort-ID nicht protokolliert (⏳) · K8 KI-Ablaufdatum wird ohne Bestätigung gespeichert und steuert Sperren (⏳) · K9 Steckbrief-Fehler: Abgleich Lose/Fristen mit eForms, Haken „mit Original geprüft“ vor Freigabe (⏳) · K10 Hinweis Mitbestimmung (§ 87 BetrVG) bei Personalfunktionen (⏳) · K11 Länder ES (Art. 64.4 d ET: Algorithmen-Information), IT, AT, NL, FR, PL (⏳ ⚖️)
+
+### Niedrig
+US-Personalfunktionen erst nach US-Prüfung · künftige KI bei Personal wäre Hochrisiko → rote Linie in AGENTS.md · „nicht wieder“-Sperre nach 12 Monaten verfallen lassen · verwaiste Belegfotos löschen · Hilfeseite „Was die KI kann und nicht kann“ (Art. 4)
 
 ## 7. Fragen für Anwalt / Steuerbüro
 
