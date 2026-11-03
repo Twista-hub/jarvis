@@ -137,6 +137,8 @@ async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: str
   const website = websiteNormalisieren(roheWebsite);
   if (roheWebsite && !website) return html(seite("Suchprofil", profilFormular(firma, basis, "Bitte eine gültige Website-Adresse angeben.", roheWebsite)), 400);
   if (website !== alteWebsite && rolle !== "inhaber") return html(seite("Suchprofil", profilFormular(firma, basis, "Nur der Inhaber kann die gemeinsame Firmenwebsite ändern.", alteWebsite)), 403);
+  // Probezeit-Schutz: the website unlocks the trial AI budget (migration 20261103200000), so save it before the AI research.
+  if (website && website !== alteWebsite) await db(s, env, `firmen?id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ website }) });
   const orte = basis.standorte.map((o) => o.name).join("\n") || (eingerichtet ? "Deutschlandweit, keine Ortseinschränkung" : `${plz} ${ort}`);
   const websiteDaten = website ? await dienste.website(website) : { text: "", hinweis: "Keine Firmenwebsite angegeben." };
 

@@ -16,22 +16,36 @@ export function tabelle(zeilen: string[][], breiten: number[], kopf = false): st
     + zeilen.map((z, i) => `<w:tr><w:trPr><w:cantSplit/>${kopf && i === 0 ? "<w:tblHeader/>" : ""}</w:trPr>${z.map((t, j) => zelle(t, breiten[j] ?? 2000, kopf && i === 0)).join("")}</w:tr>`).join("") + "</w:tbl>" + absatz("", { abstand: 120 });
 }
 
-/** Inline picture (PNG) for a document; `id` must match an entry in the images passed to wordDokument. */
+/** Inline picture (PNG or JPEG) for a document; `id` must match an entry in the images passed to wordDokument. */
 export function bild(id: number, breiteCm: number, hoeheCm: number): string {
   const cx = Math.round(breiteCm * 360000), cy = Math.round(hoeheCm * 360000);
   return `<w:p><w:r><w:drawing><wp:inline distT="0" distB="0" distL="0" distR="0"><wp:extent cx="${cx}" cy="${cy}"/><wp:docPr id="${id}" name="Bild${id}"/><a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"><a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture"><pic:nvPicPr><pic:cNvPr id="${id}" name="Bild${id}.png"/><pic:cNvPicPr/></pic:nvPicPr><pic:blipFill><a:blip r:embed="rIdBild${id}"/><a:stretch><a:fillRect/></a:stretch></pic:blipFill><pic:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${cx}" cy="${cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></pic:spPr></pic:pic></a:graphicData></a:graphic></wp:inline></w:drawing></w:r></w:p>`;
 }
 
-/** A4 portrait document from body XML, optionally with PNG images (see bild()). */
-export function wordDokument(body: string, bilder: { id: number; png: Uint8Array }[] = []): Uint8Array {
+/** Width and height in pixels of a PNG or JPEG (for the aspect ratio of a logo), null if unknown. */
+export function bildMasse(b: Uint8Array): { w: number; h: number } | null {
+  if (b[0] === 0x89 && b[1] === 0x50 && b.length > 24) return { w: (b[16] << 24 | b[17] << 16 | b[18] << 8 | b[19]) >>> 0, h: (b[20] << 24 | b[21] << 16 | b[22] << 8 | b[23]) >>> 0 };
+  if (b[0] === 0xff && b[1] === 0xd8) {
+    for (let i = 2; i + 9 < b.length;) {
+      if (b[i] !== 0xff) { i++; continue; }
+      const m = b[i + 1], len = b[i + 2] << 8 | b[i + 3];
+      if (m >= 0xc0 && m <= 0xcf && m !== 0xc4 && m !== 0xc8 && m !== 0xcc) return { h: b[i + 5] << 8 | b[i + 6], w: b[i + 7] << 8 | b[i + 8] };
+      i += 2 + len;
+    }
+  }
+  return null;
+}
+
+/** A4 portrait document from body XML, optionally with PNG or JPEG images (see bild()). */
+export function wordDokument(body: string, bilder: { id: number; png: Uint8Array; typ?: "png" | "jpeg" }[] = []): Uint8Array {
   const dateien: Record<string, Uint8Array> = {
-    "[Content_Types].xml": strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'),
+    "[Content_Types].xml": strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="png" ContentType="image/png"/><Default Extension="jpeg" ContentType="image/jpeg"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>'),
     "_rels/.rels": strToU8('<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>'),
     "word/document.xml": strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1100" w:right="1100" w:bottom="1100" w:left="1100" w:header="600" w:footer="600" w:gutter="0"/></w:sectPr></w:body></w:document>`),
   };
   if (bilder.length) {
-    dateien["word/_rels/document.xml.rels"] = strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${bilder.map((b) => `<Relationship Id="rIdBild${b.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/bild${b.id}.png"/>`).join("")}</Relationships>`);
-    for (const b of bilder) dateien[`word/media/bild${b.id}.png`] = b.png;
+    dateien["word/_rels/document.xml.rels"] = strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">${bilder.map((b) => `<Relationship Id="rIdBild${b.id}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/bild${b.id}.${b.typ ?? "png"}"/>`).join("")}</Relationships>`);
+    for (const b of bilder) dateien[`word/media/bild${b.id}.${b.typ ?? "png"}`] = b.png;
   }
   return zipSync(dateien);
 }

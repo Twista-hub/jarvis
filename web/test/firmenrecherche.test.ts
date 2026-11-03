@@ -40,7 +40,7 @@ test("SDK-Verbindungsfehler verdecken die Budgetursache nicht und werden nicht w
   const fehler = new Anthropic.APIConnectionError({ cause: new Error("Das KI-Tages- oder Monatsbudget ist erreicht.") });
   assert.equal(fehler.message, "Connection error.");
   assert.equal(kiFehlerart(fehler), "budget");
-  assert.match(kiFehlermeldung(fehler), /KI-Tages- oder Monatsbudget/);
+  assert.match(kiFehlermeldung(fehler), /KI-Budget ist erreicht/);
   assert.doesNotMatch(kiFehlermeldung(fehler), /Connection error/);
   const { client, aufrufe } = fake([fehler]);
   await assert.rejects(() => rechercheProfil({ ANTHROPIC_API_KEY: "test" }, angaben, client));

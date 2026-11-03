@@ -83,7 +83,7 @@ Pausenprüfung grob · Gemeinde-Feiertage (Mariä Himmelfahrt, Augsburg, Fronlei
 | D6 | Person löschen: Dateien bleiben in R2, Pflichtunterlagen gehen verloren | Art. 17 DSGVO | personal.ts:508 | wie A2, R2-Ordner pro Person mitlöschen | 🔧 Pflichtunterlagen geschützt (A2); ⏳ R2-Ordner mitlöschen |
 
 ### Mittel
-D7 Keine Löschfristen für Abwesenheiten, Stunden, Stempel, Scans, Wachbuch, Bewertungen, Meldungen, Unterschriften, ausgeschiedenes Personal (⏳) · D8 `push_nachrichten` wird nie gelöscht (Datenschutzerklärung sagt 30 Tage) (✅ 30 Tage) · D9 Bewerber-Löschung nicht zuverlässig, offene Bewerbungen ohne Frist (⏳) · D10 Änderungsprotokoll speichert Notizen und Bewerbernamen 12 Monate (⏳) · D11 Kunden-Stundenlink zeigt nach Ablauf weiter Namen und Stunden (✅) · D12 Leistungs-/Verhaltenskontrolle (Rangliste, „nicht am Einsatzort“, Scan-Tabelle) ohne Mitbestimmungshinweis (⏳) · D13 Auskunft/Export für Einsatzkräfte und Firmen fehlt (⏳) · D14 AVV und Datenschutzerklärung veraltet (Einsatzkräfte, Bewerber, Chat, Rundgang, Wachbuch, Kundenportal fehlen) (⏳ ⚖️)
+D7 Keine Löschfristen für Abwesenheiten, Stunden, Stempel, Scans, Wachbuch, Bewertungen, Meldungen, Unterschriften, ausgeschiedenes Personal (⏳) · D8 `push_nachrichten` wird nie gelöscht (Datenschutzerklärung sagt 30 Tage) (✅ 30 Tage) · D9 Bewerber-Löschung nicht zuverlässig, offene Bewerbungen ohne Frist (⏳) · D10 Änderungsprotokoll speichert Notizen und Bewerbernamen 12 Monate (⏳) · D11 Kunden-Stundenlink zeigt nach Ablauf weiter Namen und Stunden (✅) · D12 Leistungs-/Verhaltenskontrolle (Rangliste, „nicht am Einsatzort“, Scan-Tabelle) ohne Mitbestimmungshinweis (⏳) · D13 Auskunft/Export für Einsatzkräfte und Firmen fehlt (⏳) · D14 AVV und Datenschutzerklärung veraltet (Einsatzkräfte, Bewerber, Chat, Rundgang, Wachbuch, Kundenportal fehlen) (✅ ⚖️)
 
 ### Niedrig
 D15 Freitextfelder ohne Hinweis „keine Gesundheitsangaben“ · D16 Lesebestätigungen firmenweit · D17 Aufenthaltstitel/Geburtstag für alle Büro-Rollen · D18 „Ersatz für <Vorname>“ verrät der Ersatzkraft, wer fehlt (✅ „Ersatzschicht“) · D19 Länderregeln für Stempeluhr, Rundgänge, Bewertungen (IT Art. 4 Statuto, FR CSE/CNIL, AT § 96 ArbVG, NL Art. 27 WOR, PL Art. 22³ KP)
@@ -99,11 +99,11 @@ D15 Freitextfelder ohne Hinweis „keine Gesundheitsangaben“ · D16 Lesebestä
 ### Hoch
 | # | Befund | Norm | Stelle | Vorschlag | Stand |
 |---|---|---|---|---|---|
-| R1 | AVV deckt nur den „Ausschreibungs-Alarm“ ab, nicht Personal, Bewerber, Stunden, Stempel, Belege, Unterschriften, Kunden, Wachbuch, Chat; Pflichten aus Art. 28 Abs. 3 S. 3 und Abs. 4 fehlen; Nutzungsbedingungen § 4 „möglichst keine Mitarbeiterdaten“ widerspricht dem Produkt | Art. 28 DSGVO | rechtliches.ts:92–140 | AVV § 1/§ 2 neu, Pflichten ergänzen, AGB § 2/§ 4 anpassen | ⏳ ⚖️ |
+| R1 | AVV deckt nur den „Ausschreibungs-Alarm“ ab, nicht Personal, Bewerber, Stunden, Stempel, Belege, Unterschriften, Kunden, Wachbuch, Chat; Pflichten aus Art. 28 Abs. 3 S. 3 und Abs. 4 fehlen; Nutzungsbedingungen § 4 „möglichst keine Mitarbeiterdaten“ widerspricht dem Produkt | Art. 28 DSGVO | rechtliches.ts:92–140 | AVV § 1/§ 2 neu, Pflichten ergänzen, AGB § 2/§ 4 anpassen | ✅ Entwurf live (Stand 03.11.2026, alle 5 Sprachen) ⚖️ Anwalt prüft |
 | R2 | Alarm committete täglich Trefferlisten, Bewertungen und Suchprofile der Kundenfirmen ins öffentliche Repo | Art. 5 Abs. 1 f, 32 DSGVO | alarm.yml | Speicherung privat in R2, Versionsgeschichte bereinigt | ✅ (03.11.) ⚖️ Art. 33 bewerten |
 
 ### Mittel
-R-M1 Datenschutzerklärung: Chat, Rundgang/Wachbuch, Kundenportal, Belegleser (KI), Betreiber-Meldung bei Anmeldung fehlen; Rechtsgrundlagen teils fehlend (⏳) · R-M2 `push_nachrichten` nie gelöscht (= D8) (✅) · R-M3 Impressum ohne zweiten schnellen Kontaktweg (Kontaktformular reicht) (⏳) · R-M4 keine englischen Rechtstexte (US/UK/NL) (⏳) · R-M5 Haftungsklausel: Satz 3 ohne Vorbehalt Vorsatz/grobe Fahrlässigkeit, Deckel 0 € in der Testphase (⏳ ⚖️) · R-M6 Änderungsfiktion zu weit, Abo-/Testphasen-Regeln fehlen, keine Unternehmer-Bestätigung bei der Registrierung (⏳) · R-M7 Datenexport bei Vertragsende uneinheitlich (AGB/AVV/abos.md), Data Act (⏳ ⚖️)
+R-M1 Datenschutzerklärung: Chat, Rundgang/Wachbuch, Kundenportal, Belegleser (KI), Betreiber-Meldung bei Anmeldung fehlen; Rechtsgrundlagen teils fehlend (✅ ergänzt, ⚖️) · R-M2 `push_nachrichten` nie gelöscht (= D8) (✅) · R-M3 Impressum ohne zweiten schnellen Kontaktweg (Kontaktformular reicht) (⏳) · R-M4 keine englischen Rechtstexte (US/UK/NL) (⏳) · R-M5 Haftungsklausel: Satz 3 ohne Vorbehalt Vorsatz/grobe Fahrlässigkeit, Deckel 0 € in der Testphase (✅ Entwurf: Satz 1 bleibt unberührt, kostenlose Nutzung nach §§ 521/599 BGB ⚖️) · R-M6 Änderungsfiktion zu weit, Abo-/Testphasen-Regeln fehlen, keine Unternehmer-Bestätigung bei der Registrierung (✅ Fiktion nur für unwesentliche Änderungen, Testphase endet von selbst; ⏳ Unternehmer-Checkbox) · R-M7 Datenexport bei Vertragsende uneinheitlich (AGB/AVV/abos.md), Data Act (⏳ ⚖️)
 
 ### Niedrig
 Quellenangaben ANAC, data.gv.at, Find a Tender, USAspending, GeoNames im Impressum; Lizenzlinks · Download-Werkzeug ohne Portal-Liste · Komfort-Cookies kürzen · KI-Kennzeichnung („🤖 KI-Bewertung“) · DSA-Kontaktstelle · AVV-TOM zur Sicherung widersprüchlich · DPF-Status der Dienstleister prüfen · Wirtschafts-ID nachtragen
@@ -113,7 +113,7 @@ Quellenangaben ANAC, data.gv.at, Find a Tender, USAspending, GeoNames im Impress
 Einordnung: Benjamin ist **Anbieter** der KI-Funktionen (nachgelagert auf Claude), die Kundenfirmen sind Betreiber. Alle KI-Funktionen betreffen Ausschreibungen, Belege, Firmennachweise und die Firmenrecherche: **kein Hochrisiko**. Die Personalfunktionen (Personalsuche, Ersatzvorschläge, Bewertungen, Auswertung, Bewerber) nutzen **keine KI**, sondern feste Regeln; Art. 22 DSGVO wird nicht ausgelöst (Mensch entscheidet per Klick).
 
 ### Hoch
-K1 AVV veraltet (= R1) (⏳ ⚖️) · K2 Führungszeugnis geht automatisch zum Ablaufdatum-Lesen an Anthropic (Art. 10 DSGVO) → keine Automatik für Führungszeugnis/Gewerbezentralregister (✅) · K3 Datenschutzerklärung nennt nicht alle KI-Zwecke (Belege, Nachweise, Lose, Förderbewertung, Website-Text); DPF/SCC, Speicherdauer bei Anthropic (⏳ ⚖️)
+K1 AVV veraltet (= R1) (⏳ ⚖️) · K2 Führungszeugnis geht automatisch zum Ablaufdatum-Lesen an Anthropic (Art. 10 DSGVO) → keine Automatik für Führungszeugnis/Gewerbezentralregister (✅) · K3 Datenschutzerklärung nennt nicht alle KI-Zwecke (Belege, Nachweise, Lose, Förderbewertung, Website-Text); DPF/SCC, Speicherdauer bei Anthropic (✅ Zwecke ergänzt; ⚖️ DPF/SCC, Speicherdauer)
 
 ### Mittel
 K4 Steckbriefe mit Personennamen/Mailadressen lagen im Repo (✅ jetzt privat, 30 Tage) – zusätzlich Kontaktpersonen vor dem Prompt entfernen (⏳) · K5 Hinweis „geht an KI-Dienst in den USA“ direkt beim Hochladen (⏳) · K6 maschinenlesbare KI-Kennzeichnung (Art. 50 Abs. 2, Fristen prüfen) (⏳) · K7 Modell/Antwort-ID nicht protokolliert (⏳) · K8 KI-Ablaufdatum wird ohne Bestätigung gespeichert und steuert Sperren (⏳) · K9 Steckbrief-Fehler: Abgleich Lose/Fristen mit eForms, Haken „mit Original geprüft“ vor Freigabe (⏳) · K10 Hinweis Mitbestimmung (§ 87 BetrVG) bei Personalfunktionen (⏳) · K11 Länder ES (Art. 64.4 d ET: Algorithmen-Information), IT, AT, NL, FR, PL (⏳ ⚖️)
@@ -146,3 +146,11 @@ US-Personalfunktionen erst nach US-Prüfung · künftige KI bei Personal wäre H
 - In-App-Hinweis zur Mitbestimmung ausreichend oder Funktionen ohne Betriebsvereinbarung sperren?
 - AVV: besondere Kategorien und Beschäftigtendaten ausdrücklich nennen, TOMs dafür?
 - Erfahrungszuschlag GVP (Monat 9: 1,5 %, Monat 12: 3 %) gegen Original prüfen.
+
+## 8. Probezeit-Schutz (Benjamin 03.11.2026)
+
+Migration `20261103200000`: neue Firmen starten im Demo-Modus ohne KI (`firmen.ki_budget_usd = 0`). Mit eigener
+Website (Domain, die noch keine andere Firma nutzt, keine Freemail) gibt es 5,50 $ (≈ 5 €) KI-Kontingent.
+`ki_reservieren_fuer` lehnt Anfragen über dem Kontingent ab (Alarm fällt auf Stichwort-Treffer zurück). Bestehende
+Firmen, eigene Firmen und zahlende Kunden: `null` = ohne Grenze (setzt der Betreiber per SQL). Hinweis auf der Übersicht
+(`probeHinweis`).
