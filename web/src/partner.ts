@@ -1,5 +1,7 @@
 // N11: Nachunternehmer & Partner. The firm's own partner firms per trade, and requests per tender and lot with status.
 // Jarvis sends nothing: "Anfrage per Mail" opens the user's own mail program with a prepared text.
+import { bgeErklaerungDocx, bgeTeilHtml, passendePartner } from "./bietergemeinschaft.ts";
+import { wordAntwort } from "./word.ts";
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
@@ -43,7 +45,7 @@ ${o.darfAendern ? `<details class="termin-neu"${liste.length ? "" : " open"}><su
 }
 
 /** Section on the tender page: requests per lot with status; prices only with finance rights. */
-export function partnerTeilHtml(v: { id: string; titel: string; frist: string | null }, partner: Partner[], anfragen: Anfrage[], o: { preise: Map<string, number> | null; darfAendern: boolean; firma: string }): string {
+export function partnerTeilHtml(v: { id: string; titel: string; frist: string | null; steckbrief?: unknown }, partner: Partner[], anfragen: Anfrage[], o: { preise: Map<string, number> | null; darfAendern: boolean; firma: string }): string {
   const name = (id: string) => partner.find((p) => p.id === id);
   const zeile = (a: Anfrage) => {
     const p = name(a.partner_id);
@@ -53,10 +55,10 @@ ${o.darfAendern ? `<div class="frage-aktionen">${p?.email && a.status === "angef
   };
   const neu = o.darfAendern ? (partner.length ? `<form method="post" action="/konto/vorgang/${v.id}/partner" class="anfrage-neu"><input type="hidden" name="aktion" value="neu"><div class="aueg-form"><label>Partner<select name="partner" required>${partner.map((p) => `<option value="${p.id}">${escape(p.name)}${p.gewerke.length ? ` (${escape(p.gewerke.slice(0, 2).join(", "))})` : ""}</option>`).join("")}</select></label><label>Los oder Leistung<input name="los" maxlength="200" placeholder="z. B. Los 2 Elektro"></label></div><button>Anfrage festhalten</button></form>` : `<p class="klein">Noch keine Partner. <a href="/konto/partner">Partner eintragen</a></p>`) : "";
   const zugesagt = anfragen.filter((a) => a.status === "zugesagt").length;
-  return `<h2 id="partner">🤝 Nachunternehmer <span class="klein">${anfragen.length ? `${anfragen.length} angefragt${zugesagt ? ` · ${zugesagt} zugesagt` : ""}` : ""}</span></h2>${anfragen.length ? `<ul class="frage-liste">${anfragen.map(zeile).join("")}</ul>` : ""}${neu}<p class="klein">Nachunternehmer müssen oft im Angebot benannt werden (Nachunternehmerverzeichnis). „✉️ Mail“ öffnet dein Mailprogramm mit einem vorbereiteten Text; Jarvis verschickt nichts selbst.</p>`;
+  return `<h2 id="partner">🤝 Nachunternehmer <span class="klein">${anfragen.length ? `${anfragen.length} angefragt${zugesagt ? ` · ${zugesagt} zugesagt` : ""}` : ""}</span></h2>${anfragen.length ? `<ul class="frage-liste">${anfragen.map(zeile).join("")}</ul>` : ""}${neu}<p class="klein">Nachunternehmer müssen oft im Angebot benannt werden (Nachunternehmerverzeichnis). „✉️ Mail“ öffnet dein Mailprogramm mit einem vorbereiteten Text; Jarvis verschickt nichts selbst.</p>${bgeTeilHtml(v, passendePartner(`${v.titel} ${typeof v.steckbrief === "string" ? v.steckbrief : JSON.stringify(v.steckbrief ?? "")}`, partner, anfragen), zugesagt, o.darfAendern)}`;
 }
 
-export async function partnerTeil(s: Sitzung, env: KontoEnv, v: { id: string; titel: string; frist: string | null; firma_id: string }, rolle: string, finanzen: boolean, firma: string): Promise<string> {
+export async function partnerTeil(s: Sitzung, env: KontoEnv, v: { id: string; titel: string; frist: string | null; firma_id: string; steckbrief?: unknown }, rolle: string, finanzen: boolean, firma: string): Promise<string> {
   if (rolle === "mitarbeiter") return "";
   const [p, a] = await Promise.all([
     db<Partner[]>(s, env, `partner?firma_id=eq.${v.firma_id}&select=id,name,gewerke,ansprechpartner,telefon,email,region,bewertung,notiz&order=name&limit=500`),
@@ -126,4 +128,20 @@ export async function partnerVerwalten(request: Request, env: KontoEnv): Promise
   for (const x of a.ok ? a.daten : []) anzahl.set(x.partner_id, (anzahl.get(x.partner_id) ?? 0) + 1);
   const hinweis = url.searchParams.get("hinweis");
   return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${partnerSeite(p.ok ? p.daten : [], { darfAendern, gewerk: url.searchParams.get("gewerk") ?? "", q: url.searchParams.get("q") ?? "", offen: url.searchParams.get("offen") ?? "", anzahl })}`);
+}
+
+/** Word: consortium declaration with the own firm (lead) and all partners who agreed. */
+export async function bgeErklaerung(id: string, request: Request, env: KontoEnv): Promise<Response> {
+  const z = await vorgangZugriff(request, env, id);
+  if (!z) return html(seite("Nicht gefunden", "<p>Ausschreibung nicht gefunden.</p>"), 404);
+  const [f, a, p] = await Promise.all([
+    db<{ name: string; strasse: string | null; plz: string | null; ort: string | null }[]>(z.s, env, `firmen?id=eq.${z.v.firma_id}&select=name,strasse,plz,ort`),
+    db<Anfrage[]>(z.s, env, `partner_anfragen?vorgang_id=eq.${id}&status=eq.zugesagt&select=id,partner_id,los,status,notiz,erstellt&order=erstellt&limit=50`),
+    db<Partner[]>(z.s, env, `partner?firma_id=eq.${z.v.firma_id}&select=id,name,gewerke,ansprechpartner,telefon,email,region,bewertung,notiz&limit=500`),
+  ]);
+  const firma = f.ok ? f.daten[0] : undefined, partner = p.ok ? p.daten : [];
+  const mitglieder = (a.ok ? a.daten : []).map((x) => ({ name: partner.find((q) => q.id === x.partner_id)?.name ?? "", anschrift: "", leistung: x.los })).filter((m) => m.name);
+  if (!firma || !mitglieder.length) return html(seite("Bietergemeinschaft", `<p>Noch kein Partner hat zugesagt.</p><p><a href="/konto/vorgang/${id}#partner">← Zurück</a></p>`), 404, z.s.cookies);
+  const anschrift = [firma.strasse, [firma.plz, firma.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  return wordAntwort(bgeErklaerungDocx(z.v, { name: firma.name, anschrift, leistung: "" }, mitglieder), `Bietergemeinschaft-${z.v.titel.replace(/[^\wäöüÄÖÜß-]+/g, "-").slice(0, 60)}.docx`, z.s.cookies);
 }
