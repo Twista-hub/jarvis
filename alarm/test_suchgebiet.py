@@ -174,3 +174,47 @@ class SuchgebietTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Fuellwoerter(unittest.TestCase):
+    def test_fuellwoerter_werden_nie_suchwoerter(self):
+        from profile_db import aus_db, suchwort
+        self.assertFalse(suchwort("dazu"))
+        self.assertFalse(suchwort("in der Umgebung"))
+        self.assertTrue(suchwort("Glasreinigung"))
+        profil = aus_db("f", "Firma", "", {"leistungen": [{"name": "Reinigung", "woerter": ["glasreinigung", "dazu", "umgebung"]}]}, "10115")
+        self.assertIn("glasreinigung", profil["words"])
+        self.assertNotIn("dazu", profil["words"])
+        self.assertNotIn("umgebung", profil["words"])
+
+
+class Regionsmodus(unittest.TestCase):
+    def test_alle_ausschreibungen_im_umkreis(self):
+        import alarm.alarm as alarm
+        from profile_db import aus_db
+        e = {"leistungen": [{"name": "Reinigung", "woerter": ["reinigung"]}], "standorte": [{"name": "Berlin", "plz_praefixe": ["10"]}],
+             "radius_km": 50, "suchpunkte": [{"name": "Berlin", "lat": 52.53, "lon": 13.38}], "ausschluss": ["abbruch"]}
+        aus = aus_db("f", "Firma", "", e, "10115")
+        an = aus_db("f", "Firma", "", dict(e, regionsmodus=True), "10115")
+        self.assertFalse(aus["regionsmodus"])
+        self.assertTrue(an["regionsmodus"])
+        if not an.get("suchpunkte"):
+            an["suchpunkte"] = e["suchpunkte"]
+        nah, fern = bekanntmachung("10999", "Berlin"), bekanntmachung("80331", "München")
+        z = {}
+        self.assertFalse(alarm.region_passt(aus, nah, "hausmeisterdienst", z, "f"), "aus = keine Region")
+        self.assertTrue(alarm.region_passt(an, nah, "hausmeisterdienst", z, "f"), "im Umkreis ohne Suchwort")
+        self.assertFalse(alarm.region_passt(an, fern, "hausmeisterdienst", z, "f"), "außerhalb des Umkreises")
+        self.assertFalse(alarm.region_passt(an, nah, "abbruch einer halle", z, "f"), "Ausschlusswort gilt weiter")
+        self.assertFalse(alarm.region_passt(an, bekanntmachung("", ""), "hausmeister", z, "f"), "Ort unbekannt")
+        alt = alarm.REGION_MAX
+        try:
+            alarm.REGION_MAX = 1
+            self.assertFalse(alarm.region_passt(an, nah, "hausmeisterdienst", z, "f"), "Obergrenze pro Lauf")
+        finally:
+            alarm.REGION_MAX = alt
+
+    def test_umschalten_kostet_keine_neubewertung(self):
+        import katalog
+        p = {"name": "x", "words": "a", "regionsmodus": False}
+        self.assertEqual(katalog.profil_version(p), katalog.profil_version(dict(p, regionsmodus=True)))

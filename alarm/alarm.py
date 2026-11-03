@@ -363,6 +363,24 @@ def treffer_eintrag(name: str, b: dict, day: str, rel: dict, pfad: Path | None =
             **({"us": rel["_us"]} if rel.get("_us") else {})}
 
 
+REGION_MAX = int(os.environ.get("REGION_MAX", "150"))  # extra candidates per profile and run in region mode
+
+
+def region_passt(profile: dict, rel: dict, text: str, zaehler: dict, name: str) -> bool:
+    """Region mode: a notice without matching words still goes to the (Haiku-prefiltered) rating when its known place
+    lies within the radius. Exclusion words still apply; at most REGION_MAX per profile and run."""
+    radius = profile.get("radius_km")
+    if not profile.get("regionsmodus") or not radius or zaehler.get(name, 0) >= REGION_MAX:
+        return False
+    if re.search(profile["exclude"], text) or re.search(profile.get("exclude_schnell") or r"(?!x)x", text):
+        return False
+    d = entfernung(profile, rel)
+    if d is None or d > radius:
+        return False
+    zaehler[name] = zaehler.get(name, 0) + 1
+    return True
+
+
 def entfernung(profile: dict, rel: dict):
     """Distance in km from the nearest firm location to the place of performance (None if unknown)."""
     from geo_radius import entfernung_km, koordinaten
@@ -401,6 +419,7 @@ def run(days: list[str]) -> str:
             sys.exit(f"Kein Suchprofil für Firma {FIRMA}")
     hits = {k: [] for k in profiles}
     abgelehnt = {k: set() for k in profiles}
+    regional = {k: 0 for k in profiles}
     seen, total, licence = set(), 0, ""
     gemeinsam = katalog.bestand()
     inputs = gemeinsam if gemeinsam is not None else ((day, rel) for day in sorted(days, reverse=True) for _, rel in releases(fetch(day)))
@@ -464,6 +483,8 @@ def run(days: list[str]) -> str:
                 abgelehnt[name].add(quelle_id(rel))
                 continue
             points, reason = score(profile, text, codes)
+            if not points and not beobachtet and region_passt(profile, rel, text, regional, name):
+                points, reason = 1, "Im Umkreis (alle Ausschreibungen der Region)"
             if points or beobachtet:
                 hits[name].append((max(points, 1), day, dict(rel, _beobachtet=beobachtet), "Beobachteter Auftraggeber" if beobachtet else reason))
             else:
