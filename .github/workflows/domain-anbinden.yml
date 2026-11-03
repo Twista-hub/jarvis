@@ -25,3 +25,8 @@ jobs:
         run: |
           curl -sS -H "Authorization: Bearer $TOKEN" "$CF/accounts/$ACCOUNT/workers/domains?service=jarvis-alarm" | jq -c '{success, errors, domains: [.result[]? | .hostname]}'
           for h in crewtender.eu www.crewtender.eu app.wpdigitalranger.com; do echo "$h:"; curl -sS "https://dns.google/resolve?name=$h&type=A" | jq -r '.Answer[]?.data' | head -3; done
+      - name: Seiten prüfen
+        run: |
+          for u in https://crewtender.eu/ https://crewtender.eu/impressum https://www.crewtender.eu/impressum https://app.wpdigitalranger.com/impressum; do
+            echo "$u -> $(curl -s -o /tmp/s.html -w '%{http_code} %{redirect_url}' --max-time 20 "$u") $(grep -o '<title>[^<]*' /tmp/s.html | head -1)"
+          done
