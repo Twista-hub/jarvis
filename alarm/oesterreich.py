@@ -54,22 +54,26 @@ def erlaubt(url: str) -> tuple[bool, float]:
     return True, float(rp.crawl_delay(UA) or 0.5)
 
 
-def quellen() -> list[str]:
+def quellen(daten: dict | None = None) -> list[str]:
     """KDQ links of all Kerndaten metadata sets on data.gv.at (only http(s) XML/API links, no PDFs or web pages)."""
-    try:
-        daten = json.loads(holen(SUCHE, 10_000_000))
-    except Exception as e:  # noqa: BLE001
-        print(f"data.gv.at nicht erreichbar: {type(e).__name__}")
-        return []
+    if daten is None:
+        try:
+            daten = json.loads(holen(SUCHE, 10_000_000))
+        except Exception as e:  # noqa: BLE001
+            print(f"data.gv.at nicht erreichbar: {type(e).__name__}")
+            return []
     links = []
     for r in (daten.get("result") or {}).get("results") or []:
         titel = str((r.get("title") or {}).get("de") or "")
         if "kerndaten" not in titel.lower():
             continue
         for d in r.get("distributions") or []:
-            u = str(d.get("access_url") or d.get("download_url") or "")
-            if re.match(r"https?://", u) and not re.search(r"\.(pdf|docx?|html?)$|onedrive|/kontakt|/projekte/", u, re.I):
-                links.append(u)
+            for feld in ("access_url", "download_url"):  # piveau returns lists, older CKAN plain strings
+                werte = d.get(feld) or []
+                for u in ([werte] if isinstance(werte, str) else werte):
+                    u = str(u)
+                    if re.match(r"https?://", u) and not re.search(r"\.(pdf|docx?|html?)$|onedrive|/kontakt|/projekte/", u, re.I):
+                        links.append(u)
     return sorted(set(links))
 
 
