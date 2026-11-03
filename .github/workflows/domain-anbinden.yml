@@ -1,0 +1,27 @@
+# Attaches the Custom Domains of the app (same call as "wrangler deploy": PUT .../domains/records with replace scope).
+# Lists app.wpdigitalranger.com, crewtender.eu and www.crewtender.eu so nothing existing is removed. Conflicting parking
+# records (A/CNAME) are replaced; mail records (MX/TXT) are not touched.
+name: Domain anbinden
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  anbinden:
+    runs-on: ubuntu-latest
+    env:
+      CF: https://api.cloudflare.com/client/v4
+      TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Vorher
+        run: |
+          curl -sS -H "Authorization: Bearer $TOKEN" "$CF/accounts/$ACCOUNT/workers/domains?service=jarvis-alarm" | jq -c '{success, errors, domains: [.result[]? | .hostname]}'
+      - name: Anbinden
+        run: |
+          body='{"override_scope":true,"override_existing_origin":false,"override_existing_dns_record":true,"origins":[{"hostname":"app.wpdigitalranger.com"},{"hostname":"crewtender.eu"},{"hostname":"www.crewtender.eu"}]}'
+          curl -sS -X PUT -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" "$CF/accounts/$ACCOUNT/workers/scripts/jarvis-alarm/domains/records" -d "$body" | jq -c '{success, errors, messages}'
+      - name: Nachher
+        run: |
+          curl -sS -H "Authorization: Bearer $TOKEN" "$CF/accounts/$ACCOUNT/workers/domains?service=jarvis-alarm" | jq -c '{success, errors, domains: [.result[]? | .hostname]}'
+          for h in crewtender.eu www.crewtender.eu app.wpdigitalranger.com; do echo "$h:"; curl -sS "https://dns.google/resolve?name=$h&type=A" | jq -r '.Answer[]?.data' | head -3; done
