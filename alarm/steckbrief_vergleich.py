@@ -4,8 +4,8 @@ Both models get exactly the same instructions and input as in production:
 - notices: open notices from oeffentlichevergabe.de (CC0) as the daily alarm builds them (full eForms notice),
 - documents: the public Bundesbank tender in alarm/test-unterlagen (text via pdftotext, bundled like web/src/bundle.ts).
 A third call (Opus, blind: the two Steckbriefe in random order as A and B) checks both against the source text and
-lists wrong facts and important gaps. Nothing is saved in the database. The log shows only numbers; the texts go to
-the workflow artifact. Hard cost cap: GRENZE_DOLLAR (default 4 $), checked before every call.
+lists wrong facts and important gaps. Nothing is saved in the database. The log shows numbers and the judged errors (public tenders
+only); the full texts go to the workflow artifact. Hard cost cap: GRENZE_DOLLAR (default 4 $), checked before every call.
 
 CLI: python3 steckbrief_vergleich.py <notices 0-10> <documents: keine|kern|alle> <out-dir>
 """
@@ -122,15 +122,12 @@ def bekanntmachungen(anzahl: int) -> list[dict]:
                 print(f"Keine offene Bekanntmachung für „{muster}“")
                 continue
             rel = row[0]
-            voll = eforms_text(rel)
-            if not voll:
-                print(f"eForms fehlt für „{muster}“, Fall ausgelassen")
-                continue
+            voll = eforms_text(rel)  # like the alarm: without eForms only the OCDS summary
             kopf = json.dumps(item(0, rel), ensure_ascii=False)
             dokumente = ("Nur die öffentliche Bekanntmachung, keine Vergabeunterlagen.\n"
-                         f"Vollständige Bekanntmachung (eForms, Feldname: Wert):\n{voll}\n\n"
+                         + (f"Vollständige Bekanntmachung (eForms, Feldname: Wert):\n{voll}\n\n" if voll else "")
                          + "Kurzfassung (OCDS):\n" + json.dumps(rel, ensure_ascii=False)[:40000])
-            faelle.append({"name": f"Bekanntmachung {muster.split('|')[0]}", "quelle": dokumente,
+            faelle.append({"name": f"Bekanntmachung {muster.split('|')[0]}" + ("" if voll else " (ohne eForms)"), "quelle": dokumente,
                            "user": f"Kunde:\n{KUNDE}\n\nAusschreibung:\n{kopf}\n\nVergabeunterlagen:\n{dokumente}"})
     return faelle
 
