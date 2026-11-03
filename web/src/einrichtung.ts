@@ -4,6 +4,11 @@
 import { arbeitsAuswahl, arbeitAusName, MAX_ARBEITEN } from "./arbeitsauswahl.ts";
 import { sucheLaeuft } from "./suchstatus.ts";
 import { RADIEN } from "./karte.ts";
+import FUELLWOERTER from "./fuellwoerter.json" with { type: "json" };
+
+const FUELL = new Set<string>(FUELLWOERTER);
+/** A usable search word: not only filler words like "dazu" or "umgebung" (same list as the alarm, alarm/profile_db.py). */
+export const suchwort = (w: string) => w.length >= 3 && (w.match(/[\p{L}\p{N}]+/gu) ?? []).some((t) => !FUELL.has(t));
 import { firmenInfos } from "./firmeninfos.ts";
 import { rechercheProfil } from "./firmenrecherche.ts";
 import { fehlerMelden, fehlerText } from "./fehler.ts";
@@ -33,7 +38,7 @@ export interface EinrichtungEnv extends KontoEnv {
 export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
 export type WebQuelle = { titel: string; url: string };
-export type Vorschlag = { radius_km?: number; min_punkte?: number; beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; laender?: string[]; departements?: string[]; woiwodschaften?: string[]; comunidades?: string[]; regioni?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string;
+export type Vorschlag = { radius_km?: number; regionsmodus?: boolean; min_punkte?: number; beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; laender?: string[]; departements?: string[]; woiwodschaften?: string[]; comunidades?: string[]; regioni?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string;
   /** H4/H5: preferred and excluded buyers, contract value range; filters only, no re-scoring. */
   auftraggeber_bevorzugt?: string[]; auftraggeber_aus?: string[]; wert_min?: number; wert_max?: number; wert_unbekannt?: boolean };
 
@@ -322,7 +327,8 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   </details>
   <h2>Wo soll Jarvis suchen?</h2>
   ${laenderBereinigen(v.laender).includes("DEU") ? `<label>Umkreis um jeden Standort<select name="radius_km">${RADIEN.map((km) => `<option value="${km}"${km === (v.radius_km ?? 50) ? " selected" : ""}>${km} km${km === 50 ? " (empfohlen)" : ""}</option>`).join("")}</select>
-    <span class="klein">Ausschreibungen mit bekanntem Einsatzort weiter weg blendet Jarvis aus. Ändern kostet nichts extra.</span></label>` : `<input type="hidden" name="radius_km" value="${v.radius_km ?? 50}">`}
+    <span class="klein">Ausschreibungen mit bekanntem Einsatzort weiter weg blendet Jarvis aus. Ändern kostet nichts extra.</span></label>
+  <label class="ankreuzen"><input type="checkbox" name="regionsmodus" value="1"${v.regionsmodus ? " checked" : ""}> 🔭 Alle Ausschreibungen im Umkreis prüfen lassen <span class="klein">Jarvis lässt die KI auch Ausschreibungen ohne passende Suchwörter lesen, wenn der Einsatzort im Umkreis liegt (höchstens 150 am Tag). Findet mehr, kostet etwas mehr KI.</span></label>` : `<input type="hidden" name="radius_km" value="${v.radius_km ?? 50}">`}
   ${laenderBereinigen(v.laender).includes("FRA") ? departementAuswahl(departementsBereinigen(v.departements)) : ""}
   ${laenderBereinigen(v.laender).includes("POL") ? woiwodschaftAuswahl(woiwodschaftenBereinigen(v.woiwodschaften)) : ""}
   ${laenderBereinigen(v.laender).includes("ESP") ? comunidadAuswahl(comunidadesBereinigen(v.comunidades)) : ""}
@@ -363,6 +369,7 @@ function laenderAuswahl(gewaehlt: string[]): string {
 /** Cleans model or form input: only digits for CPV and postal codes, short lower-case words. */
 export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
   const woerter = (x: unknown) => [...new Set((Array.isArray(x) ? x : []).map((w) => String(w).toLowerCase().replace(/\s+/g, " ").trim()).filter((w) => w.length >= 3 && w.length <= 60))].slice(0, 40);
+  const suchwoerter = (x: unknown) => woerter(x).filter(suchwort);
   const ziffern = (x: unknown, min: number, max: number) => [...new Set((Array.isArray(x) ? x : []).map((c) => String(c).replace(/\D/g, "")).filter((c) => c.length >= min && c.length <= max))].slice(0, 40);
   const firmenstandorte = standorteBereinigen(v.firmenstandorte);
   const modus = firmenstandorte.length ? (v.suchgebiet_modus === "manuell" ? "manuell" : "firmenstandorte") : undefined;
@@ -371,6 +378,7 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
   const radius = Math.round(Number(v.radius_km));
   return {
     radius_km: radius >= 10 && radius <= 300 ? radius : undefined,
+    regionsmodus: v.regionsmodus === true ? true : undefined,
     min_punkte: mindest >= 3 && mindest <= 9 ? mindest : undefined,
     beschreibung: String(v.beschreibung ?? "").trim().slice(0, 3000),
     recherche_version: v.recherche_version === 2 ? 2 : undefined,
@@ -381,7 +389,7 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
     websuche_quellen: (Array.isArray(v.websuche_quellen) ? v.websuche_quellen : []).map((q) => ({ titel: String(q?.titel ?? "").trim().slice(0, 200), url: sichereQuellenUrl(q?.url) })).filter((q) => q.url).slice(0, 5),
     firmenstandorte,
     suchgebiet_modus: modus,
-    leistungen: (v.leistungen ?? []).map((l) => ({ name: String(l.name ?? "").trim().slice(0, 120), cpv: ziffern(l.cpv, 2, 8), woerter: woerter(l.woerter) })).filter((l) => l.name && (l.cpv.length || l.woerter.length)).slice(0, MAX_ARBEITEN),
+    leistungen: (v.leistungen ?? []).map((l) => ({ name: String(l.name ?? "").trim().slice(0, 120), cpv: ziffern(l.cpv, 2, 8), woerter: suchwoerter(l.woerter) })).filter((l) => l.name && (l.cpv.length || l.woerter.length)).slice(0, MAX_ARBEITEN),
     ausschluss: woerter(v.ausschluss),
     ausschluss_cpv: ziffern(v.ausschluss_cpv, 2, 8),
     standorte: modus === "firmenstandorte" ? suchorteAnStandorten(firmenstandorte, suchorte) : suchorte,
@@ -441,7 +449,7 @@ export function ausFormular(form: FormData): Vorschlag {
   try { quellen = form.getAll("websuche_quellen").map(String).map((x) => JSON.parse(x) as WebQuelle); } catch { quellen = []; }
   let firmenstandorte: Firmenstandort[] = [];
   try { firmenstandorte = standorteBereinigen(JSON.parse(String(form.get("firmenstandorte") ?? "[]").slice(0, 40000))); } catch { /* Keep invalid client input out of the profile. */ }
-  return bereinigen({ radius_km: Number(form.get("radius_km")) || undefined, min_punkte: Number(form.get("min_punkte")) || undefined, recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, suchgebiet_modus: form.get("suchgebiet_modus") === "manuell" ? "manuell" : undefined, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String), departements: form.getAll("departements").map(String), woiwodschaften: form.getAll("woiwodschaften").map(String), comunidades: form.getAll("comunidades").map(String), regioni: form.getAll("regioni").map(String),
+  return bereinigen({ radius_km: Number(form.get("radius_km")) || undefined, regionsmodus: form.get("regionsmodus") === "1", min_punkte: Number(form.get("min_punkte")) || undefined, recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, suchgebiet_modus: form.get("suchgebiet_modus") === "manuell" ? "manuell" : undefined, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String), departements: form.getAll("departements").map(String), woiwodschaften: form.getAll("woiwodschaften").map(String), comunidades: form.getAll("comunidades").map(String), regioni: form.getAll("regioni").map(String),
     auftraggeber_bevorzugt: String(form.get("auftraggeber_bevorzugt") ?? "").split(/[,;\n]/), auftraggeber_aus: String(form.get("auftraggeber_aus") ?? "").split(/[,;\n]/),
     wert_min: euroEingabe(form.get("wert_min")), wert_max: euroEingabe(form.get("wert_max")), wert_unbekannt: form.has("wert_min") || form.has("wert_max") ? form.get("wert_unbekannt") === "1" : undefined });
 }
@@ -496,7 +504,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     ausschluss: v.ausschluss.join(", "),
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
     // Language of the AI texts (fact sheets, ratings): the language the profile was saved in.
-    einstellungen: { sprache: (["en", "fr", "pl", "es", "it"] as const).find((s) => s === form.get("sprache_app")) ?? "de", radius_km: v.radius_km ?? 50, min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender, departements: v.departements ?? [], woiwodschaften: v.woiwodschaften ?? [], comunidades: v.comunidades ?? [], regioni: v.regioni ?? [], auftraggeber_bevorzugt: v.auftraggeber_bevorzugt, auftraggeber_aus: v.auftraggeber_aus, wert_min: v.wert_min ?? null, wert_max: v.wert_max ?? null, wert_unbekannt: v.wert_unbekannt } as Record<string, unknown>,
+    einstellungen: { sprache: (["en", "fr", "pl", "es", "it"] as const).find((s) => s === form.get("sprache_app")) ?? "de", radius_km: v.radius_km ?? 50, regionsmodus: v.regionsmodus === true, min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender, departements: v.departements ?? [], woiwodschaften: v.woiwodschaften ?? [], comunidades: v.comunidades ?? [], regioni: v.regioni ?? [], auftraggeber_bevorzugt: v.auftraggeber_bevorzugt, auftraggeber_aus: v.auftraggeber_aus, wert_min: v.wert_min ?? null, wert_max: v.wert_max ?? null, wert_unbekannt: v.wert_unbekannt } as Record<string, unknown>,
   };
   const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean; zusatzprofile?: unknown; ausschluss_schnell?: unknown }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zusatzprofile:einstellungen->zusatzprofile,ausschluss_schnell:einstellungen->ausschluss_schnell&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.

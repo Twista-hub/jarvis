@@ -179,3 +179,14 @@ test("Länder im Suchprofil: Deutschland als Standard, nur bekannte Länder, Aus
   assert.match(html, /value="AUT" checked/);
   assert.match(html, /<details open><summary>Nachbarländer/);
 });
+
+test("Füllwörter werden nie Suchwörter", async () => {
+  const { bereinigen, suchwort } = await import("../src/einrichtung.ts");
+  assert.equal(suchwort("dazu"), false);
+  assert.equal(suchwort("umgebung"), false);
+  assert.equal(suchwort("in der umgebung"), false);
+  assert.equal(suchwort("gebäudereinigung"), true);
+  assert.equal(suchwort("reinigung umgebung"), true, "echtes Wort mit Füllwort bleibt");
+  const v = bereinigen({ leistungen: [{ name: "Reinigung", cpv: [], woerter: ["Unterhaltsreinigung", "dazu", "Umgebung", "Glasreinigung"] }] } as never);
+  assert.deepEqual(v.leistungen[0].woerter, ["unterhaltsreinigung", "glasreinigung"]);
+});

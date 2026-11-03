@@ -69,7 +69,7 @@ def profil_version(profil):
     # Threshold and radius only filter; the scores stay valid, so changing them must not trigger a paid re-scoring.
     # The same holds for the display filters (quick exclusions via 👎, buyers, contract value) and the
     # profile's bookkeeping keys; old profiles without these keys keep their version (no re-scoring after deploy).
-    inhalt = {k: v for k, v in profil.items() if k not in ("min_punkte", "radius_km", "suchpunkte") + NUR_FILTER}
+    inhalt = {k: v for k, v in profil.items() if k not in ("min_punkte", "radius_km", "suchpunkte", "regionsmodus") + NUR_FILTER}
     return hashlib.sha256(json.dumps(inhalt, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 

@@ -31,6 +31,16 @@ def verbinden():
     sys.exit("Keine Verbindung zur Datenbank")
 
 
+# Filler words never count as search words (the AI suggestion once produced "dazu", "umgebung"); shared with the app.
+FUELLWOERTER = set(json.load(open(os.path.join(os.path.dirname(__file__), "..", "web", "src", "fuellwoerter.json"), encoding="utf-8")))
+
+
+def suchwort(w: str) -> bool:
+    """A usable search word: at least 3 letters and not only filler words."""
+    teile = re.findall(r"\w+", str(w).lower())
+    return len(str(w).strip()) >= 3 and any(t not in FUELLWOERTER for t in teile)
+
+
 def muster(woerter: list[str]) -> str:
     """Regex for a word list; umlauts also match their ae/oe/ue spelling."""
     teile = []
@@ -213,9 +223,9 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
     leistungen = e.get("leistungen") or []
     standorte = suchorte_fuer_standorte(e)
     ortswoerter = {w for o in standorte for w in re.findall(r"\w+", str(o.get("name", "")).lower())}
-    woerter = muster([w for l in leistungen for w in l.get("woerter", [])])
+    woerter = muster([w for l in leistungen for w in l.get("woerter", []) if suchwort(w)])
     stark = muster([w for l in leistungen for w in l.get("woerter", [])
-                    if w.lower().strip() not in ALLGEMEIN | ortswoerter])
+                    if suchwort(w) and w.lower().strip() not in ALLGEMEIN | ortswoerter])
     firmen_prefix = firmen_plz[:2] if re.fullmatch(r"\d{5}", str(firmen_plz or "")) else ""
     def plz_bereiche(o: dict) -> list[str]:
         return o.get("plz_praefixe") or ([firmen_prefix] if firmen_prefix and len(standorte) == 1 else [])
@@ -254,6 +264,8 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         **({"regioni": reg} if (reg := sorted({str(c).upper() for c in e.get("regioni") or []} & REGIONI)) else {}),
         # Search radius in km and the coordinates of the firm's locations (postal codes via GeoNames).
         "radius_km": min(300, max(10, int(e.get("radius_km")))) if str(e.get("radius_km") or "").isdigit() else None,
+        # Region mode: also rate notices without matching words when the known place is within the radius.
+        "regionsmodus": e.get("regionsmodus") is True,
         "suchpunkte": suchpunkte(e, firmen_plz),
         # Lowest score shown as a hit (set in the app, default 6/10).
         "min_punkte": min(9, max(3, int(e.get("min_punkte") or 6))) if str(e.get("min_punkte") or "6").isdigit() else 6,
@@ -277,7 +289,7 @@ def zusatz_profile(key: str, firma_id: str, name: str, beschreibung: str, e: dic
     for z in (e.get("zusatzprofile") or [])[:3]:
         if not isinstance(z, dict) or not re.fullmatch(r"[0-9a-f-]{8,36}", str(z.get("id", ""))):
             continue
-        woerter = [str(w) for w in z.get("woerter") or [] if 3 <= len(str(w).strip()) <= 60][:30]
+        woerter = [str(w) for w in z.get("woerter") or [] if 3 <= len(str(w).strip()) <= 60 and suchwort(w)][:30]
         if not str(z.get("name", "")).strip() or not woerter:
             continue
         teil = dict(e, leistungen=[{"name": str(z["name"])[:60], "cpv": [], "woerter": woerter}],
