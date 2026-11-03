@@ -40,5 +40,6 @@ Für Gebäudereinigung, Sicherheitsdienste, Zeitarbeit, Catering und andere Dien
 **Impressum-Link (Facebook/LinkedIn verlangen das in DE):** https://app.wpdigitalranger.com/impressum
 
 ## Rückmeldung
-In `docs/stand.md` unter Protokoll eintragen: welche Konten angelegt sind, mit welchem Namen (@…), was noch fehlt.
-Keine Passwörter oder Zugangscodes ins Repo schreiben.
+Nach jedem Schritt in `docs/browser/protokoll.md` eintragen (Konten-Übersicht und Eintrag oben):
+https://github.com/Twista-hub/jarvis/edit/main/docs/browser/protokoll.md → „Commit changes…“.
+Das Repo ist öffentlich: keine Passwörter, Codes, Zahlungs- oder Ausweisdaten.
