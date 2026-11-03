@@ -92,6 +92,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103240000_portal_ablauf.sql
 \ir ../migrations/20261103250000_bewerber_fristen.sql
 \ir ../migrations/20261103260000_firmendaten_export.sql
+\ir ../migrations/20261103270000_unterweisung_archiv.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -852,6 +853,11 @@ select pruefe((select beschaeftigung = 'teilzeit' and wohn_plz = '10115' from pu
 insert into public.personal_nachweise (firma_id, personal_id, bezeichnung, gueltig_bis) values (:'firma', :'p_berlin', 'Staplerschein', '2028-01-31');
 insert into public.unterweisung_teilnahmen (firma_id, unterweisung_id, personal_id, datum) values (:'firma', (select id from public.unterweisungen limit 1), :'p_berlin', '2026-10-15');
 select pruefe((select count(*) = 1 from public.personal_nachweise) and (select count(*) = 1 from public.unterweisung_teilnahmen), 'Nachweis und Unterweisung im eigenen Standort');
+-- A-M9: a briefing with recent attendance cannot be deleted (proof of instruction), only archived.
+do $$ begin
+  delete from public.unterweisungen where id = (select unterweisung_id from public.unterweisung_teilnahmen limit 1);
+  raise exception 'FEHLER: Unterweisung mit Teilnahmen gelöscht';
+exception when insufficient_privilege then null; end $$;
 do $$ begin
   insert into public.personal_nachweise (firma_id, personal_id, bezeichnung) values (current_setting('test.firma')::uuid, current_setting('test.p_hh')::uuid, 'Erste Hilfe');
   raise exception 'FEHLER: Nachweis im fremden Standort';

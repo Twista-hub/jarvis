@@ -82,12 +82,18 @@ export async function unterweisungen(request: Request, env: KontoEnv): Promise<R
     }
     if (aktion === "loeschen" && uuid(uid)) {
       const r = await db(f.s, env, `unterweisungen?id=eq.${uid}&firma_id=eq.${firma}`, { method: "DELETE" });
-      return zurueck(r.ok ? "Unterweisung entfernt." : "Entfernen hat nicht geklappt.");
+      if (r.ok) return zurueck("Unterweisung entfernt.");
+      // A-M9: attendance records of the last 2 years are proof of instruction; the briefing is archived instead.
+      if (/Aufbewahrung/.test(r.fehler)) {
+        const a = await db(f.s, env, `unterweisungen?id=eq.${uid}&firma_id=eq.${firma}`, { method: "PATCH", body: JSON.stringify({ archiviert: true }) });
+        return zurueck(a.ok ? "Unterweisung archiviert. Die Teilnahmenachweise bleiben erhalten (Nachweispflicht im Arbeitsschutz)." : "Archivieren hat nicht geklappt.");
+      }
+      return zurueck("Entfernen hat nicht geklappt.");
     }
     return zurueck("Das ging nicht.");
   }
   const [u, p, t] = await Promise.all([
-    db<Unterweisung[]>(f.s, env, `unterweisungen?firma_id=eq.${firma}&select=id,titel,intervall_monate,beschreibung&order=titel`),
+    db<Unterweisung[]>(f.s, env, `unterweisungen?firma_id=eq.${firma}&archiviert=eq.false&select=id,titel,intervall_monate,beschreibung&order=titel`),
     db<PersonKurz[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,status&order=vorname&limit=3000`),
     db<Teilnahme[]>(f.s, env, `unterweisung_teilnahmen?firma_id=eq.${firma}&select=unterweisung_id,personal_id,datum,digital&limit=20000`),
   ]);
