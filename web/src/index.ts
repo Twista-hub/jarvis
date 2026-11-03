@@ -79,6 +79,7 @@ import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
 import MUSTER from "./muster-steckbrief.md";
 import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
+import { kontakt } from "./kontakt.ts";
 import { usProfil, usRadar } from "./usprofil.ts";
 import { samAnleitungSeite } from "./samanleitung.ts";
 import { APP_SPRACHEN, appSprache, sprachFuss, sprachWechsel, uebersetzen, type AppSprache } from "./englisch.ts";
@@ -295,6 +296,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       }
       if (recht) return html(seite(recht[0], recht[1]()));
     }
+    const kf = await kontakt(request, env, (t, i) => seite(t, i));
+    if (kf) return kf;
     if (url.pathname === "/hochladen" && request.method === "POST") return hochladen(request, env);
     const m = url.pathname.match(/^\/auftrag\/([^/]+)(\/kalkulation|\/arbeitskraefte)?$/);
     if (m && ID.test(m[1]) && m[2] === "/kalkulation" && request.method === "POST") return kalkulieren(m[1], request, env);

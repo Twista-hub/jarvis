@@ -16,7 +16,7 @@ export function impressumEs(): string {
   return `<h2>Información conforme al § 5 de la ley alemana de servicios digitales (DDG)</h2>
 <p>${anschrift()}</p>
 <h2>Contacto</h2>
-<p>Correo electrónico: ${mail()}${FIRMA.telefon ? `<br>Teléfono: ${escape(FIRMA.telefon)}` : ""}</p>
+<p>Correo electrónico: ${mail()}<br>Formulario de contacto: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Teléfono: ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>IVA</h2><p>Número de identificación a efectos del IVA conforme al § 27a de la ley alemana del IVA (UStG): ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>IVA</h2><p>Pequeño empresario conforme al § 19 de la ley alemana del IVA (UStG); por ello no se repercute IVA.</p>` : ""}
 <h2>Responsable del contenido</h2>
 <p>${escape(FIRMA.name)}, dirección indicada arriba.</p>
@@ -47,6 +47,7 @@ export function datenschutzEs(): string {
 <h2>3. Qué datos tratamos</h2>
 <ul>
 <li><strong>Al visitar el sitio:</strong> datos técnicamente necesarios (dirección IP, hora, página visitada, navegador). El operador de los servidores (Cloudflare) los conserva durante poco tiempo por motivos de seguridad y para localizar errores. Base jurídica: art. 6, apartado 1, letra f), del RGPD (funcionamiento seguro).</li>
+<li><strong>Formulario de contacto:</strong> nombre, dirección de correo electrónico y mensaje. Los enviamos por correo a nuestro buzón (Namecheap) y solo los usamos para responder. No se guardan en la base de datos; borramos el correo cuando la consulta está resuelta y no existe obligación de conservarlo. Base jurídica: art. 6, apartado 1, letra b), del RGPD (consulta relativa a un contrato) o letra f) (respuesta a consultas).</li>
 <li><strong>Cuenta:</strong> nombre, dirección de correo electrónico, contraseña (almacenada solo cifrada), nombre, dirección y, de forma voluntaria, teléfono de la empresa, momento del registro, del consentimiento y del inicio de sesión, pertenencia a empresas, función en la empresa, derechos de acceso y áreas. Base jurídica: art. 6, apartado 1, letra b), del RGPD (contrato).</li>
 <li><strong>Datos de la empresa:</strong> nombre de la empresa, centros, sitio web indicado de forma voluntaria, perfil de búsqueda, licitaciones con su estado y notas, valores de cálculo de costes. En la búsqueda automática para configurar el perfil de búsqueda, el nombre de la empresa, su sitio web y su domicilio social se transmiten a la búsqueda web pública de Anthropic; las fuentes públicas pertinentes se guardan en el perfil con su URL. Base jurídica: art. 6, apartado 1, letra b), del RGPD. Con cada nuevo registro, el operador recibe una notificación en el móvil con el nombre de la empresa para detectar abusos (art. 6, apartado 1, letra f), del RGPD).</li>
 <li><strong>Documentos subidos:</strong> pliegos y documentación de una licitación. Pueden contener nombres y datos de contacto de personas de contacto del poder adjudicador. Solo se leen para la ficha resumen y <strong>se eliminan a los 30 días</strong>. Le rogamos que no suba documentos con datos de sus empleados (p. ej., currículos). Los textos se envían para su lectura al servicio de IA Anthropic (véase Proveedores de servicios).</li>

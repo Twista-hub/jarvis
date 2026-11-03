@@ -16,7 +16,7 @@ export function impressumFr(): string {
   return `<h2>Informations selon le § 5 de la loi allemande sur les services numériques (DDG)</h2>
 <p>${anschrift()}</p>
 <h2>Contact</h2>
-<p>E-mail : ${mail()}${FIRMA.telefon ? `<br>Téléphone : ${escape(FIRMA.telefon)}` : ""}</p>
+<p>E-mail : ${mail()}<br>Formulaire de contact: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Téléphone : ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>TVA</h2><p>Numéro de TVA intracommunautaire selon le § 27a UStG : ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>TVA</h2><p>Petite entreprise au sens du § 19 de la loi allemande sur la TVA (UStG) : aucune TVA n'est facturée.</p>` : ""}
 <h2>Responsable du contenu</h2>
 <p>${escape(FIRMA.name)}, adresse ci-dessus.</p>
@@ -47,6 +47,7 @@ export function datenschutzFr(): string {
 <h2>3. Données traitées</h2>
 <ul>
 <li><strong>Lors de la consultation du site :</strong> données techniquement nécessaires (adresse IP, heure, page consultée, navigateur). L'hébergeur (Cloudflare) les conserve brièvement pour la sécurité et la recherche d'erreurs. Base juridique : art. 6, paragraphe 1, point f) du RGPD (fonctionnement sûr).</li>
+<li><strong>Formulaire de contact :</strong> nom, adresse e-mail et message. Nous les envoyons par e-mail à notre boîte (Namecheap) et les utilisons uniquement pour répondre. Aucun enregistrement dans la base de données ; nous supprimons l'e-mail une fois la demande traitée, sauf obligation de conservation. Base juridique : art. 6, paragraphe 1, point b) du RGPD (demande relative à un contrat) ou point f) (réponse aux demandes).</li>
 <li><strong>Compte :</strong> nom, adresse e-mail, mot de passe (stocké uniquement sous forme chiffrée), nom, adresse et, de manière facultative, téléphone de l'entreprise, date de l'inscription, du consentement et de la connexion, appartenance aux entreprises, fonction, droits d'accès et secteurs. Base juridique : art. 6, paragraphe 1, point b) du RGPD (contrat).</li>
 <li><strong>Données de l'entreprise :</strong> nom de l'entreprise, sites, site web indiqué de manière facultative, profil de recherche, appels d'offres avec état et notes, valeurs de chiffrage. Lors de la recherche automatique servant à établir le profil de recherche, le nom de l'entreprise, son site web et son siège sont transmis à la recherche web publique d'Anthropic ; les sources publiques pertinentes sont enregistrées avec leur URL dans le profil. Base juridique : art. 6, paragraphe 1, point b) du RGPD. À chaque nouvelle inscription, l'exploitant reçoit une notification sur son téléphone avec le nom de l'entreprise, afin de détecter les abus (art. 6, paragraphe 1, point f) du RGPD).</li>
 <li><strong>Documents déposés :</strong> dossiers de consultation d'un appel d'offres. Ils peuvent contenir les noms et coordonnées d'interlocuteurs de l'acheteur. Ils sont lus uniquement pour la fiche synthèse et <strong>supprimés après 30 jours</strong>. Merci de ne pas déposer de documents contenant des données de vos salariés (par ex. CV). Les textes sont transmis pour lecture au service d'IA Anthropic (voir Prestataires).</li>

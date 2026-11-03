@@ -16,7 +16,7 @@ export function impressumIt(): string {
   return `<h2>Informazioni ai sensi del § 5 della legge tedesca sui servizi digitali (DDG)</h2>
 <p>${anschrift()}</p>
 <h2>Contatti</h2>
-<p>E-mail: ${mail()}${FIRMA.telefon ? `<br>Telefono: ${escape(FIRMA.telefon)}` : ""}</p>
+<p>E-mail: ${mail()}<br>Modulo di contatto: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Telefono: ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>IVA</h2><p>Partita IVA ai sensi del § 27a della legge tedesca sull'IVA (UStG): ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>IVA</h2><p>Piccolo imprenditore ai sensi del § 19 della legge tedesca sull'IVA (UStG); pertanto non viene addebitata l'IVA.</p>` : ""}
 <h2>Responsabile dei contenuti</h2>
 <p>${escape(FIRMA.name)}, indirizzo come sopra.</p>
@@ -47,6 +47,7 @@ export function datenschutzIt(): string {
 <h2>3. Quali dati trattiamo</h2>
 <ul>
 <li><strong>Alla visita del sito:</strong> dati tecnicamente necessari (indirizzo IP, ora, pagina visitata, browser). Il gestore dei server (Cloudflare) li conserva per breve tempo per motivi di sicurezza e per la ricerca degli errori. Base giuridica: art. 6, par. 1, lett. f), del Regolamento (UE) 2016/679 (GDPR) (funzionamento sicuro).</li>
+<li><strong>Modulo di contatto:</strong> nome, indirizzo e-mail e messaggio. Li inviamo via e-mail alla nostra casella (Namecheap) e li usiamo solo per rispondere. Nessuna memorizzazione nella banca dati; cancelliamo l'e-mail quando la richiesta è evasa e non sussiste un obbligo di conservazione. Base giuridica: art. 6, par. 1, lett. b), del GDPR (richiesta relativa a un contratto) o lett. f) (risposta alle richieste).</li>
 <li><strong>Account:</strong> nome, indirizzo e-mail, password (memorizzata solo in forma cifrata), nome, indirizzo e, facoltativamente, numero di telefono dell'impresa, momento della registrazione, del consenso e dell'accesso, appartenenza a imprese, funzione nell'azienda, diritti di accesso e aree. Base giuridica: art. 6, par. 1, lett. b), GDPR (contratto).</li>
 <li><strong>Dati dell'impresa:</strong> ragione sociale, sedi, sito web indicato facoltativamente, profilo di ricerca, bandi di gara con stato e note, valori di calcolo dei costi. Nella ricerca automatica per configurare il profilo di ricerca, la ragione sociale, il sito web e la sede dell'impresa vengono trasmessi alla ricerca web pubblica di Anthropic; le fonti pubbliche pertinenti vengono salvate nel profilo con il relativo URL. Base giuridica: art. 6, par. 1, lett. b), GDPR. A ogni nuova registrazione il gestore riceve una notifica sul cellulare con la ragione sociale, per individuare eventuali abusi (art. 6, par. 1, lett. f), GDPR).</li>
 <li><strong>Documenti caricati:</strong> documenti di gara di un bando. Possono contenere nomi e dati di contatto di referenti della stazione appaltante. Vengono letti solo per la scheda riassuntiva e <strong>cancellati dopo 30 giorni</strong>. La preghiamo di non caricare documenti con dati dei Suoi dipendenti (ad es. curriculum). I testi vengono inviati per la lettura al servizio di IA Anthropic (vedi Fornitori di servizi).</li>

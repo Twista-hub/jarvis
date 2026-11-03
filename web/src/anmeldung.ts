@@ -76,6 +76,7 @@ export function registrierFormular(w: Registrierung, fehler = "", weiter = "/kon
     ${feld("email", "E-Mail-Adresse", `type="email" required autocomplete="email"`)}
     <label>Passwort (mindestens ${MIN_PASSWORT} Zeichen) <input type="password" name="passwort" required minlength="${MIN_PASSWORT}" autocomplete="new-password"></label>
   </fieldset>
+  ${eingeladen ? "" : `<label class="zeile"><input type="checkbox" name="unternehmer" value="ja" required> <span>Ich handle für ein Unternehmen (gewerblich oder selbstständig beruflich), nicht als Verbraucher.</span></label>`}
   <label class="zeile"><input type="checkbox" name="zustimmung" value="ja" required> <span>Ich akzeptiere die <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> und habe die <a href="/datenschutz">Datenschutzerklärung</a> gelesen.</span></label>
   <input type="hidden" name="weiter" value="${escape(weiter)}">
   <button>Registrieren</button>
@@ -171,7 +172,7 @@ async function sitzungUebernehmen(request: Request, env: KontoEnv): Promise<Resp
 
 // ---------- Registration ----------
 
-export function registrierungPruefen(w: Registrierung, passwort: string, zustimmung: boolean, eingeladen: boolean): string {
+export function registrierungPruefen(w: Registrierung, passwort: string, zustimmung: boolean, eingeladen: boolean, unternehmer = true): string {
   if (!w.vorname || !w.nachname) return "Bitte Vor- und Nachnamen angeben.";
   if (!eingeladen) {
     if (!w.firma || w.firma.length < 2) return "Bitte den Namen der Firma angeben.";
@@ -181,6 +182,8 @@ export function registrierungPruefen(w: Registrierung, passwort: string, zustimm
   }
   if (!EMAIL.test(w.email ?? "")) return "Bitte eine gültige E-Mail-Adresse eingeben.";
   if (passwort.length < MIN_PASSWORT) return `Das Passwort braucht mindestens ${MIN_PASSWORT} Zeichen.`;
+  // B2B only (terms § 1, § 14 BGB): the firm owner confirms acting as a business, not as a consumer.
+  if (!eingeladen && !unternehmer) return "Jarvis ist nur für Unternehmen. Bitte bestätigen, dass du für ein Unternehmen handelst.";
   if (!zustimmung) return "Bitte den Nutzungsbedingungen zustimmen.";
   return "";
 }
@@ -195,11 +198,11 @@ async function registrieren(request: Request, env: KontoEnv): Promise<Response> 
     ...(eingeladen ? {} : { firma: text("firma", 200), website: text("website", 300), strasse: text("strasse", 200), plz: text("plz", 10), ort: text("ort", 100), telefon: text("telefon", 40) }),
   };
   const passwort = String(form.get("passwort") ?? "");
-  const fehler = registrierungPruefen(w, passwort, form.get("zustimmung") === "ja", eingeladen);
+  const fehler = registrierungPruefen(w, passwort, form.get("zustimmung") === "ja", eingeladen, form.get("unternehmer") === "ja");
   if (fehler) return html(seite("Registrieren", registrierFormular(w, fehler, weiter)), 400);
   if (!eingeladen) w.website = websiteNormalisieren(w.website ?? "");
   const { email, ...daten } = w;
-  const r = await auth(env, `signup?redirect_to=${encodeURIComponent(zurueck(request, weiter))}`, { email, password: passwort, data: { ...daten, zustimmung: new Date().toISOString() } });
+  const r = await auth(env, `signup?redirect_to=${encodeURIComponent(zurueck(request, weiter))}`, { email, password: passwort, data: { ...daten, zustimmung: new Date().toISOString(), ...(eingeladen ? {} : { unternehmer: new Date().toISOString() }) } });
   if (!r.ok) {
     const grund = r.code === "weak_password" ? "Das Passwort ist zu einfach. Bitte ein längeres oder anderes wählen."
       : r.code === "user_already_exists" || r.code === "email_exists" ? "Für diese E-Mail-Adresse gibt es schon ein Konto. Melde dich an oder nutze „Passwort vergessen“."
