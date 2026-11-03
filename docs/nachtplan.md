@@ -80,13 +80,19 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
   PDF hochladen, Datum, Lieferant, Brutto, USt-Satz und Kategorie eintragen. Summen je Kategorie und Steuersatz, Knopf
   „📤 CSV für die Steuerberatung“. Belege sind nicht änderbar (nur löschen). Das automatische Auslesen per KI ist noch
   nicht drin, weil es pro Beleg API-Kosten verursacht – kommt mit deinem OK.
+- **Kunden-Portal (Top-9) gebaut:** Kachel „🔗 Kunden-Portal“: pro Kunde ein geheimer Link ohne Anmeldung. Der Kunde
+  sieht seine Leistungsnachweise (nur Summen, keine Namen), auf Wunsch Rechnungen (nur mit Finanzfreigabe einschaltbar)
+  und Kontrollgänge/Vorfälle, und meldet Mängel, Wünsche oder Lob (höchstens 10 pro Tag) – das Büro bekommt eine
+  Handy-Nachricht und hakt ab. Link neu erzeugen oder sperren jederzeit.
+- **Rechte-Test verschärft:** Der Test vergab früher nach den Migrationen pauschal alle Tabellenrechte und prüfte
+  „revoke“-Zeilen deshalb nie. Jetzt wie bei Supabase (Standardrechte beim Anlegen) – alles weiter grün.
 - **Plan-Struktur** aus dem Abo-Vorschlag im Code (`web/src/plaene.ts`, Grenzen je Plan), **nicht aktiv**, Preise
   weiter „Preis folgt“.
 
 ### Bewusst nicht umgesetzt (Regeln aus CLAUDE.md, braucht dein OK)
 - **Abo-Preise und Stripe:** Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
   Punkt 7c war ein Vorschlag gefragt; `web/src/plaene.ts` bleibt abgeschaltet.
-- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1–3, 6 und 8 (E-Rechnung, Mahnwesen, wiederkehrende Rechnungen, Belege per Foto, Rundgänge & Wachbuch) sind gebaut; Nr. 4, 5, 7, 9, 10 nach deiner Reihenfolge (Nr. 10 Auftragsbörse erst nach anwaltlicher Prüfung der AGB).
+- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1–3, 6, 8 und 9 (E-Rechnung, Mahnwesen, wiederkehrende Rechnungen, Belege per Foto, Rundgänge & Wachbuch, Kunden-Portal) sind gebaut; Nr. 4, 5, 7, 10 nach deiner Reihenfolge (Nr. 10 Auftragsbörse erst nach anwaltlicher Prüfung der AGB).
 - **Anfragen an PLACSP und TenderNed:** Entwürfe liegen bereit (`docs/anfragen/placsp-anfrage.md`, `docs/anfragen/tenderned-anfrage.md`); Mails an Dritte nur nach deinem OK.
 
 ### Deine Entscheidungen (keine Eile)
