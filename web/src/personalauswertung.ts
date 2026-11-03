@@ -1,5 +1,6 @@
 // T28: Personal-Auswertung. On one page: headcount per location and job, type of employment, hours per month, joiners and
 // leavers, short-notice absences, expiring proofs and leave taken. Only reads existing data.
+import { MITBESTIMMUNG } from "./mitbestimmung.ts";
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
@@ -28,7 +29,7 @@ export function auswertungSeite(d: Daten, heute: string): string {
   const jahr = MONATE(heute, 12);
   const zu = jahr.map((m) => ({ m, rein: d.personen.filter((p) => p.eintritt?.startsWith(m)).length, raus: d.personen.filter((p) => p.austritt_am?.startsWith(m)).length, ausfall: d.ausfaelle.filter((a) => a.kurzfristig && a.von.startsWith(m)).length }));
   const kachel = (wert: string, text: string) => `<div class="kennzahl"><strong>${wert}</strong><span class="klein">${text}</span></div>`;
-  return `<div class="kennzahlen">${kachel(String(aktiv.length), "aktive Personen")}${kachel(String(zu.slice(-3).reduce((n, x) => n + x.rein, 0)), "Eintritte (3 Monate)")}${kachel(String(zu.slice(-3).reduce((n, x) => n + x.raus, 0)), "Austritte (3 Monate)")}${kachel(String(d.nachweiseBald), "Nachweise laufen ab (60 Tage)")}${d.urlaub ? kachel(`${Math.round(d.urlaub.genommen)} / ${Math.round(d.urlaub.anspruch)}`, `Urlaubstage genommen ${heute.slice(0, 4)}`) : ""}</div>
+  return `${MITBESTIMMUNG}<div class="kennzahlen">${kachel(String(aktiv.length), "aktive Personen")}${kachel(String(zu.slice(-3).reduce((n, x) => n + x.rein, 0)), "Eintritte (3 Monate)")}${kachel(String(zu.slice(-3).reduce((n, x) => n + x.raus, 0)), "Austritte (3 Monate)")}${kachel(String(d.nachweiseBald), "Nachweise laufen ab (60 Tage)")}${d.urlaub ? kachel(`${Math.round(d.urlaub.genommen)} / ${Math.round(d.urlaub.anspruch)}`, `Urlaubstage genommen ${heute.slice(0, 4)}`) : ""}</div>
 ${matrix ? `<h2>👥 Personal nach Standort und Beruf</h2>${matrix}` : ""}
 ${arten.length ? `<h2>📁 Beschäftigungsart</h2><ul class="kontakt-liste">${arten.map(([t, n]) => `<li><span>${t}</span><span>${balken(n, aktiv.length)} <strong>${n}</strong></span></li>`).join("")}${ohneArt ? `<li><span class="klein">nicht eingetragen</span><span class="klein">${ohneArt}</span></li>` : ""}</ul>` : ""}
 <h2>⏱️ Stunden pro Monat</h2><ul class="kontakt-liste">${proMonat.map((x) => `<li><span>${mName(x.m)}</span><span>${balken(x.min, maxMin)} <strong>${Math.round(x.min / 60).toLocaleString("de-DE")} Std.</strong> <span class="klein">${x.leute} ${x.leute === 1 ? "Person" : "Personen"}${x.leute ? ` · Ø ${Math.round(x.min / 60 / x.leute)}` : ""}</span></span></li>`).join("")}</ul><p class="klein">Aus den Stundenzetteln (offen und freigegeben).</p>
