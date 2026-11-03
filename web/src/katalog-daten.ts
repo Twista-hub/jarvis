@@ -115,8 +115,9 @@ export async function normalisieren(rel: any, tag: string, vorher?: any): Promis
   const ident = buyer.identifier?.id ? `${buyer.identifier.scheme ?? ""}:${buyer.identifier.id}` : `${auftraggeber.toLowerCase()}|${a.postalCode ?? ""}|${a.locality ?? ""}`;
   const buyerId = await hash(ident);
   const vertragsende = (r.contracts ?? []).map((c: any) => zeit(c.period?.endDate)?.slice(0, 10)).filter(Boolean).sort().at(-1) || null;
-  // Keep source evidence needed for later amendments, bounded independently of archive size.
-  const roh = { ocid: quelleId, date: datum, buyer, tender: { ...t, description: beschreibung, documents: docs.slice(0, 20), items: (t.items ?? []).slice(0, 100), lots: (t.lots ?? []).slice(0, 50) }, awards: (r.awards ?? []).slice(0, 30), contracts: (r.contracts ?? []).slice(0, 30) };
+  // Keep source evidence needed for later amendments, bounded independently of archive size. `id` is the newest notice id
+  // (BT-701): the full eForms notice is only found under it, the UUID in the OCID is the procedure id (BT-04).
+  const roh = { ocid: quelleId, id: str(rel.id, 200) || undefined, date: datum, buyer, tender: { ...t, description: beschreibung, documents: docs.slice(0, 20), items: (t.items ?? []).slice(0, 100), lots: (t.lots ?? []).slice(0, 50) }, awards: (r.awards ?? []).slice(0, 30), contracts: (r.contracts ?? []).slice(0, 30) };
   const data = { id: `bks:${quelleId}`, quelle: "bks", quelle_id: quelleId, quell_datum: datum, titel: str(t.title, 1000), beschreibung, link: str(link, 3000), auftraggeber, auftraggeber_id: `bks:${buyerId}`, ort: adresse.map((x: any) => [x.postalCode, x.locality, x.region].filter(Boolean).join(" ")).filter(Boolean).join(" · ") + (liefer.length ? "" : " (Auftraggeberadresse; Einsatzort prüfen)"), plz: [...new Set<string>(adresse.map((x: any) => str(x.postalCode, 15)).filter(Boolean))], cpv, frist, status, lose, bedarf, zuschlaege, vertragsende };
   const { quell_datum: _datum, ...inhalt } = data;
   return { ...data, version: await hash(JSON.stringify(inhalt)), roh };
