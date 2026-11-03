@@ -93,6 +93,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Migration `20261103300000_betreiber_firmen.sql`: `betreiber_firmen()`, `betreiber_ki_budget(f, budget)`, `betreiber_paket(f, neu)`; die Schutz-Trigger `probe_ki` und `paket_schuetzen` lassen nur den Betreiber durch. Seite `/konto/betreiber` erweitert (web/src/loeschen.ts).
 - Migration `20261103310000_betreiber_rechnungen.sql`: Tabelle `jarvis_intern.betreiber_rechnungen` (unveränderlich, kein Löschen, Storno als eigene Rechnung), Nummernkreis CT-Jahr-NNNN ohne Lücken, Pflicht Steuernummer, Ausland nur mit USt-IdNr. Seite `web/src/betreiber-rechnungen.ts`.
 - Rechte-Test ergänzt (Kunde kann nichts davon, Trigger blockt direkte Änderungen, Rechnungen bleiben nach Firmenlöschung). Tests: Web 377 grün, Rechte-Test „ALLE TESTS OK“.
+- Alarm (Python) protokolliert jetzt auch Modell und Anfrage-ID je KI-Anfrage (Rechtsprüfung K7 vollständig).
 - Nicht live, solange Actions blockiert sind (siehe oben).
 
 ### 03.11.2026 abends – Claude Code (WICHTIG: Repo privat, Actions blockiert)
