@@ -175,7 +175,7 @@ Reihenfolge nach Nutzen zu Aufwand und nach Umsatzchance.
 5. **DATEV-Export und Steuerberater-Zugang (Nr. 22)**: Jede kleine Firma hat einen Steuerberater, und der empfiehlt Jarvis weiter, wenn die Daten sauber kommen.
 6. **Belege per Foto (Nr. 21)**: Die Spesen mit Belegfoto gibt es schon, und damit wird Jarvis zum täglichen Werkzeug im Büro.
 7. **Bietergemeinschaft finden (Nr. 28)**: baut direkt auf dem Ausschreibungs-Kern auf und bringt Provision über den Erfolg-Plan.
-8. **Kontrollrundgang und Wachbuch (Nr. 11)**: Sicherheitsfirmen zahlen dafür heute extra, QR und Stempeluhr sind schon da.
+8. ✅ **Kontrollrundgang und Wachbuch (Nr. 11)** – gebaut 03.11.2026 (QR-Kontrollpunkte, Scan per Handy-Kamera, Wachbuch): Sicherheitsfirmen zahlen dafür heute extra, QR und Stempeluhr sind schon da.
 9. **Kunden-Portal (Nr. 40)**: Der Kundenlink steht schon, das Portal bindet Kunden und unterscheidet Jarvis von reinen Planungs-Apps.
 10. **Auftragsbörse unter Firmen (Nr. 26)**: Der Aufwand ist groß, aber jede neue Firma macht die Börse wertvoller, und die Provision läuft über den Erfolg-Plan.
 

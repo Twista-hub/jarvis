@@ -73,13 +73,16 @@ bleiben vorerst bei TED, Ideenliste und Abo-Vorschlag liegen zum Lesen bereit.
   Mahnstatus änderbar) – vorher wären Beträge nachträglich änderbar gewesen.
 - **Wiederkehrende Rechnungen (Top-3) gebaut:** unter Rechnungen „🔁 Wiederkehrende Rechnungen“: Vorlage je Kunde mit
   festem Monatsbetrag, Knopf „Rechnungen für <Monat> erstellen“ macht daraus einmal pro Monat nummerierte Entwürfe.
+- **Rundgänge & Wachbuch (Top-8, für Sicherheitsdienste) gebaut:** Büro legt pro Einsatzort QR-Kontrollpunkte an und
+  druckt sie aus; Einsatzkräfte scannen mit der Handy-Kamera (Zeit vom Server, Doppelscan zählt einmal) und schreiben
+  Meldungen, Vorfälle, Übergaben ins Wachbuch (nicht rückdatierbar, nicht änderbar). Kachel „🛡️ Rundgänge & Wachbuch“.
 - **Plan-Struktur** aus dem Abo-Vorschlag im Code (`web/src/plaene.ts`, Grenzen je Plan), **nicht aktiv**, Preise
   weiter „Preis folgt“.
 
 ### Bewusst nicht umgesetzt (Regeln aus CLAUDE.md, braucht dein OK)
 - **Abo-Preise und Stripe:** Preise und Zahlungen nur nach deinem OK („Rechnungen und Ausgaben nur nach OK“). Laut Plan
   Punkt 7c war ein Vorschlag gefragt; `web/src/plaene.ts` bleibt abgeschaltet.
-- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1–3 (E-Rechnung, Mahnwesen, wiederkehrende Rechnungen) sind gebaut; Nr. 4–10 nach deiner Reihenfolge (Nr. 10 Auftragsbörse erst nach anwaltlicher Prüfung der AGB).
+- **Weitere Arbeitsoberflächen-Funktionen:** Nr. 1–3 und 8 (E-Rechnung, Mahnwesen, wiederkehrende Rechnungen, Rundgänge & Wachbuch) sind gebaut; Nr. 4–7, 9, 10 nach deiner Reihenfolge (Nr. 10 Auftragsbörse erst nach anwaltlicher Prüfung der AGB).
 - **Anfragen an PLACSP und TenderNed:** Entwürfe liegen bereit (`docs/anfragen/placsp-anfrage.md`, `docs/anfragen/tenderned-anfrage.md`); Mails an Dritte nur nach deinem OK.
 
 ### Deine Entscheidungen (keine Eile)
