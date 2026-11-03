@@ -341,7 +341,8 @@ def laden() -> dict:
         print(f"Suchprofile aus der App nicht geladen: {e}", file=sys.stderr)
         return profile
     for firma_id, name, beschreibung, e, plz in rows:
-        if not (e or {}).get("leistungen"):
+        # Example firms (supabase/demo) never run the paid AI search.
+        if not (e or {}).get("leistungen") or (e or {}).get("demo") is True:
             continue
         key = next((k for k, p in profile.items() if p.get("firma_id") == firma_id and not p.get("zusatz")), f"firma-{firma_id}")
         profile[key] = aus_db(firma_id, name, beschreibung, e, plz)

@@ -319,13 +319,15 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   // N13: AÜG-Wächter tile for firms that record assignments (temporary work), with the deadlines in 60 days.
   const auegFristen = !unterseite && m.rolle !== "mitarbeiter" ? fristen_aueg(await auegLaden(s, env, m.firma_id), heute) : [];
   const auegDringend = auegFristen.filter((f) => ["rot", "gelb"].includes(fristStatus(f, heute).stufe)).length;
+  // Teams and departments below a location are not counted as locations of their own.
+  const standortZahl = b.filter((x) => x.art === "standort").length;
   const cards = [
     ["treffer", "📋", "Ausschreibungen", `${neu} ${neu === 1 ? "offener Treffer" : "offene Treffer"}`],
     ["fristen", "⏰", "Fristen", `${bald} ${bald === 1 ? "Frist" : "Fristen"} diese Woche`],
     ["unterlagen", "📥", "Unterlagen", ablaufZahl ? `⚠️ ${ablaufZahl} ${ablaufZahl === 1 ? "Nachweis läuft" : "Nachweise laufen"} bald ab` : "Dateien hochladen und prüfen lassen"],
     ["angebote", "📝", "Angebote", (() => { const n = liste.filter((v) => v.status === "angebot").length, a = liste.filter((v) => v.status === "abgegeben").length; return n || a ? `${n} in Arbeit · ${a} abgegeben` : "Stand aller Angebote"; })()],
     ["kalkulation", "💶", "Kalkulation", "Preise pro Stunde und Los berechnen"],
-    ["team", "👥", "Firma & Team", `${zugaenge} ${zugaenge === 1 ? "App-Zugang" : "App-Zugänge"} · ${b.length || 1} ${b.length === 1 || !b.length ? "Standort" : "Standorte"}`],
+    ["team", "👥", "Firma & Team", `${zugaenge} ${zugaenge === 1 ? "App-Zugang" : "App-Zugänge"} · ${standortZahl || 1} ${standortZahl > 1 ? "Standorte" : "Standort"}`],
     ["markt", "🌐", "Markt & Chancen", `${aboZahl} ${aboZahl === 1 ? "neue Ausschreibung" : "neue Ausschreibungen"} beobachteter Auftraggeber`],
     ["suchprofil", "🔎", "Suchprofil", sucheEingerichtet ? (suchstand.ergebnis?.treffer !== undefined ? `Letzte Suche: ${suchstand.ergebnis.treffer} Treffer` : "Suche ansehen und anpassen") : "Passende Ausschreibungen finden"],
   ];
@@ -343,7 +345,8 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   // Idee 39: team chat tile for staff always, for the office only when something is unread (otherwise under "Firma & Team").
   if (chatZahl || m.rolle === "mitarbeiter") cards.splice(m.rolle === "mitarbeiter" ? 1 : 2, 0, ["chat", "💬", "Team-Chat", chatZahl ? `${chatZahl} ${chatZahl === 1 ? "neue Nachricht" : "neue Nachrichten"}` : "Mit Büro und Kollegen"]);
   if (brettZahl || m.rolle === "mitarbeiter") cards.splice(m.rolle === "mitarbeiter" ? 1 : 2, 0, ["brett", "📌", "Schwarzes Brett", brettZahl ? `${brettZahl} ${brettZahl === 1 ? "neue Mitteilung" : "neue Mitteilungen"}` : "Mitteilungen vom Büro"]);
-  cards.push(["freigaben", "📨", "Für mich freigegeben", freigabeZahl ? `${freigabeZahl} ${freigabeZahl === 1 ? "Freigabe" : "Freigaben"} vom Team` : "Noch nichts freigegeben"]);
+  // Shared items matter for staff; the office only sees the tile when someone actually shared something.
+  if (freigabeZahl || m.rolle === "mitarbeiter") cards.push(["freigaben", "📨", "Für mich freigegeben", freigabeZahl ? `${freigabeZahl} ${freigabeZahl === 1 ? "Freigabe" : "Freigaben"} vom Team` : "Noch nichts freigegeben"]);
   // "Markt & Chancen" only when there is something new there; otherwise it is reachable under Einstellungen ("Mehr").
   const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? ["freigaben", "ich", "brett", "chat"].includes(path) : (path !== "kalkulation" || finanzrecht) && (path !== "markt" || aboZahl > 0));
   const kacheln = `<div class="konto-kacheln">${sichtbareKarten.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
@@ -661,9 +664,9 @@ async function einladen(s: Sitzung, form: FormData, request: Request, env: Konto
     const anzeige = new FormData(); for (const [k, v] of form.entries()) anzeige.append(k, k === "bereich" ? bereichWahl : v);
     return html(seite("Einladung prüfen", bestaetigung({ action: "/konto/einladen", form: anzeige, titel: "die Einladung erstellst", zeilen: [["Name", String(form.get("name") ?? "") || "–"], ["E-Mail", email], ["Funktion", String(form.get("funktion") ?? "")]], rolle, bereich: bereichWahl === "firma" ? "ganze Firma" : `nur ${bn?.ok ? bn.daten[0]?.name ?? "gewählter Bereich" : "gewählter Bereich"}`, finanzen: form.has("finanzen"), zurueck: "/konto/team#einladen", knopf: "✅ Ja, so einladen" }), 0, "team"), 200, s.cookies);
   }
-  // "Erneut senden": the new invitation replaces the old one (same address and access).
+  // "Erneut senden": the new invitation replaces the old one (same address and access). The old one is only removed
+  // once the new one exists, so a failed check never leaves the person without any invitation.
   const ersetzt = String(form.get("ersetzt") ?? "");
-  if (/^[0-9a-f-]{36}$/.test(ersetzt)) await db(s, env, `einladungen?id=eq.${ersetzt}&angenommen=is.null`, { method: "DELETE" });
   const bereich = String(form.get("bereich") ?? "");
   if (rolle === "standortleitung") {
     if (!/^[0-9a-f-]{36}$/i.test(bereich)) return weiterleiten(`/konto/team?hinweis=${encodeURIComponent("Für eine Standortleitung bitte genau einen Standort auswählen.")}`);
@@ -690,6 +693,7 @@ async function einladen(s: Sitzung, form: FormData, request: Request, env: Konto
     }),
   });
   if (!r.ok) return weiterleiten(`/konto/team?hinweis=${encodeURIComponent("Die Einladung konnte nicht erstellt werden.")}`);
+  if (/^[0-9a-f-]{36}$/.test(ersetzt)) await db(s, env, `einladungen?id=eq.${ersetzt}&angenommen=is.null`, { method: "DELETE" });
   const link = new URL(`/einladung?token=${token}`, request.url).toString();
   if (env.SMTP_PASSWORD) {
     const firma = await db<{ name: string }[]>(s, env, `firmen?id=eq.${String(form.get("firma") ?? "")}&select=name`);
@@ -823,7 +827,7 @@ export function trefferListe(liste: Vorgang[], bereichName: (id: string | null |
   ${gesucht ? `<p class="treffer-gesucht">${escape(gesucht)}</p>` : !warum && bewertungsErklaerung(v.steckbrief) ? `<p class="treffer-gesucht">${escape(bewertungsErklaerung(v.steckbrief))}</p>` : ""}
   ${warum ? `<p class="treffer-warum">${escape(warum)}</p>` : ""}
   <div class="treffer-unten">
-    <p class="treffer-frist"><span>Abgabefrist</span>${v.frist ? `<time datetime="${escape(v.frist)}">${datum(v.frist)}</time>` : `<strong>Noch nicht bekannt</strong>`}${v.bereich_id ? `<small>${escape(bereichName(v.bereich_id))}</small>` : ""}</p>
+    <p class="treffer-frist"><span>Abgabefrist</span>${v.frist ? `<time datetime="${escape(v.frist)}">${datum(v.frist)}${OFFEN.includes(v.status) ? ` <em class="frist-abstand frist-${ampel(v)}">${abstand(v.frist)}</em>` : ""}</time>` : `<strong>Noch nicht bekannt</strong>`}${v.bereich_id ? `<small>${escape(bereichName(v.bereich_id))}</small>` : ""}</p>
     ${daumen(v.id, rueckmeldungen.get(v.id), weiter)}
   </div>
   ${schnell(v)}

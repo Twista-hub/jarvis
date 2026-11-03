@@ -48,7 +48,7 @@ export function nachkalkulation(d: { kunden: Kunde[]; orte: Ort[]; schichten: Sc
 const std = (min: number) => (min / 60).toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 const ampel = (q: number | null) => q === null ? "" : q < 0 ? "🔴" : q < 15 ? "🟡" : "🟢";
 
-export function nachkalkulationSeite(z: Zeile[], o: { monat: string; werte: Werte; personen: { id: string; name: string; lohn: number | null }[]; darf: boolean }): string {
+export function nachkalkulationSeite(z: Zeile[], o: { monat: string; werte: Werte; personen: { id: string; name: string; lohn: number | null }[]; darf: boolean; laufend?: boolean }): string {
   const summe = z.reduce((a, x) => ({ plan: a.plan + x.planMin, ist: a.ist + x.istMin, kosten: a.kosten + x.kosten, erloes: a.erloes + (x.erloes ?? 0) }), { plan: 0, ist: 0, kosten: 0, erloes: 0 });
   const sdb = rund(summe.erloes - summe.kosten);
   const zeile = (x: Zeile) => `<tr><td>${ampel(x.quote)} ${escape(x.name)}</td><td>${x.planMin ? std(x.planMin) : "–"}</td><td>${std(x.istMin)}</td><td>${x.planMin ? `${x.istMin - x.planMin >= 0 ? "+" : ""}${std(x.istMin - x.planMin)}` : "–"}</td><td>${euro(x.kosten)}</td><td>${x.erloes === null ? `<span class="klein">kein Satz</span>` : `${euro(x.erloes)}${x.quelle === "geschaetzt" ? ` <span class="klein">(geschätzt)</span>` : ""}`}</td><td>${x.db === null ? "–" : euro(x.db)}</td><td>${x.quote === null ? "–" : `${x.quote.toLocaleString("de-DE")} %`}</td></tr>`;
@@ -58,7 +58,7 @@ ${([["lohn", "Standard-Stundenlohn (€)", w.lohn], ["nebenkosten", "Lohnnebenko
   const lohnForm = o.darf && o.personen.length ? `<details class="termin-neu"><summary>👷 Stundenlöhne (${o.personen.filter((p) => p.lohn !== null).length} von ${o.personen.length} eingetragen)</summary><form method="post" action="/konto/nachkalkulation"><input type="hidden" name="aktion" value="loehne"><input type="hidden" name="monat" value="${o.monat}"><div class="aueg-form">
 ${o.personen.map((p) => `<label>${escape(p.name)}<input name="lohn_${p.id}" inputmode="decimal" maxlength="7" value="${p.lohn === null ? "" : String(p.lohn).replace(".", ",")}" placeholder="Standard ${String(w.lohn).replace(".", ",")} €"></label>`).join("")}</div><button>Speichern</button><p class="klein">Leer = Standardlohn. Die Löhne sehen nur Personen mit Finanzfreigabe.</p></form></details>` : "";
   return `<nav class="dispo-nav"><a class="knopf zweit" href="/konto/nachkalkulation?monat=${vorMonat(o.monat)}" aria-label="Vormonat">‹</a><strong>${new Date(`${o.monat}-15T12:00:00Z`).toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" })}</strong><a class="knopf zweit" href="/konto/nachkalkulation?monat=${naechsterMonat(o.monat)}" aria-label="Nächster Monat">›</a></nav>
-<p class="klein">Pro Kunde: geplante Stunden (Schichten an seinen Einsatzorten) gegen freigegebene Stunden, Lohnkosten (Stundenlohn + Zuschläge + ${String(w.nebenkosten).replace(".", ",")} % Lohnnebenkosten) gegen Erlös (Rechnungen des Monats, sonst geschätzt aus dem Verrechnungssatz). 🔴 Verlust · 🟡 unter 15 % · 🟢 ab 15 % Deckungsbeitrag. Gemeinkosten (Büro, Fahrzeuge, Versicherung) sind nicht abgezogen.</p>
+${o.laufend ? `<p class="klein">📅 Laufender Monat: geplante Stunden zählen nur bis gestern, damit noch kommende Schichten nicht als Lücke erscheinen.</p>` : ""}<p class="klein">Pro Kunde: geplante Stunden (Schichten an seinen Einsatzorten) gegen freigegebene Stunden, Lohnkosten (Stundenlohn + Zuschläge + ${String(w.nebenkosten).replace(".", ",")} % Lohnnebenkosten) gegen Erlös (Rechnungen des Monats, sonst geschätzt aus dem Verrechnungssatz). 🔴 Verlust · 🟡 unter 15 % · 🟢 ab 15 % Deckungsbeitrag. Gemeinkosten (Büro, Fahrzeuge, Versicherung) sind nicht abgezogen.</p>
 ${z.length ? `<p class="gewerk-zahlen"><span><strong>${euro(summe.erloes)}</strong> Erlös</span> <span><strong>${euro(summe.kosten)}</strong> Lohnkosten</span> <span><strong>${euro(sdb)}</strong> Deckungsbeitrag${summe.erloes ? ` (${(Math.round(sdb / summe.erloes * 1000) / 10).toLocaleString("de-DE")} %)` : ""}</span></p>
 <div class="tabelle-rahmen"><table class="tabelle"><thead><tr><th>Kunde</th><th>Plan-Std.</th><th>Ist-Std.</th><th>Abw.</th><th>Lohnkosten</th><th>Erlös</th><th>DB</th><th>DB %</th></tr></thead><tbody>${z.map(zeile).join("")}</tbody></table></div>` : `<p class="treffer-leer">Keine freigegebenen Stunden, Schichten oder Rechnungen in diesem Monat.</p>`}
 ${werteForm}${lohnForm}`;
@@ -104,10 +104,13 @@ export async function nachkalkulationRoute(request: Request, env: KontoEnv): Pro
   }
   const monat = monatWahl(url.searchParams.get("monat"));
   const von = `${monat}-01`, bis = `${naechsterMonat(monat)}-01`;
+  // Running month: plan and actual hours only up to yesterday, otherwise every shift still ahead looks like a gap.
+  const laufend = monat === heute.slice(0, 7);
+  const planBis = laufend ? heute : bis;
   const [k, o, sch, st, re, pr, lo, we, pe, land] = await Promise.all([
     db<Kunde[]>(f.s, env, `kunden?firma_id=eq.${firma}&select=id,name&limit=1000`),
     db<Ort[]>(f.s, env, `einsatzorte?firma_id=eq.${firma}&select=id,kunde_id&limit=3000`),
-    db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&datum=gte.${von}&datum=lt.${bis}&einsatzort_id=not.is.null&antwort=neq.abgesagt&select=datum,beginn,ende,einsatzort_id,personal_id&limit=20000`),
+    db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&datum=gte.${von}&datum=lt.${planBis}&einsatzort_id=not.is.null&antwort=neq.abgesagt&select=datum,beginn,ende,einsatzort_id,personal_id&limit=20000`),
     db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&status=eq.freigegeben&datum=gte.${von}&datum=lt.${bis}&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id&limit=20000`),
     db<(Rechnung & { monat: string })[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&monat=eq.${monat}&select=kunde_id,netto,monat&limit=2000`),
     db<Preis[]>(f.s, env, `kunden_preise?firma_id=eq.${firma}&select=kunde_id,satz,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag&limit=1000`),
@@ -124,5 +127,5 @@ export async function nachkalkulationRoute(request: Request, env: KontoEnv): Pro
   const aktiv = new Set(stunden.map((e) => e.personal_id));
   const personen = (pe.ok ? pe.daten : []).filter((p) => aktiv.has(p.id) || loehne.has(p.id)).map((p) => ({ id: p.id, name: `${p.vorname} ${p.nachname}`.trim(), lohn: loehne.get(p.id) ?? null })).sort((a, b) => a.name.localeCompare(b.name, "de"));
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${nachkalkulationSeite(z, { monat, werte, personen, darf })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${nachkalkulationSeite(z, { monat, werte, personen, darf, laufend })}`);
 }

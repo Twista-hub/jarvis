@@ -232,6 +232,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .treffer-unten { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 16px 0 4px; }
   .treffer-unten .treffer-frist { margin: 0; }
   .treffer-frist small { color: var(--muted); font-size: 12px; }
+  .frist-abstand { font-style: normal; font-size: 13px; font-weight: 600; margin-left: 4px; color: var(--muted); } .frist-abstand.frist-rot { color: #c0392b; } .frist-abstand.frist-gelb { color: #b9770e; }
   .daumen-leiste { display: flex; gap: 6px; }
   .daumen-form { display: block; padding: 0; border: 0; background: none; }
   button.daumen { width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); font-size: 18px; filter: grayscale(1); opacity: .7; }
