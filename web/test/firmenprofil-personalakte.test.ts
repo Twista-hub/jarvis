@@ -35,7 +35,7 @@ const n = (id: string, pid: string, bez: string, bis: string | null): Nachweis =
 test("T4/T5/T7: Personalakte, Nachweise mit Ampel und Kurzprofil", () => {
   const f = new FormData();
   for (const [k, v] of [["eintritt", "2019-04-01"], ["beschaeftigung", "teilzeit"], ["wochenstunden", "20,5"], ["wohn_plz", "10115"], ["sprachen", "Deutsch, Türkisch; deutsch"], ["fuehrerschein", "B"], ["fuehrerschein", "XY"]]) f.append(k, v);
-  assert.deepEqual(akteAusFormular(f), { eintritt: "2019-04-01", beschaeftigung: "teilzeit", wochenstunden: 20.5, fuehrerschein: ["B"], sprachen: ["Deutsch", "Türkisch", "deutsch"], wohn_plz: "10115", probezeit_bis: null, befristet_bis: null, aufenthalt_bis: null, firmenwagen: false, personalnummer: "", geburtstag: null });
+  assert.deepEqual(akteAusFormular(f), { eintritt: "2019-04-01", beschaeftigung: "teilzeit", wochenstunden: 20.5, fuehrerschein: ["B"], sprachen: ["Deutsch", "Türkisch", "deutsch"], wohn_plz: "10115", probezeit_bis: null, befristet_bis: null, aufenthalt_bis: null, firmenwagen: false, arbeitstage: null, personalnummer: "", geburtstag: null });
   const g = new FormData(); g.append("wohn_plz", "1011"); g.append("beschaeftigung", "chef"); g.append("wochenstunden", "99");
   assert.deepEqual([akteAusFormular(g).wohn_plz, akteAusFormular(g).beschaeftigung, akteAusFormular(g).wochenstunden], ["", "", null]);
   assert.equal(dabeiSeit("2019-04-01", "2026-03-31"), "seit 2019 (6 Jahre)");

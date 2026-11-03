@@ -126,3 +126,25 @@ test("Team-Kopf: Gruppen und neue Warnungen", () => {
   assert.match(html, /2 PSA-Austausch fällig/);
   for (const p of ["psa", "bewerber", "checklisten", "urlaub", "bewertungen", "personalauswertung"]) assert.match(html, new RegExp(`/konto/${p}"`));
 });
+
+import { mindesturlaub } from "../src/urlaub.ts";
+import { arbeitstageAusFormular } from "../src/personalakte.ts";
+test("Teilzeit: Urlaub zählt nur die Arbeitstage der Person, Mindesturlaub anteilig", () => {
+  // Mo 02.11.2026 – So 08.11.2026, keine Feiertage in NRW
+  assert.equal(arbeitstage("2026-11-02", "2026-11-08", "NW"), 5);
+  assert.equal(arbeitstage("2026-11-02", "2026-11-08", "NW", undefined, [1, 3, 5]), 3);
+  assert.equal(arbeitstage("2026-11-02", "2026-11-08", "NW", undefined, [6, 7]), 2, "Wochenendkraft");
+  assert.equal(mindesturlaub(null), 20);
+  assert.equal(mindesturlaub([1, 3, 5]), 12);
+  assert.equal(mindesturlaub([1, 2, 3, 4, 5, 6]), 24);
+  const konten = [{ personal_id: "t", jahr: 2026, anspruch: 12, uebertrag: 0 }, { personal_id: "v", jahr: 2026, anspruch: 12, uebertrag: 0 }];
+  const abw = [{ personal_id: "t", von: "2026-11-02", bis: "2026-11-08", grund: "urlaub", status: "bestaetigt" }];
+  assert.equal(stand("t", 2026, konten, abw, "NW", [1, 3, 5]).genommen, 3);
+  const seite = kontoSeite([{ id: "t", vorname: "Tea", nachname: "Teil", status: "verfuegbar", bereich_id: null, arbeitstage: [1, 3, 5] }, { id: "v", vorname: "Vol", nachname: "Voll", status: "verfuegbar", bereich_id: null }], konten, abw, { jahr: 2026, land: "NW", darfAendern: true });
+  assert.match(seite, /Vol Voll \(12 statt mindestens 20\)/);
+  assert.doesNotMatch(seite, /Tea Teil \(/, "12 Tage bei 3-Tage-Woche sind genug");
+  const fd = (tage: string[]) => { const f = new FormData(); for (const t of tage) f.append("arbeitstag", t); return f; };
+  assert.equal(arbeitstageAusFormular(fd(["1", "2", "3", "4", "5"])), null, "Mo–Fr ist der Normalfall");
+  assert.equal(arbeitstageAusFormular(fd([])), null);
+  assert.deepEqual(arbeitstageAusFormular(fd(["5", "1", "3", "9", "x"])), [1, 3, 5]);
+});

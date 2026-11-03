@@ -10,7 +10,7 @@ import { ampel, NACHWEIS_VORSCHLAEGE, plusTage, type Nachweis } from "./personal
 import { ausFormular, meineStundenTeil, type Eintrag } from "./stunden.ts";
 import { meineSchichtenTeil, type Schicht } from "./schichten.ts";
 import { meinePsaTeil, type Psa } from "./psa.ts";
-import { meinUrlaubText, stand, type Konto } from "./urlaub.ts";
+import { arbeitstageLaden, meinUrlaubText, stand, type Konto } from "./urlaub.ts";
 import { landDerFirma } from "./stunden.ts";
 import { stempeln, stempelTeil, type Stempel } from "./stempel.ts";
 import { offeneSchichtenTeil } from "./schichten.ts";
@@ -173,7 +173,7 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
   const vor = `${new Date(Date.UTC(Number(heute.slice(0, 4)), Number(heute.slice(5, 7)) - 2, 1)).toISOString().slice(0, 10)}`;
   const jahr = Number(heute.slice(0, 4));
   const vormonat = new Date(Date.UTC(Number(heute.slice(0, 4)), Number(heute.slice(5, 7)) - 2, 15)).toISOString().slice(0, 7);
-  const [a, u, abw, n, uw, st, sch, ps, kt, jabw, land, stp, offen, sp, us, zk] = await Promise.all([
+  const [a, u, abw, n, uw, st, sch, ps, kt, jabw, land, stp, offen, sp, us, zk, meineTage] = await Promise.all([
     db<MeinAuftrag[]>(f.s, env, "rpc/meine_auftraege", { method: "POST", body: JSON.stringify({ f: firma }) }),
     db<MeineUeberlassung[]>(f.s, env, `ueberlassungen?personal_id=eq.${person.id}&select=entleiher,von,bis&order=von.desc&limit=20`),
     db<MeineAbwesenheit[]>(f.s, env, `personal_abwesenheiten?personal_id=eq.${person.id}&bis=gte.${heute}&select=id,personal_id,von,bis,grund,notiz,status&order=von&limit=50`),
@@ -190,6 +190,7 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
     db<Spese[]>(f.s, env, `spesen?personal_id=eq.${person.id}&datum=gte.${new Date(Date.now() - 90 * 86400_000).toISOString().slice(0, 10)}&select=id,personal_id,datum,art,betrag,notiz,beleg_mime,status&order=datum.desc&limit=50`),
     db<{ art: string; bezug: string }[]>(f.s, env, `unterschriften?personal_id=eq.${person.id}&select=art,bezug&order=erstellt.desc&limit=50`),
     zeitkontoDaten(f.s, env, firma, heute, person.id),
+    arbeitstageLaden(f.s, env, firma, person.id),
   ]);
   const hinweis = url.searchParams.get("hinweis");
   const psaListe = ps.ok ? ps.daten : [], unterschrieben = us.ok ? us.daten : [];
@@ -205,7 +206,7 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
   const vorschlaege = [...new Set((sch.ok ? sch.daten : []).filter((x) => x.datum === heute).map((x) => x.ort).filter(Boolean))];
   const oben = stempelTeil(stp.ok ? stp.daten : [], vorschlaege, new Date().toISOString()) + offeneSchichtenTeil(offen.ok ? offen.daten : []);
   const unten = unterschriftTeil + meineSpesenTeil(sp.ok ? sp.daten : [], heute);
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${ichSeite({ ich: person, auftraege: a.ok ? a.daten : [], ueberlassungen: u.ok ? u.daten : [], abwesenheiten: abw.ok ? abw.daten : [], nachweise: n.ok ? n.daten : [], unterweisungen: uw.ok ? uw.daten : [], heute, stunden: st.ok ? st.daten : [], schichten: sch.ok ? sch.daten : [], psa: ps.ok ? ps.daten : [], urlaubText: meinUrlaubText(stand(person.id, jahr, kt.ok ? kt.daten : [], jabw.ok ? jabw.daten : [], land), jahr), oben, unten, zeitkontoText })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${ichSeite({ ich: person, auftraege: a.ok ? a.daten : [], ueberlassungen: u.ok ? u.daten : [], abwesenheiten: abw.ok ? abw.daten : [], nachweise: n.ok ? n.daten : [], unterweisungen: uw.ok ? uw.daten : [], heute, stunden: st.ok ? st.daten : [], schichten: sch.ok ? sch.daten : [], psa: ps.ok ? ps.daten : [], urlaubText: meinUrlaubText(stand(person.id, jahr, kt.ok ? kt.daten : [], jabw.ok ? jabw.daten : [], land, meineTage.get(person.id)), jahr), oben, unten, zeitkontoText })}`);
 }
 
 /** Admin: link a staff login (role "Einsatzkraft") to a personnel record, or remove the link. */

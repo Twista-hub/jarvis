@@ -419,5 +419,7 @@
  "Kunden-Portal": "Portail client",
  "Rundgänge & Wachbuch": "Rondes & main courante",
  "⏳ # laufen in # Tagen ab": "⏳ # expirent dans # jours",
- "⏳ # läuft in # Tagen ab": "⏳ # expire dans # jours"
+ "⏳ # läuft in # Tagen ab": "⏳ # expire dans # jours",
+ "Arbeitstage": "Jours travaillés",
+ "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Pour les congés : seuls ces jours comptent, congé minimum # jours par jour travaillé (§ # BUrlG)."
 }
