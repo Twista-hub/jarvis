@@ -90,6 +90,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103220000_loeschfristen.sql
 \ir ../migrations/20261103230000_leitweg_id.sql
 \ir ../migrations/20261103240000_portal_ablauf.sql
+\ir ../migrations/20261103250000_bewerber_fristen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1137,7 +1138,7 @@ insert into public.bewerber (firma_id, bereich_id, vorname, nachname, beruf) val
 update public.bewerber set status = 'absage' where id = :'bew';
 select pruefe((select loeschen_ab = (now() at time zone 'Europe/Berlin')::date + 183 from public.bewerber where id = :'bew'), 'Absage setzt Löschdatum in 6 Monaten');
 update public.bewerber set status = 'gespraech' where id = :'bew';
-select pruefe((select loeschen_ab is null from public.bewerber where id = :'bew'), 'Zurück ins Gespräch hebt das Löschdatum auf');
+select pruefe((select loeschen_ab = (now() at time zone 'Europe/Berlin')::date + 365 from public.bewerber where id = :'bew'), 'Zurück ins Gespräch: Löschdatum nach 12 Monaten ohne Entscheidung');
 do $$ begin
   insert into public.bewerber (firma_id, bereich_id, vorname) values (current_setting('test.firma')::uuid, (select id from public.bereiche where name = 'Hamburg' limit 1), 'Fremd');
   raise exception 'FEHLER: Bewerber am fremden Standort';
