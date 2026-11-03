@@ -68,3 +68,32 @@ export const summe = (l: Zuschlag[]): Zuschlag => l.reduce((a, b) => ({ nacht: a
 const hm = (min: number) => `${Math.floor(min / 60)}:${String(min % 60).padStart(2, "0")}`;
 /** Short text, e.g. "🌙 2:30 · ☀️ So 8:00 · 🎉 Ftg 8:00" (empty when there is nothing). */
 export const zuschlagText = (z: Zuschlag) => [z.nacht ? `🌙 ${hm(z.nacht)}` : "", z.sonntag ? `☀️ So ${hm(z.sonntag)}` : "", z.feiertag ? `🎉 Ftg ${hm(z.feiertag)}` : ""].filter(Boolean).join(" · ");
+
+/** Rechtsprüfung 03.11.2026 (A6): minutes per tax-free surcharge window of § 3b EStG, for the payroll office.
+ *  n25 night 20–6 h · n40 night 0–4 h when the work started before midnight · so50 Sunday · f125 public holiday and
+ *  31.12. from 14 h · f150 24.12. from 14 h, 25./26.12. and 1.5. Night and Sunday/holiday add up; a holiday on a Sunday
+ *  counts as holiday only. 0–4 h after a Sunday or holiday counts as that day when the work started before midnight
+ *  (§ 3b Abs. 3 Nr. 2). Breaks are deducted proportionally. How much is really tax-free (e.g. base wage at most 50 €/h)
+ *  decides the payroll office. */
+export type Steuerfrei = { n25: number; n40: number; so50: number; f125: number; f150: number };
+export function steuerfrei3b(e: { datum: string; beginn: string; ende: string; pause_min: number; land?: string }, landFirma: string): Steuerfrei {
+  const land = e.land || landFirma;
+  const s = zuMin(e.beginn); let ende = zuMin(e.ende); if (ende <= s) ende += 1440;
+  const brutto = ende - s, faktor = brutto > 0 ? Math.max(0, brutto - (e.pause_min || 0)) / brutto : 0;
+  const naechster = plus(e.datum, 1);
+  const art = (d: string, t: number): "f150" | "f125" | "so50" | "" => {
+    const md = d.slice(5);
+    if (md === "12-25" || md === "12-26" || md === "05-01" || (md === "12-24" && t >= 840)) return "f150";
+    if (feiertag(d, land) || (md === "12-31" && t >= 840)) return "f125";
+    return new Date(`${d}T12:00:00Z`).getUTCDay() === 0 ? "so50" : "";
+  };
+  const z: Steuerfrei = { n25: 0, n40: 0, so50: 0, f125: 0, f150: 0 };
+  for (let m = s; m < ende; m++) {
+    const folgetag = m >= 1440, t = m % 1440, fortsetzung = folgetag && t < 240 && s < 1440;
+    if (t >= 1200 || t < 360) { if (fortsetzung) z.n40++; else z.n25++; }
+    const a = fortsetzung ? art(e.datum, 1439) || art(naechster, t) : art(folgetag ? naechster : e.datum, t);
+    if (a) z[a]++;
+  }
+  return { n25: Math.round(z.n25 * faktor), n40: Math.round(z.n40 * faktor), so50: Math.round(z.so50 * faktor), f125: Math.round(z.f125 * faktor), f150: Math.round(z.f150 * faktor) };
+}
+export const summe3b = (l: Steuerfrei[]): Steuerfrei => l.reduce((a, b) => ({ n25: a.n25 + b.n25, n40: a.n40 + b.n40, so50: a.so50 + b.so50, f125: a.f125 + b.f125, f150: a.f150 + b.f150 }), { n25: 0, n40: 0, so50: 0, f125: 0, f150: 0 });
