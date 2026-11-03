@@ -5,6 +5,7 @@ import { departementName, departementsBereinigen } from "./departements.ts";
 import { woiwodschaftName, woiwodschaftenBereinigen } from "./woiwodschaften.ts";
 import { comunidadName, comunidadesBereinigen } from "./comunidades.ts";
 import { regioneName, regioniBereinigen } from "./regioni.ts";
+import { bundeslandName, bundeslaenderBereinigen } from "./bundeslaender.ts";
 
 // Same projection as the generator (equirectangular, x scaled by cos 51.2°), 400 px wide.
 const LON0 = 5.8;
@@ -58,4 +59,9 @@ export function comunidadZeile(c?: string[]): string {
 export function regioneZeile(c?: string[]): string {
   const liste = regioniBereinigen(c);
   return liste.length ? `<p class="klein">🇮🇹 Regioni: ${liste.map((x) => escape(regioneName(x))).join(", ")}</p>` : "";
+}
+
+export function bundeslandZeile(c?: string[]): string {
+  const liste = bundeslaenderBereinigen(c);
+  return liste.length ? `<p class="klein">🇦🇹 Bundesländer: ${liste.map((x) => escape(bundeslandName(x))).join(", ")}</p>` : "";
 }

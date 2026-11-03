@@ -26,6 +26,7 @@ import { departementAuswahl, departementsBereinigen, standardDepartements } from
 import { woiwodschaftAuswahl, woiwodschaftenBereinigen } from "./woiwodschaften.ts";
 import { comunidadAuswahl, comunidadesBereinigen } from "./comunidades.ts";
 import { regioneAuswahl, regioniBereinigen } from "./regioni.ts";
+import { bundeslandAuswahl, bundeslaenderBereinigen } from "./bundeslaender.ts";
 import { websiteKontext, websiteNormalisieren } from "./webseite.ts";
 const seite = (titel: string, inhalt: string) => allgemeineSeite(titel, inhalt, 0, "einstellungen");
 
@@ -38,7 +39,7 @@ export interface EinrichtungEnv extends KontoEnv {
 export type Leistung = { name: string; cpv: string[]; woerter: string[] };
 export type Standort = { name: string; plz_praefixe: string[]; bereich_id?: string };
 export type WebQuelle = { titel: string; url: string };
-export type Vorschlag = { radius_km?: number; regionsmodus?: boolean; min_punkte?: number; beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; laender?: string[]; departements?: string[]; woiwodschaften?: string[]; comunidades?: string[]; regioni?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string;
+export type Vorschlag = { radius_km?: number; regionsmodus?: boolean; min_punkte?: number; beschreibung: string; website_beschreibung: string; websuche_beschreibung: string; websuche_quellen: WebQuelle[]; leistungen: Leistung[]; ausschluss: string[]; ausschluss_cpv: string[]; standorte: Standort[]; firmenstandorte?: Firmenstandort[]; suchgebiet_modus?: SuchgebietModus; laender?: string[]; departements?: string[]; woiwodschaften?: string[]; comunidades?: string[]; regioni?: string[]; bundeslaender?: string[]; recherche_version?: number; website_hinweis?: string; recherchiert_am?: string; recherche_status?: "wartet"; recherche_wiederholen_ab?: string; recherche_fehler?: KiFehlerart; recherche_website?: string;
   /** H4/H5: preferred and excluded buyers, contract value range; filters only, no re-scoring. */
   auftraggeber_bevorzugt?: string[]; auftraggeber_aus?: string[]; wert_min?: number; wert_max?: number; wert_unbekannt?: boolean };
 
@@ -142,7 +143,7 @@ async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: str
   try {
     const { profil } = await dienste.recherche(env, { name, website, beschreibung: eigeneBeschreibung, orte, websiteText: websiteDaten.text });
     v = bereinigen({ ...profil, beschreibung: eigeneBeschreibung, recherche_version: 2, website_hinweis: websiteDaten.hinweis, recherchiert_am: new Date().toISOString() });
-    if (eingerichtet || basis.standorte.length) { v.standorte = basis.standorte; v.ausschluss = basis.ausschluss; v.ausschluss_cpv = basis.ausschluss_cpv; v.laender = basis.laender; v.departements = basis.departements; v.woiwodschaften = basis.woiwodschaften; v.comunidades = basis.comunidades; v.regioni = basis.regioni; }
+    if (eingerichtet || basis.standorte.length) { v.standorte = basis.standorte; v.ausschluss = basis.ausschluss; v.ausschluss_cpv = basis.ausschluss_cpv; v.laender = basis.laender; v.departements = basis.departements; v.woiwodschaften = basis.woiwodschaften; v.comunidades = basis.comunidades; v.regioni = basis.regioni; v.bundeslaender = basis.bundeslaender; }
     if (!v.firmenstandorte?.length) v.firmenstandorte = basis.firmenstandorte;
     if (!eingerichtet && !v.laender?.length) v.laender = laenderBereinigen(String(eingabe.get("laender_start") ?? "").split(","));
     // French firms start with their région instead of a radius (the radius only knows German postal codes).
@@ -289,7 +290,7 @@ export function profilFormular(firma: string, v: Vorschlag, hinweis: string, web
   const leistungen = arbeitsAuswahl(v.leistungen);
   // Firms that only search France or Poland choose départements/voivodeships; German-style search places would have no
   // effect there.
-  const nurFrankreich = laenderBereinigen(v.laender).every((l) => l === "FRA" || l === "POL" || l === "ESP" || l === "ITA");
+  const nurFrankreich = laenderBereinigen(v.laender).every((l) => l === "FRA" || l === "POL" || l === "ESP" || l === "ITA" || l === "AUT");
   const standorte = [...v.standorte, { name: "", plz_praefixe: [] }].map((o, i) => `<fieldset>
   <label class="zeile"><input type="checkbox" name="o${i}_an" value="1"${o.name ? " checked" : ""}> ${o.name ? `${escape(o.name)} als Einsatzort` : "Weiteren Einsatzort hinzufügen"}</label>
   <details><summary>${o.name ? "Suchgebiet ändern" : "Weiteren Einsatzort eintragen"}</summary>
@@ -333,6 +334,7 @@ ${hilfe("Was kann ich hier ändern?", "Prüfe, ob die genannten Arbeiten und Ein
   ${laenderBereinigen(v.laender).includes("POL") ? woiwodschaftAuswahl(woiwodschaftenBereinigen(v.woiwodschaften)) : ""}
   ${laenderBereinigen(v.laender).includes("ESP") ? comunidadAuswahl(comunidadesBereinigen(v.comunidades)) : ""}
   ${laenderBereinigen(v.laender).includes("ITA") ? regioneAuswahl(regioniBereinigen(v.regioni)) : ""}
+  ${laenderBereinigen(v.laender).includes("AUT") ? bundeslandAuswahl(bundeslaenderBereinigen(v.bundeslaender)) : ""}
   ${v.firmenstandorte?.length ? `<label>Suchgebiet<select name="suchgebiet_modus"><option value="firmenstandorte"${v.suchgebiet_modus !== "manuell" ? " selected" : ""}>Alle ${v.firmenstandorte.length} Firmenstandorte</option><option value="manuell"${v.suchgebiet_modus === "manuell" ? " selected" : ""}>Nur ausgewählte Orte</option></select></label>
   <p class="klein">Die Ausschreibungssuche berücksichtigt jeden Firmenstandort. Mehrfach gefundene Ausschreibungen erscheinen einmal.</p>
   <details${v.suchgebiet_modus === "manuell" ? " open" : ""}><summary>Eigene Suchorte festlegen (optional)</summary><p class="klein">Wähle dafür oben „Nur ausgewählte Orte“. Ohne eigene Suchorte gilt ganz Deutschland.</p>${standorte}</details>` : nurFrankreich ? "" : standorte}
@@ -398,6 +400,7 @@ export function bereinigen(v: Partial<Vorschlag>): Vorschlag {
     woiwodschaften: woiwodschaftenBereinigen(v.woiwodschaften),
     comunidades: comunidadesBereinigen(v.comunidades),
     regioni: regioniBereinigen(v.regioni),
+    bundeslaender: bundeslaenderBereinigen(v.bundeslaender),
     auftraggeber_bevorzugt: auftraggeberListe(v.auftraggeber_bevorzugt),
     auftraggeber_aus: auftraggeberListe(v.auftraggeber_aus),
     wert_min: wertOderLeer(v.wert_min),
@@ -449,7 +452,7 @@ export function ausFormular(form: FormData): Vorschlag {
   try { quellen = form.getAll("websuche_quellen").map(String).map((x) => JSON.parse(x) as WebQuelle); } catch { quellen = []; }
   let firmenstandorte: Firmenstandort[] = [];
   try { firmenstandorte = standorteBereinigen(JSON.parse(String(form.get("firmenstandorte") ?? "[]").slice(0, 40000))); } catch { /* Keep invalid client input out of the profile. */ }
-  return bereinigen({ radius_km: Number(form.get("radius_km")) || undefined, regionsmodus: form.get("regionsmodus") === "1", min_punkte: Number(form.get("min_punkte")) || undefined, recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, suchgebiet_modus: form.get("suchgebiet_modus") === "manuell" ? "manuell" : undefined, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String), departements: form.getAll("departements").map(String), woiwodschaften: form.getAll("woiwodschaften").map(String), comunidades: form.getAll("comunidades").map(String), regioni: form.getAll("regioni").map(String),
+  return bereinigen({ radius_km: Number(form.get("radius_km")) || undefined, regionsmodus: form.get("regionsmodus") === "1", min_punkte: Number(form.get("min_punkte")) || undefined, recherchiert_am: String(form.get("recherchiert_am") ?? ""), recherche_version: Number(form.get("recherche_version")), website_hinweis: String(form.get("website_hinweis") ?? ""), beschreibung: String(form.get("beschreibung") ?? ""), website_beschreibung: String(form.get("website_beschreibung") ?? ""), websuche_beschreibung: String(form.get("websuche_beschreibung") ?? ""), websuche_quellen: quellen, firmenstandorte, suchgebiet_modus: form.get("suchgebiet_modus") === "manuell" ? "manuell" : undefined, leistungen, ausschluss: teile("ausschluss"), ausschluss_cpv: teile("ausschluss_cpv"), standorte, laender: form.getAll("laender").map(String), departements: form.getAll("departements").map(String), woiwodschaften: form.getAll("woiwodschaften").map(String), comunidades: form.getAll("comunidades").map(String), regioni: form.getAll("regioni").map(String), bundeslaender: form.getAll("bundeslaender").map(String),
     auftraggeber_bevorzugt: String(form.get("auftraggeber_bevorzugt") ?? "").split(/[,;\n]/), auftraggeber_aus: String(form.get("auftraggeber_aus") ?? "").split(/[,;\n]/),
     wert_min: euroEingabe(form.get("wert_min")), wert_max: euroEingabe(form.get("wert_max")), wert_unbekannt: form.has("wert_min") || form.has("wert_max") ? form.get("wert_unbekannt") === "1" : undefined });
 }
@@ -504,7 +507,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     ausschluss: v.ausschluss.join(", "),
     plz_praefixe: [...new Set(v.standorte.flatMap((o) => o.plz_praefixe))],
     // Language of the AI texts (fact sheets, ratings): the language the profile was saved in.
-    einstellungen: { sprache: (["en", "fr", "pl", "es", "it"] as const).find((s) => s === form.get("sprache_app")) ?? "de", radius_km: v.radius_km ?? 50, regionsmodus: v.regionsmodus === true, min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender, departements: v.departements ?? [], woiwodschaften: v.woiwodschaften ?? [], comunidades: v.comunidades ?? [], regioni: v.regioni ?? [], auftraggeber_bevorzugt: v.auftraggeber_bevorzugt, auftraggeber_aus: v.auftraggeber_aus, wert_min: v.wert_min ?? null, wert_max: v.wert_max ?? null, wert_unbekannt: v.wert_unbekannt } as Record<string, unknown>,
+    einstellungen: { sprache: (["en", "fr", "pl", "es", "it"] as const).find((s) => s === form.get("sprache_app")) ?? "de", radius_km: v.radius_km ?? 50, regionsmodus: v.regionsmodus === true, min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender, departements: v.departements ?? [], woiwodschaften: v.woiwodschaften ?? [], comunidades: v.comunidades ?? [], regioni: v.regioni ?? [], bundeslaender: v.bundeslaender ?? [], auftraggeber_bevorzugt: v.auftraggeber_bevorzugt, auftraggeber_aus: v.auftraggeber_aus, wert_min: v.wert_min ?? null, wert_max: v.wert_max ?? null, wert_unbekannt: v.wert_unbekannt } as Record<string, unknown>,
   };
   const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean; zusatzprofile?: unknown; ausschluss_schnell?: unknown }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zusatzprofile:einstellungen->zusatzprofile,ausschluss_schnell:einstellungen->ausschluss_schnell&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.

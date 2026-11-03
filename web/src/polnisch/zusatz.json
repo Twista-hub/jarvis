@@ -199,5 +199,8 @@
  "Regionen in Italien": "Regiony we Włoszech",
  "Alle Regionen": "Wszystkie regiony",
  "Keine Region gewählt: ganz Italien": "Nie wybrano regionu: całe Włochy",
- "Suchgebiet in Italien": "Obszar wyszukiwania we Włoszech"
+ "Suchgebiet in Italien": "Obszar wyszukiwania we Włoszech",
+ "Bundesländer in Österreich": "Kraje związkowe w Austrii",
+ "ganz Österreich": "cała Austria",
+ "Jarvis zeigt nur Ausschreibungen aus den gewählten Bundesländern. Keine Auswahl bedeutet ganz Österreich. Ändern kostet nichts extra.": "Jarvis pokazuje tylko przetargi z wybranych krajów związkowych. Brak wyboru oznacza całą Austrię. Zmiana nic nie kosztuje."
 }

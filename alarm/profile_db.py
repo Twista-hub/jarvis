@@ -104,6 +104,7 @@ DEPARTEMENTS = {c for r in json.loads((ROOT / "departements.json").read_text(enc
 WOIWODSCHAFTEN = set(json.loads((ROOT / "woiwodschaften.json").read_text(encoding="utf-8")))
 COMUNIDADES = set(json.loads((ROOT / "comunidades.json").read_text(encoding="utf-8")))
 REGIONI = set(json.loads((ROOT / "regioni.json").read_text(encoding="utf-8")))
+BUNDESLAENDER_AT = set(json.loads((ROOT / "bundeslaender_at.json").read_text(encoding="utf-8")))
 
 
 def nuts_der_bekanntmachung(rel: dict, land: str) -> set[str]:
@@ -140,6 +141,10 @@ def im_suchgebiet(profile: dict, rel: dict) -> bool:
     if rel.get("_land") == "ITA":
         gewaehlt = set(profile.get("regioni") or [])
         bekannt = (set((rel.get("_anac") or {}).get("regioni") or []) or nuts_der_bekanntmachung(rel, "IT")) & REGIONI
+        return not gewaehlt or not bekannt or bool(gewaehlt & bekannt)
+    if rel.get("_land") == "AUT":  # federal states from the NUTS code of the place (national Kerndaten and TED)
+        gewaehlt = set(profile.get("bundeslaender") or [])
+        bekannt = (nuts_der_bekanntmachung(rel, "AT") | {str((rel.get("_at") or {}).get("nuts") or "")[:4]}) & BUNDESLAENDER_AT
         return not gewaehlt or not bekannt or bool(gewaehlt & bekannt)
     if rel.get("_land") == "ESP":
         gewaehlt = set(profile.get("comunidades") or [])
@@ -262,6 +267,8 @@ def aus_db(firma_id: str, name: str, beschreibung: str, e: dict, firmen_plz: str
         **({"comunidades": com} if (com := sorted({str(c).upper() for c in e.get("comunidades") or []} & COMUNIDADES)) else {}),
         # Italian regions (NUTS-2), only when chosen.
         **({"regioni": reg} if (reg := sorted({str(c).upper() for c in e.get("regioni") or []} & REGIONI)) else {}),
+        # Austrian federal states (NUTS-2), only when chosen.
+        **({"bundeslaender": bl} if (bl := sorted({str(c).upper() for c in e.get("bundeslaender") or []} & BUNDESLAENDER_AT)) else {}),
         # Search radius in km and the coordinates of the firm's locations (postal codes via GeoNames).
         "radius_km": min(300, max(10, int(e.get("radius_km")))) if str(e.get("radius_km") or "").isdigit() else None,
         # Region mode: also rate notices without matching words when the known place is within the radius.
