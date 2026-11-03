@@ -6,7 +6,8 @@ import { CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
 import { angebote } from "./angebote";
 import { darfAuftrag } from "./auftragsrechte";
-import { firmenunterlagen } from "./firmenunterlagen";
+import { aktiveFirma, firmenunterlagen } from "./firmenunterlagen";
+import { NUR_DEUTSCHLAND, landDerFirmaCode, nurDeutschlandSeite } from "./laenderfunktionen.ts";
 import { referenzen } from "./referenzen";
 import { protokoll } from "./protokoll";
 import { personalImport } from "./personalimport";
@@ -177,6 +178,14 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (sw) return sw;
     const datei = request.method === "GET" ? statisch(url.pathname) : null;
     if (datei) return datei;
+    // Functions under German law only for firms in Germany (Rechtsprüfung 03.11.2026, laenderfunktionen.ts).
+    if (NUR_DEUTSCHLAND.test(url.pathname)) {
+      const fl = await aktiveFirma(request, env);
+      if (fl) {
+        const land = await landDerFirmaCode(fl.s, env, fl.m.firma_id);
+        if (land !== "DE") { const r = html(seite("Nur in Deutschland", `<p class="konto-zurueck"><a href="/konto" aria-label="Zurück">←</a></p>${nurDeutschlandSeite(land)}`, 0, "team")); for (const c of fl.s.cookies ?? []) r.headers.append("set-cookie", c); return r; }
+      }
+    }
     const u = url.pathname.match(/^\/konto\/vorgang\/([0-9a-f-]{36})\/unterlagen$/);
     if (u && request.method === "POST") return unterlagenAmVorgang(u[1], request, env);
     if (url.pathname === "/konto/unterlagen" && request.method === "POST") {

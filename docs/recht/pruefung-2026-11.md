@@ -30,7 +30,7 @@
 | S4 | Keine Umkehr der Steuerschuld (§ 13b) für Reinigung an Gebäudereiniger und Bauleistungen | § 13b Abs. 2 Nr. 4/8, § 14a Abs. 5 UStG | rechnungen.ts, xrechnung.ts, datev.ts | Kunde als „§ 13b“ markieren → 0 %, Pflichthinweis, XRechnung AE, eigenes Erlöskonto | ⏳ |
 | S5 | Belege samt Datei löschbar | § 147 AO, GoBD | belege.ts:154 | Stornieren mit Grund statt Löschen, Datei behalten | ⏳ |
 | S6 | Konto löschen vernichtet Rechnungen und Belege sofort, ohne Warnung und Export; Datenschutzerklärung verspricht Aufbewahrung | § 147 AO, § 14b UStG | kontoeinstellungen.ts:54, loeschen.ts | Warnung + Komplettexport (Rechnungen, Belege, DATEV) vor dem Löschen; Text anpassen | ⏳ |
-| S7 | Rechnung, USt, DATEV laufen für Firmen in allen Ländern nach deutschem Recht (PL KSeF, IT SDI, ES Verifactu, FR, US Sales Tax) | jeweiliges Landesrecht | kein Länderfeld | Feld „Land der Firma“; Steuerfunktionen nur für DE | ⏳ (siehe L1) |
+| S7 | Rechnung, USt, DATEV laufen für Firmen in allen Ländern nach deutschem Recht (PL KSeF, IT SDI, ES Verifactu, FR, US Sales Tax) | jeweiliges Landesrecht | kein Länderfeld | Feld „Land der Firma“; Steuerfunktionen nur für DE | ✅ (L1) |
 
 ### Mittel
 | # | Befund | Stelle | Stand |
@@ -61,7 +61,7 @@ S21 Kleinunternehmer-Text nennt die Befreiung nicht ausdrücklich (✅) · S22 f
 | A2 | Person löschen vernichtet per Kaskade Stundenzettel, Stempel, AÜG-Einsätze, Unterweisungsnachweise | § 17 MiLoG, § 16 ArbZG, § 147 AO | personal.ts:509 | „Ausgeschieden“ statt Löschen, automatische Löschung nach Frist | ⏳ |
 | A3 | AÜG-Wächter zeigt immer „Equal Pay ab 9 Monaten“ – ohne Tarifvertrag Zeitarbeit gilt Equal Pay ab Tag 1 | § 8 AÜG | aueg.ts:54 | Feld „Tarifvertrag Zeitarbeit angewendet“ | ⏳ |
 | A4 | Feiertage nach Bundesland des Firmensitzes statt des Arbeitsorts (steuerfreie Zuschläge falsch) | § 3b EStG, Feiertagsgesetze | stunden.ts:26, zuschlaege.ts, lohn.ts, urlaub.ts | Bundesland aus PLZ des Einsatzorts | ⏳ |
-| A5 | Ausländische PLZ werden deutschen Ländern zugeordnet (Paris → BW); deutsche Feiertage, Mindestlohn, Zuschläge im Ausland | Landesrecht | zuschlaege.ts:7 | Personal-, Lohn- und Schichtfunktionen außerhalb DE sperren (siehe L1) | ⏳ |
+| A5 | Ausländische PLZ werden deutschen Ländern zugeordnet (Paris → BW); deutsche Feiertage, Mindestlohn, Zuschläge im Ausland | Landesrecht | zuschlaege.ts:7 | Personal-, Lohn- und Schichtfunktionen außerhalb DE sperren (siehe L1) | ✅ (L1) |
 | A6 | § 3b-Zeitfenster unvollständig (20–23 Uhr, 0–4 Uhr 40 %, 150-%-Tage, 24./31.12. ab 14 Uhr) | § 3b EStG | zuschlaege.ts:47 | Getrennte Minutentöpfe | ⏳ |
 
 ### Mittel
@@ -92,7 +92,7 @@ D15 Freitextfelder ohne Hinweis „keine Gesundheitsangaben“ · D16 Lesebestä
 
 | # | Befund | Vorschlag | Stand |
 |---|---|---|---|
-| L1 | Es gibt kein Feld „Land der Firma“. Personal, Lohn, Schichten, Rechnungen, USt, DATEV laufen überall nach deutschem Recht | Feld anlegen; diese Funktionen außerhalb DE sperren mit Hinweis, bis es eigene Länderregeln gibt | ⏳ |
+| L1 | Es gibt kein Feld „Land der Firma“. Personal, Lohn, Schichten, Rechnungen, USt, DATEV laufen überall nach deutschem Recht | Feld anlegen; diese Funktionen außerhalb DE sperren mit Hinweis, bis es eigene Länderregeln gibt | ✅ Feld im Firmenprofil (bestehende Firmen nach App-Sprache vorbelegt); Schichtplan, Stunden, Lohn, Zeitkonto, Urlaub, AÜG, Rechnungen, USt, Belege/DATEV, Spesen, Nachkalkulation, Disposition nur für DE (`laenderfunktionen.ts`) |
 
 ## 5. Rechtstexte und Länderpflichten
 
