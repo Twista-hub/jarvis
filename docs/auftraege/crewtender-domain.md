@@ -1,4 +1,4 @@
-# Auftrag an den Browser-Chat: crewtender.eu kaufen, zu Cloudflare holen, E-Mail-Weiterleitung
+# Auftrag an den Browser-Chat: crewtender.eu zu Cloudflare holen, E-Mail-Weiterleitung
 
 Stand 03.11.2026. Entscheidung Benjamin: Domain **crewtender.eu** (Namecheap, ca. 6,22 € erstes Jahr).
 
@@ -10,10 +10,8 @@ Stand 03.11.2026. Entscheidung Benjamin: Domain **crewtender.eu** (Namecheap, ca
 - Nach jedem Schritt kurz in `docs/browser/protokoll.md` eintragen:
   https://github.com/Twista-hub/jarvis/edit/main/docs/browser/protokoll.md → „Commit changes…“. Keine Passwörter oder Codes.
 
-## 1. Domain kaufen (falls noch nicht gekauft)
-- Prüfen unter https://ap.www.namecheap.com/domains/list/ , ob crewtender.eu schon im Konto ist.
-- Falls nicht: https://www.namecheap.com/domains/registration/results/?domain=crewtender.eu → „Add to cart“ → Warenkorb →
-  Zusatzangebote abwählen → Benjamin bezahlt.
+## 1. Domain
+- **Erledigt:** Benjamin hat crewtender.eu am 03.11.2026 bei Namecheap gekauft. Nichts bezahlen, direkt mit Schritt 2 weitermachen.
 
 ## 2. Richtiges Cloudflare-Konto
 - https://dash.cloudflare.com öffnen. Es muss das Konto sein, in dem **wpdigitalranger.com** und der Worker
