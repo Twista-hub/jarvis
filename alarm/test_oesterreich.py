@@ -27,6 +27,13 @@ ZUSCHLAG = b"""<KD_8_2_Z1 xmlns="http://www.brz.gv.at/eproc/kd/v1_7_4"><OBJECT_C
 
 
 class Oesterreich(unittest.TestCase):
+    def test_quellen_aus_piveau_listen(self):
+        daten = {"result": {"results": [
+            {"title": {"de": "Metadatensatz zur Kerndaten-Sammlung von X"}, "distributions": [{"access_url": ["https://x.at/kdq.xml"]}]},
+            {"title": {"de": "Metadatensatz zur Kerndaten-Sammlung von Y"}, "distributions": [{"access_url": "https://y.at/kdq.xml", "download_url": ["https://y.at/info.pdf"]}]},
+            {"title": {"de": "GetStat – Vergabeanalysen"}, "distributions": [{"access_url": ["https://z.at/kdq.xml"]}]}]}}
+        self.assertEqual(oesterreich.quellen(daten), ["https://x.at/kdq.xml", "https://y.at/kdq.xml"])
+
     def test_kdq_nur_geaenderte_eintraege(self):
         self.assertEqual(oesterreich.eintraege(KDQ, "2026-11-03"), ["https://x.at/kd/a", "https://x.at/kd/b"])
         self.assertEqual(oesterreich.eintraege(b"kaputt", "2026-11-03"), [])
