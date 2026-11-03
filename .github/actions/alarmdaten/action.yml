@@ -1,0 +1,53 @@
+# Private alarm data (reports alarm/berichte/, Steckbriefe alarm/steckbriefe/) in R2 instead of the public repo
+# (03.11.2026: they name customer firms, their hits and ratings). richtung=holen fetches them before the run,
+# richtung=ablegen merges with the newest copy in R2 (parallel runs), drops files older than the retention promised in
+# the privacy policy (Steckbriefe 30 days, reports 60 days) and stores them again. The job needs CLOUDFLARE_API_TOKEN and
+# CLOUDFLARE_ACCOUNT_ID in its env.
+name: Alarmdaten
+description: Holt oder speichert die privaten Alarm-Berichte und Steckbriefe in R2
+inputs:
+  richtung:
+    description: holen oder ablegen
+    required: true
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      env:
+        RICHTUNG: ${{ inputs.richtung }}
+      run: |
+        set -euo pipefail
+        cd "$GITHUB_WORKSPACE/web"
+        [ -d node_modules/wrangler ] || npm ci --silent
+        ziel="jarvis-auftraege/alarmdaten/alarmdaten.tar"
+        holen() {  # $1 = folder to extract into; an empty store on the first run is fine
+          mkdir -p "$1"
+          if npx wrangler r2 object get "$ziel" --file "$RUNNER_TEMP/alarmdaten.tar" --remote --jurisdiction eu >/dev/null 2>&1; then
+            tar -xf "$RUNNER_TEMP/alarmdaten.tar" -C "$1"
+          else
+            echo "Noch keine Alarmdaten in R2."
+          fi
+        }
+        a="$GITHUB_WORKSPACE/alarm"
+        if [ "$RICHTUNG" = holen ]; then
+          holen "$a"
+        else
+          holen "$RUNNER_TEMP/neuester"   # files another run stored meanwhile are kept (ours win on the same name)
+          for d in berichte steckbriefe; do
+            mkdir -p "$a/$d"
+            [ -d "$RUNNER_TEMP/neuester/$d" ] && cp -n "$RUNNER_TEMP/neuester/$d/"* "$a/$d/" 2>/dev/null || true
+          done
+          # Retention by the date in the file name (2026-11-03-…md, erstlauf-<id>-2026-11-03.md).
+          python3 - "$a" <<'PY'
+        import re, sys, datetime, pathlib
+        heute = datetime.date.today()
+        for ordner, tage in (("steckbriefe", 30), ("berichte", 60)):
+            for f in (pathlib.Path(sys.argv[1]) / ordner).glob("*"):
+                m = re.search(r"(\d{4}-\d{2}-\d{2})", f.name)
+                if f.is_file() and m and (heute - datetime.date.fromisoformat(m.group(1))).days > tage:
+                    f.unlink()
+        PY
+          tar -cf "$RUNNER_TEMP/alarmdaten-neu.tar" -C "$a" berichte steckbriefe
+          npx wrangler r2 object put "$ziel" --file "$RUNNER_TEMP/alarmdaten-neu.tar" --remote --jurisdiction eu --content-type application/x-tar
+        fi
+        echo "Alarmdaten: $(find "$a/berichte" "$a/steckbriefe" -type f 2>/dev/null | wc -l) Dateien ($RICHTUNG)"

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       aktion:
-        description: "hochladen oder pruefen"
+        description: "hochladen, pruefen oder alarmdaten"
         default: "pruefen"
       ref:
         description: "Git-Stand mit alarm/test-unterlagen (nur für hochladen)"
@@ -35,5 +35,19 @@ jobs:
           tar -tvf "$RUNNER_TEMP/test-unterlagen.tar" | awk '{print $3, $6}'
           cd web && npm ci --silent
           npx wrangler r2 object put "jarvis-auftraege/testdaten/test-unterlagen.tar" --file "$RUNNER_TEMP/test-unterlagen.tar" --remote --jurisdiction eu --content-type application/x-tar
-      - uses: ./.github/actions/testunterlagen
-      - run: find alarm/test-unterlagen -type f -printf "%s %p\n" | sort -k2
+      - name: Alarmdaten aus dem Repo übernehmen (einmalig, 03.11.2026)
+        if: inputs.aktion == 'alarmdaten'
+        env:
+          REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          git fetch -q origin "$REF" && git archive --format=tar FETCH_HEAD alarm/berichte alarm/steckbriefe | tar -xf - -C "$GITHUB_WORKSPACE"
+          echo "Aus dem Repo: $(find alarm/berichte alarm/steckbriefe -type f | wc -l) Dateien"
+      - if: inputs.aktion == 'alarmdaten'
+        uses: ./.github/actions/alarmdaten
+        with:
+          richtung: ablegen
+      - if: inputs.aktion != 'alarmdaten'
+        uses: ./.github/actions/testunterlagen
+      - if: inputs.aktion != 'alarmdaten'
+        run: find alarm/test-unterlagen -type f -printf "%s %p\n" | sort -k2

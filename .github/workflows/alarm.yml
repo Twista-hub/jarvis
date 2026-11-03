@@ -1,4 +1,6 @@
 # Daily tender report. Writes alarm/berichte/<date>.md; with the API key also KI scores and alarm/steckbriefe/.
+# Since 03.11.2026 both live privately in R2 (.github/actions/alarmdaten), never in this public repo: they name
+# customer firms, their hits and ratings.
 name: Ausschreibungs-Alarm
 
 on:
@@ -17,7 +19,7 @@ on:
         default: ""
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: alarm-${{ inputs.firma || 'alle' }}
@@ -26,8 +28,18 @@ concurrency:
 jobs:
   bericht:
     runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Private Alarmdaten holen
+        uses: ./.github/actions/alarmdaten
+        with:
+          richtung: holen
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
@@ -97,17 +109,8 @@ jobs:
           for host in aws-1-eu-central-1 aws-0-eu-central-1; do
             psql "postgresql://postgres.juuuifrcxmitkqudqngq:$pw@$host.pooler.supabase.com:5432/postgres" -tAc "select 'Datenbank wach: ' || count(*) || ' Firmen' from public.firmen" 2>/dev/null && break
           done
-      - name: Bericht speichern
-        run: |
-          git config user.name "Jarvis"
-          git config user.email "noreply@github.com"
-          git add alarm/berichte alarm/steckbriefe
-          git diff --cached --quiet || git commit -m "Ausschreibungs-Alarm $(date -u +%F)"
-          # Two runs for the same firm can write the same files at the same time; the newer run wins (its copy is the
-          # one the app received). A few retries cover pushes that overlap.
-          for versuch in 1 2 3 4; do
-            git pull -q --rebase -X theirs && git push && exit 0
-            git rebase --abort 2>/dev/null || true
-            sleep $((versuch * 5))
-          done
-          exit 1
+      - name: Bericht privat speichern
+        if: always() && env.SCHON != '1' && steps.suche.outcome == 'success'
+        uses: ./.github/actions/alarmdaten
+        with:
+          richtung: ablegen
