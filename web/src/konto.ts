@@ -1034,15 +1034,18 @@ ${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief
     const frageKnopf = `<button type="button" class="frage-mini gross" popovertarget="unterlagen-frage" aria-label="Genaue Angaben in den Vergabeunterlagen" title="Genaue Angaben in den Vergabeunterlagen">${DL_ICON}</button>`;
     teil = `<div class="steckbrief-kopf">${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${marken.anzahl ? "" : frageKnopf}</div>${marken.html}${unterlagenHinweis(v.steckbrief, portal, rolle !== "leser")}${leiste}${hochladen}`;
   }
-  const teilnahme = await teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? "");
-  const personalBlock = rolle === "leser" || rolle === "mitarbeiter" ? "" : await einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle));
-  const notizBlock = await notizen(s, env, v, rolle);
-  const termineBlock = await termineTeil(s, env, v, rolle);
-  const firmaName = await db<{ name: string }[]>(s, env, `firmen?id=eq.${v.firma_id}&select=name`);
-  const partnerBlock = await partnerTeil(s, env, v, rolle, finanzen, firmaName.ok ? firmaName.daten[0]?.name ?? "" : "");
-  // Jump bar to the sections of this long page; only sections that exist.
+  // The sections are independent: load them at the same time (before: one after the other, ~30 requests in a row).
   const heuteBerlin = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
-  const [aufgabenBlock, reichtBlock] = await Promise.all([aufgabenTeil(s, env, v, rolle, heuteBerlin), reichtTeil(s, env, v, rolle)]);
+  const [teilnahme, personalBlock, notizBlock, termineBlock, partnerBlock, aufgabenBlock, reichtBlock] = await Promise.all([
+    teilnahmeTeil(s, env, v, finanzen, ["inhaber", "admin", "bearbeiter", "standortleitung"].includes(rolle), new URL(request.url).searchParams.get("los") ?? ""),
+    rolle === "leser" || rolle === "mitarbeiter" ? Promise.resolve("") : einsatzTeil(s, env, v, ["inhaber", "admin", "bearbeiter"].includes(rolle)),
+    notizen(s, env, v, rolle),
+    termineTeil(s, env, v, rolle),
+    db<{ name: string }[]>(s, env, `firmen?id=eq.${v.firma_id}&select=name`).then((firmaName) => partnerTeil(s, env, v, rolle, finanzen, firmaName.ok ? firmaName.daten[0]?.name ?? "" : "")),
+    aufgabenTeil(s, env, v, rolle, heuteBerlin),
+    reichtTeil(s, env, v, rolle),
+  ]);
+  // Jump bar to the sections of this long page; only sections that exist.
   const sprung = [["#steckbrief", "Steckbrief"], teilnahme.includes('id="nachweise"') ? ["#nachweise", "Nachweise"] : null, finanzen ? [kalkulation, "Kalkulation"] : null, personalBlock ? ["#personal", "Personal"] : null, reichtBlock ? ["#kapazitaet", "Kapazität"] : null, aufgabenBlock ? ["#aufgaben", "Aufgaben"] : null, hochladen ? ["#unterlagen", "Unterlagen"] : null, termineBlock ? ["#termine", "Termine"] : null, partnerBlock ? ["#partner", "Partner"] : null, ["#notizen", "Notizen"]].filter((x): x is string[] => !!x);
   const sprungleiste = `<nav class="sprungleiste" aria-label="Abschnitte">${sprung.map(([href, text]) => `<a href="${escape(href)}">${text}</a>`).join("")}</nav>`;
   return html(seite(v.titel, kopf + sprungleiste + verweise + teil + teilnahme + personalBlock + reichtBlock + aufgabenBlock + termineBlock + partnerBlock + notizBlock + kaufverantwortlich, 0, "treffer"), 200, s.cookies);
