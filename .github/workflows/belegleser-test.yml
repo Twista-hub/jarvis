@@ -1,0 +1,33 @@
+# Quality test of the receipt reader on synthetic German receipts (alarm/musterbelege.py). Saves nothing, < 0.20 $.
+name: Belegleser-Test
+on:
+  workflow_dispatch:
+    inputs:
+      modell:
+        type: choice
+        options: [claude-haiku-5-5, claude-sonnet-5-5]
+        default: claude-haiku-5-5
+permissions:
+  contents: read
+jobs:
+  testen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: |
+          sudo apt-get install -y -q fonts-dejavu-core >/dev/null
+          pip install -q anthropic pillow
+      - name: Musterbelege erzeugen und lesen
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python3 alarm/musterbelege.py "$RUNNER_TEMP/muster"
+          python3 alarm/belegleser_test.py "$RUNNER_TEMP/muster" "${{ inputs.modell }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: musterbelege
+          path: ${{ runner.temp }}/muster
