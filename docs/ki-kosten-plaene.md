@@ -3,6 +3,7 @@
 > **Kurz:** Die tägliche Suche ist billig, sie kostet je nach Firmengröße 1–30 $ im Monat. Teuer sind die **Steckbriefe
 > aus hochgeladenen Unterlagen** (Opus 5.5): **1,20–2,50 $ pro Stück** statt der bisher angenommenen 0,30 $. Mit den alten
 > Kontingenten (5 / 30 / 100 im Monat) wären bei voller Nutzung nur noch 36 % (Pro) bzw. 27 % (Business) Marge übrig.
+> Sonnet statt Opus ist **keine** Lösung: im Test am 03.11. machte Sonnet bei langen Unterlagen entscheidende Fehler.
 > **Vorschlag:** kleinere Kontingente (3 / 15 / 40), ein Zusatzpaket von 10 Steckbriefen für 35 € und ein internes
 > KI-Budget pro Firma und Monat. Dann bleiben auch bei Volllast mindestens 62 % Marge.
 > Alle Preise brauchen weiter Benjamins OK, nichts davon ist live.
@@ -86,10 +87,7 @@ Im Alltag (Normal-Spalte oben) liegen die Margen weiter bei 85–90 %.
    gebucht (`ki_kosten.firma_id`, Seite „Auswertung“); die Sperre selbst wird erst mit den Plänen eingebaut.
 4. **Großkunden (ab ca. 300 Einsatzkräften):** Business mit Zusatz-Einsatzkräften reicht rechnerisch. Wer keine
    Preise pro Kopf will, bekommt ein Einzelangebot (Richtwert ab 990 € im Monat, 100 Steckbriefe, KI-Budget 300 €).
-5. **Sonnet statt Opus für Steckbriefe testen.** Halbiert die größte Kostenposition (1.000 MA Volllast: 237 € → 140 €).
-   Das geht aber nur mit einem Qualitätsvergleich auf 5–10 echten Unterlagen, so wie beim Vorfilter (`docs/ki-kosten.md`).
-   Kosten des Tests: ca. 25 $. **Braucht Benjamins OK.** Fällt der Test gut aus, können die Kontingente wieder steigen
-   (z. B. Pro 25, Business 70).
+5. **Sonnet statt Opus für Steckbriefe: getestet am 03.11.2026, Opus bleibt** (Abschnitt 5).
 
 ### Was schon begrenzt ist
 - Kurz-Steckbriefe: höchstens 4 pro Firma und Tag (`MAX_STECKBRIEFE`), Erstlauf 10.
@@ -116,3 +114,38 @@ Der KI-Anteil steht in allen Spalten gleich da, weil Mischung und Kosten pro Kun
 Bisher standen in `docs/abos.md` für 10 Kunden 114 € KI als *Obergrenze*. Das ist in Wahrheit der *Normalfall*;
 die Volllast ist gut doppelt so hoch. Der Rohertrag (nach KI, Stripe und Infrastruktur) liegt dann bei 68–72 % (Volllast)
 bzw. 82–86 % (normal), siehe Abschnitt 3 in `docs/abos.md`.
+
+## 5. Test Sonnet 5.5 gegen Opus 5.5 beim Steckbrief (03.11.2026, Benjamins OK)
+
+Workflow `steckbrief-vergleich.yml`, Skript `alarm/steckbrief_vergleich.py`. Beide Modelle bekommen genau dieselbe
+Anleitung und denselben Text wie im Betrieb. Ein dritter Aufruf (Opus) prüft beide Steckbriefe **blind** (zufällig als
+A und B) gegen die Quelle: falsche oder erfundene Angaben, wichtige Lücken, Punkte 1–10.
+Testkosten insgesamt **2,88 $** (3 Läufe, Runs 41639239068, 41639794369, 41640293814).
+
+| Fall | Opus Punkte | Sonnet Punkte | falsche Angaben Opus / Sonnet | besser | Kosten Opus / Sonnet |
+|---|---:|---:|---:|---|---:|
+| Bundesbank-Unterlagen, 3 PDFs (111.000 Zeichen), Lauf 1 | 8 | 6 | 1 / 3 | Opus | 0,41 $ / 0,17 $ |
+| dieselben Unterlagen, Lauf 2 | 9 | 7 | 1 / 3 | Opus | 0,41 $ / 0,17 $ |
+| 8 Bekanntmachungen (Reinigung, Bewachung, AÜG, Hausmeister, Winterdienst, Catering, Grünpflege, Empfang) | Ø 7,6 | Ø 7,2 | 2 / 5 | Opus 2×, gleich 6×, Sonnet 0× | 0,49 $ / 0,18 $ (zusammen) |
+
+**Was Sonnet bei den Unterlagen falsch machte (beide Läufe ähnlich):** 17 statt 18 Lose, rund 8.800 statt 7.965 Stunden
+pro Jahr (und damit eine falsche Einschätzung der Passung), eine Sicherheitsüberprüfung, die die Unterlagen nicht
+verlangen. Opus nannte Lose und Stunden richtig und wies zusätzlich auf Widersprüche in den Unterlagen hin
+(Verfügbarkeitsfristen, abweichende Vergabenummer) – genau das, was für Bieterfragen und die Kalkulation zählt.
+
+**Ergebnis:**
+- **Steckbrief aus Unterlagen bleibt bei Opus.** Sonnet kostet dort 42 % von Opus, macht aber bei langen Unterlagen
+  Fehler, die zu einer falschen Kalkulation führen können. Die Ersparnis wäre den Qualitätsverlust nicht wert.
+- **Kurz-Steckbrief aus der Bekanntmachung:** meist gleich gut, Sonnet nie besser, aber mehr kleine Fehler
+  (z. B. 310.000 statt 300.000 € für ein Los). Ersparnis höchstens ca. 4,50 $ pro Firma und Monat. Empfehlung: vorerst
+  ebenfalls Opus lassen.
+- Damit bleiben die Kontingente aus Abschnitt 3 (3 / 15 / 40) richtig.
+
+**Grenzen des Tests:**
+- Nur ein einziger Satz echter Vergabeunterlagen. Andere Portale (DTVP, evergabe.de usw.) verbieten das
+  automatische Abrufen der Unterlagen oder sind nicht geprüft.
+- Die Prüfung macht Opus; trotz Blindtest ist eine leichte Vorliebe für den eigenen Stil nicht ausgeschlossen. Die
+  gefundenen Fehler von Sonnet sind aber nachprüfbar (Lose und Stunden zählen).
+- Bei den Bekanntmachungen lud die vollständige eForms-Fassung nicht (HTTP 404, siehe unten). Beide Modelle sahen nur die
+  kurze OCDS-Fassung. Dasselbe passiert im täglichen Alarm: **8 von 8 Kurz-Steckbriefen am 03.11. ohne eForms.** Das ist
+  ein eigener Fehler und muss behoben werden.

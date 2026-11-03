@@ -74,7 +74,7 @@ Qualität spricht nicht gegen das Einschalten – nur der Zeitpunkt (Alarm früh
 | Hebel | Ersparnis | Qualität | Haken |
 |---|---|---|---|
 | **Batch-API einschalten** (`KI_BATCH=1`, Code fertig) | weitere 50 % auf alle verbleibenden Bewertungen | identisch (gleiches Modell, gleicher Text) | Ergebnisse kommen verzögert (meist < 1 h, bis 24 h); der Lauf muss vor der Mailzeit fertig sein → Alarm früher starten (z. B. 03:00 statt 06:00). Die serverseitige Ersatzmodell-Regel bei Ablehnungen gibt es im Batch nicht; seltene Ablehnungen würden einzeln nachbewertet. |
-| Steckbrief Opus → Sonnet | ca. 50 % beim Steckbrief | **nicht** ohne Vergleich: Steckbriefe lesen lange Unterlagen, Qualität entscheidend | erst mit Vergleich wie oben (5–10 echte Unterlagen) |
+| ~~Steckbrief Opus → Sonnet~~ | 58 % beim Steckbrief | **getestet 03.11.2026: schlechter** (bei langen Unterlagen falsche Losanzahl und Stunden) | verworfen, Opus bleibt (`docs/ki-kosten-plaene.md` Abschnitt 5) |
 | Firmenrecherche: weniger Websuchen | gering | Risiko für die Profilqualität | lohnt sich bei wenigen Neuanmeldungen nicht |
 
 Empfehlung: Batch-API einschalten, sobald der Alarm-Zeitplan angepasst werden darf (Schalter liegt bereit). Steckbrief-Modell erst testen,
