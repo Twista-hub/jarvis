@@ -2,6 +2,8 @@ import { marked } from "marked";
 
 // Page frame: plain HTML (the only script is /app.js, see app.ts), readable on a phone, light and dark.
 
+export const ZEICHEN = `<svg viewBox="-540 -540 1080 1080" aria-hidden="true"><rect x="-540" y="-540" width="1080" height="1080" rx="250" fill="#15324b"/><circle r="300" fill="none" stroke="#fff" stroke-width="88" stroke-linecap="round" stroke-dasharray="1450 1885" transform="rotate(40)"/><circle r="300" fill="none" stroke="#ff6b35" stroke-width="88" stroke-linecap="round" stroke-dasharray="1 1884" transform="rotate(40)"/><path d="M-115 5 L-30 90 L130 -85" fill="none" stroke="#ff6b35" stroke-width="80" stroke-linecap="round" stroke-linejoin="round"/><circle cx="-130" cy="-120" r="34" fill="#168aad"/><circle cx="-30" cy="-160" r="34" fill="#168aad"/></svg>`;
+
 export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, kontoBereich?: string): string {
   // Collect only the controlled markup emitted by hilfe(), after access checks have built this page.
   // One icon next to the title replaces separate rows for every contextual explanation.
@@ -16,7 +18,9 @@ export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, konto
   const eigenerZurueck = inhalt.trimStart().match(/^<p class="konto-zurueck">[\s\S]*?<\/p>/)?.[0] ?? "";
   if (eigenerZurueck) inhalt = inhalt.trimStart().slice(eigenerZurueck.length);
   let kopf = titelzeile(`<h1>${escape(titel)}</h1>`);
-  if (inhalt.trimStart().startsWith("<h1")) {
+  // The landing page brings its own hero with the heading inside.
+  if (inhalt.trimStart().startsWith('<section class="start-held')) kopf = "";
+  else if (inhalt.trimStart().startsWith("<h1")) {
     kopf = "";
     inhalt = inhalt.replace(/<h1\b[^>]*>[\s\S]*?<\/h1>/, titelzeile);
   }
@@ -55,6 +59,44 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .profil-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); }
   .profil-icon svg { width: 24px; height: 24px; }
   h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 16px; }
+
+  .oeffentlich-kopf { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 1rem; }
+  .oeffentlich-marke { display: inline-flex; align-items: center; gap: 9px; color: var(--text); text-decoration: none; font-size: 1.12rem; }
+  .oeffentlich-marke svg { width: 34px; height: 34px; border-radius: 9px; }
+  .oeffentlich-login { padding: 8px 16px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-weight: 650; text-decoration: none; }
+  /* Public landing page: light blue hero, glass cards, stacked buttons on phones. */
+  .start-held { position: relative; margin: 4px -4px 8px; padding: 26px 20px 22px; border-radius: 24px; overflow: hidden;
+    background: radial-gradient(120% 90% at 100% 0%, rgba(124,198,240,.55), transparent 60%), radial-gradient(90% 80% at 0% 100%, rgba(22,138,173,.28), transparent 65%), linear-gradient(160deg, #eaf6fd 0%, #d6ecfa 55%, #c4e3f7 100%);
+    border: 1px solid rgba(255,255,255,.7); box-shadow: 0 18px 40px -22px rgba(21,50,75,.45), inset 0 1px 0 rgba(255,255,255,.9); color: #15324b; }
+  .start-held::after { content: ""; position: absolute; inset: 0 0 auto 0; height: 46%; background: linear-gradient(180deg, rgba(255,255,255,.55), rgba(255,255,255,0)); pointer-events: none; }
+  .start-held > * { position: relative; z-index: 1; }
+  .start-marke { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; font-weight: 800; font-size: 1.15rem; letter-spacing: .01em; }
+  .start-marke svg { width: 40px; height: 40px; border-radius: 11px; box-shadow: 0 6px 14px -6px rgba(21,50,75,.6); }
+  .start-fuer { display: inline-block; margin: 0 0 12px; padding: 5px 12px; border-radius: 999px; background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.85); font-size: .82rem; font-weight: 650; color: #1f5f8b; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
+  .start-held h1 { font-size: clamp(1.7rem, 6.4vw, 2.35rem); line-height: 1.15; letter-spacing: -.01em; margin: 0 0 12px; color: #102a40; }
+  .start-unter { margin: 0 0 18px; font-size: 1.04rem; color: #2a4a63; }
+  .start-knoepfe { display: grid; gap: 10px; }
+  @media (min-width: 560px) { .start-knoepfe { grid-template-columns: auto auto; justify-content: start; } }
+  .start-knopf { display: block; text-align: center; padding: 15px 22px; border-radius: 14px; font-weight: 750; font-size: 1.06rem; text-decoration: none; color: #fff;
+    background: linear-gradient(180deg, #4fb3ea 0%, #2a8fd0 48%, #1f6fa8 100%); border: 1px solid rgba(255,255,255,.45);
+    box-shadow: 0 10px 22px -10px rgba(31,95,139,.9), inset 0 1px 0 rgba(255,255,255,.55); }
+  .start-knopf:hover { filter: brightness(1.06); }
+  .start-knopf.glas { color: #15324b; background: rgba(255,255,255,.55); border: 1px solid rgba(255,255,255,.9); box-shadow: 0 8px 20px -14px rgba(21,50,75,.6), inset 0 1px 0 rgba(255,255,255,.95); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); }
+  .start-klein { margin: 12px 0 0; font-size: .92rem; color: #2a4a63; }
+  .start-held a:not(.start-knopf) { color: #1f5f8b; font-weight: 650; }
+  .start-chips { display: flex; flex-wrap: wrap; gap: 6px 14px; margin: 16px 0 0; padding: 0; list-style: none; font-size: .86rem; font-weight: 600; color: #24506e; }
+  .start-h2 { margin: 30px 0 12px; font-size: 1.3rem; }
+  .start-raster { display: grid; gap: 12px; }
+  @media (min-width: 640px) { .start-raster { grid-template-columns: repeat(3, 1fr); } }
+  .start-karte { padding: 16px 16px 12px; border-radius: 18px; background: linear-gradient(180deg, rgba(234,246,253,.9), var(--card)); border: 1px solid var(--line); box-shadow: 0 10px 24px -20px rgba(21,50,75,.5); }
+  .start-karte h3 { margin: 8px 0 4px; font-size: 1.04rem; }
+  .start-karte p { margin: 0; color: var(--muted); font-size: .95rem; }
+  .start-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-size: 1.3rem; background: rgba(79,179,234,.18); }
+  .start-schluss { margin-top: 30px; }
+  .start-schluss h2 { margin: 0 0 8px; color: #102a40; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .start-karte { background: var(--card); } }
+  :root[data-theme="dark"] .start-karte { background: var(--card); }
+
   h2 { font-size: 1.2rem; margin: 28px 0 8px; }
   a { color: var(--accent); }
   a:focus-visible, button:focus-visible, summary:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
@@ -1019,7 +1061,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 </style>
 </head>
 <body><main>
-${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto"><svg viewBox="0 0 128 128" aria-hidden="true"><rect x="2" y="2" width="124" height="124" rx="30" fill="#15324b"/><circle cx="64" cy="64" r="43" fill="none" stroke="#fff" stroke-opacity=".52" stroke-width="2"/><circle cx="64" cy="64" r="4" fill="#fff"/><path d="M64 18 77 62 64 56 51 62Z" fill="#ff6b35"/><path d="m64 110-13-44 13 6 13-6z" fill="#168aad"/><path d="m18 64 44-13-6 13 6 13zM110 64 66 77l6-13-6-13z" fill="#fff"/></svg><span><strong>Crewtender</strong><small>WP Digital Ranger</small></span></a><div class="konto-aktionen"><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header><a href="/">Crewtender</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>`}
+${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto"><svg viewBox="0 0 128 128" aria-hidden="true"><rect x="2" y="2" width="124" height="124" rx="30" fill="#15324b"/><circle cx="64" cy="64" r="43" fill="none" stroke="#fff" stroke-opacity=".52" stroke-width="2"/><circle cx="64" cy="64" r="4" fill="#fff"/><path d="M64 18 77 62 64 56 51 62Z" fill="#ff6b35"/><path d="m64 110-13-44 13 6 13-6z" fill="#168aad"/><path d="m18 64 44-13-6 13 6 13zM110 64 66 77l6-13-6-13z" fill="#fff"/></svg><span><strong>Crewtender</strong><small>WP Digital Ranger</small></span></a><div class="konto-aktionen"><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header class="oeffentlich-kopf"><a class="oeffentlich-marke" href="/">${ZEICHEN}<strong>Crewtender</strong></a><a class="oeffentlich-login" href="/konto">Anmelden</a></header>`}
 ${eigenerZurueck || (kontoBereich ? `<p class="konto-zurueck"><a href="/konto" aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←</span></a></p>` : "")}
 ${kopf}
 ${inhalt.replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace(/<\/table>/g, "</table></div>")}
