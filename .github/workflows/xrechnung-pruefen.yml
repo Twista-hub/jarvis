@@ -1,0 +1,54 @@
+# Checks the XRechnung export (web/src/xrechnung.ts) with the official KoSIT validator and the XRechnung configuration
+# (both open source from github.com/itplr-kosit). Runs on changes to the export and on demand.
+name: XRechnung prüfen
+on:
+  workflow_dispatch:
+  push:
+    paths: ["web/src/xrechnung.ts", "web/scripts/xrechnung-beispiel.ts", ".github/workflows/xrechnung-pruefen.yml"]
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - name: Beispielrechnungen erzeugen
+        run: node --experimental-strip-types web/scripts/xrechnung-beispiel.ts regel.xml klein.xml
+      - name: KoSIT-Validator und XRechnung-Konfiguration laden
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          asset() { curl -sS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$1/releases/latest" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['tag_name'], file=sys.stderr); print(next(a['browser_download_url'] for a in d['assets'] if a['name'].endswith('.zip')))"; }
+          curl -sSL -o validator.zip "$(asset itplr-kosit/validator)"
+          curl -sSL -o konfig.zip "$(asset itplr-kosit/validator-configuration-xrechnung)"
+          mkdir -p validator konfig && unzip -q validator.zip -d validator && unzip -q konfig.zip -d konfig
+          ls validator konfig | head -30
+      - name: Validieren
+        run: |
+          JAR=$(find validator -name "*standalone*.jar" | head -1)
+          [ -n "$JAR" ] || JAR=$(find validator -name "validator*.jar" | head -1)
+          SZ=$(find konfig -name scenarios.xml | head -1)
+          mkdir -p bericht
+          java -jar "$JAR" -s "$SZ" -r "$(dirname "$SZ")" -o bericht -h regel.xml klein.xml || true
+          ok=1
+          for f in regel klein; do
+            r=$(ls bericht/${f}-report.xml 2>/dev/null | head -1)
+            if [ -z "$r" ]; then echo "$f: kein Bericht"; ok=0; continue; fi
+            if grep -q "<rep:accept" "$r"; then echo "$f: AKZEPTIERT"; else echo "$f: ABGELEHNT"; ok=0; fi
+            python3 - "$r" <<'PY'
+          import re, sys
+          t = open(sys.argv[1], encoding="utf-8").read()
+          for m in re.finditer(r'<svrl:failed-assert[^>]*id="([^"]+)"[^>]*flag="([^"]+)"[\s\S]*?<svrl:text>([\s\S]*?)</svrl:text>', t):
+              print(f"  {m.group(2)} {m.group(1)}: {' '.join(m.group(3).split())[:220]}")
+          for m in re.finditer(r'<rep:message[^>]*level="(error|warning)"[^>]*>([\s\S]*?)</rep:message>', t):
+              print(f"  {m.group(1)}: {' '.join(m.group(2).split())[:220]}")
+          PY
+          done
+          [ $ok = 1 ]
