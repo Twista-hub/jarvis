@@ -85,13 +85,14 @@ test("T27: Bewertungen, Schnitt und Sperre für Ersatzvorschläge", () => {
     { id: "4", personal_id: "p2", kunde_id: "k2", einsatz: "", datum: "2026-10-15", sterne: 4, wieder: "ja", notiz: "" },
   ];
   const k = (id: string | null) => id === "k1" ? "Messe" : "Hotel Adlon";
-  assert.equal(schnittText(schnitt(l, "p1", k)), "⭐ 3,5 (2) · 🚫 nicht wieder bei Hotel Adlon");
-  assert.equal(schnittText(schnitt(l, "p2", k)), "⭐ 3 (2)", "neuere Bewertung hebt das Nein auf");
-  assert.deepEqual([...gesperrtFuer(l, "k2")], ["p1"]);
+  assert.equal(schnittText(schnitt(l, "p1", k, "2026-11-03")), "⭐ 3,5 (2) · 🚫 nicht wieder bei Hotel Adlon");
+  assert.equal(schnittText(schnitt(l, "p2", k, "2026-11-03")), "⭐ 3 (2)", "neuere Bewertung hebt das Nein auf");
+  assert.deepEqual([...gesperrtFuer(l, "k2", "2026-11-03")], ["p1"]);
   assert.deepEqual([...gesperrtFuer(l, null)], []);
+  assert.deepEqual([...gesperrtFuer(l, "k2", "2030-01-01")], [], "\"nicht wieder\" expires after 12 months");
   const s: Schicht = { id: "s", personal_id: "p9", bereich_id: null, datum: heute, beginn: "06:00:00", ende: "14:00:00", ort: "", notiz: "", antwort: "abgesagt" };
   const leute = [{ id: "p1", vorname: "A", nachname: "", bereich_id: null, status: "verfuegbar" }, { id: "p2", vorname: "B", nachname: "", bereich_id: null, status: "verfuegbar" }];
-  assert.deepEqual(ersatzVorschlaege(s, undefined, leute, [s], [], [], gesperrtFuer(l, "k2")).map((p) => p.id), ["p2"]);
+  assert.deepEqual(ersatzVorschlaege(s, undefined, leute, [s], [], [], gesperrtFuer(l, "k2", "2026-11-03")).map((p) => p.id), ["p2"]);
   const html = bewertungenSeite(l, [{ id: "p1", vorname: "Eva", nachname: "M", status: "verfuegbar" }, { id: "p2", vorname: "Tom", nachname: "W", status: "verfuegbar" }], [{ id: "k1", name: "Messe" }, { id: "k2", name: "Hotel Adlon" }], { heute, darfAendern: true });
   assert.ok(html.indexOf("Eva M") < html.indexOf("Tom W"), "besserer Schnitt zuerst");
   assert.match(html, /🚫 nicht wieder · zu spät/);

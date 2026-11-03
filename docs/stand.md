@@ -101,8 +101,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Löschfristen** (`20261103220000`): nachts vor der Datensicherung (`sicherung.yml`) Stempel, Rundgang-Scans, Bewertungen nach 2 J., Abwesenheiten, Wachbuch nach 3 J. (ab Jahresende). Person löschen entfernt auch Foto und Nachweisdateien in R2.
 - **Englische Rechtstexte**, **KI-Hinweise beim Hochladen**, **KI-Kennzeichnung** der Steckbriefe (AI Act Art. 50), KI-Ablaufdaten bis zur Prüfung markiert. Haftungssatz für kostenlose Nutzung klargestellt (alle Sprachen).
 - LODAS-Export mit § 3b-Lohnarten (unter Belege → DATEV-Einstellungen eintragen), Ansprechpartner-Namen vor der KI maskiert, Treffer-Einschätzung als KI gekennzeichnet.
-- **Hilfe-Center** `/hilfe` (öffentlich, 13 Anleitungen Schritt für Schritt mit Direktlinks, inkl. „Was die KI kann“ = KI-Kompetenz Art. 4 und „Datenschutz und Betriebsrat“). Verlinkt in Fußzeile und unter Mehr → Hilfe. Nur Deutsch; Übersetzung offen.
-- Offen: siehe `docs/recht/pruefung-2026-11.md` (mittlere/niedrige Punkte, Anwaltsfragen). Hilfe-Center übersetzen (EN/FR/PL/ES/IT).
+- **Hilfe-Center** `/hilfe` (öffentlich, 13 Anleitungen Schritt für Schritt mit Direktlinks, inkl. „Was die KI kann“ = KI-Kompetenz Art. 4 und „Datenschutz und Betriebsrat“). Verlinkt in Fußzeile und unter Mehr → Hilfe. In allen 6 Sprachen.
+- Außerdem: Leitweg-ID als Kundenfeld (XRechnung), Kundenportal-Links 12 Monate gültig, offene Bewerbungen nach 12 Monaten gelöscht, Datenauskunft für Einsatzkräfte, Gesamtexport Firmendaten `/konto/firmendaten.zip` (Data Act), „Nicht wieder“-Sperre verfällt nach 12 Monaten.
+- Offen: siehe `docs/recht/pruefung-2026-11.md` (mittlere/niedrige Punkte, Anwaltsfragen).
 
 ### 03.11.2026 – Claude (KI-Kosten je Firmengröße, Pläne angepasst, Verbesserungen aus dem Durchspielen)
 - Umgesetzt aus dem Durchspielen: Kasten „Nächster Schritt“ oben auf der Ausschreibungsseite (`web/src/naechster.ts`, Status-Knöpfe direkt), selten gebrauchte Abschnitte zugeklappt, Mehr-Menü in 6 Gruppen (`web/src/menue.ts`), Chat lädt neue Nachrichten alle 15 s von selbst, Unterlagen-Symbol steht hinter der ganzen geschätzten Angabe.
