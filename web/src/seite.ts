@@ -32,6 +32,7 @@ export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, konto
 ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">` : ""}
 <title>${escape(titel)} · Crewtender</title>
 <link rel="manifest" href="/manifest.webmanifest">
+<link rel="me" href="https://mastodon.social/@crewtender">
 <link rel="icon" href="/icon-v2-192.png">
 <link rel="apple-touch-icon" href="/icon-v2-192.png">
 <meta name="theme-color" content="#1f5f8b">
