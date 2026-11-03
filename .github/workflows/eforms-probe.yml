@@ -1,0 +1,20 @@
+# Read only: checks why the eForms notice API returns 404 (diagnose/eforms_probe.py). No secrets.
+name: eForms-Abruf prüfen
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Veröffentlichungstag (YYYY-MM-DD)"
+        default: "2026-11-02"
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python diagnose/eforms_probe.py "${{ inputs.tag }}"
