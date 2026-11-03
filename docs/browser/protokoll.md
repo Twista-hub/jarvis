@@ -13,6 +13,10 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 03.11.2026 – Claude Code: crewtender.eu ist live
+- https://crewtender.eu zeigt die App, https://crewtender.eu/impressum das Impressum, www leitet weiter. app.wpdigitalranger.com läuft parallel.
+- Nächster Auftrag: Schritt 7 in `docs/auftraege/crewtender-domain.md` (Supabase URL-Konfiguration).
+
 ### 03.11.2026 – Browser-Chat: Instagram
 - Benjamin hat das Konto mit hello@crewtender.eu angelegt. Benutzername **@crew_tender** („crewtender“ war vergeben), Name „crewtender“.
 - Profilbild (Logo), Bio auf Englisch: „Find public tenders, write bids, plan your crew – for trades & service companies. 🌐 crewtender.eu · ✉️ hello@crewtender.eu“. Link crewtender.eu ist im Profil sichtbar.

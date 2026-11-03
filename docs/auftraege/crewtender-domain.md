@@ -38,3 +38,12 @@ Stand 03.11.2026. Entscheidung Benjamin: Domain **crewtender.eu** (Namecheap, ca
 In `docs/browser/protokoll.md`: Domain gekauft (Datum), Cloudflare-Konto, Status „Active“, hello@crewtender.eu aktiv.
 Danach Benjamin sagen: „Claude Code Bescheid geben: Domain fertig“. Claude Code hängt die Domain dann an die App.
 Keine DNS-Einträge für die App selbst anlegen – das macht Claude Code.
+
+## 7. Anmeldung auf crewtender.eu umstellen (Supabase, neu am 03.11.2026)
+Die App läuft jetzt auf https://crewtender.eu. Damit Bestätigungs- und Anmelde-Links dorthin führen:
+- https://supabase.com/dashboard/project/juuuifrcxmitkqudqngq/auth/url-configuration (Benjamin loggt sich ein)
+- **Site URL:** `https://crewtender.eu` → „Save“.
+- **Redirect URLs:** „Add URL“ → `https://crewtender.eu/**` → „Save URLs“. Die vorhandenen Einträge für
+  app.wpdigitalranger.com **stehen lassen** (alte Links in Mails sollen weiter funktionieren).
+- Im Protokoll eintragen, danach Claude Code Bescheid geben: „Supabase umgestellt“. Claude Code stellt dann Links in
+  Mails und App auf crewtender.eu um und leitet app.wpdigitalranger.com weiter.
