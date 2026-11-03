@@ -81,6 +81,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 03.11.2026 – Claude Code (crewtender.eu an der App)
+- crewtender.eu und www.crewtender.eu sind Custom Domains des Workers jarvis-alarm (Workflow `domain-anbinden.yml`, jetzt auch in `web/wrangler.toml`). www leitet auf crewtender.eu weiter. app.wpdigitalranger.com läuft parallel weiter.
+- Der CI-Schlüssel darf für crewtender.eu Custom Domains anbinden, aber keine DNS-Einträge ändern (nur wpdigitalranger.com). Mail-Einträge (MX/SPF/DKIM) bleiben unberührt.
+- **Offen:** Supabase → Authentication → URL Configuration: https://crewtender.eu als Site URL und https://crewtender.eu/** als Redirect URL eintragen; danach `ADRESSE` in `web/src/index.ts` und Links in Mails (alarm/mail.py, mail.ts) auf crewtender.eu umstellen und app.wpdigitalranger.com weiterleiten.
+
 ### 03.11.2026 – Claude (Name: Crewtender)
 - App heißt jetzt **Crewtender** (Benjamin, TMview ohne Treffer). In Oberfläche, Rechtstexten (6 Sprachen), Mails, Hilfe-Center, Übersetzungen und Tests ersetzt; technische Namen (Datenbank `jarvis_*`, Worker, Bucket, Cookies `jv_`, Repo) bleiben. User-Agent der Alarm-Abrufe bleibt `JarvisAlarm/0.1`.
 - Domain: **Entscheidung Benjamin 03.11.: crewtender.eu** (Namecheap, 6,22 € erstes Jahr, 8,01 € danach). crewtender.com seit 2008 vergeben (vermutlich Werft mit Bootsmodell „CREWTENDER“), nicht weiter verfolgen. **Gekauft von Benjamin am 03.11.2026.** Nächster Schritt: Cloudflare + E-Mail-Weiterleitung (Browser-Chat, `docs/auftraege/crewtender-domain.md`). Mail: Cloudflare Email Routing kostenlos (nur Empfang), Senden später z. B. Zoho Free.
