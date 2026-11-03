@@ -36,6 +36,8 @@ export function auswerten(lauf: Stempel[], gehen: string): { datum: string; begi
   if (seit) pause += Date.parse(gehen) - Date.parse(seit);
   const beginn = uhr(kommen.zeit), ende = uhr(gehen);
   if (Date.parse(gehen) - Date.parse(kommen.zeit) < 60_000 || beginn === ende) return null;
+  // A-M7: more than 16 hours means "Gehen" was forgotten; a time sheet with clock times only would wrap over midnight.
+  if (Date.parse(gehen) - Date.parse(kommen.zeit) > 16 * 3600_000) return null;
   const orte = lauf.map((x) => x.am_ort).filter((x) => x !== null);
   return { datum: berlinDatum(kommen.zeit), beginn, ende, pause_min: Math.round(pause / 60000), einsatz: kommen.einsatz, am_ort: orte.length ? orte.every(Boolean) : null };
 }
@@ -76,7 +78,9 @@ export async function stempeln(s: Sitzung, env: KontoEnv, form: FormData, firma:
   const z = neu.daten[0];
   if (art !== "gehen") return `${art === "kommen" ? "Eingestempelt" : art === "pause" ? "Pause gestartet" : "Weiter geht's"} um ${uhr(z.zeit)}.${amOrt === false ? " Hinweis: Du scheinst nicht am Einsatzort zu sein." : ""}`;
   const e = auswerten([...lauf, z], z.zeit);
-  if (!e) return "Ausgestempelt. Die Zeit war zu kurz für einen Stundenzettel.";
+  if (!e) return Date.parse(z.zeit) - Date.parse(lauf.find((x) => x.art === "kommen")?.zeit ?? z.zeit) > 16 * 3600_000
+    ? "Ausgestempelt. Zwischen Kommen und Gehen liegen über 16 Stunden – wahrscheinlich wurde das Ausstempeln vergessen. Bitte die Stunden von Hand eintragen."
+    : "Ausgestempelt. Die Zeit war zu kurz für einen Stundenzettel.";
   const notiz = `gestempelt${e.am_ort === false ? ", nicht am Einsatzort" : e.am_ort ? ", am Einsatzort" : ""}`;
   const sz = await db(s, env, "stundenzettel", { method: "POST", body: JSON.stringify({ firma_id: firma, personal_id: personal, datum: e.datum, beginn: e.beginn, ende: e.ende, pause_min: e.pause_min, einsatz: e.einsatz, notiz }) });
   return sz.ok ? `Ausgestempelt um ${uhr(z.zeit)}. Stundenzettel ${e.beginn}–${e.ende}${e.pause_min ? `, ${e.pause_min} Min. Pause` : ""} ist angelegt.` : "Ausgestempelt, aber der Stundenzettel konnte nicht angelegt werden. Bitte von Hand eintragen.";

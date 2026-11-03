@@ -7,7 +7,7 @@ import { xlsxAntwort, xlsxDatei, type Zelle } from "./xlsx.ts";
 import { landAusPlz, LAENDER, summe, zuschlag, zuschlagText } from "./zuschlaege.ts";
 import type { Sitzung } from "./konto.ts";
 
-export type Eintrag = { id: string; personal_id: string; datum: string; beginn: string; ende: string; pause_min: number; einsatz: string; notiz: string; status: string; kunde_id?: string | null; personal?: { vorname: string; nachname: string } | null };
+export type Eintrag = { id: string; personal_id: string; datum: string; beginn: string; ende: string; pause_min: number; einsatz: string; notiz: string; status: string; kunde_id?: string | null; erstellt?: string; personal?: { vorname: string; nachname: string } | null };
 export const STATUS: Record<string, [string, string]> = { erfasst: ["⏳", "offen"], freigegeben: ["✅", "freigegeben"], abgelehnt: ["❌", "abgelehnt"] };
 
 const zuMin = (t: string) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
@@ -58,6 +58,8 @@ export function hinweise(liste: Eintrag[]): Map<string, string[]> {
     const brutto = minuten({ ...e, pause_min: 0 });
     if (brutto > 540 && e.pause_min < 45) add(e.id, "Pause unter 45 Min. bei über 9 Std.");
     else if (brutto > 360 && e.pause_min < 30) add(e.id, "Pause unter 30 Min. bei über 6 Std.");
+    // § 17 Abs. 1 MiLoG: hours must be recorded by the seventh day after the working day (A-M6).
+    if (e.erstellt && Date.parse(e.erstellt) > Date.parse(`${e.datum}T23:59:59Z`) + 7 * 86400_000) add(e.id, "später als 7 Tage nach dem Arbeitstag erfasst (§ 17 MiLoG)");
   }
   const proTag = new Map<string, Eintrag[]>();
   for (const e of liste) proTag.set(`${e.personal_id}|${e.datum}`, [...(proTag.get(`${e.personal_id}|${e.datum}`) ?? []), e]);
@@ -173,7 +175,7 @@ export async function stundenRoute(request: Request, env: KontoEnv): Promise<Res
   }
   const monat = monatWahl(url.searchParams.get("monat"));
   const [l, p, land] = await Promise.all([
-    db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id&order=datum,beginn&limit=10000`),
+    db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id,erstellt&order=datum,beginn&limit=10000`),
     db<Person[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname&order=vorname&limit=3000`),
     landDerFirma(f.s, env, firma),
   ]);

@@ -176,6 +176,7 @@ test("T41: Stempeluhr wertet Pausen aus", () => {
   assert.equal(laufend([...lauf, z("gehen", "2026-11-02T14:00:00Z")]).length, 0);
   const r = auswerten(lauf, "2026-11-02T14:30:00Z")!;
   assert.deepEqual([r.datum, r.beginn, r.ende, r.pause_min, r.einsatz, r.am_ort], ["2026-11-02", "07:00", "15:30", 30, "Kantine", true]);
+  assert.equal(auswerten([z("kommen", "2026-11-01T06:00:00Z")], "2026-11-02T07:00:00Z"), null, "A-M7: over 16 h is not turned into a time sheet");
   assert.equal(auswerten([z("kommen", "2026-11-02T06:00:00Z"), z("pause", "2026-11-02T10:00:00Z")], "2026-11-02T10:45:00Z")!.pause_min, 45, "offene Pause endet bei Gehen");
   assert.equal(auswerten([z("kommen", "2026-11-02T06:00:00Z")], "2026-11-02T06:00:30Z"), null);
   const km = abstandKm(52.52, 13.405, "10117");
