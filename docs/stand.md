@@ -83,7 +83,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ### 03.11.2026 – Claude (Name: Crewtender)
 - App heißt jetzt **Crewtender** (Benjamin, TMview ohne Treffer). In Oberfläche, Rechtstexten (6 Sprachen), Mails, Hilfe-Center, Übersetzungen und Tests ersetzt; technische Namen (Datenbank `jarvis_*`, Worker, Bucket, Cookies `jv_`, Repo) bleiben. User-Agent der Alarm-Abrufe bleibt `JarvisAlarm/0.1`.
-- Domain: crewtender.eu frei (DNS), .com vergeben. Kauf durch Benjamin (Namecheap, ~6 $). Mail: Cloudflare Email Routing kostenlos (nur Empfang), Senden später z. B. Zoho Free.
+- Domain: **Entscheidung Benjamin 03.11.: crewtender.eu** (Namecheap, 6,22 € erstes Jahr, 8,01 € danach). crewtender.com seit 2008 vergeben (vermutlich Werft mit Bootsmodell „CREWTENDER“), nicht weiter verfolgen. Kauf durch Benjamin. Mail: Cloudflare Email Routing kostenlos (nur Empfang), Senden später z. B. Zoho Free.
 - **Auftrag für den Browser-Chat (Claude mit Browser-Steuerung):** `docs/auftraege/crewtender-konten.md` (Domain kaufen, Social-Konten anlegen, Profiltexte).
 
 ### 03.11.2026 – Claude (eForms-Abruf repariert)
