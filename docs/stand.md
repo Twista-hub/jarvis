@@ -2,6 +2,14 @@
 
 Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
+## Aktueller Stand (03.11.2026, nachts) – zuerst lesen
+- **Repo privat → alle GitHub-Abläufe blockiert** (seit ca. 21:30 Uhr): kein Alarm, keine Mails, keine Sicherung, kein Ausrollen, keine Migrationen. Alles ab Commit 347ffab ist gepusht, aber **nicht live**. Lösung (Benjamin): https://github.com/Twista-hub/jarvis/settings → „Change visibility“ → „Change to public“, oder Ausgabenlimit unter https://github.com/settings/billing. GitHub Pro (3.000 Min.) reicht allein nicht (`docs/actions-minuten.md`). Danach: Live-Prüfung und Klickprüfung neu anstoßen, Mastodon-Profil einmal speichern (rel=me).
+- **Neu, wartet aufs Ausrollen:**
+  - Betreiber-Seite https://crewtender.eu/konto/betreiber: alle Firmen mit Inhaber, Plan, KI-Verbrauch, letzter Anmeldung; KI-Grenze (ohne Grenze / Probe 5,50 $ / 20 $ / Demo) und Plan per Knopf. Damit lässt sich die KI-Grenze des Testers ohne SQL aufheben.
+  - Kundenrechnungen https://crewtender.eu/konto/betreiber/rechnungen: Rechnungen von WP Digital Ranger an Crewtender-Kunden, Nummern CT-Jahr-0001, Kleinunternehmer-Hinweis, Druckansicht/PDF, Storno statt Ändern, 8 Jahre aufbewahrt. **Geht erst mit Steuernummer** (Feld auf der Seite, Benjamin trägt sie selbst ein). Kunden im Ausland erst mit USt-IdNr.
+  - Datenschutzerklärung (6 Sprachen): Aufbewahrung der eigenen Kundenrechnungen 8 Jahre.
+- **Browser-Chat:** Auftrag LinkedIn-Unternehmensseite ab 04.11. liegt in `docs/auftraege/crewtender-linkedin.md`.
+
 ## Aktueller Stand (31.10.2026)
 - **Suchreparatur online (31.10., Übergabe ca. 17:49 UTC):** kompletter bekannter Katalog statt 10.000er-Grenze, alle Kandidaten statt 200er-Grenze und Bewertungen bis zur bestehenden Budgetgrenze statt 40er-Abbruch. 36 Importlücken geschlossen; 32.272 offene/unbekannte Bekanntmachungen vorhanden. Vier Tagesstände enthalten noch zwei übergroße Verfahren. App, Sammler und CI erfolgreich ausgerollt/geprüft. Der abschließende PerLease-Lauf 41225815168 läuft bei Übergabe noch; zuletzt 129 Bewertungen im Cache, davon 16 ab 6/10, noch kein abschließender App-Ergebnisstand. Vollständige Übergabe: `docs/uebergabe-claude-2026-10-31-suche.md`.
 - **Suchabdeckung lesend geprüft (31.10., 16:53 UTC):** PerLease nutzt tatsächlich alle 16 Standorte und acht Leistungsbereiche einschließlich Industrie/Produktion und Pflege. Vier Treffer sind keine vollständige Marktübersicht: Quelle meldet noch 40 unvollständige Tagesimporte; 11.685 offene/unbekannte Katalogeinträge vorhanden, davon maximal 10.000 je Auswertung. Von zuletzt 148 Kandidaten wurden bislang 80 unter dem aktuellen Profil bewertet, vier davon ab 6/10; weitere Kandidaten sind noch ungeprüft. Nächste Priorität sind Importlücken, vollständiger Katalogdurchlauf und die ausstehenden Bewertungen innerhalb der Budgetgrenzen.
@@ -80,6 +88,12 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 03.11.2026 nachts – Claude Code (Betreiber-Seite, Kundenrechnungen, LinkedIn-Auftrag)
+- Migration `20261103300000_betreiber_firmen.sql`: `betreiber_firmen()`, `betreiber_ki_budget(f, budget)`, `betreiber_paket(f, neu)`; die Schutz-Trigger `probe_ki` und `paket_schuetzen` lassen nur den Betreiber durch. Seite `/konto/betreiber` erweitert (web/src/loeschen.ts).
+- Migration `20261103310000_betreiber_rechnungen.sql`: Tabelle `jarvis_intern.betreiber_rechnungen` (unveränderlich, kein Löschen, Storno als eigene Rechnung), Nummernkreis CT-Jahr-NNNN ohne Lücken, Pflicht Steuernummer, Ausland nur mit USt-IdNr. Seite `web/src/betreiber-rechnungen.ts`.
+- Rechte-Test ergänzt (Kunde kann nichts davon, Trigger blockt direkte Änderungen, Rechnungen bleiben nach Firmenlöschung). Tests: Web 377 grün, Rechte-Test „ALLE TESTS OK“.
+- Nicht live, solange Actions blockiert sind (siehe oben).
 
 ### 03.11.2026 abends – Claude Code (WICHTIG: Repo privat, Actions blockiert)
 - Repo wurde privat gestellt; seitdem startet GitHub keine Abläufe mehr (Ausgabenlimit). Alarm, Mails, Sicherung, Ausrollen stehen still. Lösung und Messung: `docs/actions-minuten.md`. Benjamin per Handy benachrichtigt.
