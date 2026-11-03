@@ -81,6 +81,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 03.11.2026 abends – Claude Code (WICHTIG: Repo privat, Actions blockiert)
+- Repo wurde privat gestellt; seitdem startet GitHub keine Abläufe mehr (Ausgabenlimit). Alarm, Mails, Sicherung, Ausrollen stehen still. Lösung und Messung: `docs/actions-minuten.md`. Benjamin per Handy benachrichtigt.
+
 ### 03.11.2026 – Claude Code (Startseite, App-Symbol)
 - Neue Startseite (hellblauer Glas-Look, Crewtender-Zeichen, Knöpfe untereinander, Karten „So funktioniert's“, „Und wenn der Auftrag da ist“, „Und noch viel mehr“), neue öffentliche Kopfzeile mit Logo und „Anmelden“.
 - App-Symbol = Crewtender-Zeichen (`web/src/icons.ts`, Adressen `/icon-v2-192.png` und `/icon-v2-512.png` wegen Handy-Cache), Logo oben in der App getauscht. Von Benjamin am Handy bestätigt.
