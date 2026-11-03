@@ -111,7 +111,9 @@ test("T32: Ausfall, Ersatzvorschläge und Meldeknopf", () => {
   assert.deepEqual(ersatzVorschlaege(ab, personen[0], personen, liste, abw, [{ personal_id: "p3", von: "2026-11-01", bis: null }]).map((p) => p.id), ["p2"], "Überlassung zählt");
   const html = schichtenSeite(liste, personen, abw, { montag: "2026-11-02", heute, darfAendern: true, bereiche: [], orte: [{ id: "o1", name: "Messe Halle 3" }], ueb: [] });
   assert.match(html, /🚨 Kurzfristig ausgefallen/);
-  assert.match(html, /Eva M <span class="klein">heute · Auto kaputt/);
+  // The shift plan says who is out, never why: the note stays in the personnel file (03.11.2026, Benjamin).
+  assert.match(html, /Eva M <span class="klein">heute<\/span>/);
+  assert.doesNotMatch(html, /Auto kaputt/);
   assert.match(html, /name="person" value="p3"/);
   assert.match(html, /name="einsatzort"><option value="">– frei eingeben –<\/option><option value="o1">Messe Halle 3/);
   const ersetzt = schichtenSeite([...liste, s("n", heute, "06:00", "14:00", { personal_id: "p3", notiz: "Ersatz für Eva" })], personen, abw, { montag: "2026-11-02", heute, darfAendern: true, bereiche: [], ueb: [] });

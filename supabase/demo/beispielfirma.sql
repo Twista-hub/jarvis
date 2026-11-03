@@ -139,7 +139,7 @@ begin
     (f, p[8], mo + 14, mo + 25, 'urlaub', '', 'beantragt', false),
     (f, p[13], heute + 20, heute + 22, 'urlaub', 'Familienfeier', 'beantragt', false),
     (f, p[7], mo + 3, mo + 3, 'schulung', 'Brandschutzhelfer-Lehrgang', 'bestaetigt', false),
-    (f, p[3], heute, heute, 'abwesend', 'Kind krank', 'bestaetigt', true),
+    (f, p[3], heute, heute, 'abwesend', 'Kurzfristig verhindert', 'bestaetigt', true),
     (f, p[1], mo - 21, mo - 17, 'urlaub', '', 'bestaetigt', false);
   insert into public.psa_ausgaben (firma_id, personal_id, artikel, groesse, menge, ausgegeben, austausch, notiz) values
     (f, p[1], 'Sicherheitsschuhe S2', '39', 1, heute - 340, heute + 25, ''),

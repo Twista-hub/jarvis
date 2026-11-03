@@ -24,7 +24,7 @@ const W: [string, string, string, string, string, string, string][] = [
   ["morgen", "tomorrow", "jutro", "mâine", "yarın", "завтра", "غدًا"],
   ["Notiz (freiwillig)", "Note (optional)", "Notatka (opcjonalnie)", "Notă (opțional)", "Not (isteğe bağlı)", "Примітка (необов’язково)", "ملاحظة (اختياري)"],
   ["Notiz", "Note", "Notatka", "Notă", "Not", "Примітка", "ملاحظة"],
-  ["z. B. Kind krank, Auto kaputt", "e.g. child sick, car broken", "np. chore dziecko, zepsuty samochód", "ex. copil bolnav, mașină stricată", "örn. çocuk hasta, araba bozuk", "напр. дитина хвора, авто зламане", "مثلًا: طفل مريض، السيارة معطلة"],
+  ["z. B. Auto kaputt, Zug fällt aus", "e.g. car broke down, train cancelled", "np. zepsuty samochód, odwołany pociąg", "ex. mașină stricată, tren anulat", "örn. araba bozuk, tren iptal", "напр. авто зламане, потяг скасовано", "مثلًا: السيارة معطلة، القطار ملغى"],
   ["Ausfall melden", "Report absence", "Zgłoś nieobecność", "Anunță absența", "Devamsızlık bildir", "Повідомити про відсутність", "الإبلاغ عن الغياب"],
   ["Bitte keine Gesundheitsangaben. Deine Schichten an dem Tag werden abgesagt und das Büro wird benachrichtigt. Eine Krankmeldung gibst du wie gewohnt ab.",
     "Please no health details. Your shifts on that day are cancelled and the office is notified. Hand in a sick note as usual.",
