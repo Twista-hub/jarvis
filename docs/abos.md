@@ -8,16 +8,16 @@
 | Plan | Monatlich | Jährlich (2 Monate geschenkt) | Für wen | Kern |
 |---|---:|---:|---|---|
 | **Free** | 0 € | – | Ausprobieren, Einzelbetrieb | 1 Suchprofil, 1 Land, 1 Nutzer, Treffer mit Kurzüberblick, Wochenmail |
-| **Basis** | **59 €** | 590 € (≈ 49 €/Monat) | Kleiner Betrieb, 1 Standort, will Aufträge finden | Täglicher Alarm per Mail und Handy, 3 Suchprofile, 3 Nutzer, 3 Steckbriefe aus Unterlagen/Monat, Kalkulation |
-| **Pro** | **149 €** | 1.490 € (≈ 124 €/Monat) | Reinigung, Sicherheit, Handwerk, Zeitarbeit mit 10–50 Kräften | Alles aus Basis + Angebotsmappe mit Freigabe + Arbeitsoberfläche (Personal, Einsatzplanung, Zeiterfassung, Abrechnung), 5 Büro-Nutzer, 25 Einsatzkräfte, alle Länder, 15 Steckbriefe |
-| **Business** | **399 €** | 3.990 € (≈ 333 €/Monat) | Mehrere Standorte und Regionen (z. B. PerLease) | Alles aus Pro, Standorte unbegrenzt, 15 Büro-Nutzer, 100 Einsatzkräfte, 40 Steckbriefe, bevorzugter Support |
+| **Basis** | **59 €** | 590 € (≈ 49 €/Monat) | Kleiner Betrieb, 1 Standort, will Aufträge finden | Täglicher Alarm per Mail und Handy, 3 Suchprofile, 3 Nutzer, 5 Steckbriefe aus Unterlagen/Monat, Kalkulation |
+| **Pro** | **149 €** | 1.490 € (≈ 124 €/Monat) | Reinigung, Sicherheit, Handwerk, Zeitarbeit mit 10–50 Kräften | Alles aus Basis + Angebotsmappe mit Freigabe + Arbeitsoberfläche (Personal, Einsatzplanung, Zeiterfassung, Abrechnung), 5 Büro-Nutzer, 25 Einsatzkräfte, alle Länder, 30 Steckbriefe |
+| **Business** | **399 €** | 3.990 € (≈ 333 €/Monat) | Mehrere Standorte und Regionen (z. B. PerLease) | Alles aus Pro, Standorte unbegrenzt, 15 Büro-Nutzer, 100 Einsatzkräfte, 100 Steckbriefe, bevorzugter Support |
 | *Erfolg (Option)* | *später* | – | Skeptische Firmen | Niedrige Grundgebühr + Anteil bei Zuschlag. Erst nach 6–12 Monaten prüfen (Abschnitt 5) |
 
 - **Preis netto = Endpreis**, solange Benjamin Kleinunternehmer nach § 19 UStG ist. In AGB und Stripe trotzdem als
   **„zzgl. USt., soweit sie anfällt“** anlegen. Dann bleibt der Preis beim Wechsel zur Regelbesteuerung gleich (Abschnitt 6).
 - **Test:** Jede neue Firma bekommt automatisch **14 Tage Pro**, ohne Karte. Danach Free, nichts wird gelöscht.
 - **Zusatz:** weiterer Büro-Nutzer 12 € (Pro) bzw. 9 € (Business), weitere Einsatzkraft 2 € (Pro) bzw. 1,50 € (Business),
-  10 zusätzliche Steckbriefe 35 € (vorher 15 €, siehe Abschnitt 3). Leser (nur lesen) bleiben kostenlos.
+  10 zusätzliche Steckbriefe 15 €. Leser (nur lesen) bleiben kostenlos.
 - **Warum eine neue Stufe „Business“ statt „Erfolg“:** Der größte Wert liegt bei Firmen mit vielen Standorten und viel
   Personal. Ein Erfolgshonorar ist rechtlich und praktisch aufwendig und passt schlecht zur Kleinunternehmergrenze.
   „Erfolg“ bleibt als Option.
@@ -35,7 +35,7 @@
 | KI-Bewertung neuer Ausschreibungen | ja (bis 300/Monat) | ja | ja | ja |
 | Benachrichtigung | Wochenmail | täglich Mail + Handy, Fristen-Erinnerung | wie Basis | wie Basis |
 | Kurzüberblick aus der Bekanntmachung | ja | ja | ja | ja |
-| Steckbrief aus hochgeladenen Unterlagen | – | 3 / Monat | 15 / Monat | 40 / Monat |
+| Steckbrief aus hochgeladenen Unterlagen | – | 5 / Monat | 30 / Monat | 100 / Monat |
 | Unterlagen-Upload | – | ja | ja | ja |
 | Kalkulation pro Los, Tarifdatenbank | ansehen | ja | ja, Vorlagen pro Standort | ja |
 | Angebotsmappe, Chef-Freigabe, Abgabe-Beleg | – | – | ja | ja |
@@ -56,14 +56,13 @@ Hinweise:
 
 ## 3. Kosten und Marge
 
-> **Korrigiert am 03.11.2026** nach Messung mit echter API (Einzelheiten und Rechnung je Firmengröße:
-> `docs/ki-kosten-plaene.md`, Skript `alarm/kostenmodell.py`). Der Steckbrief aus Unterlagen kostet **1,20–2,50 $**,
-> nicht 0,05–0,30 $. Deshalb kleinere Steckbrief-Kontingente (3 / 15 / 40 statt 5 / 30 / 100).
+> **Gemessen am 03.11.2026** mit echter API (Einzelheiten und Rechnung je Firmengröße: `docs/ki-kosten-plaene.md`,
+> Skript `alarm/kostenmodell.py`). Die Kontingente oben bleiben; auch im schlimmsten Fall bleiben mindestens 70 % Marge.
 
 ### Annahmen
 - KI (gemessen 03.11.2026): 0,002 $ pro bewertete Ausschreibung (Vorfilter + Batch), Kurz-Steckbrief aus der Bekanntmachung
-  0,07 $ (höchstens 4 pro Tag), **Steckbrief aus Unterlagen Ø 1,80 $, größter 2,45 $** (Opus), Beleg/Nachweis 0,0003 $,
-  Firmenrecherche 0,24 $ und Erstlauf ca. 1 $ einmalig (auf 12 Monate verteilt).
+  0,07 $ (höchstens 4 pro Tag), **Steckbrief aus Unterlagen Ø 0,50 $, höchstens ca. 0,85 $** (Opus), Beleg/Nachweis
+  0,0003 $, Firmenrecherche 0,24 $ und Erstlauf ca. 1 $ einmalig (auf 12 Monate verteilt).
 - Kurs 1 $ = 0,90 € (vorsichtig).
 - **Als Kleinunternehmer gibt es keine Vorsteuer.** KI und Infrastruktur deshalb mit +19 % gerechnet (Reverse Charge
   nach § 13b gilt auch für Kleinunternehmer). 1 $ API = 1,07 € Kosten.
@@ -72,19 +71,18 @@ Hinweise:
   SEPA-Lastschrift laut Drittquellen 0,35 € pauschal (günstiger bei großen Beträgen).
 - Benjamins Arbeitszeit (Support) ist **nicht** eingerechnet.
 
-### Pro Kunde und Monat (schlimmster Fall: alles ausgeschöpft, jeder Steckbrief 2,45 $)
+### Pro Kunde und Monat (schlimmster Fall: alles ausgeschöpft, jeder Steckbrief 0,85 $)
 
 | Plan | Preis | KI (Obergrenze) | Stripe | Infra-Anteil | Kosten | Deckungsbeitrag | Marge |
 |---|---:|---:|---:|---:|---:|---:|---:|
 | Free | 0 € | 0,75 € (≤ 300 Bewertungen + Erstlauf) | – | – | 0,75 € | −0,75 € | – |
-| Basis | 59 € | 13,76 € (600 Bewertungen, 60 Kurz-Steckbriefe, 3 Steckbriefe) | 1,55 € | 1,43 € | 16,74 € | **42,26 €** | 72 % |
-| Pro | 149 € | 51,68 € (1.500 Bewertungen, 120 Kurz-Steckbriefe, 15 Steckbriefe) | 3,53 € | 1,43 € | 56,63 € | **92,37 €** | 62 % |
-| Business | 399 € | 124,77 € (5.000 Bewertungen, 120 Kurz-Steckbriefe, 40 Steckbriefe) | 9,03 € | 1,43 € | 135,23 € | **263,77 €** | 66 % |
+| Basis | 59 € | 10,44 € (600 Bewertungen, 60 Kurz-Steckbriefe, 5 Steckbriefe) | 1,55 € | 1,43 € | 13,42 € | **45,58 €** | 77 % |
+| Pro | 149 € | 39,63 € (1.500 Bewertungen, 120 Kurz-Steckbriefe, 30 Steckbriefe) | 3,53 € | 1,43 € | 44,59 € | **104,41 €** | 70 % |
+| Business | 399 € | 110,85 € (5.000 Bewertungen, 120 Kurz-Steckbriefe, 100 Steckbriefe) | 9,03 € | 1,43 € | 121,31 € | **277,69 €** | 70 % |
 
-Mit den alten Kontingenten (5 / 30 / 100) wären es im schlimmsten Fall nur 63 % / 36 % / 27 % gewesen.
-Im Alltag kostet die KI pro Firma 6 € (1–5 MA), 12 € (10 MA), 34 € (100 MA) bzw. 81 € (1.000 MA); die Marge liegt dann
-bei 85–90 %. Zusätzlich ist ein internes KI-Budget pro Firma und Monat vorgesehen (Free 1 €, Basis 15 €, Pro 40 €,
-Business 120 €), danach Steckbriefe aus Unterlagen nur über das Zusatzpaket (10 für 35 €).
+Im Alltag kostet die KI pro Firma 3 € (1–5 MA), 7 € (10 MA), 18 € (100 MA) bzw. 39 € (1.000 MA); die Marge liegt dann
+bei 85–95 %. Zusätzlich ist ein internes KI-Budget pro Firma und Monat vorgesehen (Free 1 €, Basis 10 €, Pro 25 €,
+Business 60 €), danach Steckbriefe aus Unterlagen nur über das Zusatzpaket.
 
 ### Beispielrechnung (3 Free-Konten je zahlendem Kunden, Kleinstbetriebe in Basis, 10 MA in Pro, 100 MA in Business)
 
@@ -93,11 +91,11 @@ Business 120 €), danach Steckbriefe aus Unterlagen nur über das Zusatzpaket (
 | Mischung Basis / Pro / Business | 6 / 3 / 1 | 30 / 15 / 5 | 120 / 60 / 20 |
 | Free-Konten | 30 | 150 | 600 |
 | **Umsatz pro Monat** | **1.200 €** | **6.000 €** | **24.000 €** |
-| KI normal / Volllast (inkl. Free) | 130 € / 298 € | 650 € / 1.489 € | 2.599 € / 5.957 € |
+| KI normal / Volllast (inkl. Free) | 80 € / 166 € | 399 € / 828 € | 1.597 € / 3.312 € |
 | Stripe | 29 € | 144 € | 578 € |
 | Infrastruktur (brutto) | 60 € (50 € netto) | 71 € (60 € netto) | 143 € (120 € netto, größere Datenbank) |
-| **Kosten gesamt normal / Volllast** | 219 € / 387 € | 865 € / 1.705 € | 3.320 € / 6.678 € |
-| **Rohertrag pro Monat normal / Volllast** | **981 € (82 %) / 813 € (68 %)** | **5.135 € (86 %) / 4.295 € (72 %)** | **20.680 € (86 %) / 17.322 € (72 %)** |
+| **Kosten gesamt normal / Volllast** | 169 € / 254 € | 615 € / 1.043 € | 2.318 € / 4.033 € |
+| **Rohertrag pro Monat normal / Volllast** | **1.031 € (86 %) / 946 € (79 %)** | **5.385 € (90 %) / 4.957 € (83 %)** | **21.682 € (90 %) / 19.967 € (83 %)** |
 | Umsatz pro Jahr | 14.400 € | 72.000 € | 288.000 € |
 | Kleinunternehmer? | ja | nur im 1. Jahr (Vorjahr > 25.000 €) | nein, Grenze 100.000 € im Jahr gerissen |
 

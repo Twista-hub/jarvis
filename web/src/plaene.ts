@@ -13,16 +13,16 @@ export type Grenzen = { suchprofile: number | null; laender: number | null; nutz
 
 export const PLAENE: Plan[] = [
   { id: "kostenlos", name: "Free", preis: "0 €", fuer: "Zum Ausprobieren", punkte: ["Ausschreibungen passend zu deiner Firma (1 Suchprofil, 1 Land)", "Kurzüberblick zu jeder Ausschreibung", "Wöchentliche Zusammenfassung"] },
-  { id: "basis", name: "Basis", preis: "Preis folgt", vorschlag: "59 € / Monat", fuer: "Für kleine Firmen", punkte: ["Alles aus Free", "Tägliche Nachricht per Mail und Handy", "3 Suchprofile, 3 Nutzer", "3 Steckbriefe aus Unterlagen pro Monat, Kalkulation"] },
-  { id: "pro", name: "Pro", preis: "Preis folgt", vorschlag: "149 € / Monat", fuer: "Für Reinigung, Sicherheit, Handwerk und Zeitarbeit", punkte: ["Alles aus Basis", "Angebote vorbereiten und freigeben", "Personal, Einsatzplanung, Zeiterfassung, Abrechnung", "5 Büro-Nutzer, 25 Einsatzkräfte, alle Länder, 15 Steckbriefe"] },
-  { id: "business", name: "Business", preis: "Preis folgt", vorschlag: "399 € / Monat", fuer: "Für Firmen mit vielen Standorten", punkte: ["Alles aus Pro", "Standorte unbegrenzt", "15 Büro-Nutzer, 100 Einsatzkräfte, 40 Steckbriefe", "Bevorzugter Support"] },
+  { id: "basis", name: "Basis", preis: "Preis folgt", vorschlag: "59 € / Monat", fuer: "Für kleine Firmen", punkte: ["Alles aus Free", "Tägliche Nachricht per Mail und Handy", "3 Suchprofile, 3 Nutzer", "5 Steckbriefe aus Unterlagen pro Monat, Kalkulation"] },
+  { id: "pro", name: "Pro", preis: "Preis folgt", vorschlag: "149 € / Monat", fuer: "Für Reinigung, Sicherheit, Handwerk und Zeitarbeit", punkte: ["Alles aus Basis", "Angebote vorbereiten und freigeben", "Personal, Einsatzplanung, Zeiterfassung, Abrechnung", "5 Büro-Nutzer, 25 Einsatzkräfte, alle Länder, 30 Steckbriefe"] },
+  { id: "business", name: "Business", preis: "Preis folgt", vorschlag: "399 € / Monat", fuer: "Für Firmen mit vielen Standorten", punkte: ["Alles aus Pro", "Standorte unbegrenzt", "15 Büro-Nutzer, 100 Einsatzkräfte, 100 Steckbriefe", "Bevorzugter Support"] },
 ];
 
 export const GRENZEN: Record<string, Grenzen> = {
   kostenlos: { suchprofile: 1, laender: 1, nutzer: 1, einsatzkraefte: 0, steckbriefe_monat: 0, ki_euro_monat: 1, arbeitsoberflaeche: false, taeglich: false },
-  basis: { suchprofile: 3, laender: 2, nutzer: 3, einsatzkraefte: 0, steckbriefe_monat: 3, ki_euro_monat: 15, arbeitsoberflaeche: false, taeglich: true },
-  pro: { suchprofile: 10, laender: null, nutzer: 5, einsatzkraefte: 25, steckbriefe_monat: 15, ki_euro_monat: 40, arbeitsoberflaeche: true, taeglich: true },
-  business: { suchprofile: null, laender: null, nutzer: 15, einsatzkraefte: 100, steckbriefe_monat: 40, ki_euro_monat: 120, arbeitsoberflaeche: true, taeglich: true },
+  basis: { suchprofile: 3, laender: 2, nutzer: 3, einsatzkraefte: 0, steckbriefe_monat: 5, ki_euro_monat: 10, arbeitsoberflaeche: false, taeglich: true },
+  pro: { suchprofile: 10, laender: null, nutzer: 5, einsatzkraefte: 25, steckbriefe_monat: 30, ki_euro_monat: 25, arbeitsoberflaeche: true, taeglich: true },
+  business: { suchprofile: null, laender: null, nutzer: 15, einsatzkraefte: 100, steckbriefe_monat: 100, ki_euro_monat: 60, arbeitsoberflaeche: true, taeglich: true },
   test: { suchprofile: null, laender: null, nutzer: null, einsatzkraefte: null, steckbriefe_monat: null, ki_euro_monat: null, arbeitsoberflaeche: true, taeglich: true },
 };
 

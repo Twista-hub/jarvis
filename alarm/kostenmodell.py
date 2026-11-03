@@ -11,12 +11,13 @@ OHNE_VORSTEUER = 1.19      # small business (§ 19 UStG): no input tax, reverse 
 STUECK = {
     "bewertung": 0.002,          # one candidate, Haiku pre-filter + Sonnet, batch (direct: 0.0037)
     "kurzsteckbrief": 0.07,      # from the notice, daily alarm, at most 4 per firm and day
-    "steckbrief": 1.80,          # from uploaded documents, Opus: 1.18 (3 PDFs) to 2.45 (16 files)
+    "steckbrief": 0.50,          # from uploaded documents, Opus, real usage: 0.41 (3 PDFs) / 0.50 (6 PDFs), 03.11.2026
+                                 # (1.18 / 2.45 measured before were worst-case reservations of the streamed request)
     "beleg": 0.0003,             # receipt reader, Haiku
     "nachweis": 0.0003,          # proof/certificate reader, Haiku
     "einrichtung": 1.20 / 12,    # firm research 0.24 + first run about 0.96, spread over 12 months
 }
-STECKBRIEF_MAX = 2.45            # largest measured Steckbrief (16 files)
+STECKBRIEF_MAX = 0.85            # largest possible: documents are cut at 350,000 characters (web/src/bundle.ts)
 
 # Usage per month: normal = typical month, voll = full load (team works with the app every day, many bids).
 GROESSEN = {
@@ -61,20 +62,20 @@ def stripe(preis: float) -> float:
     return preis * 0.022 + 0.25 if preis else 0.0
 
 
-# Worst case per plan: every quota used up, every Steckbrief as large as the largest measured one.
-# alt = proposal of 02.11.2026 (docs/abos.md), neu = proposal of 03.11.2026 (docs/ki-kosten-plaene.md).
+# Worst case per plan: every quota used up, every Steckbrief as large as the largest possible one.
+# Quotas of the proposal docs/abos.md (02.11.2026); with the real Steckbrief costs they stay as proposed.
 PLAENE = {
-    "Free": {"preis": 0, "bewertung": 300, "kurzsteckbrief": 0, "alt": 0, "neu": 0},
-    "Basis": {"preis": 59, "bewertung": 600, "kurzsteckbrief": 60, "alt": 5, "neu": 3},
-    "Pro": {"preis": 149, "bewertung": 1500, "kurzsteckbrief": 120, "alt": 30, "neu": 15},
-    "Business": {"preis": 399, "bewertung": 5000, "kurzsteckbrief": 120, "alt": 100, "neu": 40},
+    "Free": {"preis": 0, "bewertung": 300, "kurzsteckbrief": 0, "steckbriefe": 0},
+    "Basis": {"preis": 59, "bewertung": 600, "kurzsteckbrief": 60, "steckbriefe": 5},
+    "Pro": {"preis": 149, "bewertung": 1500, "kurzsteckbrief": 120, "steckbriefe": 30},
+    "Business": {"preis": 399, "bewertung": 5000, "kurzsteckbrief": 120, "steckbriefe": 100},
 }
 INFRA_JE_KUNDE = 1.43  # € gross per paying customer and month (docs/abos.md)
 
 
-def obergrenze(plan: str, stand: str = "neu") -> dict:
+def obergrenze(plan: str) -> dict:
     p = PLAENE[plan]
-    ki = euro(p["bewertung"] * STUECK["bewertung"] + p["kurzsteckbrief"] * STUECK["kurzsteckbrief"] + p[stand] * STECKBRIEF_MAX + STUECK["einrichtung"])
+    ki = euro(p["bewertung"] * STUECK["bewertung"] + p["kurzsteckbrief"] * STUECK["kurzsteckbrief"] + p["steckbriefe"] * STECKBRIEF_MAX + STUECK["einrichtung"])
     rest = p["preis"] - ki - stripe(p["preis"]) - (INFRA_JE_KUNDE if p["preis"] else 0)
     return {"ki": ki, "rest": rest, "marge": rest / p["preis"] if p["preis"] else None}
 
@@ -94,11 +95,10 @@ if __name__ == "__main__":
     print("\n".join(tabelle()))
     print("\nMit Sonnet statt Opus für Steckbriefe (halber Preis, noch nicht getestet):")
     print("\n".join(tabelle({**STUECK, "steckbrief": STUECK["steckbrief"] / 2})))
-    print("\nSteckbrief-Kontingent voll ausgeschöpft (Ø 1,80 $ / größter 2,45 $):")
-    for plan, n in (("Basis", 5), ("Pro", 30), ("Business", 100)):
+    print("\nSteckbrief-Kontingent voll ausgeschöpft (Ø 0,50 $ / größter 0,85 $):")
+    for plan, n in ((x, PLAENE[x]["steckbriefe"]) for x in ("Basis", "Pro", "Business")):
         print(f"{plan} {n}: {euro(n * STUECK['steckbrief']):.0f} € / {euro(n * STECKBRIEF_MAX):.0f} €")
-    print("\nPlan | Preis | Kontingent alt -> neu | KI-Obergrenze alt | Rest alt | KI-Obergrenze neu | Rest neu")
+    print("\nPlan | Preis | Steckbriefe | KI höchstens | Rest | Marge")
     for plan, p in PLAENE.items():
-        a, n = obergrenze(plan, "alt"), obergrenze(plan, "neu")
-        print(f"{plan} | {p['preis']} € | {p['alt']} -> {p['neu']} | {a['ki']:.0f} € | {a['rest']:.0f} € | {n['ki']:.0f} € | {n['rest']:.0f} €"
-              + (f" ({a['marge']:.0%} -> {n['marge']:.0%})" if p["preis"] else ""))
+        o = obergrenze(plan)
+        print(f"{plan} | {p['preis']} € | {p['steckbriefe']} | {o['ki']:.0f} € | {o['rest']:.0f} €" + (f" | {o['marge']:.0%}" if p["preis"] else ""))
