@@ -15,7 +15,7 @@
 
 - **Preis netto = Endpreis**, solange Benjamin Kleinunternehmer nach § 19 UStG ist. In AGB und Stripe trotzdem als
   **„zzgl. USt., soweit sie anfällt“** anlegen. Dann bleibt der Preis beim Wechsel zur Regelbesteuerung gleich (Abschnitt 6).
-- **Test:** Jede neue Firma bekommt automatisch **14 Tage Pro**, ohne Karte. Danach Free, nichts wird gelöscht.
+- **Test:** Jede neue Firma bekommt automatisch **30 Tage Pro**, ohne Karte (Benjamin 03.11.2026). Danach Free, nichts wird gelöscht.
 - **Zusatz:** weiterer Büro-Nutzer 12 € (Pro) bzw. 9 € (Business), weitere Einsatzkraft 3,50 € (Pro) bzw. 3 € (Business, ab der 501. Einsatzkraft 2,50 €; Benjamin 03.11.2026),
   10 zusätzliche Steckbriefe 15 €. Leser (nur lesen) bleiben kostenlos.
 - **Warum eine neue Stufe „Business“ statt „Erfolg“:** Der größte Wert liegt bei Firmen mit vielen Standorten und viel
@@ -45,7 +45,7 @@
 | **Zeiterfassung** (Stempeluhr, Stundenzettel, Arbeitszeitkonto, Urlaub) | – | – | ja | ja |
 | **Abrechnung** (Leistungsnachweis, Kundenbestätigung, Rechnungen, Lohnliste, Spesen) | – | – | ja | ja |
 | Organigramm, Rechte, Vertretung | – | – | ja | ja, mit Regionen |
-| Support | Hilfeseiten | Mail, 2 Werktage | Mail, 1 Werktag + 30 Min. Einrichtung per Video | Mail am selben Werktag, Einrichtung + Personal-Import |
+| Support | Hilfeseiten | Mail, 2 Werktage | Mail, 1 Werktag | Mail am selben Werktag, Hilfe beim Personal-Import (per Mail, keine Videotermine) |
 
 Hinweise:
 - Free-Konten ohne Anmeldung seit 30 Tagen: KI-Bewertung pausiert, bis sich jemand wieder anmeldet. Das begrenzt die Kosten.
@@ -175,9 +175,13 @@ Dann nur für Business-Kunden und gedeckelt.
 Das Land richtet sich nach dem Firmensitz. Die Arbeitsoberfläche bleibt in allen Ländern dieselbe.
 
 ### Testphase
-- 14 Tage Pro automatisch nach der E-Mail-Bestätigung, ohne Karte. Einmal pro Firma (Website-Domain bzw. USt-IdNr).
-- Erinnerung an Tag 10 und Tag 13: „Plan wählen“. Danach Free. Daten bleiben, Pro-Bereiche 90 Tage nur lesbar.
-- Kosten der Testphase: höchstens ca. 1 $ Erstlauf + 5 $ KI. Vertretbar.
+- **30 Tage Pro** automatisch nach der E-Mail-Bestätigung, ohne Karte (Benjamin 03.11.2026). Einmal pro Firma (Website-Domain bzw. USt-IdNr).
+  Grund für 30 statt 14 Tage: EU-Ausschreibungen laufen meist mindestens 30 Tage, und Schichtplan, Stundenzettel, Lohnliste
+  und Rechnung zeigen ihren Nutzen erst nach einem ganzen Abrechnungsmonat.
+- Während der Probezeit höchstens **10 Steckbriefe aus Unterlagen** (statt 30), sonst alles wie Pro.
+- Gilt für alle Firmengrößen gleich, auch für Großkunden. Keine Einrichtung per Video.
+- Erinnerung an Tag 23 und Tag 28: „Plan wählen“. Danach Free. Daten bleiben, Pro-Bereiche 90 Tage nur lesbar.
+- Kosten der Testphase: ca. 1 $ Erstlauf + 3–16 € KI je nach Firmengröße (`docs/ki-kosten-plaene.md`), höchstens ca. 25 €. Vertretbar.
 - PerLease: wie besprochen 2 Monate kostenlos (`PLAN.md`), danach Business.
 
 ### Kleinunternehmergrenze (§ 19 UStG, seit 2025)
@@ -206,7 +210,7 @@ Das Land richtet sich nach dem Firmensitz. Die Arbeitsoberfläche bleibt in alle
 2. Preise: 59 / 149 / 399 € und Jahresrabatt „2 Monate geschenkt“?
 3. Grenzen aus Abschnitt 2 (Nutzer, Einsatzkräfte, Steckbriefe, Länder) und Zusatzpreise.
 4. Länderpreise: PL in Złoty, ES/IT günstiger, US in Dollar, CH in Franken?
-5. 14 Tage Pro als Test für alle, PerLease 2 Monate frei?
+5. ~~14 Tage Pro als Test~~ → 30 Tage Pro für alle (Benjamin 03.11.2026); PerLease 2 Monate frei.
 6. Termin mit Steuerberater: Grenze, USt-IdNr, Auslandskunden, freiwilliger Verzicht auf § 19.
 
 **Danach (erst nach OK, Claude baut, Benjamin richtet Konten ein):**
