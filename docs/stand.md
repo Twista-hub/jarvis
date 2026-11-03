@@ -94,6 +94,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Anfragen PLACSP (datos.abiertos@hacienda.gob.es) und TenderNed (functioneelbeheer@tenderned.nl) am 03.11.2026 mit Benjamins OK verschickt (`alarm/anfrage_senden.py`, Workflow `anfrage-senden.yml`, Kopie an kontakt@). Entscheidungen Benjamin 03.11.: Stripe/Preise noch warten; Börse erst nach Anwalts-Check.
 - Entwurf Zusatzbedingungen Auftragsbörse mit Fragen an den Anwalt: `docs/recht/boerse-nutzungsbedingungen-entwurf.md`.
 - Nachkalkulation: `web/src/nachkalkulation.ts`, `/konto/nachkalkulation` (Finanzfreigabe): Plan- vs. Ist-Stunden je Kunde, Lohnkosten vs. Erlös (Rechnung oder geschätzt), DB mit Ampel; Tabellen `personal_loehne`, `nachkalkulation_werte` (Migration `20261103090000`).
+- Belege per KI auslesen: `web/src/belegleser.ts` + `belegleser.json` (Haiku 5.5, Ausgabelimit 1500), Knopf „🤖 Auslesen lassen“ unter Belege, Vorschlag ins Formular, Büro prüft und speichert. Qualitätstest `belegleser-test.yml` mit 20 selbst erzeugten Musterbelegen (`alarm/musterbelege.py`): 20/20 richtig (Datum, Betrag, Steuersatz, Lieferant, Kategorie), 0,03 Cent pro Beleg (Run 41593633989).
 
 ### 02./03.11.2026 – Claude (Nacht: KI-Kosten, Italien, Niederlande, Ideen, Abos)
 - KI-Kosten: Prompt-Caching und Haiku-Vorfilter (Schwelle 3, Sonnet bewertet endgültig), gemessen 51/51 Treffer erhalten, ca. 40–45 % billiger (`docs/ki-kosten.md`). Batch-API als nächster Hebel vorgeschlagen.
