@@ -24,6 +24,8 @@ test("XRechnung: Pflichtfelder, Beträge, Zeitraum, Bank, Escaping", () => {
   assert.match(klein, /<cbc:ID>E<\/cbc:ID><cbc:Percent>0\.00<\/cbc:Percent><cbc:TaxExemptionReason>/);
   assert.match(klein, /<cbc:PayableAmount currencyID="EUR">1000\.00</);
   assert.match(klein, /<cbc:ID>FC<\/cbc:ID>/);
+  assert.match(klein, /<cac:PartyIdentification><cbc:ID>203\/1\/2<\/cbc:ID><\/cac:PartyIdentification>/, "BR-CO-26: Kennung ohne USt-IdNr.");
+  assert.doesNotMatch(xml, /PartyIdentification/, "mit USt-IdNr. nicht nötig");
   assert.match(klein, /<cbc:PaymentMeansCode>1</);
   assert.deepEqual(bank("Konto: IBAN DE89 3704 0044 0532 0130 00"), { iban: "DE89370400440532013000" });
   assert.deepEqual(fehlendFuerXRechnung({ ...a, email: "" }, null), ["E-Mail der Firma", "Kunde"]);
