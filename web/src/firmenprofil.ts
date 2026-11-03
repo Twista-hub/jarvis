@@ -65,7 +65,7 @@ export function eigenerklaerungDocx(name: string, f: Firma, p: Profil | null, ke
   return wordDokument(body);
 }
 
-export function profilSeite(name: string, f: Firma, p: Profil | null, kennzahlen: Kennzahl[] | null, zert: Zertifikat[], o: { admin: boolean; heute: string }): string {
+export function profilSeite(name: string, f: Firma, p: Profil | null, kennzahlen: Kennzahl[] | null, zert: Zertifikat[], o: { admin: boolean; heute: string; finanzen?: boolean }): string {
   const q = p ?? LEER;
   const offen = fehlt(f, p, kennzahlen, zert, o.heute);
   const fertig = 9 - offen.filter((x) => !x.includes("erneuern")).length;
@@ -97,7 +97,7 @@ ${o.admin ? "<button>Speichern</button>" : '<p class="klein">Ändern dürfen Inh
 <label class="ganz">Bezeichnung (leer = Art)<input name="bezeichnung" maxlength="200"></label><label>Nummer<input name="nummer" maxlength="100"></label><label>Gültig bis<input name="gueltig_bis" type="date"></label>
 <label class="ganz">Aussteller<input name="aussteller" maxlength="200" placeholder="z. B. PQ-Verein, TÜV"></label></div><button>Speichern</button></form></details>` : "";
   return `${stand}
-<nav class="aktionsleiste"><a href="/konto/firmenprofil/eigenerklaerung.docx" download>📄 Eigenerklärung (Word)</a><a class="zweit" href="/konto/referenzen">📚 Referenzen</a></nav>
+<nav class="aktionsleiste"><a href="/konto/firmenprofil/eigenerklaerung.docx" download>📄 Eigenerklärung (Word)</a>${o.finanzen === false ? "" : `<a class="zweit" href="/konto/referenzen">📚 Referenzen</a>`}</nav>
 <h2>🏢 Stammdaten</h2>${stamm}
 <h2>🖼️ Logo</h2>${logo}
 <h2>📈 Umsatz und Beschäftigte</h2>${kz}
@@ -185,5 +185,5 @@ export async function firmenprofil(request: Request, env: KontoEnv): Promise<Res
   }
   const d = await profilLaden(f.s, env, firma, f.finanzen);
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${profilSeite(d.name, d.firma, d.profil, d.kennzahlen, d.zertifikate, { admin: f.admin, heute })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${profilSeite(d.name, d.firma, d.profil, d.kennzahlen, d.zertifikate, { admin: f.admin, heute, finanzen: f.finanzen })}`);
 }

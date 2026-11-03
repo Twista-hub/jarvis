@@ -3,7 +3,7 @@
 // by rundgang_scannen) and write guard log entries (report, incident, handover). Office: everything of the firm;
 // staff: only their own entries (row level security, migration 20261103040000).
 import { aktiveFirma } from "./firmenunterlagen.ts";
-import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
+import { db, html, sitzung, weiterleiten, type KontoEnv } from "./konto.ts";
 import { qrSvg } from "./qr.ts";
 import { escape, seite } from "./seite.ts";
 
@@ -55,7 +55,8 @@ export async function rundgaenge(request: Request, env: KontoEnv): Promise<Respo
   const scan = url.pathname.match(/^\/k\/([0-9a-f]{32})$/);
   if (!scan && !url.pathname.startsWith("/konto/rundgaenge")) return null;
   const f = await aktiveFirma(request, env);
-  if (!f) return weiterleiten(`/anmelden?weiter=${encodeURIComponent(url.pathname)}`);
+  // Not logged in → login (and back to the scanned point); logged in without firm → overview.
+  if (!f) return weiterleiten(await sitzung(request, env) ? "/konto" : `/anmelden?weiter=${encodeURIComponent(url.pathname)}`);
   if (scan) {
     const token = scan[1];
     const r = await db<{ punkt: string; ort: string; zeit: string; einsatzort_id: string; firma_id: string } | null>(f.s, env, "rpc/rundgang_scannen", { method: "POST", body: JSON.stringify({ token }) });

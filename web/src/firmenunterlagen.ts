@@ -1,4 +1,4 @@
-import { cookie, db, html, sitzung, weiterleiten, type KontoEnv } from "./konto.ts";
+import { COOKIE, cookie, db, html, sitzung, weiterleiten, type KontoEnv } from "./konto.ts";
 import { darfFinanzen } from "./rechte.ts";
 import { escape, seite } from "./seite.ts";
 import { NACHWEIS_TYPEN, vorhanden } from "./nachweise.ts";
@@ -16,8 +16,13 @@ export async function aktiveFirma(request: Request, env: KontoEnv, gewaehlt?: st
   if (!s) return null;
   const r = await db<{firma_id:string;rolle:string;finanzen:boolean;firmen:{name:string}}[]>(s,env,`mitglieder?user_id=eq.${s.userId}&aktiv=eq.true&select=firma_id,rolle,finanzen,firmen(name)&order=erstellt`);
   if (!r.ok) return null;
-  const firma = gewaehlt || new URL(request.url).searchParams.get("firma") || cookie(request,"jv_firma");
-  const m = firma ? r.daten.find((x)=>x.firma_id===firma) : r.daten[0];
+  // An explicit choice (argument or ?firma=) must be a firm of the user. The remembered firm (cookie) may be stale,
+  // e.g. after leaving or deleting a test firm: then take the first active firm like the overview does and repair the
+  // cookie (before, every tool page then bounced back to /konto, "Angebote" looked like it did nothing).
+  const ausdruecklich = gewaehlt || new URL(request.url).searchParams.get("firma");
+  const gemerkt = cookie(request,"jv_firma");
+  let m = ausdruecklich ? r.daten.find((x)=>x.firma_id===ausdruecklich) : (gemerkt ? r.daten.find((x)=>x.firma_id===gemerkt) : undefined) ?? r.daten[0];
+  if (!ausdruecklich && m && gemerkt && gemerkt !== m.firma_id) s.cookies.push(`jv_firma=${m.firma_id}; ${COOKIE}; Max-Age=${60 * 60 * 24 * 365}`);
   return m ? {s,m,admin:["inhaber","admin"].includes(m.rolle),finanzen:darfFinanzen(m.rolle,m.finanzen)} : null;
 }
 
