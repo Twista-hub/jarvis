@@ -1,0 +1,7 @@
+{
+  "ocid": "ocds-mnwr74-5c545fc0-7a49-47c7-8a55-74de14e14ccf",
+  "date": "2026-11-01T23:00:00.000Z",
+  "buyer": {"id": "ORG-0001", "name": "Stadt Musterstadt"},
+  "tender": {"id": "5c545fc0-7a49-47c7-8a55-74de14e14ccf", "title": "Relaunch der städtischen Website",
+             "tenderPeriod": {"endDate": "2026-11-30T11:00:00Z"}}
+}

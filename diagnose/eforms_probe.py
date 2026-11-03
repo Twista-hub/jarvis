@@ -28,14 +28,6 @@ print("== robots / Doku ==")
 r = get(f"{BASE}/robots.txt")
 if r:
     print(r.decode(errors="replace")[:1500])
-for p in ("/documentation/swagger-ui/index.html", "/documentation/api-docs", "/v3/api-docs", "/api/v3/api-docs",
-          "/documentation/swagger-ui/swagger-initializer.js"):
-    b = get(f"{BASE}{p}")
-    if b:
-        t = b.decode(errors="replace")
-        print(t[:800])
-        print("PFADE:", sorted(set(re.findall(r'"(/api/[^"]+)"', t)))[:60])
-
 print("== OCDS-Export ==")
 blob = get(f"{BASE}/api/notice-exports?pubDay={DAY}&format=ocds.zip")
 rels = []
@@ -47,7 +39,7 @@ with zipfile.ZipFile(io.BytesIO(blob)) as z:
                 if (rel.get("tender") or {}).get("title"):
                     rels.append((name, rel))
 print(len(rels), "Releases gelesen")
-for name, rel in rels[:3]:
+for name, rel in rels[:1]:
     print("--", name, "ocid", rel.get("ocid"), "id", rel.get("id"), "tag", rel.get("tag"), "date", rel.get("date"))
     print("   tender.id", (rel.get("tender") or {}).get("id"), "keys", sorted(rel))
     for k in ("relatedProcesses", "planning"):
@@ -87,3 +79,21 @@ if xb:
             treffer["NoticeID=release.id"] += nid in ids
             treffer["Dateiname=release.id"] += any(i in n for i in ids)
         print("ZUORDNUNG", treffer)
+
+print("== Neuer Abruf (alarm.eforms_text) mit Katalogzeilen ohne Release-ID ==")
+sys.path.insert(0, "alarm")
+from datetime import datetime, timezone
+from alarm import eforms_text
+geprueft = 0
+for _, rel in rels:
+    if geprueft >= 4 or not (rel.get("tag") and "tender" in rel["tag"]):
+        continue
+    if re.search(UUID, rel["ocid"]).group(0) == rel["id"] and geprueft >= 2:
+        continue
+    geprueft += 1
+    utc = datetime.fromisoformat(rel["date"]).astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    roh = {"ocid": rel["ocid"], "date": utc, "tender": rel["tender"]}
+    text = eforms_text(roh)
+    print(rel["ocid"], "Notice", rel["id"], "→", len(text), "Zeichen;", "Frist" if "TenderSubmissionDeadline" in text else "ohne Frist")
+    text = eforms_text(roh | {"id": rel["id"]})
+    print("   mit id →", len(text), "Zeichen")

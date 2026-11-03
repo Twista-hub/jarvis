@@ -154,32 +154,66 @@ def item(nr: int, rel: dict) -> dict:
             "ort": place(rel), "beschreibung": re.sub(r"\s+", " ", t.get("description", ""))[:1500], "cpv": cpv_codes(t)}
 
 
-def eforms_text(rel: dict) -> str:
-    """The full notice (eForms XML, same CC0 source) as 'field: value' lines: selection criteria,
-    award criteria, deadlines and lots that the OCDS export leaves out. '' if not available."""
-    # The notice id is the UUID inside the OCID (ocds-<prefix>-<uuid>); the release id may carry a version suffix.
-    kandidaten = [m.group(0) for f in (rel.get("ocid", ""), rel.get("id", ""))
-                  if (m := re.search(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", str(f)))]
-    root, fehler = None, ""
-    for notice_id in dict.fromkeys(kandidaten):
-        for version in ("", "&noticeVersion=1"):
-            url = f"https://oeffentlichevergabe.de/api/notices/{notice_id}?format=eforms{version}"
-            try:
-                with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=60) as r:
-                    root = ET.fromstring(r.read())
-                break
-            except Exception as e:  # noqa: BLE001
-                fehler = f"{url}: {e}"
-        if root is not None:
-            break
-    if root is None:
-        print(f"eForms nicht geladen ({fehler or 'keine Bekanntmachungs-ID'})", file=sys.stderr)
-        return ""
+UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+_EFORMS_TAGE: dict[str, list[tuple[str, str, bytes]]] = {}  # pubDay -> [(file name, ContractFolderID, XML)], per run
+
+
+def eforms_ids(rel: dict) -> tuple[str | None, str | None]:
+    """(notice id, procedure id). In the German export the release id is the notice id (BT-701, the file name
+    <id>-<version>.json) and the OCID ends with the procedure id (BT-04, cbc:ContractFolderID). The notice API
+    only knows the notice id; the procedure id matches only the first notice of some procedures."""
+    def uuid(v):
+        m = re.search(UUID, str(v or "").lower())
+        return m.group(0) if m else None
+    return uuid(rel.get("id")), uuid(rel.get("ocid"))
+
+
+def eforms_tage(rel: dict) -> list[str]:
+    """Publication day(s) for the daily eForms export: the release date in German time (the catalog stores it in UTC)."""
+    wert = str(rel.get("date") or "")
+    tage = []
+    try:
+        d = datetime.fromisoformat(wert.replace("Z", "+00:00"))
+        if d.tzinfo:
+            from zoneinfo import ZoneInfo
+            tage.append(d.astimezone(ZoneInfo("Europe/Berlin")).date().isoformat())
+    except ValueError:
+        pass
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", wert[:10]):
+        tage.append(wert[:10])
+    return list(dict.fromkeys(tage))
+
+
+def eforms_export_lesen(blob: bytes) -> list[tuple[str, str, bytes]]:
+    """All notices of one daily eForms export (zip of <notice id>-<version>.xml) with their procedure id."""
+    dateien = []
+    with zipfile.ZipFile(io.BytesIO(blob)) as z:
+        if sum(i.file_size for i in z.infolist()) > 200_000_000:
+            raise ValueError("eForms-Export zu groß")
+        for name in sorted(z.namelist()):
+            if name.endswith(".xml"):
+                xml = z.read(name)
+                m = re.search(rb"<cbc:ContractFolderID[^>]*>\s*([^<\s]+)", xml)
+                dateien.append((name.rsplit("/", 1)[-1].lower(), m.group(1).decode().lower() if m else "", xml))
+    return dateien
+
+
+def eforms_aus_export(dateien: list[tuple[str, str, bytes]], notice_id: str | None, verfahren: str | None) -> bytes | None:
+    """The notice itself (file name), else the newest notice of the same procedure published that day."""
+    if notice_id:
+        for name, _, xml in dateien:
+            if name.startswith(notice_id):
+                return xml
+    passend = [xml for name, folder, xml in dateien if verfahren and folder == verfahren]
+    return passend[-1] if passend else None
+
+
+def eforms_zeilen(xml: bytes) -> list[str]:
+    """eForms XML as 'path: value' lines (last three element names), without the UBL extensions."""
     zeilen, pfad = [], []
 
     def lauf(el):
-        name = el.tag.split("}")[-1]
-        pfad.append(name)
+        pfad.append(el.tag.split("}")[-1])
         text = (el.text or "").strip()
         if text and not len(el):
             zeilen.append(f"{'/'.join(pfad[-3:])}: {text}")
@@ -187,9 +221,54 @@ def eforms_text(rel: dict) -> str:
             lauf(kind)
         pfad.pop()
 
-    lauf(root)
+    lauf(ET.fromstring(xml))
+    return [z for z in zeilen if "UBLExtension" not in z]
+
+
+def _laden(url: str) -> bytes:
+    with urllib.request.urlopen(urllib.request.Request(url, headers=UA), timeout=120) as r:
+        return r.read()
+
+
+def eforms_text(rel: dict, laden=_laden) -> str:
+    """The full notice (eForms XML, same CC0 source) as 'field: value' lines: selection criteria,
+    award criteria, deadlines and lots that the OCDS export leaves out. '' if not available.
+    Order: notice API with the notice id (release id); the daily eForms export of the publication day, matched by
+    notice id or procedure id (catalog rows written before 03.11.2026 keep only the OCID); last the notice API with
+    the procedure id. One export download per day and run."""
+    notice_id, verfahren = eforms_ids(rel)
+    xml, fehler = None, []
+    if notice_id:
+        try:
+            xml = laden(f"https://oeffentlichevergabe.de/api/notices/{notice_id}?format=eforms")
+        except Exception as e:  # noqa: BLE001
+            fehler.append(f"Bekanntmachung {notice_id}: {e}")
+    if xml is None and (notice_id or verfahren):
+        for tag in eforms_tage(rel):
+            if tag not in _EFORMS_TAGE:
+                try:
+                    _EFORMS_TAGE[tag] = eforms_export_lesen(laden(f"https://oeffentlichevergabe.de/api/notice-exports?pubDay={tag}&format=eforms.zip"))
+                except Exception as e:  # noqa: BLE001
+                    fehler.append(f"eForms-Export {tag}: {e}")
+                    _EFORMS_TAGE[tag] = []
+            if xml := eforms_aus_export(_EFORMS_TAGE[tag], notice_id, verfahren):
+                break
+        else:
+            fehler.append(f"Verfahren {verfahren} nicht im eForms-Export {', '.join(eforms_tage(rel)) or '(ohne Datum)'}")
+    if xml is None and verfahren and verfahren != notice_id:
+        try:
+            xml = laden(f"https://oeffentlichevergabe.de/api/notices/{verfahren}?format=eforms")
+        except Exception as e:  # noqa: BLE001
+            fehler.append(f"Verfahren {verfahren}: {e}")
+    try:
+        zeilen = eforms_zeilen(xml) if xml else []
+    except ET.ParseError as e:
+        zeilen, fehler = [], fehler + [f"XML: {e}"]
+    if not zeilen:
+        print(f"eForms nicht geladen ({'; '.join(fehler) or 'keine Bekanntmachungs-ID'})", file=sys.stderr)
+        return ""
     print(f"eForms geladen: {len(zeilen)} Felder", file=sys.stderr)
-    return "\n".join(z for z in zeilen if "UBLExtension" not in z)[:50000]
+    return "\n".join(zeilen)[:50000]
 
 
 def sprach_arg(profile: dict) -> dict:

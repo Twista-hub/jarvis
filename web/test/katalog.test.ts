@@ -23,6 +23,13 @@ test("Inhaltscache bleibt trotz erneutem Veröffentlichungszeitpunkt gleich; Än
   assert.equal(c.titel, a.titel);
   assert.notEqual(c.version, a.version);
 });
+test("Rohdaten behalten die Bekanntmachungs-ID für den eForms-Abruf", async () => {
+  const n = (await normalisieren({ ...notice, ocid: "ocds-mnwr74-5c545fc0-7a49-47c7-8a55-74de14e14ccf", id: "7115ab0c-47ab-4401-91bc-76b316afaadd" }, "2026-11-02"))!;
+  assert.equal(n.roh.id, "7115ab0c-47ab-4401-91bc-76b316afaadd");
+  assert.equal(n.roh.ocid, "ocds-mnwr74-5c545fc0-7a49-47c7-8a55-74de14e14ccf");
+  const ohne = (await normalisieren(notice, "2026-10-29"))!;
+  assert.equal(ohne.version, (await normalisieren({ ...notice, id: "7115ab0c-47ab-4401-91bc-76b316afaadd" }, "2026-10-29"))!.version);
+});
 test("Lokale ORG-IDs verbinden unterschiedliche Auftraggeber nicht miteinander", async () => {
   const a = (await normalisieren(notice, "2026-10-29"))!;
   const b = (await normalisieren({ ...notice, ocid: "ocds-test-2", buyer: { id: "ORG-0001", name: "Andere Stadt" } }, "2026-10-29"))!;
