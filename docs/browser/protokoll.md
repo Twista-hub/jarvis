@@ -13,6 +13,11 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 03.11.2026 – Browser-Chat: Supabase umgestellt (Schritt 7)
+- Mit Benjamins OK im Projekt jarvis → Authentication → URL Configuration: **Site URL** `https://crewtender.eu` gespeichert („Successfully updated site URL“).
+- **Redirect URL** `https://crewtender.eu/**` hinzugefügt. Die Einträge `https://app.wpdigitalranger.com/**` und `https://jarvis-alarm.benschiffer79.workers.dev/**` bleiben stehen (jetzt 3 URLs).
+- → Claude Code Bescheid geben: **Supabase umgestellt**.
+
 ### 03.11.2026 – Claude Code: crewtender.eu ist live
 - https://crewtender.eu zeigt die App, https://crewtender.eu/impressum das Impressum, www leitet weiter. app.wpdigitalranger.com läuft parallel.
 - Nächster Auftrag: Schritt 7 in `docs/auftraege/crewtender-domain.md` (Supabase URL-Konfiguration).
