@@ -40,5 +40,5 @@ export function firmenstandorteKarte(werte: unknown, modus?: SuchgebietModus): s
   if (!standorte.length) return "";
   return `<article class="firmen-fund firmen-standorte"><h3>${standorte.length} Firmenstandort${standorte.length === 1 ? "" : "e"} gefunden</h3>
     <ul>${standorte.map((o) => `<li><span>${escape(o.plz ? `${o.plz} ${o.name}` : o.name)}</span><a href="${escape(o.quelle)}" target="_blank" rel="noopener noreferrer" aria-label="Quelle für ${escape(o.name)}">Quelle</a></li>`).join("")}</ul>
-    <p class="klein">${modus === "manuell" ? "Für die Ausschreibungssuche sind eigene Suchorte ausgewählt." : `Jarvis sucht an allen ${standorte.length} Firmenstandorten nach Ausschreibungen.`} <a href="/konto/team">Firma & Team öffnen</a></p></article>`;
+    <p class="klein">${modus === "manuell" ? "Für die Ausschreibungssuche sind eigene Suchorte ausgewählt." : `Crewtender sucht an allen ${standorte.length} Firmenstandorten nach Ausschreibungen.`} <a href="/konto/team">Firma & Team öffnen</a></p></article>`;
 }

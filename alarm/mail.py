@@ -20,7 +20,7 @@ import push
 from profile_db import sprache as profil_sprache, verbinden
 
 APP = "https://app.wpdigitalranger.com"
-ABSENDER = ("Jarvis", "kontakt@wpdigitalranger.com")
+ABSENDER = ("Crewtender", "kontakt@wpdigitalranger.com")
 BERLIN = ZoneInfo("Europe/Berlin")
 ERINNERN = (7, 2)  # days before the deadline
 MORGENS = 7  # hour of the phone notification on the deadline day
@@ -41,7 +41,7 @@ T = {
            "h_fristen": "⏰ Fristen bald", "abgabe": "Abgabe", "h_neu": "🔎 {n} neue Ausschreibungen", "frist_kl": "Frist",
            "h_nachweise": "📄 Firmen-Nachweise laufen bald ab", "gueltig": "gültig bis", "in_tagen": "in {n} Tagen",
            "fuss": "Uhrzeit ändern oder Mails abschalten: {app}/konto#mail", "b_neu": "{n} neue Ausschreibungen", "b_fristen": "Fristen-Erinnerung",
-           "b_nachweise": "Nachweise laufen bald ab", "fuer": " für {f}", "oeffnen": "Alle Treffer in Jarvis öffnen", "impressum": "Impressum"},
+           "b_nachweise": "Nachweise laufen bald ab", "fuer": " für {f}", "oeffnen": "Alle Treffer in Crewtender öffnen", "impressum": "Impressum"},
     "en": {"top1": "⭐ Top match {p}/10", "topn": "⭐ {n} top match{es} for {f}", "weitere": " · and {n} more", "frist": "⏰ Deadline {d}",
            "neu1": "New tender", "neun": "{n} new tender{s} for {f}", "fristen_bald": " · and {n} deadline{s} soon",
            "heute": "⏰ Today: {was} · {art} {z}", "heute1": "deadline", "heuten": "{n} deadlines", "Abgabe": "Bid due", "Fragen": "Questions due", "Termin": "Appointment",
@@ -49,7 +49,7 @@ T = {
            "h_fristen": "⏰ Deadlines coming up", "abgabe": "due", "h_neu": "🔎 {n} new tender{s}", "frist_kl": "deadline",
            "h_nachweise": "📄 Company documents expiring soon", "gueltig": "valid until", "in_tagen": "in {n} day{s}",
            "fuss": "Change the time or turn off emails: {app}/konto#mail", "b_neu": "{n} new tender{s}", "b_fristen": "Deadline reminder",
-           "b_nachweise": "Documents expiring soon", "fuer": " for {f}", "oeffnen": "Open all matches in Jarvis", "impressum": "Legal notice"},
+           "b_nachweise": "Documents expiring soon", "fuer": " for {f}", "oeffnen": "Open all matches in Crewtender", "impressum": "Legal notice"},
     # French: plural only where a plain "s" is enough ({s}); "Nouveau :" as a label avoids nouvel/nouveaux agreement.
     "fr": {"dp": "\u00a0:", "top1": "⭐ Meilleur résultat {p}/10", "topn": "⭐ {n} meilleurs résultats pour {f}", "weitere": " · et {n} de plus", "frist": "⏰ Date limite {d}",
            "neu1": "Nouvel appel d'offres", "neun": "Nouveau : {n} appel{s} d'offres pour {f}", "fristen_bald": " · et {n} échéance{s} proche{s}",
@@ -58,7 +58,7 @@ T = {
            "h_fristen": "⏰ Échéances proches", "abgabe": "remise", "h_neu": "🔎 Nouveau : {n} appel{s} d'offres", "frist_kl": "date limite",
            "h_nachweise": "📄 Justificatifs de l'entreprise bientôt expirés", "gueltig": "valable jusqu'au", "in_tagen": "dans {n} jour{s}",
            "fuss": "Changer l'heure ou désactiver les e-mails : {app}/konto#mail", "b_neu": "Nouveau : {n} appel{s} d'offres", "b_fristen": "Rappel d'échéance",
-           "b_nachweise": "Justificatifs bientôt expirés", "fuer": " pour {f}", "oeffnen": "Ouvrir tous les résultats dans Jarvis", "impressum": "Mentions légales"},
+           "b_nachweise": "Justificatifs bientôt expirés", "fuer": " pour {f}", "oeffnen": "Ouvrir tous les résultats dans Crewtender", "impressum": "Mentions légales"},
     # Polish: "Nowe: # …" as a label avoids case agreement with numbers; {s} is not used.
     "pl": {"top1": "⭐ Najlepsze dopasowanie {p}/10", "topn": "⭐ Najlepsze dopasowania ({n}) dla {f}", "weitere": " · i jeszcze {n}", "frist": "⏰ Termin {d}",
            "neu1": "Nowy przetarg", "neun": "Nowe przetargi dla {f}: {n}", "fristen_bald": " · terminy wkrótce: {n}",
@@ -67,7 +67,7 @@ T = {
            "h_fristen": "⏰ Zbliżające się terminy", "abgabe": "oferty do", "h_neu": "🔎 Nowe przetargi: {n}", "frist_kl": "termin",
            "h_nachweise": "📄 Dokumenty firmy wkrótce tracą ważność", "gueltig": "ważne do", "in_tagen": "za {n} dni",
            "fuss": "Zmień godzinę lub wyłącz e-maile: {app}/konto#mail", "b_neu": "Nowe przetargi: {n}", "b_fristen": "Przypomnienie o terminie",
-           "b_nachweise": "Dokumenty wkrótce tracą ważność", "fuer": " – {f}", "oeffnen": "Otwórz wszystkie wyniki w Jarvis", "impressum": "Nota prawna"},
+           "b_nachweise": "Dokumenty wkrótce tracą ważność", "fuer": " – {f}", "oeffnen": "Otwórz wszystkie wyniki w Crewtender", "impressum": "Nota prawna"},
     # Spanish: "Nuevas licitaciones: #" as a label avoids singular/plural agreement.
     "es": {"top1": "⭐ Mejor resultado {p}/10", "topn": "⭐ Mejores resultados ({n}) para {f}", "weitere": " · y {n} más", "frist": "⏰ Plazo {d}",
            "neu1": "Nueva licitación", "neun": "Nuevas licitaciones para {f}: {n}", "fristen_bald": " · plazos próximos: {n}",
@@ -76,7 +76,7 @@ T = {
            "h_fristen": "⏰ Plazos próximos", "abgabe": "ofertas hasta", "h_neu": "🔎 Nuevas licitaciones: {n}", "frist_kl": "plazo",
            "h_nachweise": "📄 Documentos de la empresa que caducan pronto", "gueltig": "válido hasta", "in_tagen": "en {n} días",
            "fuss": "Cambiar la hora o desactivar los correos: {app}/konto#mail", "b_neu": "Nuevas licitaciones: {n}", "b_fristen": "Recordatorio de plazo",
-           "b_nachweise": "Documentos que caducan pronto", "fuer": " – {f}", "oeffnen": "Abrir todos los resultados en Jarvis", "impressum": "Aviso legal"},
+           "b_nachweise": "Documentos que caducan pronto", "fuer": " – {f}", "oeffnen": "Abrir todos los resultados en Crewtender", "impressum": "Aviso legal"},
     # Italian: "Nuove gare: #" as a label avoids singular/plural agreement.
     "it": {"top1": "⭐ Miglior risultato {p}/10", "topn": "⭐ Migliori risultati ({n}) per {f}", "weitere": " · e altre {n}", "frist": "⏰ Scadenza {d}",
            "neu1": "Nuova gara", "neun": "Nuove gare per {f}: {n}", "fristen_bald": " · scadenze vicine: {n}",
@@ -85,7 +85,7 @@ T = {
            "h_fristen": "⏰ Scadenze vicine", "abgabe": "offerte entro", "h_neu": "🔎 Nuove gare: {n}", "frist_kl": "scadenza",
            "h_nachweise": "📄 Documenti aziendali in scadenza", "gueltig": "valido fino al", "in_tagen": "tra {n} giorni",
            "fuss": "Cambia l'orario o disattiva le e-mail: {app}/konto#mail", "b_neu": "Nuove gare: {n}", "b_fristen": "Promemoria scadenza",
-           "b_nachweise": "Documenti in scadenza", "fuer": " – {f}", "oeffnen": "Apri tutti i risultati in Jarvis", "impressum": "Note legali"},
+           "b_nachweise": "Documenti in scadenza", "fuer": " – {f}", "oeffnen": "Apri tutti i risultati in Crewtender", "impressum": "Note legali"},
 }
 
 
@@ -373,11 +373,11 @@ def nachricht(an: str, firma: str, neu: list, fristen: list, nachweise: list = (
     m["Subject"] = betreff + t["fuer"].format(f=firma)[:150]
     m["Message-ID"] = make_msgid(domain="wpdigitalranger.com")
     # Lets mail programs show an "unsubscribe" button; both lead to switching the mail off.
-    m["List-Unsubscribe"] = f"<mailto:{ABSENDER[1]}?subject=Jarvis-Mail%20abbestellen>, <{APP}/konto#mail>"
+    m["List-Unsubscribe"] = f"<mailto:{ABSENDER[1]}?subject=Crewtender-Mail%20abbestellen>, <{APP}/konto#mail>"
     m.set_content("\n".join(zeilen) + f"\n\n{fuss}\n")
     m.add_alternative(f"""<div style="font-family:system-ui,sans-serif;max-width:640px">{''.join(html_teile)}
 <p><a href="{APP}/konto">{t['oeffnen']}</a></p>
-<p style="color:#666;font-size:13px">{html.escape(fuss)}<br>Jarvis · WP Digital Ranger · <a href="{APP}/impressum">{t['impressum']}</a></p></div>""", subtype="html")
+<p style="color:#666;font-size:13px">{html.escape(fuss)}<br>Crewtender · WP Digital Ranger · <a href="{APP}/impressum">{t['impressum']}</a></p></div>""", subtype="html")
     return m
 
 

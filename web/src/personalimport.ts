@@ -1,4 +1,4 @@
-// Import staff from Excel (.xlsx) or CSV (G1): Jarvis recognises the columns, shows a preview and only imports
+// Import staff from Excel (.xlsx) or CSV (G1): Crewtender recognises the columns, shows a preview and only imports
 // after confirmation. Duplicates (same name, and same phone when both have one) are skipped.
 import { strFromU8, unzipSync } from "fflate";
 import { aktiveFirma } from "./firmenunterlagen.ts";
@@ -167,7 +167,7 @@ export function vorschauSeite(liste: Pruefung[], o: { spalten: Record<string, st
   const ohneOrt = liste.filter((z) => z.standort && !o.bereiche.some((b) => b.art === "standort" && norm(b.name) === norm(z.standort)));
   return `<p><strong>${escape(o.dateiname)}</strong>: ${liste.length} ${liste.length === 1 ? "Zeile" : "Zeilen"} gelesen, <strong>${gut.length}</strong> ${gut.length === 1 ? "Person wird" : "Personen werden"} importiert${liste.length - gut.length ? `, ${liste.length - gut.length} übersprungen` : ""}.</p>
 <p class="klein">Erkannte Spalten: ${Object.entries(o.spalten).map(([k, v]) => `${FELD_NAMEN[k] ?? k} ← „${escape(v)}“`).join(" · ") || "keine"}</p>
-${ohneOrt.length ? `<p class="hinweis">📍 ${ohneOrt.length} ${ohneOrt.length === 1 ? "Zeile nennt einen Standort" : "Zeilen nennen Standorte"}, die es in Jarvis nicht gibt (${[...new Set(ohneOrt.map((z) => z.standort))].slice(0, 3).map(escape).join(", ")}). Sie landen am gewählten Standort.</p>` : ""}
+${ohneOrt.length ? `<p class="hinweis">📍 ${ohneOrt.length} ${ohneOrt.length === 1 ? "Zeile nennt einen Standort" : "Zeilen nennen Standorte"}, die es in Crewtender nicht gibt (${[...new Set(ohneOrt.map((z) => z.standort))].slice(0, 3).map(escape).join(", ")}). Sie landen am gewählten Standort.</p>` : ""}
 <ul class="import-liste">${liste.slice(0, 200).map((z) => `<li class="${z.problem ? "uebersprungen" : ""}"><span aria-hidden="true">${z.problem ? "⚠️" : "✅"}</span><span><strong>${escape(`${z.vorname} ${z.nachname}`.trim() || "(ohne Namen)")}</strong><span class="klein">${escape([z.berufe.slice(0, 3).join(", "), z.telefon, ortName(z.bereich_id)].filter(Boolean).join(" · "))}${z.problem ? ` · <b>${escape(z.problem)}</b>` : ""}</span></span></li>`).join("")}</ul>
 ${liste.length > 200 ? `<p class="klein">Es werden die ersten 200 Zeilen gezeigt; importiert werden alle ${gut.length} gültigen.</p>` : ""}
 ${gut.length ? `<form method="post" action="/konto/personal/import/bestaetigen"><input type="hidden" name="schluessel" value="${escape(o.schluessel)}"><button>✅ ${gut.length} ${gut.length === 1 ? "Person" : "Personen"} importieren</button></form>` : `<p class="fehler">Keine Zeile kann importiert werden.</p>`}
@@ -176,12 +176,12 @@ ${gut.length ? `<form method="post" action="/konto/personal/import/bestaetigen">
 
 export function uploadSeite(bereiche: Bereich[], bereich: string, fehler = ""): string {
   const orte = bereiche.filter((b) => b.art === "standort");
-  return `${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}<p>Lade eine Excel-Datei (.xlsx) oder CSV mit deinem Personal hoch. Jarvis erkennt die Spalten selbst und zeigt dir vor dem Import eine Vorschau.</p>
+  return `${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}<p>Lade eine Excel-Datei (.xlsx) oder CSV mit deinem Personal hoch. Crewtender erkennt die Spalten selbst und zeigt dir vor dem Import eine Vorschau.</p>
 <form method="post" action="/konto/personal/import" enctype="multipart/form-data" class="upload-felder">
 ${orte.length ? `<label class="ganz">Standort (wenn die Datei keinen nennt)<select name="bereich"><option value="firma"${bereich === "firma" ? " selected" : ""}>Ohne Standort</option>${orte.map((b) => `<option value="${b.id}"${b.id === bereich ? " selected" : ""}>${escape(b.name)}</option>`).join("")}</select></label>` : `<input type="hidden" name="bereich" value="firma">`}
 <label class="ganz">Datei (.xlsx oder .csv, höchstens 2 MB und ${MAX_ZEILEN} Zeilen)<input type="file" name="datei" accept=".xlsx,.csv,text/csv" required></label>
 <button class="ganz">Vorschau anzeigen</button></form>
-<details class="klein-hilfe"><summary>Welche Spalten erkennt Jarvis?</summary><p>Vorname, Nachname (oder eine Spalte „Name“), Telefon/Handy, E-Mail, Beruf(e), Qualifikationen, Status, Standort und Notiz. Mehrere Berufe mit Komma trennen. Die erste Zeile muss die Spaltennamen enthalten.</p><p><a href="/konto/personal/import/vorlage.csv">⬇ Vorlage herunterladen</a></p></details>`;
+<details class="klein-hilfe"><summary>Welche Spalten erkennt Crewtender?</summary><p>Vorname, Nachname (oder eine Spalte „Name“), Telefon/Handy, E-Mail, Beruf(e), Qualifikationen, Status, Standort und Notiz. Mehrere Berufe mit Komma trennen. Die erste Zeile muss die Spaltennamen enthalten.</p><p><a href="/konto/personal/import/vorlage.csv">⬇ Vorlage herunterladen</a></p></details>`;
 }
 
 export const VORLAGE_CSV = "﻿Vorname;Nachname;Telefon;E-Mail;Berufe;Qualifikationen;Status;Standort;Notiz\r\nEva;Muster;0170 1234567;eva@example.de;Servicekraft, Koch/Köchin;Gesundheitszeugnis (§ 43 IfSG), Führerschein B;verfügbar;Berlin;nur Frühschicht\r\n";

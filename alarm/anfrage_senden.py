@@ -1,4 +1,4 @@
-"""Send one approved request from docs/anfragen/*.md via kontakt@wpdigitalranger.com (Jarvis' own mailbox).
+"""Send one approved request from docs/anfragen/*.md via kontakt@wpdigitalranger.com (Crewtender' own mailbox).
 
 The file names the recipient in the line "**An:** <address> …", the subject in "**Betreff:** …"; the mail text is the
 part between the first two lines that consist only of "---". A copy goes to kontakt@ (Bcc) as a record.

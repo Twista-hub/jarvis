@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { bewertungsErklaerung, cookie, jwt, konto, sicherWeiter, sitzung, startSucheFormular } from "../src/konto.ts";
 
 test("shows the AI match reason on the tender card", () => {
-  assert.equal(bewertungsErklaerung("## Jarvis-Bewertung\n\n**Gesucht:** Fliesenarbeiten.\n\n**Warum passend:** Passt zur Firmenleistung.\n\n## Kurzüberblick"), "Gesucht: Fliesenarbeiten. Warum passend: Passt zur Firmenleistung.");
+  assert.equal(bewertungsErklaerung("## Crewtender-Bewertung\n\n**Gesucht:** Fliesenarbeiten.\n\n**Warum passend:** Passt zur Firmenleistung.\n\n## Kurzüberblick"), "Gesucht: Fliesenarbeiten. Warum passend: Passt zur Firmenleistung.");
   assert.equal(bewertungsErklaerung("## Kurzüberblick\n\nNur Bekanntmachungsdaten."), "");
 });
 

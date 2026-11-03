@@ -15,6 +15,6 @@ export const regioneName = (c: string): string => LISTE[c] ?? c;
 export function regioneAuswahl(gewaehlt: string[]): string {
   const an = new Set(gewaehlt);
   return `<details${gewaehlt.length ? "" : " open"}><summary>Regionen in Italien <span class="check-zahl">${gewaehlt.length ? `${gewaehlt.length} ausgewählt` : "ganz Italien"}</span></summary>
-    <p class="klein">Jarvis zeigt nur Ausschreibungen aus den gewählten Regionen. Keine Auswahl bedeutet ganz Italien. Ändern kostet nichts extra.</p>
+    <p class="klein">Crewtender zeigt nur Ausschreibungen aus den gewählten Regionen. Keine Auswahl bedeutet ganz Italien. Ändern kostet nichts extra.</p>
     <div class="chips">${Object.entries(LISTE).map(([c, n]) => `<label><input type="checkbox" name="regioni" value="${c}"${an.has(c) ? " checked" : ""}><span>${escape(n)}</span></label>`).join("")}</div></details>`;
 }

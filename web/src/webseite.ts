@@ -183,7 +183,7 @@ export async function websiteKontext(raw: string, abrufen: typeof fetch = fetch)
   if (!normal) return { text: "", hinweis: "" };
   const url = new URL(normal);
   if (!isPublicWebsite(url)) return { text: "", hinweis: "Die Website-Adresse ist nicht für einen sicheren öffentlichen Abruf geeignet. Du kannst mit deiner Beschreibung fortfahren." };
-  const optionen = (): RequestInit => ({ redirect: "manual", signal: AbortSignal.timeout(5000), headers: { "user-agent": "Jarvis/1.0 (Firmenprofil; kontakt@wpdigitalranger.com)", accept: "text/plain,text/html" } });
+  const optionen = (): RequestInit => ({ redirect: "manual", signal: AbortSignal.timeout(5000), headers: { "user-agent": "Crewtender/1.0 (Firmenprofil; kontakt@wpdigitalranger.com)", accept: "text/plain,text/html" } });
   try {
     const robots = await abrufen(new URL("/robots.txt", url.origin), optionen());
     let regeln = "";
@@ -214,7 +214,7 @@ export async function websiteKontext(raw: string, abrufen: typeof fetch = fetch)
     // Put service pages first so a plain-text fallback sees their useful terms before home-page news.
     const text = [...unterseiten, haupttext].filter(Boolean).join("\n\n").slice(0, 15000);
     return text
-      ? { text, hinweis: `Jarvis hat die Startseite und ${unterseiten.filter(Boolean).length} passende Unterseite${unterseiten.filter(Boolean).length === 1 ? "" : "n"} geprüft; bitte prüfe die daraus abgeleiteten Leistungen.` }
+      ? { text, hinweis: `Crewtender hat die Startseite und ${unterseiten.filter(Boolean).length} passende Unterseite${unterseiten.filter(Boolean).length === 1 ? "" : "n"} geprüft; bitte prüfe die daraus abgeleiteten Leistungen.` }
       : { text: "", hinweis: "Die Website enthält keine lesbare Leistungsbeschreibung. Du kannst mit deiner Beschreibung fortfahren." };
   } catch {
     return { text: "", hinweis: "Die Website war gerade nicht erreichbar. Du kannst mit deiner Beschreibung fortfahren." };

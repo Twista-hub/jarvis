@@ -1,4 +1,4 @@
-// Idea 26 (docs/ideen-arbeitsoberflaeche.md): job exchange between Jarvis firms. BUILT, BUT SWITCHED OFF:
+// Idea 26 (docs/ideen-arbeitsoberflaeche.md): job exchange between Crewtender firms. BUILT, BUT SWITCHED OFF:
 // it goes live only when the terms of use were checked by a lawyer (platform duties under the DSA, notice procedure,
 // liability for subcontractors' minimum wage and social security) and Benjamin agreed. Then set BOERSE_AKTIV = true.
 // Firms post (part) jobs; office users of other firms register interest; contact details are exchanged only after
@@ -39,7 +39,7 @@ ${d.darf && j.status === "offen" ? `<span class="knopf-zeile">${knopf({ vergeben
 <label class="ganz">Titel<input name="titel" required minlength="3" maxlength="160" placeholder="z. B. Glasreinigung Bürohaus, 2 Tage"></label><label>Gewerk<select name="gewerk"><option value="">–</option>${GEWERKE.map((g) => `<option>${escape(g)}</option>`).join("")}</select></label>
 <label>PLZ<input name="plz" inputmode="numeric" pattern="\\d{5}" maxlength="5"></label><label>Ort<input name="ort" maxlength="100"></label><label>Von<input type="date" name="von" min="${d.heute}"></label><label>Bis<input type="date" name="bis" min="${d.heute}"></label>
 <label class="ganz">Beschreibung<textarea name="beschreibung" maxlength="2000" rows="3" placeholder="Umfang, Anforderungen (Zertifikate, Sprachen), keine Preise anderer Bieter"></textarea></label></div><button>Einstellen (30 Tage sichtbar)</button>
-<p class="klein">Sichtbar für Büro-Nutzer anderer Firmen in Jarvis: Firmenname, Titel, Gewerk, Ort, Zeitraum, Beschreibung. Deine Kontaktdaten sieht nur, wen du annimmst.</p></form></details>` : "";
+<p class="klein">Sichtbar für Büro-Nutzer anderer Firmen in Crewtender: Firmenname, Titel, Gewerk, Ort, Zeitraum, Beschreibung. Deine Kontaktdaten sieht nur, wen du annimmst.</p></form></details>` : "";
   return `<p class="klein">Aufträge oder Teil-Aufträge, die ihr allein nicht schafft, an andere Firmen geben – oder Aufträge anderer übernehmen. ${d.darf ? "" : "Als Leser kannst du nur ansehen."}</p>
 <p class="hinweis">⚖️ Wer einen Auftrag weitergibt, haftet für Mindestlohn und (im Bau) Sozialbeiträge des Nachunternehmers (§ 13 MiLoG, § 14 AEntG, § 28e SGB IV). Vor der Vergabe Nachweise einholen (z. B. Unbedenklichkeitsbescheinigungen). Keine Absprachen zu öffentlichen Ausschreibungen, bei denen ihr getrennt bietet (§ 1 GWB). Verstöße bitte mit „⚑ Melden“.</p>
 ${neu}<h2>📋 Meine Aufträge</h2>${eigeneHtml}

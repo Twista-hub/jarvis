@@ -50,8 +50,8 @@ export function buchungsstapel(e: DatevEinstellung, monat: string, buchungen: Bu
   const wjJahr = mon >= e.wjBeginn ? jahr : jahr - 1;
   const zeit = erstellt.toISOString().replace(/\D/g, "").slice(0, 17);
   const ende = new Date(Date.UTC(jahr, mon, 0)).toISOString().slice(0, 10);
-  const kopf = [q("EXTF"), "700", "21", q("Buchungsstapel"), "13", zeit, "", q("RE"), q("Jarvis"), q(""), e.berater, e.mandant,
-    `${wjJahr}${String(e.wjBeginn).padStart(2, "0")}01`, "4", ymd(`${monat}-01`), ymd(ende), q(text(`Jarvis ${monat}`, 30)), q(""), "1", "0", "0", q("EUR"), "", q(""), "", "", q(e.skr), "", "", q(""), q("")];
+  const kopf = [q("EXTF"), "700", "21", q("Buchungsstapel"), "13", zeit, "", q("RE"), q("Crewtender"), q(""), e.berater, e.mandant,
+    `${wjJahr}${String(e.wjBeginn).padStart(2, "0")}01`, "4", ymd(`${monat}-01`), ymd(ende), q(text(`Crewtender ${monat}`, 30)), q(""), "1", "0", "0", q("EUR"), "", q(""), "", "", q(e.skr), "", "", q(""), q("")];
   const zeilen = buchungen.map((b) => {
     const f: string[] = new Array(SPALTEN.length).fill("");
     f[0] = betrag(b.cent); f[1] = q(b.seite); f[2] = q("EUR"); f[6] = b.konto; f[7] = b.gegenkonto; f[8] = q(b.bu ?? "");
@@ -85,7 +85,7 @@ export function lodasDatei(e: Pick<DatevEinstellung, "berater" | "mandant">, mon
   const ohneNummer = zeilen.filter((z) => !/^\d{1,5}$/.test(z.personalnummer)).map((z) => z.name);
   const daten = zeilen.filter((z) => /^\d{1,5}$/.test(z.personalnummer)).flatMap((z) => werte.flatMap(([k, wert, bs]) => {
     const lohnart = (la[k] ?? "").trim(), w = Math.round(wert(z) * 100) / 100;
-    return /^\d{1,4}$/.test(lohnart) && w > 0 ? [`1;${z.personalnummer};${zeitraum};${zahl(w)};${bs};${lohnart};IMPORT Jarvis;`] : [];
+    return /^\d{1,4}$/.test(lohnart) && w > 0 ? [`1;${z.personalnummer};${zeitraum};${zahl(w)};${bs};${lohnart};IMPORT Crewtender;`] : [];
   }));
   const text = ["[Allgemein]", "Ziel=LODAS", "Version_SST=1.0", `BeraterNr=${e.berater}`, `MandantenNr=${e.mandant}`, "Feldtrennzeichen=;", "Zahlenkomma=,", "Datumsformat=TT.MM.JJJJ", "",
     "[Satzbeschreibung]", "1;u_lod_bwd_buchung_standard;pnr#bwd;abrechnung_zeitraum#bwd;bs_wert_butab#bwd;bs_nr#bwd;la_eigene#bwd;bemerkung#bwd;", "", "[Bewegungsdaten]", ...daten].join("\r\n") + "\r\n";

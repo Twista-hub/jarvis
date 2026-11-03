@@ -40,6 +40,6 @@ export function departementAuswahl(gewaehlt: string[]): string {
     return `<details${anzahl ? " open" : ""}><summary>${escape(region)}${anzahl ? ` <span class="check-zahl">${anzahl} ausgewählt</span>` : ""}</summary><div class="chips">${Object.entries(d).map(([c, n]) => `<label><input type="checkbox" name="departements" value="${c}"${an.has(c) ? " checked" : ""}><span>${c} ${escape(n)}</span></label>`).join("")}</div></details>`;
   }).join("");
   return `<details${gewaehlt.length ? "" : " open"}><summary>Départements in Frankreich <span class="check-zahl">${gewaehlt.length ? `${gewaehlt.length} ausgewählt` : "ganz Frankreich"}</span></summary>
-    <p class="klein">Jarvis zeigt nur Ausschreibungen aus den gewählten Départements. Keine Auswahl bedeutet ganz Frankreich. Ändern kostet nichts extra.</p>
+    <p class="klein">Crewtender zeigt nur Ausschreibungen aus den gewählten Départements. Keine Auswahl bedeutet ganz Frankreich. Ändern kostet nichts extra.</p>
     ${regionen}</details>`;
 }

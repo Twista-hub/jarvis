@@ -1,6 +1,6 @@
 // Personnel per location: tiles for the locations on "Firma & Team", one page per location with the workers
 // as cards (occupations, qualifications, wage group, phone, availability), and a message page that writes
-// a ready text (optionally about a tender) and opens WhatsApp, SMS or e-mail on the phone. Jarvis sends nothing itself.
+// a ready text (optionally about a tender) and opens WhatsApp, SMS or e-mail on the phone. Crewtender sends nothing itself.
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { akteAusFormular, akteFelder, akteZeile, nachweiseLaden, nachweisMarken, nachweisTeil, type Akte, type Nachweis } from "./personalakte.ts";
 import { bereicheLaden, db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
@@ -245,7 +245,7 @@ export function personalTeil(alle: Kraft[], url: URL, darfAendern: boolean, akti
   const weg = alle.filter((k) => abwesendAm(abw, k.id)).length;
   return `<p class="klein">${alle.filter((k) => k.status === "verfuegbar" && !abwesendAm(abw, k.id)).length} verfügbar · ${alle.filter((k) => k.status === "einsatz").length} im Einsatz${weg ? ` · ${weg} abwesend` : ""} · ${alle.length} gesamt</p>
 ${alle.length || darfAendern ? `<nav class="aktionsleiste kompakt">${darfAendern ? `<a href="#neu" data-oeffne="neu">＋ Neue Person</a><a class="zweit" href="/konto/personal/import?bereich=${escape(aktion.split("/").pop() ?? "firma")}">📥 Excel-Import</a>` : ""}${alle.length ? `<a class="zweit" href="/konto/rundnachricht">📣 Anschreiben</a>` : ""}</nav>` : ""}
-${hilfe("Welche Person soll ich eintragen?", "Erfasse nur Personen, die ihr für Einsätze einplant. Berufe helfen Jarvis, passende Kräfte für Ausschreibungen vorzuschlagen. Die Kontaktangaben nutzt dein Team direkt vom eigenen Gerät.")}
+${hilfe("Welche Person soll ich eintragen?", "Erfasse nur Personen, die ihr für Einsätze einplant. Berufe helfen Crewtender, passende Kräfte für Ausschreibungen vorzuschlagen. Die Kontaktangaben nutzt dein Team direkt vom eigenen Gerät.")}
 ${filter}
 <div class="personal-liste">${gezeigt.map((k) => kraftKarte(k, darfAendern, einsaetze.filter((e) => e.personal_id === k.id && e.status !== "abgesagt"), qualifikationen, tarife, abw, auegHinweise[k.id] ?? "", nachweise)).join("") || `<p>${alle.length ? "Niemand passt zu diesem Filter." : "Noch kein Personal eingetragen."}</p>`}</div>
 ${darfAendern ? `<details class="neu-person" id="neu"${alle.length ? "" : " open"}><summary>Person hinzufügen <span aria-hidden="true">+</span></summary>${kraftFormular({}, aktion, "Person speichern", qualifikationen, tarife)}</details>` : ""}
@@ -551,9 +551,9 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
 </form>
 ${url.searchParams.get("hinweis") ? `<p role="status"><strong>${escape(url.searchParams.get("hinweis")!)}</strong></p>` : ""}
 <div class="person-aktionen gross">${knoepfe || `<p>Für ${escape(kraft.vorname)} ist keine Telefonnummer oder E-Mail eingetragen.</p>`}</div>
-${hilfe("Was passiert beim Senden?", "WhatsApp, SMS oder E-Mail öffnet die jeweilige App mit einem vorbereiteten Text. Du kannst ihn vor dem Senden ändern. Jarvis verschickt die Nachricht nicht selbst.")}
+${hilfe("Was passiert beim Senden?", "WhatsApp, SMS oder E-Mail öffnet die jeweilige App mit einem vorbereiteten Text. Du kannst ihn vor dem Senden ändern. Crewtender verschickt die Nachricht nicht selbst.")}
 ${gewaehlt && darfAendern ? `<form method="post" action="/konto/vorgang/${gewaehlt.id}/einsatz"><input type="hidden" name="personal" value="${pid}"><input type="hidden" name="status" value="angefragt"><input type="hidden" name="zurueck" value="/konto/personal/${pid}/nachricht?vorgang=${gewaehlt.id}"><button>📨 Bei der Ausschreibung als „angefragt“ eintragen</button></form>` : ""}
-<p class="klein">Die Nachricht geht von deinem Handy aus, mit deiner Nummer bzw. deinem Mailprogramm. Jarvis verschickt selbst nichts.</p>`);
+<p class="klein">Die Nachricht geht von deinem Handy aus, mit deiner Nummer bzw. deinem Mailprogramm. Crewtender verschickt selbst nichts.</p>`);
 }
 
 /** Removes a deleted person's files from R2: photo and everything under personal_nachweise/<firma>/<person>/. */

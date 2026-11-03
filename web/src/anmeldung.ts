@@ -66,7 +66,7 @@ export function registrierFormular(w: Registrierung, fehler = "", weiter = "/kon
   ${eingeladen ? "" : `<fieldset><legend>Firma</legend>
     ${feld("firma", "Name der Firma", `required minlength="2" maxlength="200" autocomplete="organization" placeholder="z. B. Muster GmbH"`)}
     ${feld("website", "Firmenwebsite – für bessere Ergebnisse empfohlen", `type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" aria-describedby="website-empfehlung"`)}
-    <p class="klein" id="website-empfehlung">Mit eurer Website erkennt Jarvis eure Leistungen und Standorte genauer und findet passendere Ausschreibungen. Nach der E-Mail-Bestätigung startet die Firmenprüfung automatisch. Ohne Website ist die Registrierung auch möglich.</p>
+    <p class="klein" id="website-empfehlung">Mit eurer Website erkennt Crewtender eure Leistungen und Standorte genauer und findet passendere Ausschreibungen. Nach der E-Mail-Bestätigung startet die Firmenprüfung automatisch. Ohne Website ist die Registrierung auch möglich.</p>
     ${feld("strasse", "Straße und Hausnummer", `required maxlength="200" autocomplete="street-address"`)}
     ${feld("plz", "PLZ", `required pattern="[0-9]{5}" inputmode="numeric" maxlength="5" autocomplete="postal-code"`)}
     ${feld("ort", "Ort", `required maxlength="100" autocomplete="address-level2"`)}
@@ -183,7 +183,7 @@ export function registrierungPruefen(w: Registrierung, passwort: string, zustimm
   if (!EMAIL.test(w.email ?? "")) return "Bitte eine gültige E-Mail-Adresse eingeben.";
   if (passwort.length < MIN_PASSWORT) return `Das Passwort braucht mindestens ${MIN_PASSWORT} Zeichen.`;
   // B2B only (terms § 1, § 14 BGB): the firm owner confirms acting as a business, not as a consumer.
-  if (!eingeladen && !unternehmer) return "Jarvis ist nur für Unternehmen. Bitte bestätigen, dass du für ein Unternehmen handelst.";
+  if (!eingeladen && !unternehmer) return "Crewtender ist nur für Unternehmen. Bitte bestätigen, dass du für ein Unternehmen handelst.";
   if (!zustimmung) return "Bitte den Nutzungsbedingungen zustimmen.";
   return "";
 }

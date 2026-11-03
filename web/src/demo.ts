@@ -1,4 +1,4 @@
-// Demo without registration: the real pages of Jarvis with sample data of a fictitious firm. Nothing is read from or
+// Demo without registration: the real pages of Crewtender with sample data of a fictitious firm. Nothing is read from or
 // written to the database; forms are blocked in the browser (app.js, body[data-demo]) and every link into the app
 // is rewritten to the demo. Lets interested firms look around before they register.
 import { KI_KENNUNG } from "./ki-kennung.ts";
@@ -21,7 +21,7 @@ const montagVon = (heute: string) => { const d = new Date(`${heute}T12:00:00Z`);
 const PERSONEN = [["p1", "Eva", "Schneider", "Servicekraft"], ["p2", "Mehmet", "Kaya", "Reinigungskraft"], ["p3", "Anna", "Nowak", "Reinigungskraft"], ["p4", "Tom", "Becker", "Hausmeister"], ["p5", "Lena", "Wolf", "Servicekraft"]]
   .map(([id, vorname, nachname, beruf]) => ({ id, vorname, nachname, bereich_id: null, status: "verfuegbar", berufe: [beruf] }));
 
-const bewertung = (gesucht: string, warum: string) => `## Jarvis-Bewertung\n\n**Gesucht:** ${gesucht}\n\n**Warum passend:** ${warum}\n\n`;
+const bewertung = (gesucht: string, warum: string) => `## Crewtender-Bewertung\n\n**Gesucht:** ${gesucht}\n\n**Warum passend:** ${warum}\n\n`;
 const KURZ = `## Auf einen Blick
 
 | | |
@@ -93,7 +93,7 @@ const reiter = (aktiv: string) => `<nav class="ordner-chips demo-reiter" aria-la
 export function demoSeite(pfad: string, heute: string, muster: string, sprache = "de"): { titel: string; inhalt: string } | null {
   const v = vorgaenge(heute, muster);
   const teil = pfad.replace(/^\/demo\/?/, "");
-  if (!teil) return { titel: "Jarvis ausprobieren", inhalt: `${banner}<p>So arbeitet <strong>${FIRMA}</strong> mit Jarvis: passende öffentliche Ausschreibungen jeden Morgen, Steckbriefe mit Losen und Stunden, Schichtplan, Stundenzettel und Leistungsnachweis – und eine App für die Einsatzkräfte.</p>
+  if (!teil) return { titel: "Crewtender ausprobieren", inhalt: `${banner}<p>So arbeitet <strong>${FIRMA}</strong> mit Crewtender: passende öffentliche Ausschreibungen jeden Morgen, Steckbriefe mit Losen und Stunden, Schichtplan, Stundenzettel und Leistungsnachweis – und eine App für die Einsatzkräfte.</p>
 <div class="konto-kacheln team-werkzeuge">${Object.entries(DEMO_SEITEN).map(([k, t]) => `<a class="konto-kachel" href="/demo/${k}"><span class="konto-icon" aria-hidden="true">${t.split(" ")[0]}</span><strong>${escape(t.slice(t.indexOf(" ") + 1))}</strong><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>
 <p><a class="knopf" href="/registrieren">Jetzt kostenlos registrieren</a></p>` };
   if (teil === "treffer") return { titel: "Ausschreibungen", inhalt: `${banner}${reiter("treffer")}${trefferListe(v as never, () => "", "", "/demo/treffer")}` };

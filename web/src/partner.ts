@@ -1,5 +1,5 @@
 // N11: Nachunternehmer & Partner. The firm's own partner firms per trade, and requests per tender and lot with status.
-// Jarvis sends nothing: "Anfrage per Mail" opens the user's own mail program with a prepared text.
+// Crewtender sends nothing: "Anfrage per Mail" opens the user's own mail program with a prepared text.
 import { bgeErklaerungDocx, bgeTeilHtml, passendePartner } from "./bietergemeinschaft.ts";
 import { wordAntwort } from "./word.ts";
 import { aktiveFirma } from "./firmenunterlagen.ts";
@@ -55,7 +55,7 @@ ${o.darfAendern ? `<div class="frage-aktionen">${p?.email && a.status === "angef
   };
   const neu = o.darfAendern ? (partner.length ? `<form method="post" action="/konto/vorgang/${v.id}/partner" class="anfrage-neu"><input type="hidden" name="aktion" value="neu"><div class="aueg-form"><label>Partner<select name="partner" required>${partner.map((p) => `<option value="${p.id}">${escape(p.name)}${p.gewerke.length ? ` (${escape(p.gewerke.slice(0, 2).join(", "))})` : ""}</option>`).join("")}</select></label><label>Los oder Leistung<input name="los" maxlength="200" placeholder="z. B. Los 2 Elektro"></label></div><button>Anfrage festhalten</button></form>` : `<p class="klein">Noch keine Partner. <a href="/konto/partner">Partner eintragen</a></p>`) : "";
   const zugesagt = anfragen.filter((a) => a.status === "zugesagt").length;
-  return `<h2 id="partner">🤝 Nachunternehmer <span class="klein">${anfragen.length ? `${anfragen.length} angefragt${zugesagt ? ` · ${zugesagt} zugesagt` : ""}` : ""}</span></h2>${anfragen.length ? `<ul class="frage-liste">${anfragen.map(zeile).join("")}</ul>` : ""}${neu}<p class="klein">Nachunternehmer müssen oft im Angebot benannt werden (Nachunternehmerverzeichnis). „✉️ Mail“ öffnet dein Mailprogramm mit einem vorbereiteten Text; Jarvis verschickt nichts selbst.</p>${bgeTeilHtml(v, passendePartner(`${v.titel} ${typeof v.steckbrief === "string" ? v.steckbrief : JSON.stringify(v.steckbrief ?? "")}`, partner, anfragen), zugesagt, o.darfAendern)}`;
+  return `<h2 id="partner">🤝 Nachunternehmer <span class="klein">${anfragen.length ? `${anfragen.length} angefragt${zugesagt ? ` · ${zugesagt} zugesagt` : ""}` : ""}</span></h2>${anfragen.length ? `<ul class="frage-liste">${anfragen.map(zeile).join("")}</ul>` : ""}${neu}<p class="klein">Nachunternehmer müssen oft im Angebot benannt werden (Nachunternehmerverzeichnis). „✉️ Mail“ öffnet dein Mailprogramm mit einem vorbereiteten Text; Crewtender verschickt nichts selbst.</p>${bgeTeilHtml(v, passendePartner(`${v.titel} ${typeof v.steckbrief === "string" ? v.steckbrief : JSON.stringify(v.steckbrief ?? "")}`, partner, anfragen), zugesagt, o.darfAendern)}`;
 }
 
 export async function partnerTeil(s: Sitzung, env: KontoEnv, v: { id: string; titel: string; frist: string | null; firma_id: string; steckbrief?: unknown }, rolle: string, finanzen: boolean, firma: string): Promise<string> {

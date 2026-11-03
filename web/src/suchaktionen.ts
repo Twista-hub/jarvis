@@ -35,7 +35,7 @@ document.querySelectorAll("form[data-suchaktion]").forEach(function (form) {
     }
     status.className = "laedt";
     busyStatus = status;
-    status.textContent = ziel.endsWith("/vorschau") ? "Jarvis zählt die passenden Ausschreibungen der letzten 7 Tage …" : recherche ? "Jarvis prüft eure Leistungen und Standorte. Das kann einige Minuten dauern. Danach geht es automatisch weiter." : "Jarvis startet die Suche nach Ausschreibungen. Bitte warte kurz …";
+    status.textContent = ziel.endsWith("/vorschau") ? "Crewtender zählt die passenden Ausschreibungen der letzten 7 Tage …" : recherche ? "Crewtender prüft eure Leistungen und Standorte. Das kann einige Minuten dauern. Danach geht es automatisch weiter." : "Crewtender startet die Suche nach Ausschreibungen. Bitte warte kurz …";
     var spinner = document.createElement("span");
     spinner.className = "kreisel";
     spinner.setAttribute("aria-hidden", "true");

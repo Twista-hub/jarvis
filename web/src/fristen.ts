@@ -74,9 +74,9 @@ export function ics(v: FristVorgang, link: string, jetzt = new Date()): string {
   const start = new Date(v.frist!);
   const text = (x: string) => x.replace(/\\/g, "\\\\").replace(/[,;]/g, (c) => `\\${c}`).replace(/\r?\n/g, "\\n");
   return [
-    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//WP Digital Ranger//Jarvis//DE", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
+    "BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//WP Digital Ranger//Crewtender//DE", "CALSCALE:GREGORIAN", "BEGIN:VEVENT",
     `UID:frist-${v.id}@app.wpdigitalranger.com`, `DTSTAMP:${stempel(jetzt)}`, `DTSTART:${stempel(start)}`, `DTEND:${stempel(new Date(start.getTime() + 30 * 60_000))}`,
-    `SUMMARY:${text(`Abgabefrist: ${v.titel}`.slice(0, 200))}`, `DESCRIPTION:${text(`Ausschreibung in Jarvis: ${link}`)}`, `URL:${link}`,
+    `SUMMARY:${text(`Abgabefrist: ${v.titel}`.slice(0, 200))}`, `DESCRIPTION:${text(`Ausschreibung in Crewtender: ${link}`)}`, `URL:${link}`,
     "BEGIN:VALARM", "TRIGGER:-P1D", "ACTION:DISPLAY", "DESCRIPTION:Abgabefrist morgen", "END:VALARM",
     "BEGIN:VALARM", "TRIGGER:-PT2H", "ACTION:DISPLAY", "DESCRIPTION:Abgabefrist in 2 Stunden", "END:VALARM",
     "END:VEVENT", "END:VCALENDAR", "",
@@ -89,7 +89,7 @@ export type Kalendereintrag = { uid: string; titel: string; zeit: string; text: 
 export function icsKalender(eintraege: Kalendereintrag[], jetzt = new Date()): string {
   const stempel = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
   const text = (x: string) => x.replace(/\\/g, "\\\\").replace(/[,;]/g, (c) => `\\${c}`).replace(/\r?\n/g, "\\n");
-  const zeilen = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//WP Digital Ranger//Jarvis//DE", "CALSCALE:GREGORIAN", "X-WR-CALNAME:Jarvis Fristen", "REFRESH-INTERVAL;VALUE=DURATION:PT6H"];
+  const zeilen = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//WP Digital Ranger//Crewtender//DE", "CALSCALE:GREGORIAN", "X-WR-CALNAME:Crewtender Fristen", "REFRESH-INTERVAL;VALUE=DURATION:PT6H"];
   for (const e of eintraege) {
     const start = new Date(e.zeit);
     if (!Number.isFinite(start.getTime())) continue;
@@ -140,5 +140,5 @@ export function fristenSeite(liste: FristVorgang[], opts: { erledigte: boolean; 
   const schalter = `<p class="frist-schalter"><a href="/konto/fristen${opts.erledigte ? "" : "?erledigte=1"}">${opts.erledigte ? "Erledigte ausblenden" : `Erledigte zeigen${erledigt.length ? ` (${erledigt.length})` : ""}`}</a></p>`;
   const alte = opts.erledigte && erledigt.length ? `<h2 class="frist-gruppe">Erledigt oder abgelaufen</h2><ul class="fristen-liste">${erledigt.map(eintrag).join("")}</ul>` : "";
   const filter = opts.tag ? `<p class="tag-filter">Nur ${new Date(opts.tag + "T12:00:00Z").toLocaleDateString("de-DE", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" })} <a href="/konto/fristen?monat=${opts.monat}" aria-label="Filter aufheben">✕ Alle zeigen</a></p>` : "";
-  return `${monatsKalender(alleOffen, opts.monat, jetzt, opts.tag ?? "")}${filter}${opts.terminForm ?? ""}${listen}${alte}${schalter}${opts.abo ?? ""}<p class="klein">Jarvis erinnert dich zusätzlich 7 und 2 Tage vorher per täglicher Nachricht und am Morgen des Fristtags aufs Handy.</p>`;
+  return `${monatsKalender(alleOffen, opts.monat, jetzt, opts.tag ?? "")}${filter}${opts.terminForm ?? ""}${listen}${alte}${schalter}${opts.abo ?? ""}<p class="klein">Crewtender erinnert dich zusätzlich 7 und 2 Tage vorher per täglicher Nachricht und am Morgen des Fristtags aufs Handy.</p>`;
 }

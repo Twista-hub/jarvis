@@ -55,7 +55,7 @@ export const erinnerungsTitel = (titel: string) => `🔮 Neuausschreibung erwart
 export function radarSeite(liste: RadarEintrag[], o: { heute: string; monate: number; darfErinnern: boolean; admin: boolean; darfUebernehmen: boolean;
   beobachtet: Set<string>; erinnert: Map<string, string>; profilFehlt?: boolean }): string {
   const chips = `<nav class="ordner-chips" aria-label="Zeitraum">${ZEITRAEUME.map((m) => `<a href="/konto/radar?monate=${m}"${m === o.monate ? ' aria-current="true"' : ""}>${m < 24 ? `${m} Monate` : `${m / 12} Jahre`}</a>`).join("")}</nav>`;
-  const intro = `<p class="klein">Vergebene Aufträge aus deinem Bereich, deren Vertrag bald endet. Auftraggeber schreiben meist einige Monate vorher neu aus. Jarvis zeigt dir das ${VORLAUF_MONATE} Monate vor Vertragsende als „Vorbereitung ab“.</p>`;
+  const intro = `<p class="klein">Vergebene Aufträge aus deinem Bereich, deren Vertrag bald endet. Auftraggeber schreiben meist einige Monate vorher neu aus. Crewtender zeigt dir das ${VORLAUF_MONATE} Monate vor Vertragsende als „Vorbereitung ab“.</p>`;
   if (o.profilFehlt) return `${intro}<p class="treffer-leer">Lege zuerst dein <a href="/konto/suchprofil">Suchprofil</a> an. Der Radar nutzt dieselben Wörter, Kennziffern und dasselbe Gebiet.</p>`;
   const zeile = (e: RadarEintrag) => {
     const ab = vorbereitungAb(e.ende, o.heute), vorbei = e.ende < o.heute, bald = !vorbei && ab <= o.heute;

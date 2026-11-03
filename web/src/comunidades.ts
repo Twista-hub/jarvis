@@ -15,6 +15,6 @@ export const comunidadName = (c: string): string => LISTE[c] ?? c;
 export function comunidadAuswahl(gewaehlt: string[]): string {
   const an = new Set(gewaehlt);
   return `<details${gewaehlt.length ? "" : " open"}><summary>Regionen in Spanien <span class="check-zahl">${gewaehlt.length ? `${gewaehlt.length} ausgewählt` : "ganz Spanien"}</span></summary>
-    <p class="klein">Jarvis zeigt nur Ausschreibungen aus den gewählten Regionen (Comunidades Autónomas). Keine Auswahl bedeutet ganz Spanien. Ändern kostet nichts extra.</p>
+    <p class="klein">Crewtender zeigt nur Ausschreibungen aus den gewählten Regionen (Comunidades Autónomas). Keine Auswahl bedeutet ganz Spanien. Ändern kostet nichts extra.</p>
     <div class="chips">${Object.entries(LISTE).map(([c, n]) => `<label><input type="checkbox" name="comunidades" value="${c}"${an.has(c) ? " checked" : ""}><span>${escape(n)}</span></label>`).join("")}</div></details>`;
 }

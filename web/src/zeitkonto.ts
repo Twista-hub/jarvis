@@ -18,7 +18,7 @@ const mName = (m: string) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString("d
 /** Month by month from the start date to `bis` (inclusive): target, actual, plus/minus and running balance (minutes). */
 export function zeitkonto(p: ZPerson, start: Start | undefined, stunden: Std[], abw: Abw[], land: string, bis: string): Monat[] {
   const woche = Number(p.wochenstunden ?? 0);
-  // Without a start date: from the first time sheet in Jarvis (not from the joining date, which would count years
+  // Without a start date: from the first time sheet in Crewtender (not from the joining date, which would count years
   // without recorded hours as minus hours).
   const erster = stunden.filter((s) => s.personal_id === p.id).map((s) => s.datum).sort()[0];
   const ab = start?.ab ?? (erster && p.eintritt && p.eintritt > erster ? p.eintritt : erster);
@@ -52,7 +52,7 @@ export function zeitkontoSeite(personen: ZPerson[], starts: Start[], stunden: St
 ${m.length ? `<table class="auswertung-tabelle zu-tabelle"><thead><tr><th>Monat</th><th>Soll</th><th>Ist</th><th>+/−</th><th>Stand</th></tr></thead><tbody>${[...m].reverse().slice(0, 12).map((x) => `<tr><td>${mName(x.monat)}</td><td>${hm(x.soll).slice(1)}</td><td>${hm(x.ist).slice(1)}</td><td class="${x.saldo < 0 ? "minus" : ""}">${hm(x.saldo)}</td><td><strong>${hm(x.stand)}</strong></td></tr>`).join("")}</tbody></table>` : `<p class="klein">Noch kein Startdatum und keine Stunden.</p>`}
 ${o.darfAendern ? `<form method="post" action="/konto/zeitkonto" class="zeile-form"><input type="hidden" name="person" value="${p.id}"><label>Konto ab<input type="date" name="ab" value="${escape(st?.ab ?? o.heute.slice(0, 8) + "01")}"></label><label>Startsaldo (Std.)<input name="saldo" inputmode="decimal" maxlength="7" value="${st ? String(Math.round((st.startsaldo_min / 60) * 100) / 100).replace(".", ",") : "0"}"></label><button class="zweit">Speichern</button></form>` : ""}</details>`;
   }).join("");
-  return `<p class="klein">Soll = Wochenstunden ÷ 5 pro Arbeitstag Mo–Fr (ohne Feiertage, Urlaub und andere bestätigte Abwesenheit). Ist = freigegebene Stunden; offene Stundenzettel zählen erst nach der Freigabe. Ohne eigenes Startdatum zählt das Konto ab dem ersten Stundenzettel in Jarvis. Überstunden aus der Zeit davor trägst du als Startsaldo ein.</p>
+  return `<p class="klein">Soll = Wochenstunden ÷ 5 pro Arbeitstag Mo–Fr (ohne Feiertage, Urlaub und andere bestätigte Abwesenheit). Ist = freigegebene Stunden; offene Stundenzettel zählen erst nach der Freigabe. Ohne eigenes Startdatum zählt das Konto ab dem ersten Stundenzettel in Crewtender. Überstunden aus der Zeit davor trägst du als Startsaldo ein.</p>
 ${karten || `<p class="treffer-leer">Noch niemand mit Wochenstunden.</p>`}${ohne.length ? `<p class="klein">Ohne Wochenstunden (in der Personalakte eintragen): ${ohne.map((p) => escape(`${p.vorname} ${p.nachname}`.trim())).join(", ")}</p>` : ""}`;
 }
 

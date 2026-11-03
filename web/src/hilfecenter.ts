@@ -9,21 +9,21 @@ export type Anleitung = { slug: string; icon: string; titel: string; fuer: strin
 export const ANLEITUNGEN: Anleitung[] = [
   { slug: "erste-schritte", icon: "🚀", titel: "Erste Schritte: Konto und Firma einrichten", fuer: "Inhaber, Geschäftsführung", kurz: "Registrieren, E-Mail bestätigen, Firmenprüfung abwarten.", schritte: [
     ["Auf „Registrieren“ tippen und Vor- und Nachname, Firma, Anschrift und E-Mail eintragen. Bestätigen, dass du für ein Unternehmen handelst, und den Nutzungsbedingungen zustimmen.", "/registrieren", "Registrieren"],
-    ["Die Firmenwebsite angeben. Damit erkennt Jarvis eure Leistungen und Standorte und schaltet die KI-Funktionen für die Probezeit frei. Ohne Website startet ein Demo-Modus ohne KI."],
+    ["Die Firmenwebsite angeben. Damit erkennt Crewtender eure Leistungen und Standorte und schaltet die KI-Funktionen für die Probezeit frei. Ohne Website startet ein Demo-Modus ohne KI."],
     ["Den Link in der Bestätigungsmail antippen. Du bist danach direkt angemeldet; die Firmenprüfung startet von selbst und dauert ein bis zwei Minuten."],
     ["Das vorgeschlagene Suchprofil prüfen und speichern (siehe Anleitung „Suchprofil“).", "/konto/suchprofil", "Suchprofil öffnen"],
     ["Im Firmenprofil das Land der Firma prüfen. Schichtplan, Stunden, Lohn und Rechnungen nach deutschem Recht gibt es nur für Firmen in Deutschland.", "/konto/firmenprofil", "Firmenprofil öffnen"],
-  ], tipps: ["Jarvis auf dem Handy öffnen und zum Home-Bildschirm hinzufügen, dann fühlt es sich an wie eine App."] },
+  ], tipps: ["Crewtender auf dem Handy öffnen und zum Home-Bildschirm hinzufügen, dann fühlt es sich an wie eine App."] },
   { slug: "suchprofil", icon: "🔎", titel: "Suchprofil: die passenden Ausschreibungen finden", fuer: "Büro, Vertrieb", kurz: "Arbeiten, Orte, Umkreis und Ausschlusswörter einstellen.", schritte: [
     ["Mehr → Suchprofil öffnen.", "/konto/suchprofil", "Suchprofil öffnen"],
     ["Unter „Arbeiten“ eintragen, was ihr macht (z. B. Unterhaltsreinigung, Objektschutz). Suchwörter ergänzen, die in Ausschreibungen vorkommen."],
     ["Einsatzorte mit Umkreis festlegen oder ganze Bundesländer bzw. Länder wählen."],
     ["Ausschlusswörter eintragen, die ihr nie machen wollt (z. B. „Krankenhaus“, wenn ihr dort nicht arbeitet)."],
     ["Mit „🔍 Vorschau“ sehen, wie viele Ausschreibungen die Einstellungen in der letzten Woche gefunden hätten, dann speichern."],
-    ["Ab jetzt prüft Jarvis jeden Morgen die neuen Bekanntmachungen. Treffer mit 👍 oder 👎 bewerten, damit die Suche besser wird.", "/konto/treffer", "Treffer ansehen"],
+    ["Ab jetzt prüft Crewtender jeden Morgen die neuen Bekanntmachungen. Treffer mit 👍 oder 👎 bewerten, damit die Suche besser wird.", "/konto/treffer", "Treffer ansehen"],
   ], tipps: ["Mehrere Geschäftsbereiche? Lege mehrere Suchprofile an, zum Beispiel eines für Reinigung und eines für Sicherheit."] },
   { slug: "nachrichten", icon: "📱", titel: "Nachrichten aufs Handy und Fristen im Kalender", fuer: "alle", kurz: "Mitteilungen einschalten, Uhrzeit wählen, Kalender abonnieren.", schritte: [
-    ["Jarvis auf dem Handy öffnen. Auf dem iPhone zuerst Teilen → „Zum Home-Bildschirm“ und Jarvis von dort starten."],
+    ["Crewtender auf dem Handy öffnen. Auf dem iPhone zuerst Teilen → „Zum Home-Bildschirm“ und Crewtender von dort starten."],
     ["Mehr → Einstellungen → „📱 Nachrichten auf diesem Handy einschalten“ und die Mitteilungen erlauben.", "/konto/einstellungen", "Einstellungen öffnen"],
     ["Uhrzeit und Kanal (Mail, Handy oder beides) wählen. Unter „Feiner einstellen“ gibt es Sofort-Nachrichten für Top-Treffer und eine Ruhezeit."],
     ["Unter Fristen → „📲 Alle Fristen im Handy-Kalender“ die Kalender-Adresse abonnieren. Neue Fristen kommen dann von selbst dazu.", "/konto/fristen", "Fristen öffnen"],
@@ -43,11 +43,11 @@ export const ANLEITUNGEN: Anleitung[] = [
   ] },
   { slug: "angebot", icon: "📥", titel: "Vom Treffer zum Angebot", fuer: "Büro, Kalkulation", kurz: "Unterlagen hochladen, Steckbrief prüfen, kalkulieren, freigeben.", schritte: [
     ["Im Treffer „⬇️ Hier runterladen“ antippen und beim Vergabeportal „Alle herunterladen“ wählen (meist eine ZIP-Datei)."],
-    ["Die Datei unter „📥 Vergabeunterlagen“ in der Ausschreibung hochladen. Jarvis schreibt in wenigen Minuten einen ausführlichen Steckbrief.", "/konto/unterlagen", "Unterlagen hochladen"],
+    ["Die Datei unter „📥 Vergabeunterlagen“ in der Ausschreibung hochladen. Crewtender schreibt in wenigen Minuten einen ausführlichen Steckbrief.", "/konto/unterlagen", "Unterlagen hochladen"],
     ["Den Steckbrief mit den Originalunterlagen abgleichen, besonders Fristen, Lose und geforderte Nachweise. Er ist von einer KI erstellt und kann Fehler enthalten."],
     ["Unter Kalkulation Stundensatz und Preis je Los rechnen; bei GAEB-Dateien die Einheitspreise im Leistungsverzeichnis eintragen.", "/konto/kalkulation", "Kalkulation öffnen"],
-    ["„Angebot vorbereiten“: Jarvis schreibt den Text und hakt passende Nachweise an. Die Firmenleitung gibt frei."],
-    ["Die Angebotsmappe herunterladen und selbst im Vergabeportal abgeben. Jarvis reicht nichts selbst ein. Danach unter Angebote Zuschlag oder Absage eintragen.", "/konto/angebote", "Angebote öffnen"],
+    ["„Angebot vorbereiten“: Crewtender schreibt den Text und hakt passende Nachweise an. Die Firmenleitung gibt frei."],
+    ["Die Angebotsmappe herunterladen und selbst im Vergabeportal abgeben. Crewtender reicht nichts selbst ein. Danach unter Angebote Zuschlag oder Absage eintragen.", "/konto/angebote", "Angebote öffnen"],
   ] },
   { slug: "personal", icon: "🧑‍🔧", titel: "Personal anlegen und importieren", fuer: "Personalbüro", kurz: "Einzeln anlegen oder per Excel/CSV übernehmen.", schritte: [
     ["Firma & Team → Personal → „＋ Neue Person“ für einzelne Einträge.", "/konto/team", "Firma & Team öffnen"],
@@ -58,15 +58,15 @@ export const ANLEITUNGEN: Anleitung[] = [
   ] },
   { slug: "schichtplan", icon: "📅", titel: "Schichten planen und Ausfälle ersetzen", fuer: "Disposition", kurz: "Schichten anlegen, offene Schichten anbieten, Ersatz finden.", schritte: [
     ["Firma & Team → Schichtplan: Datum, Zeit, Einsatzort und Person, auf Wunsch wöchentlich für bis zu 8 Wochen.", "/konto/schichten", "Schichtplan öffnen"],
-    ["Jarvis prüft das Arbeitszeitgesetz (höchstens 10 Stunden, 11 Stunden Ruhezeit, Pausen). Bei einem Hinweis die Planung anpassen oder bewusst bestätigen."],
+    ["Crewtender prüft das Arbeitszeitgesetz (höchstens 10 Stunden, 11 Stunden Ruhezeit, Pausen). Bei einem Hinweis die Planung anpassen oder bewusst bestätigen."],
     ["Offene Schicht: Person leer lassen und den Beruf wählen. Passende Einsatzkräfte bekommen eine Nachricht, wer zuerst tippt, bekommt sie."],
-    ["Fällt jemand kurzfristig aus, siehst du es auf der Übersicht. Jarvis schlägt freie Leute vor; ein Tipp auf den Namen plant neu."],
+    ["Fällt jemand kurzfristig aus, siehst du es auf der Übersicht. Crewtender schlägt freie Leute vor; ein Tipp auf den Namen plant neu."],
   ] },
   { slug: "stunden-lohn", icon: "⏱️", titel: "Stunden, Stempeluhr und Lohnexport", fuer: "Personalbüro, Lohnbüro", kurz: "Stunden freigeben und als Excel, CSV oder DATEV LODAS ausgeben.", schritte: [
     ["Einsatzkräfte tragen Stunden unter „Meine Einsätze & Daten“ ein oder stempeln mit Kommen, Pause und Gehen."],
     ["Firma & Team → Stundenzettel: prüfen und freigeben, mehrere auf einmal.", "/konto/stunden", "Stundenzettel öffnen"],
     ["Für DATEV LODAS einmalig unter Belege → „⚙️ DATEV-Einstellungen“ Berater- und Mandantennummer und die Lohnarten des Lohnbüros eintragen, auch für die steuerfreien Zuschläge nach § 3b (Nacht 25/40 %, Sonntag 50 %, Feiertag 125/150 %).", "/konto/belege", "Belege öffnen"],
-    ["Im Stundenzettel den Monat als „💶 Lohnliste“ (Excel), CSV oder LODAS-Datei herunterladen und dem Lohnbüro geben. Jarvis rechnet keinen Lohn aus."],
+    ["Im Stundenzettel den Monat als „💶 Lohnliste“ (Excel), CSV oder LODAS-Datei herunterladen und dem Lohnbüro geben. Crewtender rechnet keinen Lohn aus."],
   ], tipps: ["Feiertage richten sich nach dem Bundesland des Einsatzorts, nicht nach dem Firmensitz."] },
   { slug: "kunden-rechnung", icon: "🧾", titel: "Kunden, Leistungsnachweis und Rechnung", fuer: "Buchhaltung (mit Finanzfreigabe)", kurz: "Kunde anlegen, Stunden bestätigen lassen, Rechnung ausstellen.", schritte: [
     ["Firma & Team → Kunden & Einsatzorte: „➕ Kunde anlegen“ mit Adresse, Verrechnungssatz und Zuschlägen. Für Bauleistungen an Bauunternehmer „§ 13b“ und die USt-IdNr. eintragen.", "/konto/kunden", "Kunden öffnen"],
@@ -82,26 +82,26 @@ export const ANLEITUNGEN: Anleitung[] = [
     ["Falsch erfasst? „Beleg stornieren“ statt löschen; der Beleg bleibt für die Aufbewahrung erhalten."],
     ["Den Monat als DATEV-Buchungsstapel herunterladen und dem Steuerbüro geben, oder dem Steuerbüro einen Leser-Zugang einrichten."],
   ] },
-  { slug: "ki", icon: "🤖", titel: "Was die KI kann und was nicht", fuer: "alle, die mit Jarvis arbeiten (KI-Kompetenz nach Art. 4 KI-Verordnung)", kurz: "Wofür Jarvis KI nutzt, wo sie irrt und was ihr prüfen müsst.", schritte: [
-    ["Jarvis nutzt das KI-Modell Claude von Anthropic für: Bewertung von Ausschreibungen, Steckbriefe aus Vergabeunterlagen, Suchprofil aus der Firmenwebsite, Belege und Ablaufdaten auslesen, Angebotstexte."],
+  { slug: "ki", icon: "🤖", titel: "Was die KI kann und was nicht", fuer: "alle, die mit Crewtender arbeiten (KI-Kompetenz nach Art. 4 KI-Verordnung)", kurz: "Wofür Crewtender KI nutzt, wo sie irrt und was ihr prüfen müsst.", schritte: [
+    ["Crewtender nutzt das KI-Modell Claude von Anthropic für: Bewertung von Ausschreibungen, Steckbriefe aus Vergabeunterlagen, Suchprofil aus der Firmenwebsite, Belege und Ablaufdaten auslesen, Angebotstexte."],
     ["KI-Ergebnisse sind gekennzeichnet (🤖). Sie sind Vorschläge: Fristen, Lose, Nachweise und Beträge immer mit dem Original prüfen, bevor ihr euch darauf verlasst."],
     ["Die KI entscheidet nichts über Menschen. Personalsuche, Ersatzvorschläge, Bewertungen und Schichtplanung arbeiten mit festen Regeln; die Entscheidung trifft immer ein Mensch."],
     ["Keine Personalakten, Gesundheitsdaten oder Führungszeugnisse hochladen. Namen von Ansprechpartnern in Vergabeunterlagen werden vor der KI geschwärzt."],
     ["Die Daten gehen an Anthropic in den USA (Standardvertragsklauseln) und werden dort nicht zum Training genutzt. In der Probezeit gibt es ein festes KI-Kontingent je Firma."],
   ] },
-  { slug: "datenschutz-arbeitgeber", icon: "⚖️", titel: "Datenschutz und Betriebsrat: eure Pflichten", fuer: "Inhaber, Personalverantwortliche", kurz: "Was ihr als Arbeitgeber beachten müsst, wenn ihr Personal in Jarvis verwaltet.", schritte: [
+  { slug: "datenschutz-arbeitgeber", icon: "⚖️", titel: "Datenschutz und Betriebsrat: eure Pflichten", fuer: "Inhaber, Personalverantwortliche", kurz: "Was ihr als Arbeitgeber beachten müsst, wenn ihr Personal in Crewtender verwaltet.", schritte: [
     ["Den Vertrag zur Auftragsverarbeitung lesen: Für Personal-, Kunden- und Bewerberdaten seid ihr verantwortlich, wir verarbeiten sie in eurem Auftrag.", "/avv", "AVV lesen"],
-    ["Beschäftigte und Bewerber informieren, welche Daten ihr in Jarvis speichert (Art. 13 DSGVO)."],
+    ["Beschäftigte und Bewerber informieren, welche Daten ihr in Crewtender speichert (Art. 13 DSGVO)."],
     ["Gibt es einen Betriebsrat, vor dem Einsatz von Stempeluhr, Rundgängen, Bewertungen und Auswertungen zustimmen lassen (§ 87 Abs. 1 Nr. 6 BetrVG; in anderen Ländern die dortige Vertretung)."],
     ["Keine Gesundheitsangaben, Krankheitsgründe oder Strafregisterdaten in Freitextfelder schreiben."],
-    ["Jarvis löscht automatisch nach festen Fristen (z. B. Stempelzeiten nach 2 Jahren). Rechnungen und Belege müsst ihr 8 bis 10 Jahre aufbewahren: Vor dem Löschen des Kontos das Archiv herunterladen.", "/datenschutz", "Datenschutzerklärung"],
+    ["Crewtender löscht automatisch nach festen Fristen (z. B. Stempelzeiten nach 2 Jahren). Rechnungen und Belege müsst ihr 8 bis 10 Jahre aufbewahren: Vor dem Löschen des Kontos das Archiv herunterladen.", "/datenschutz", "Datenschutzerklärung"],
   ] },
 ];
 
 const kopf = `<p class="konto-zurueck"><a href="/hilfe" aria-label="Zur Übersicht">←</a></p>`;
 
 export function hilfeUebersicht(): string {
-  return `<p>Anleitungen Schritt für Schritt. Die Knöpfe führen direkt an die richtige Stelle in Jarvis.</p>
+  return `<p>Anleitungen Schritt für Schritt. Die Knöpfe führen direkt an die richtige Stelle in Crewtender.</p>
 <div class="standort-liste einstellungs-liste">${ANLEITUNGEN.map((a) => `<a class="standort-zeile" href="/hilfe/${a.slug}"><span class="standort-icon" aria-hidden="true">${a.icon}</span><span><strong>${escape(a.titel)}</strong><br><span class="klein">${escape(a.kurz)}</span></span></a>`).join("")}</div>
 <p class="klein">Häufige Fragen nach der Anmeldung unter <a href="/konto/hilfe">Mehr → Hilfe</a>. Nicht gefunden? <a href="/kontakt">Schreib uns</a>.</p>`;
 }

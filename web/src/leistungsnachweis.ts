@@ -44,7 +44,7 @@ export function nachweisSeite(gruppen: Gruppe[], o: { monat: string; land: strin
   return `<nav class="dispo-nav"><a class="knopf zweit" href="/konto/leistungsnachweis?monat=${vorMonat(o.monat)}" aria-label="Vormonat">‹</a><strong>${monatName(o.monat)}</strong><a class="knopf zweit" href="/konto/leistungsnachweis?monat=${naechsterMonat(o.monat)}" aria-label="Nächster Monat">›</a></nav>
 <p class="klein">Pro Kunde ein Stundennachweis mit allen freigegebenen Stunden des Monats, Zuschlagsstunden und Unterschriftsfeld für den Kunden. Noch offene Stunden gib vorher unter <a href="/konto/stunden?monat=${o.monat}">Stundenzettel</a> frei.</p>
 ${gruppen.length ? `<ul class="kontakt-liste nachweis-liste">${gruppen.map(karte).join("")}</ul>` : `<p class="treffer-leer">Keine Stunden in diesem Monat.</p>`}
-${gruppen.some((g) => !g.kunde) ? `<p class="klein">Einträge „ohne Kundenzuordnung“ ordnet Jarvis zu, sobald es unter <a href="/konto/kunden">Kunden &amp; Einsatzorte</a> einen Kunden oder Einsatzort mit genau diesem Namen gibt.</p>` : ""}`;
+${gruppen.some((g) => !g.kunde) ? `<p class="klein">Einträge „ohne Kundenzuordnung“ ordnet Crewtender zu, sobald es unter <a href="/konto/kunden">Kunden &amp; Einsatzorte</a> einen Kunden oder Einsatzort mit genau diesem Namen gibt.</p>` : ""}`;
 }
 
 export function nachweisDocx(g: Gruppe, personen: Person[], o: { monat: string; land: string; firma: { name: string; strasse: string; plz: string; ort: string }; satz?: number; bestaetigung?: { name: string; am: string; anmerkung: string; png: Uint8Array | null } }): Uint8Array {

@@ -1,4 +1,4 @@
-// T30: Zuschläge. From each time sheet Jarvis splits off night hours (23–6 Uhr, ArbZG § 2 and the temporary-work
+// T30: Zuschläge. From each time sheet Crewtender splits off night hours (23–6 Uhr, ArbZG § 2 and the temporary-work
 // collective agreements), Sunday hours and public-holiday hours (per federal state). The break is deducted proportionally.
 
 export const LAENDER: Record<string, string> = { BW: "Baden-Württemberg", BY: "Bayern", BE: "Berlin", BB: "Brandenburg", HB: "Bremen", HH: "Hamburg", HE: "Hessen", MV: "Mecklenburg-Vorpommern", NI: "Niedersachsen", NW: "Nordrhein-Westfalen", RP: "Rheinland-Pfalz", SL: "Saarland", SN: "Sachsen", ST: "Sachsen-Anhalt", SH: "Schleswig-Holstein", TH: "Thüringen" };

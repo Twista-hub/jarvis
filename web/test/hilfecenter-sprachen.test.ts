@@ -7,7 +7,7 @@ import { escape, seite } from "../src/seite.ts";
 const SPRACHEN: Exclude<AppSprache, "de">[] = ["en", "fr", "pl", "es", "it"];
 const PFADE = ["/hilfe", "/hilfe/gibt-es-nicht", ...ANLEITUNGEN.map((a) => `/hilfe/${a.slug}`)];
 // Brand names stay as they are in every language.
-const MARKEN = new Set(["Jarvis", "WP Digital Ranger ·"]);
+const MARKEN = new Set(["Crewtender", "WP Digital Ranger ·"]);
 const TEILE = /(<style[\s\S]*?<\/style>|<script[\s\S]*?<\/script>|<textarea[\s\S]*?<\/textarea>|<code[\s\S]*?<\/code>|<[^>]+>)/;
 const ent = (t: string) => t.replace(/&#(\d+);/g, (_, n: string) => String.fromCharCode(Number(n))).replace(/&amp;/g, "&");
 
@@ -57,7 +57,7 @@ test("help center in en/fr/pl/es/it: titles, steps, buttons and tips of each gui
   }
   // Spot checks of the wording.
   const erste = await deutsch("/hilfe/erste-schritte");
-  assert.match(uebersetzen(erste, "en"), /<title>🚀 Getting started: set up your account and company · Jarvis<\/title>/);
+  assert.match(uebersetzen(erste, "en"), /<title>🚀 Getting started: set up your account and company · Crewtender<\/title>/);
   assert.match(uebersetzen(erste, "en"), /For: Owners, management/);
   assert.match(uebersetzen(erste, "fr"), /Pour : Gérants, direction/);
   assert.match(uebersetzen(erste, "en"), /Next: Search profile: find the right tenders →/);

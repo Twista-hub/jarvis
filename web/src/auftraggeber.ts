@@ -50,7 +50,7 @@ export function listeSeite(eintraege: Eintrag[], q: string): string {
     return `<a class="standort-zeile" href="/konto/auftraggeber?id=${encodeURIComponent(e.id)}"><span class="standort-icon" aria-hidden="true">🏛️</span><span class="standort-text"><strong>${escape(e.name)}</strong><span class="klein">${[e.ort && escape(e.ort), `${z.treffer} ${z.treffer === 1 ? "Ausschreibung" : "Ausschreibungen"}`, z.angebote ? `${z.angebote} ${z.angebote === 1 ? "Angebot" : "Angebote"}` : "", z.gewonnen ? `🏆 ${z.gewonnen}` : "", e.beobachtet ? "👁 beobachtet" : "", e.kontakte ? `📞 ${e.kontakte}` : ""].filter(Boolean).join(" · ")}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`;
   };
   return `<form method="get" class="such-zeile"><label class="sr-only" for="ag-suche">Auftraggeber suchen</label><input id="ag-suche" name="q" value="${escape(q)}" placeholder="Auftraggeber oder Ort suchen" maxlength="100"><button>Suchen</button></form>
-${gezeigt.length ? `<div class="standort-liste">${gezeigt.map(zeile).join("")}</div>` : `<p class="treffer-leer">${eintraege.length ? "Kein Auftraggeber passt zur Suche." : "Noch keine Auftraggeber. Sie erscheinen hier, sobald Jarvis Ausschreibungen für euch gefunden hat."}</p>`}
+${gezeigt.length ? `<div class="standort-liste">${gezeigt.map(zeile).join("")}</div>` : `<p class="treffer-leer">${eintraege.length ? "Kein Auftraggeber passt zur Suche." : "Noch keine Auftraggeber. Sie erscheinen hier, sobald Crewtender Ausschreibungen für euch gefunden hat."}</p>`}
 <p class="klein">Alle Auftraggeber eurer Treffer und Angebote und die, die ihr beobachtet. Neueste zuerst.</p>`;
 }
 

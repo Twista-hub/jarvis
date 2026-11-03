@@ -1,5 +1,5 @@
 // T41: Stempeluhr. Staff tap "Kommen", "Pause", "Weiter" and "Gehen"; the server's clock counts (no back-dating). On
-// "Gehen" Jarvis writes the time sheet (start, end, break) by itself. Optionally the phone's position is compared once
+// "Gehen" Crewtender writes the time sheet (start, end, break) by itself. Optionally the phone's position is compared once
 // with the postcode of the site; only "at the site yes/no" is stored, never the coordinates.
 import plz from "../../alarm/geo/plz.json" with { type: "json" };
 import { db, type KontoEnv, type Sitzung } from "./konto.ts";
@@ -51,7 +51,7 @@ export function stempelTeil(liste: Stempel[], vorschlaege: string[], jetzt: stri
 <form method="post" action="/konto/ich" data-standort><input type="hidden" name="aktion" value="stempel"><input type="hidden" name="lat"><input type="hidden" name="lon">
 ${!letzte ? `<label>Einsatz<input name="einsatz" maxlength="160" list="einsatz-vorschlaege"${vorschlaege[0] ? ` value="${escape(vorschlaege[0])}"` : ""}></label><div class="knopf-zeile">${knopf("kommen", "▶️ Kommen")}</div>`
   : `<div class="knopf-zeile">${letzte.art === "pause" ? knopf("weiter", "▶️ Weiter") : knopf("pause", "☕ Pause", true)}${knopf("gehen", "⏹️ Gehen")}${alt ? knopf("neu", "Neu beginnen", true) : ""}</div>`}</form>
-<p class="klein">Es zählt die Uhrzeit des Servers. Beim Tippen fragt das Handy einmal nach dem Standort: Jarvis prüft nur, ob du in der Nähe des Einsatzorts bist, und speichert keine Koordinaten. Ablehnen geht auch.</p></section>`;
+<p class="klein">Es zählt die Uhrzeit des Servers. Beim Tippen fragt das Handy einmal nach dem Standort: Crewtender prüft nur, ob du in der Nähe des Einsatzorts bist, und speichert keine Koordinaten. Ablehnen geht auch.</p></section>`;
 }
 
 /** Saves a stamp; on "gehen" also the time sheet. Returns a message for the page. */

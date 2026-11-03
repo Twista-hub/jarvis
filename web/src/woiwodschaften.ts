@@ -17,6 +17,6 @@ export const woiwodschaftName = (slug: string): string => LISTE[slug]?.name ?? s
 export function woiwodschaftAuswahl(gewaehlt: string[]): string {
   const an = new Set(gewaehlt);
   return `<details${gewaehlt.length ? "" : " open"}><summary>Woiwodschaften in Polen <span class="check-zahl">${gewaehlt.length ? `${gewaehlt.length} ausgewählt` : "ganz Polen"}</span></summary>
-    <p class="klein">Jarvis zeigt nur Ausschreibungen aus den gewählten Woiwodschaften. Keine Auswahl bedeutet ganz Polen. Ändern kostet nichts extra.</p>
+    <p class="klein">Crewtender zeigt nur Ausschreibungen aus den gewählten Woiwodschaften. Keine Auswahl bedeutet ganz Polen. Ändern kostet nichts extra.</p>
     <div class="chips">${Object.entries(LISTE).map(([slug, w]) => `<label><input type="checkbox" name="woiwodschaften" value="${slug}"${an.has(slug) ? " checked" : ""}><span>${escape(w.name)}</span></label>`).join("")}</div></details>`;
 }

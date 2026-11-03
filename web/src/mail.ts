@@ -1,7 +1,7 @@
 // Mail from kontakt@wpdigitalranger.com (Namecheap Private Email, SMTP). Sends only when the secret
 // SMTP_PASSWORD is set; without it the pages fall back to a link the user forwards themselves.
 
-export const ABSENDER = { name: "Jarvis · WP Digital Ranger", email: "kontakt@wpdigitalranger.com" };
+export const ABSENDER = { name: "Crewtender · WP Digital Ranger", email: "kontakt@wpdigitalranger.com" };
 
 export type Mail = { from: typeof ABSENDER; to: string; reply: typeof ABSENDER; subject: string; text: string };
 
@@ -13,20 +13,20 @@ export function einladungsMail(an: string, firma: string, rolle: string, link: s
     from: ABSENDER,
     to: an,
     reply: ABSENDER,
-    subject: `Einladung zu Jarvis: ${name}`,
+    subject: `Einladung zu Crewtender: ${name}`,
     text: `Hallo,
 
-Sie wurden eingeladen, bei „${name}“ im Ausschreibungs-Alarm Jarvis mitzuarbeiten (Rolle: ${rolle}).
+Sie wurden eingeladen, bei „${name}“ im Ausschreibungs-Alarm Crewtender mitzuarbeiten (Rolle: ${rolle}).
 
 Einladung annehmen:
 ${link}
 
-Der Link gilt 14 Tage und nur für diese E-Mail-Adresse. Sie melden sich ohne Passwort an, Jarvis schickt Ihnen dazu einen Anmelde-Link.
+Der Link gilt 14 Tage und nur für diese E-Mail-Adresse. Sie melden sich ohne Passwort an, Crewtender schickt Ihnen dazu einen Anmelde-Link.
 
 Wenn Sie diese Einladung nicht erwartet haben, können Sie diese Mail einfach löschen.
 
 Viele Grüße
-Jarvis · WP Digital Ranger
+Crewtender · WP Digital Ranger
 https://wpdigitalranger.com
 `,
   };

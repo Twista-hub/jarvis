@@ -177,7 +177,7 @@ document.querySelectorAll("canvas[data-unterschrift]").forEach(function (c) {
   });
 });
 // Demo: nothing is saved; forms show a short note instead.
-if (document.body && document.body.hasAttribute("data-demo")) document.addEventListener("submit", function (e) { e.preventDefault(); e.stopImmediatePropagation(); alert("Das ist die Demo mit Beispieldaten – hier wird nichts gespeichert. Registriere dich kostenlos, um Jarvis mit deiner Firma zu nutzen."); }, true);
+if (document.body && document.body.hasAttribute("data-demo")) document.addEventListener("submit", function (e) { e.preventDefault(); e.stopImmediatePropagation(); alert("Das ist die Demo mit Beispieldaten – hier wird nichts gespeichert. Registriere dich kostenlos, um Crewtender mit deiner Firma zu nutzen."); }, true);
 // Links inside a pop-up (e.g. "Hier hochladen") close it before jumping.
 document.querySelectorAll("[popover] a").forEach(function (a) { a.addEventListener("click", function () { var p = a.closest("[popover]"); if (p && p.hidePopover) p.hidePopover(); }); });
 // T41: time clock buttons ask for the position once (only to check "at the site"; the coordinates are not stored).
@@ -286,7 +286,7 @@ if ("serviceWorker" in navigator) {
   navigator.serviceWorker.register("/sw.js").then(function (reg) {
     if (!knopf) return;
     if (!("PushManager" in window)) {
-      zeige(ios && !installiert ? "Auf dem iPhone: unten auf „Teilen“ tippen, dann „Zum Home-Bildschirm“. Jarvis vom Home-Bildschirm öffnen und hier einschalten." : "Dieser Browser kann keine Benachrichtigungen.");
+      zeige(ios && !installiert ? "Auf dem iPhone: unten auf „Teilen“ tippen, dann „Zum Home-Bildschirm“. Crewtender vom Home-Bildschirm öffnen und hier einschalten." : "Dieser Browser kann keine Benachrichtigungen.");
       return;
     }
     reg.pushManager.getSubscription().then(function (abo) {
@@ -295,7 +295,7 @@ if ("serviceWorker" in navigator) {
     });
     // Shows a notification on this device without the server: tells whether the phone displays them at all.
     if (test) test.addEventListener("click", function () {
-      reg.showNotification("Jarvis: Test", { body: "So sehen Jarvis-Nachrichten aus. Tippen öffnet die Trefferliste.", icon: "/icon-192.png", badge: "/icon-192.png", tag: "jarvis-test", data: { url: "/konto/treffer" } })
+      reg.showNotification("Crewtender: Test", { body: "So sehen Crewtender-Nachrichten aus. Tippen öffnet die Trefferliste.", icon: "/icon-192.png", badge: "/icon-192.png", tag: "jarvis-test", data: { url: "/konto/treffer" } })
         .then(function () { zeige("Test geschickt. Kommt nichts, sind Benachrichtigungen für Chrome im Handy abgeschaltet."); })
         .catch(function (e) { zeige("Test ging nicht: " + (e.message || e)); });
     });
@@ -329,7 +329,7 @@ self.addEventListener("push", function (e) {
     .then(function (r) { return r.ok ? r.json() : null; })
     .catch(function () { return null; })
     .then(function (n) {
-      n = n || { titel: "Jarvis: Neues", text: "Neue Ausschreibungen", url: "/konto" };
+      n = n || { titel: "Crewtender: Neues", text: "Neue Ausschreibungen", url: "/konto" };
       return self.registration.showNotification(n.titel, { body: n.text, icon: "/icon-192.png", badge: "/icon-192.png", tag: "jarvis", data: { url: n.url } });
     }));
 });
@@ -346,8 +346,8 @@ self.addEventListener("notificationclick", function (e) {
 `;
 
 export const MANIFEST = JSON.stringify({
-  name: "Jarvis Ausschreibungs-Alarm",
-  short_name: "Jarvis",
+  name: "Crewtender Ausschreibungs-Alarm",
+  short_name: "Crewtender",
   start_url: "/konto",
   scope: "/",
   display: "standalone",

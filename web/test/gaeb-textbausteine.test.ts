@@ -139,5 +139,5 @@ test("N7: Textbausteine ausfüllen, anhängen und auswählen", () => {
 test("N8: Hilfe mit Einführung und Fragen zu den neuen Bereichen", () => {
   const h = hilfeSeite("a@b.de");
   assert.ok(h.includes(EINFUEHRUNG) && h.includes(`href="/hilfe"`), "introduction and link to the guides");
-  for (const t of ["So arbeitest du mit Jarvis", "GAEB-Datei", "Textbausteine", "Neuausschreibungs-Radar", "Auswertung", "AÜG-Wächter", "nach dem Zuschlag"]) assert.match(h, new RegExp(t, "i"));
+  for (const t of ["So arbeitest du mit Crewtender", "GAEB-Datei", "Textbausteine", "Neuausschreibungs-Radar", "Auswertung", "AÜG-Wächter", "nach dem Zuschlag"]) assert.match(h, new RegExp(t, "i"));
 });

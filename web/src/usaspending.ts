@@ -31,7 +31,7 @@ async function holen(schluessel: string, body: unknown, warten?: (p: Promise<unk
   const alt = await cache?.match(key).catch(() => undefined);
   if (alt) return (await alt.json()) as Vertrag[];
   try {
-    const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json", "user-agent": "JarvisApp/1.0 (WP Digital Ranger; kontakt@wpdigitalranger.com)" }, body: JSON.stringify(body) });
+    const r = await fetch(API, { method: "POST", headers: { "content-type": "application/json", "user-agent": "CrewtenderApp/1.0 (WP Digital Ranger; kontakt@wpdigitalranger.com)" }, body: JSON.stringify(body) });
     if (!r.ok) return null;
     const liste = auswerten(await r.json());
     if (cache) warten?.(cache.put(key, new Response(JSON.stringify(liste), { headers: { "content-type": "application/json", "cache-control": "public, max-age=86400" } })).catch(() => undefined));

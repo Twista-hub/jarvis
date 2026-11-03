@@ -1,4 +1,4 @@
-// Messages to several people and the assignment plan of a tender. Jarvis only prepares the texts: the buttons
+// Messages to several people and the assignment plan of a tender. Crewtender only prepares the texts: the buttons
 // open WhatsApp, SMS or e-mail on the phone (one tap per person, or one SMS / one group message for everyone).
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { bereicheLaden, db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
@@ -123,7 +123,7 @@ ${hinweis ? `<p class="fehler">${escape(hinweis)}</p>` : ""}
 ${filter}
 <p class="klein">${personen.length} ${personen.length === 1 ? "Person passt" : "Personen passen"} zur Auswahl.</p>
 ${personen.length ? `<form method="get" action="/konto/rundnachricht">${[["bereich", bereich], ["beruf", beruf], ["status", status], ["vorgang", vid]].map(([n, w]) => `<input type="hidden" name="${n}" value="${escape(w)}">`).join("")}
-  <label>Text (kannst du ändern; Anrede und Gruß setzt Jarvis automatisch)<textarea name="text" rows="7" maxlength="2000">${escape(kern)}</textarea></label>
+  <label>Text (kannst du ändern; Anrede und Gruß setzt Crewtender automatisch)<textarea name="text" rows="7" maxlength="2000">${escape(kern)}</textarea></label>
   <button class="knopf-leise">Geänderten Text übernehmen</button>
 </form>
 ${versand(personen.map((k) => ({ k, text: text(k.vorname) })), text("zusammen"))}
@@ -182,5 +182,5 @@ ${formular}
 ${eingeplant.length ? auswahl : `<p class="klein">Noch niemand eingeplant. <a href="/konto/vorgang/${vid}#personal">Personal einplanen →</a></p>`}
 <label>Vorschau<textarea rows="14" readonly>${escape(text(""))}</textarea></label>
 ${versand(empfaenger.map((k) => ({ k, text: text(k.vorname) })), text(""))}
-<p class="klein">Die Nachrichten gehen von deinem Handy aus. Jarvis verschickt selbst nichts.</p>`);
+<p class="klein">Die Nachrichten gehen von deinem Handy aus. Crewtender verschickt selbst nichts.</p>`);
 }

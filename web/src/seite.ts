@@ -26,7 +26,7 @@ export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, konto
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">` : ""}
-<title>${escape(titel)} · Jarvis</title>
+<title>${escape(titel)} · Crewtender</title>
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon-192.png">
 <link rel="apple-touch-icon" href="/icon-192.png">
@@ -1019,7 +1019,7 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
 </style>
 </head>
 <body><main>
-${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto"><svg viewBox="0 0 128 128" aria-hidden="true"><rect x="2" y="2" width="124" height="124" rx="30" fill="#15324b"/><circle cx="64" cy="64" r="43" fill="none" stroke="#fff" stroke-opacity=".52" stroke-width="2"/><circle cx="64" cy="64" r="4" fill="#fff"/><path d="M64 18 77 62 64 56 51 62Z" fill="#ff6b35"/><path d="m64 110-13-44 13 6 13-6z" fill="#168aad"/><path d="m18 64 44-13-6 13 6 13zM110 64 66 77l6-13-6-13z" fill="#fff"/></svg><span><strong>Jarvis</strong><small>WP Digital Ranger</small></span></a><div class="konto-aktionen"><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header><a href="/">Jarvis</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>`}
+${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto"><svg viewBox="0 0 128 128" aria-hidden="true"><rect x="2" y="2" width="124" height="124" rx="30" fill="#15324b"/><circle cx="64" cy="64" r="43" fill="none" stroke="#fff" stroke-opacity=".52" stroke-width="2"/><circle cx="64" cy="64" r="4" fill="#fff"/><path d="M64 18 77 62 64 56 51 62Z" fill="#ff6b35"/><path d="m64 110-13-44 13 6 13-6z" fill="#168aad"/><path d="m18 64 44-13-6 13 6 13zM110 64 66 77l6-13-6-13z" fill="#fff"/></svg><span><strong>Crewtender</strong><small>WP Digital Ranger</small></span></a><div class="konto-aktionen"><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header><a href="/">Crewtender</a> · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>`}
 ${eigenerZurueck || (kontoBereich ? `<p class="konto-zurueck"><a href="/konto" aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←</span></a></p>` : "")}
 ${kopf}
 ${inhalt.replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace(/<\/table>/g, "</table></div>")}
@@ -1043,7 +1043,7 @@ export function hilfe(titel: string, text: string): string {
 
 /** Model output may contain text from the documents: escape all HTML, allow only http(s) links. */
 export function markdown(md: string): string {
-  // The fixed heading of the Steckbrief (an anchor the app parses) reads from Jarvis' point of view; firms see "zu euch".
+  // The fixed heading of the Steckbrief (an anchor the app parses) reads from Crewtender' point of view; firms see "zu euch".
   md = md.replace(/^(#+\s*)Passt das zum Kunden\?/gm, "$1Passt das zu euch?");
   const safe = md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return stapeln(marked.parse(safe, {

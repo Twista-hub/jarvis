@@ -41,7 +41,7 @@ export function usProfilFormular(p: UsProfil | null, de: boolean, darf: boolean,
   const aus = darf ? "" : " disabled";
   return `<p class="konto-zurueck"><a href="/konto" aria-label="${t("Zurück", "Back")}">←</a></p>
 ${hinweis ? `<p class="hinweis" role="status">${escape(hinweis)}</p>` : ""}
-<p>${t("Damit Jarvis bei jeder US-Ausschreibung sagen kann, ob ihr bieten dürft (Set-aside, Größe, Registrierung).", "So Jarvis can tell you for every US tender whether you may bid (set-aside, size, registration).")}</p>
+<p>${t("Damit Crewtender bei jeder US-Ausschreibung sagen kann, ob ihr bieten dürft (Set-aside, Größe, Registrierung).", "So Crewtender can tell you for every US tender whether you may bid (set-aside, size, registration).")}</p>
 <form method="post" action="/konto/us-profil" class="formular">
 <h2>SAM.gov</h2>
 <label>Unique Entity ID (UEI)<input name="uei" value="${w(p?.uei)}" maxlength="12" autocomplete="off" placeholder="${t("12 Zeichen, steht in SAM.gov", "12 characters, shown in SAM.gov")}"${aus}></label>

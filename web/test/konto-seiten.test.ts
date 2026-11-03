@@ -169,7 +169,7 @@ test("Gespeichertes Suchprofil zeigt eigene, Website- und Websuch-Funde getrennt
   assert.match(eingerichtet, /Ausschreibungen jetzt suchen/);
   assert.match(eingerichtet, /Firmeninfos neu recherchieren/);
   assert.match(eingerichtet, /Firmeninfos zuletzt aktualisiert:/);
-  assert.match(eingerichtet, /<details class="firmen-erkenntnisse" open><summary>Was Jarvis über die Firma gefunden hat/);
+  assert.match(eingerichtet, /<details class="firmen-erkenntnisse" open><summary>Was Crewtender über die Firma gefunden hat/);
   profile.length = 0;
   const leer = await seite("/konto/suchprofil");
   assert.match(leer, /noch keine Suche eingerichtet/);
