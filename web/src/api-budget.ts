@@ -66,13 +66,13 @@ export function apiClient(env: KiEnv, firma?: string | null): Anthropic {
           const data: any = await response.clone().json().catch(() => null);
           if (data?.usage) kosten = kiKosten(data.usage, preise[0], preise[1]);
         }
-        if (kosten !== null) await katalogDb(env, async (sql) => { await sql`select jarvis_katalog.ki_abschliessen(${id},${kosten}::numeric)`; });
+        if (kosten !== null) await katalogDb(env, async (sql) => { await sql`select jarvis_katalog.ki_abschliessen(${id},${kosten}::numeric), jarvis_katalog.ki_protokoll(${id},${key},${response.headers.get("request-id") ?? ""})`; });
       } else if (response.body) {
         // Before 03.11.2026 streams kept the worst-case reservation (Steckbrief booked at ~1.2-2.5 $ instead of ~0.4-0.8 $).
         const [fuerSdk, fuerAbrechnung] = response.body.tee();
         const lesen = (async () => {
           const nutzung = streamNutzung(await new Response(fuerAbrechnung).text());
-          if (nutzung) await katalogDb(env, async (sql) => { await sql`select jarvis_katalog.ki_abschliessen(${id},${kiKosten(nutzung, preise[0], preise[1])}::numeric)`; });
+          if (nutzung) await katalogDb(env, async (sql) => { await sql`select jarvis_katalog.ki_abschliessen(${id},${kiKosten(nutzung, preise[0], preise[1])}::numeric), jarvis_katalog.ki_protokoll(${id},${key},${response.headers.get("request-id") ?? ""})`; });
         })();
         env.WARTEN?.(lesen.catch(() => undefined));
         return new Response(fuerSdk, { status: response.status, statusText: response.statusText, headers: response.headers });
