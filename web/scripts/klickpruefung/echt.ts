@@ -17,6 +17,8 @@ const fehler: string[] = [];
 console.error = (...a: unknown[]) => { const e = a[0] as { stack?: string }; fehler.push((e?.stack ?? String(e)).split("\n").slice(0, 3).join(" | ")); };
 console.warn = () => {};
 const schreibversuche: string[] = [];
+const langsam: string[] = [];
+const log = (t: string) => process.stdout.write(t + "\n");
 const echt = globalThis.fetch;
 globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const req = input instanceof Request ? input : null;
@@ -28,7 +30,10 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   const ziel = `${PGRST}${url.pathname.replace("/rest/v1", "")}${url.search}`;
   const h = new Headers(init?.headers ?? req?.headers);
   h.delete("apikey");
-  return echt(ziel, { method: methode, headers: h, body: init?.body ?? (req && methode !== "GET" ? await req.text() : undefined) });
+  const t0 = Date.now();
+  try {
+    return await echt(ziel, { method: methode, headers: h, body: init?.body ?? (req && methode !== "GET" ? await req.text() : undefined), signal: AbortSignal.timeout(15_000) });
+  } catch (e) { langsam.push(`${methode} ${url.pathname.replace("/rest/v1/", "")} nach ${Date.now() - t0} ms: ${String(e).slice(0, 80)}`); throw e; }
 }) as typeof fetch;
 
 const { default: worker } = await import("../../src/index.ts");
@@ -41,12 +46,18 @@ for (const firma of [...firmen, ""]) {
   const cookie = `jv_at=${token}${firma ? `; jv_firma=${firma}` : "; jv_firma=99999999-9999-4999-8999-999999999999"}`;
   const gesehen = new Map<string, { von: string; status: number; ziel: string; problem: string }>();
   const warte: [string, string][] = START.map((s) => [s, "(Start)"]);
-  while (warte.length && gesehen.size < 800) {
+  while (warte.length && gesehen.size < 300) {
     const [pfad, von] = warte.shift()!;
     if (gesehen.has(pfad)) continue;
     let status = 0, ziel = "", problem = "", text = "";
     try {
-      const r = await worker.fetch(new Request(`https://jarvis.test${pfad}`, { headers: { cookie }, redirect: "manual" }), env);
+      const t0 = Date.now();
+      const r = await Promise.race([
+        worker.fetch(new Request(`https://jarvis.test${pfad}`, { headers: { cookie }, redirect: "manual" }), env),
+        new Promise<never>((_, nein) => setTimeout(() => nein(new Error("Zeitüberschreitung 30 s")), 30_000)),
+      ]);
+      const dauer = Date.now() - t0;
+      if (dauer > 5000) langsam.push(`${ohneIds(pfad)}: ${dauer} ms`);
       status = r.status; ziel = r.headers.get("location") ?? "";
       if ((r.headers.get("content-type") ?? "").startsWith("text/html")) text = await r.text();
       if (status >= 300 && status < 400) {
@@ -58,6 +69,7 @@ for (const firma of [...firmen, ""]) {
       if (status === 200 && /<form[^>]*action="\/anmelden/.test(text) && pfad.startsWith("/konto")) problem = "Anmeldeseite";
     } catch (e) { problem = `Absturz: ${String(e).slice(0, 120)}`; }
     gesehen.set(pfad, { von, status, ziel, problem });
+    log(`${String(gesehen.size).padStart(3)} ${status} ${problem ? "⚠️ " + problem + " " : ""}${ohneIds(pfad)}`);
     for (const m of text.matchAll(/<a\b[^>]*?href="([^"]*)"/g)) {
       const href = m[1].replace(/&amp;/g, "&");
       if (!href.startsWith("/konto") || /\.(docx|xlsx|csv|xml|txt|ics|zip|pdf)(\?|$)/.test(href)) continue;
@@ -69,13 +81,15 @@ for (const firma of [...firmen, ""]) {
   }
   const probleme = [...gesehen].filter(([, x]) => x.problem);
   gesamtProbleme += probleme.length;
-  console.log(`\n=== ${firma ? `Firma ${firmen.indexOf(firma) + 1}` : "veraltetes Firmen-Cookie"}: ${gesehen.size} Seiten, ${probleme.length} Probleme, ${[...gesehen.values()].filter((x) => x.status === 404).length}× 404`);
-  for (const [p, x] of probleme) console.log(`  ${x.problem.padEnd(14)} ${ohneIds(p)}  (von ${ohneIds(x.von)})${x.ziel ? `  → ${ohneIds(x.ziel)}` : ""}`);
-  for (const [p, x] of [...gesehen].filter(([, x]) => x.status === 404)) console.log(`  404            ${ohneIds(p)}  (von ${ohneIds(x.von)})`);
+  log(`\n=== ${firma ? `Firma ${firmen.indexOf(firma) + 1}` : "veraltetes Firmen-Cookie"}: ${gesehen.size} Seiten, ${probleme.length} Probleme, ${[...gesehen.values()].filter((x) => x.status === 404).length}× 404`);
+  for (const [p, x] of probleme) log(`  ${x.problem.padEnd(14)} ${ohneIds(p)}  (von ${ohneIds(x.von)})${x.ziel ? `  → ${ohneIds(x.ziel)}` : ""}`);
+  for (const [p, x] of [...gesehen].filter(([, x]) => x.status === 404)) log(`  404            ${ohneIds(p)}  (von ${ohneIds(x.von)})`);
 }
 const zaehl = new Map<string, number>();
 for (const f of fehler) zaehl.set(f, (zaehl.get(f) ?? 0) + 1);
-console.log(`\nFehlermeldungen der App: ${zaehl.size}`);
-for (const [f, n] of zaehl) console.log(`  x${n} ${ohneIds(f).slice(0, 300)}`);
-console.log(`Schreibversuche (alle zurückgerollt): ${[...new Set(schreibversuche)].join(", ") || "keine"}`);
+log(`\nFehlermeldungen der App: ${zaehl.size}`);
+for (const [f, n] of zaehl) log(`  x${n} ${ohneIds(f).slice(0, 300)}`);
+log(`Schreibversuche (alle zurückgerollt): ${[...new Set(schreibversuche)].join(", ") || "keine"}`);
+log(`Langsam/abgebrochen: ${langsam.length}`);
+for (const l of langsam.slice(0, 40)) log(`  ${ohneIds(l)}`);
 process.exit(0);

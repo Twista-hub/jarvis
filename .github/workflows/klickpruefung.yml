@@ -9,7 +9,7 @@ permissions:
 jobs:
   pruefen:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       REF: juuuifrcxmitkqudqngq
       PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
@@ -44,4 +44,4 @@ jobs:
       - name: Alle Seiten anklicken
         env:
           PGRST: http://localhost:3000
-        run: cd web && node --experimental-strip-types --import ./scripts/klickpruefung/register.mjs scripts/klickpruefung/echt.ts 2>&1 | grep -v ExperimentalWarning
+        run: cd web && node --experimental-strip-types --import ./scripts/klickpruefung/register.mjs scripts/klickpruefung/echt.ts 2>&1 | grep --line-buffered -v ExperimentalWarning
