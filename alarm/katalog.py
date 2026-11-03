@@ -107,6 +107,13 @@ def reservieren(betrag, zweck, firma=None):
         return con.execute("select jarvis_katalog.ki_reservieren(%s::numeric,%s)", (betrag, zweck)).fetchone()[0]
 
 
-def abschliessen(i, betrag):
+def abschliessen(i, betrag, modell=None, anfrage_id=None):
+    """Books the real cost. With modell/anfrage_id also records which model answered and Anthropic's request id
+    (Rechtsprüfung K7, AI Act traceability); no prompt or answer content is stored."""
     with verbinden() as con:
         con.execute("select jarvis_katalog.ki_abschliessen(%s,%s::numeric)", (i, betrag))
+        if modell:
+            try:
+                con.execute("select jarvis_katalog.ki_protokoll(%s,%s,%s)", (i, str(modell)[:80], str(anfrage_id or "")[:120] or None))
+            except Exception as e:  # noqa: BLE001 – the record is extra, the booking above must stay
+                print(f"KI-Protokoll nicht gespeichert ({type(e).__name__}).")
