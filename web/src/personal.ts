@@ -507,7 +507,9 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     const form = await request.formData();
     if (form.get("aktion") === "loeschen") {
       const r = await db(f.s, env, `personal?id=eq.${pid}`, { method: "DELETE" });
-      return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent(r.ok ? `${kraft.vorname} ist gelöscht.` : "Löschen hat nicht geklappt.")}`, f.s.cookies);
+      // Records under retention (§ 17 MiLoG) block the deletion in the database; its message says until when.
+      const grund = r.ok ? "" : /"message":"(Aufbewahrungspflicht[^"]+)"/.exec(r.fehler)?.[1] ?? "";
+      return weiterleiten(`${zurueck}?hinweis=${encodeURIComponent(r.ok ? `${kraft.vorname} ist gelöscht.` : grund ? `${grund} (Austritt über „Checklisten → Austritt“)` : "Löschen hat nicht geklappt.")}`, f.s.cookies);
     }
     const [qualifikationen, tarife] = await Promise.all([
       qualifikationenLaden(f.s, env, f.m.firma_id, kraft.bereich_id),
