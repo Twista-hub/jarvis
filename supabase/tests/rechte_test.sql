@@ -77,6 +77,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103090000_nachkalkulation.sql
 \ir ../migrations/20261103100000_team_chat.sql
 \ir ../migrations/20261103110000_rechnungen_gobd.sql
+\ir ../migrations/20261103120000_datenschutz_ausfall_portal_link.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1058,7 +1059,8 @@ select pruefe((select kunde_id = :'kunde_berlin' from public.stundenzettel where
 set role authenticated;
 select test_als('00000000-0000-0000-0000-0000000000e1');
 select pruefe(public.ausfall_melden((now() at time zone 'Europe/Berlin')::date + 3, '') = -1, 'Ausfall nur für heute oder morgen');
-select pruefe(public.ausfall_melden((now() at time zone 'Europe/Berlin')::date, '') = 1, 'Ausfall gemeldet, eine Schicht abgesagt');
+select pruefe(public.ausfall_melden((now() at time zone 'Europe/Berlin')::date, 'Kind krank') = 1, 'Ausfall gemeldet, eine Schicht abgesagt');
+select pruefe((select count(*) = 0 from public.personal_abwesenheiten where kurzfristig and notiz <> ''), 'Ausfall speichert keinen Grund (Art. 9 DSGVO)');
 select pruefe(public.ausfall_melden((now() at time zone 'Europe/Berlin')::date, '') = -2, 'Ausfall nicht doppelt');
 select pruefe((select antwort = 'abgesagt' from public.schichten where datum = (now() at time zone 'Europe/Berlin')::date), 'Schicht des Tages ist abgesagt');
 reset role;
@@ -1273,7 +1275,7 @@ set role anon;
 select pruefe(public.portal_abrufen('falsch') is null, 'Portal nur mit richtigem Link');
 select pruefe((select (d->>'kunde') = 'Messe Berlin GmbH' and jsonb_array_length(d->'rechnungen') = 3 and d::text not like '%ENTWURF%' and (d->'rechnungen'->0->>'nummer') like 'RE-%-0003'
   and jsonb_array_length(d->'nachweise') = 1 and (d->'nachweise'->0->'summe'->>'std') = '12.5' and d::text not like '%Protokoll Berlin%'
-  and jsonb_array_length(d->'vorfaelle') = 1 and (d->'orte'->0->>'scans')::int = 1 from public.portal_abrufen('portal-geheim-1') d),
+  and jsonb_array_length(d->'vorfaelle') = 1 and not (d->'vorfaelle'->0 ? 'text') and (d->'orte'->0->>'scans')::int = 1 from public.portal_abrufen('portal-geheim-1') d),
   'Portal zeigt nur Rechnungen, Summen und Berichte dieses Kunden, keine Namen');
 select pruefe(public.portal_melden('portal-geheim-1', 'mangel', 'Mülleimer in Halle 3 nicht geleert', 'Frau Meier'), 'Kunde meldet Mangel ohne Anmeldung');
 select pruefe(not public.portal_melden('falsch', 'mangel', 'Test Test', '') and not public.portal_melden('portal-geheim-1', 'quatsch', 'Test Test', ''), 'Melden nur mit gültigem Link und gültiger Art');

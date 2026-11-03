@@ -14,7 +14,7 @@ export type PortalDaten = {
   nachweise: { monat: string; titel: string; summe: { std?: number } | null; bestaetigt_am: string | null; rueckfrage: boolean; abgelaufen: boolean }[];
   rechnungen: { nummer: string; datum: string; monat: string; netto: number | string; ust_satz: number | string; bezahlt_am: string | null; zahlungsziel_tage: number | null; ust_betrag?: number | string | null; kleinunternehmer?: boolean | null; art?: string; bezug_nummer?: string; storniert?: boolean }[] | null;
   orte: { name: string; scans: number; letzter: string | null }[] | null;
-  vorfaelle: { zeit: string; ort: string; text: string }[] | null;
+  vorfaelle: { zeit: string; ort: string }[] | null;
   meldungen: { art: string; text: string; erstellt: string; erledigt_am: string | null }[];
 };
 export const ARTEN: Record<string, string> = { mangel: "⚠️ Mangel", wunsch: "💬 Wunsch", lob: "👍 Lob" };
@@ -34,7 +34,7 @@ export function portalSeite(d: PortalDaten, token: string, heute: string, hinwei
     return `<li><div><strong>${escape(r.nummer)} · ${euro(brutto)}</strong><span class="klein">${datum(r.datum)} · ${monatName(r.monat)} · ${stand}</span></div></li>`;
   }).join("")}</ul><p class="klein">Rechnungen erhalten Sie weiterhin direkt von ${escape(d.firma)}.</p>` : `<p class="treffer-leer">Noch keine Rechnungen.</p>`}`;
   const berichte = d.orte === null ? "" : `<h2>🛡️ Kontrollgänge</h2>${d.orte.length ? `<table class="tabelle"><thead><tr><th>Objekt</th><th>Scans (14 Tage)</th><th>Letzter Kontrollgang</th></tr></thead><tbody>${d.orte.map((o) => `<tr><td>${escape(o.name)}</td><td>${o.scans}</td><td>${o.letzter ? zeitpunkt(o.letzter) : "–"}</td></tr>`).join("")}</tbody></table>` : `<p class="treffer-leer">Keine Objekte hinterlegt.</p>`}
-${d.vorfaelle?.length ? `<h3>Vorfälle (30 Tage)</h3><ul class="kontakt-liste">${d.vorfaelle.map((v) => `<li><div><strong>${zeitpunkt(v.zeit)} · ${escape(v.ort)}</strong><span class="klein">${escape(v.text)}</span></div></li>`).join("")}</ul>` : ""}`;
+${d.vorfaelle?.length ? `<h3>Vorfälle (30 Tage)</h3><ul class="kontakt-liste">${d.vorfaelle.map((v) => `<li><div><strong>${zeitpunkt(v.zeit)} · ${escape(v.ort)}</strong></div></li>`).join("")}</ul><p class="klein">Einzelheiten zu Vorfällen erhalten Sie direkt von ${escape(d.firma)}.</p>` : ""}`;
   return `${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}<p class="klein">Kundenbereich von <strong>${escape(d.firma)}</strong></p><h2>${escape(d.kunde)}</h2>
 <h2>🧾 Leistungsnachweise</h2>${nachweise}${rechnungen}${berichte}
 <h2>📣 Etwas melden</h2><form method="post" action="/portal/${encodeURIComponent(token)}"><div class="aueg-form"><label>Art<select name="art">${Object.entries(ARTEN).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select></label><label>Ihr Name (freiwillig)<input name="name" maxlength="120" autocomplete="name"></label>

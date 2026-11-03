@@ -18,7 +18,8 @@ test("Kunden-Portal: öffentliche Seite", () => {
   assert.match(html, /RE-2026-0002 · 119,00\s€/);
   assert.match(html, /⏰ fällig seit 15\.10\.2026/);
   assert.match(html, /<td>Halle 3<\/td><td>42<\/td>/);
-  assert.match(html, /Tür &#60;3&#62; offen/);
+  assert.doesNotMatch(html, /Tür/, "Vorfall-Text geht nicht ins Kundenportal");
+  assert.match(html, /Einzelheiten zu Vorfällen erhalten Sie direkt/);
   assert.match(html, /action="\/portal\/t{32}"/);
   assert.match(html, /⏳ in Bearbeitung/);
   const ohne = portalSeite({ ...d, rechnungen: null, orte: null, vorfaelle: null, kleinunternehmer: true }, "x".repeat(32), "2026-11-03");
