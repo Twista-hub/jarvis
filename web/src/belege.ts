@@ -8,6 +8,8 @@ import { euro } from "./spesen.ts";
 import { naechsterMonat, vorMonat } from "./stunden.ts";
 import { buchungenAus, buchungsstapel, cp1252, fehltDatev, LOHNARTEN, type DatevEinstellung, type Lohnarten } from "./datev.ts";
 import type { Rechnung } from "./rechnungen.ts";
+import { belegLesen, type Gelesen } from "./belegleser.ts";
+import type { KiEnv } from "./api-budget.ts";
 
 export type Beleg = { id: string; datum: string; lieferant: string; kategorie: string; brutto: number | string; ust_satz: number | string; notiz: string; beleg_mime: string | null };
 export const KATEGORIEN: Record<string, string> = { material: "🔩 Material & Waren", fahrzeug: "🚐 Fahrzeug & Tanken", buero: "🖇️ Büro & Software", miete: "🏠 Miete & Nebenkosten", versicherung: "🛡️ Versicherung", telefon: "📞 Telefon & Internet", reise: "🚆 Reise & Übernachtung", personal: "👷 Personal (Fremdleistung, Schulung)", sonstiges: "📦 Sonstiges" };
@@ -56,23 +58,29 @@ ${Object.entries(LOHNARTEN).map(([k, t]) => `<label>Lohnart ${t}<input name="la_
 <p class="klein">Buchungsstapel im DATEV-Format mit den Rechnungen und Belegen dieses Monats, SKR ${d.e.skr}. Die Konten sind ein <strong>Vorschlag</strong> (Sammeldebitor 10000, Sammelkreditor 70000, Erlöse ${d.e.skr === "03" ? "8400" : "4400"}); buchen und prüfen macht das Steuerbüro. Lohndaten für LODAS gibt es unter <a href="/konto/stunden">Stundenzettel</a>. <strong>Zugang fürs Steuerbüro:</strong> unter <a href="/konto/team">Firma &amp; Team</a> als „Leser“ mit Finanzfreigabe einladen (kostenlos) – dann sieht es Rechnungen und Belege und lädt alles selbst herunter, ändern kann es nichts.</p>${form}`;
 }
 
-export function belegeSeite(liste: Beleg[], o: { monat: string; heute: string; nurLesen?: boolean; datev?: DatevTeil }): string {
+export type Vorschlag = { g: Gelesen | null; dateiId: string; mime: string };
+export function belegeSeite(liste: Beleg[], o: { monat: string; heute: string; nurLesen?: boolean; datev?: DatevTeil; vorschlag?: Vorschlag; kiAn?: boolean }): string {
+  const v = o.vorschlag, g = v?.g;
+  const wert = (x: string | number | undefined) => x === undefined || x === "" || x === 0 ? "" : escape(String(x));
   const s = summen(liste);
   const tabelle = (titel: string, z: { name: string; anzahl: number; brutto: number; ust: number; netto: number }[]) => `<h3>${titel}</h3><table class="tabelle"><thead><tr><th></th><th>Belege</th><th>Brutto</th><th>USt</th><th>Netto</th></tr></thead><tbody>${z.map((x) => `<tr><td>${x.name}</td><td>${x.anzahl}</td><td>${euro(x.brutto)}</td><td>${euro(x.ust)}</td><td>${euro(x.netto)}</td></tr>`).join("")}</tbody></table>`;
   return `<nav class="dispo-nav"><a class="knopf zweit" href="/konto/belege?monat=${vorMonat(o.monat)}" aria-label="Vormonat">‹</a><strong>${monatName(o.monat)}</strong><a class="knopf zweit" href="/konto/belege?monat=${naechsterMonat(o.monat)}" aria-label="Nächster Monat">›</a></nav>
 <p class="klein">Firmenbelege (Tanken, Material, Miete …) per Foto erfassen. Am Monatsende die Liste als CSV an die Steuerberatung geben. Kategorie und Steuersatz trägst du ein; Jarvis gibt keine Steuerberatung. Mitarbeiter-Auslagen laufen weiter über <a href="/konto/spesen">Spesen</a>.</p>
-${o.nurLesen ? "" : `<details class="termin-neu"${liste.length ? "" : " open"}><summary>📸 Beleg erfassen</summary><form method="post" action="/konto/belege" enctype="multipart/form-data"><input type="hidden" name="monat" value="${o.monat}"><div class="aueg-form">
-<label>Datum<input type="date" name="datum" required value="${o.heute}" max="${o.heute}"></label><label>Lieferant<input name="lieferant" maxlength="160" required placeholder="z. B. Aral, Würth"></label>
-<label>Betrag brutto (€)<input name="brutto" inputmode="decimal" required maxlength="12" placeholder="z. B. 59,90"></label><label>USt-Satz<select name="ust_satz">${SAETZE.map((x) => `<option value="${x}">${x} %</option>`).join("")}</select></label>
-<label>Kategorie<select name="kategorie">${Object.entries(KATEGORIEN).map(([k, t]) => `<option value="${k}">${t}</option>`).join("")}</select></label><label>Notiz<input name="notiz" maxlength="300"></label>
-<label class="ganz">Beleg (Foto oder PDF bis 5 MB)<input type="file" name="beleg" accept="image/jpeg,image/png,application/pdf" capture="environment"></label></div><button>Speichern</button></form></details>`}
+${o.nurLesen ? "" : `<details class="termin-neu"${liste.length && !v ? "" : " open"}><summary>📸 Beleg erfassen</summary>
+${o.kiAn && !v ? `<form method="post" action="/konto/belege" enctype="multipart/form-data" class="formular-zeile"><input type="hidden" name="aktion" value="lesen"><input type="hidden" name="monat" value="${o.monat}"><label>Foto oder PDF<input type="file" name="beleg" required accept="image/jpeg,image/png,application/pdf" capture="environment"></label><button>🤖 Auslesen lassen</button></form><p class="klein">Jarvis liest Datum, Lieferant, Betrag, Steuersatz und Kategorie vor, du prüfst und speicherst. Oder unten alles selbst eintragen.</p>` : ""}
+${v ? `<p class="${g?.sicher ? "hinweis ok" : "hinweis"}">${g ? g.sicher ? "🤖 Vorschlag aus dem Foto – bitte kurz prüfen." : "🤖 Teilweise lesbar – bitte die leeren oder falschen Felder ergänzen." : "🤖 Das Foto konnte nicht gelesen werden – bitte selbst eintragen."}${g?.gemischt ? " Der Beleg hat mehrere Steuersätze; eingetragen ist der größte Anteil – ggf. als zwei Belege erfassen." : ""}</p>` : ""}
+<form method="post" action="/konto/belege" enctype="multipart/form-data"><input type="hidden" name="monat" value="${o.monat}">${v ? `<input type="hidden" name="datei_id" value="${v.dateiId}"><input type="hidden" name="datei_mime" value="${escape(v.mime)}">` : ""}<div class="aueg-form">
+<label>Datum<input type="date" name="datum" required value="${g?.datum || o.heute}" max="${o.heute}"></label><label>Lieferant<input name="lieferant" maxlength="160" required placeholder="z. B. Aral, Würth" value="${wert(g?.lieferant)}"></label>
+<label>Betrag brutto (€)<input name="brutto" inputmode="decimal" required maxlength="12" placeholder="z. B. 59,90" value="${g?.brutto ? g.brutto.toFixed(2).replace(".", ",") : ""}"></label><label>USt-Satz<select name="ust_satz">${SAETZE.map((x) => `<option value="${x}"${g && g.ust_satz === x ? " selected" : ""}>${x} %</option>`).join("")}</select></label>
+<label>Kategorie<select name="kategorie">${Object.entries(KATEGORIEN).map(([k, t]) => `<option value="${k}"${g?.kategorie === k ? " selected" : ""}>${t}</option>`).join("")}</select></label><label>Notiz<input name="notiz" maxlength="300"></label>
+${v ? `<p class="klein ganz">📎 Foto ist angehängt.</p>` : `<label class="ganz">Beleg (Foto oder PDF bis 5 MB)<input type="file" name="beleg" accept="image/jpeg,image/png,application/pdf" capture="environment"></label>`}</div><button>Speichern</button></form></details>`}
 ${liste.length ? `<p class="gewerk-zahlen"><span><strong>${euro(s.gesamt.brutto)}</strong> brutto</span> <span><strong>${euro(s.gesamt.ust)}</strong> Vorsteuer laut Eingabe</span> <span><strong>${s.gesamt.anzahl}</strong> Belege</span></p>
 <p><a class="knopf" href="/konto/belege.csv?monat=${o.monat}" download>📤 CSV für die Steuerberatung</a></p>
 <ul class="kontakt-liste">${liste.map((b) => `<li><div><strong>${tag(b.datum)} · ${escape(b.lieferant)}</strong><span class="klein">${KATEGORIEN[b.kategorie] ?? escape(b.kategorie)} · ${Number(b.ust_satz)} % USt${b.notiz ? ` · ${escape(b.notiz)}` : ""} · ${b.beleg_mime ? `<a href="/konto/belege/${b.id}" target="_blank" rel="noopener">📎 Beleg</a>` : "⚠️ ohne Beleg"}</span></div><span class="knopf-zeile"><strong>${euro(Number(b.brutto))}</strong>${o.nurLesen ? "" : `<form method="post" action="/konto/belege"><input type="hidden" name="monat" value="${o.monat}"><input type="hidden" name="weg" value="${b.id}"><button class="zweit" aria-label="Beleg löschen">✕</button></form>`}</span></li>`).join("")}</ul>
 ${tabelle("Nach Kategorie", s.kategorien.map((x) => ({ ...x, name: KATEGORIEN[x.k] })))}${tabelle("Nach Steuersatz", s.saetze.map((x) => ({ ...x, name: `${x.s} %` })))}` : `<p class="treffer-leer">Keine Belege in diesem Monat.</p>`}${o.datev ? datevTeil(o.datev, o.monat) : ""}`;
 }
 
-export async function belege(request: Request, env: KontoEnv): Promise<Response | null> {
+export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): Promise<Response | null> {
   const url = new URL(request.url);
   const datei = url.pathname.match(/^\/konto\/belege\/([0-9a-f-]{36})$/);
   const csv = url.pathname === "/konto/belege.csv", datevCsv = url.pathname === "/konto/belege/datev.csv";
@@ -131,6 +139,18 @@ export async function belege(request: Request, env: KontoEnv): Promise<Response 
       const r = await db(f.s, env, "firmenprofil?on_conflict=firma_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates" }, body: JSON.stringify(daten) });
       return zurueck(r.ok ? "DATEV-Einstellungen gespeichert." : "Speichern hat nicht geklappt.");
     }
+    const kiAn = !!(env.ANTHROPIC_API_KEY && env.HYPERDRIVE);
+    if (t("aktion", 10) === "lesen") {
+      const b = form.get("beleg");
+      if (!b || typeof b === "string" || !b.size) return zurueck("Bitte ein Foto oder PDF auswählen.");
+      const bytes = new Uint8Array(await b.arrayBuffer());
+      if (b.size > 5 * 1024 * 1024 || !TYPEN.includes(b.type) || !passt(bytes, b.type)) return zurueck("Beleg bitte als Foto (JPG/PNG) oder PDF bis 5 MB.");
+      const dateiId = crypto.randomUUID();
+      await env.DATEN?.put(dateiSchluessel(firma, dateiId), bytes, { httpMetadata: { contentType: b.type } });
+      const g = kiAn ? await belegLesen(env as KiEnv, bytes, b.type, firma, heute).catch(() => null) : null;
+      const l = await laden(monat);
+      return antwort(belegeSeite(l.ok ? l.daten : [], { monat, heute, kiAn, vorschlag: { g, dateiId, mime: b.type } }));
+    }
     const weg = t("weg", 36);
     if (/^[0-9a-f-]{36}$/.test(weg)) {
       const r = await db<{ id: string }[]>(f.s, env, `belege?id=eq.${weg}&firma_id=eq.${firma}&select=id`, { method: "DELETE", headers: { prefer: "return=representation" } });
@@ -142,10 +162,12 @@ export async function belege(request: Request, env: KontoEnv): Promise<Response 
     if (!Number.isFinite(brutto) || brutto <= 0 || brutto > 1_000_000) return zurueck("Bitte einen Betrag über 0 € angeben.");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(datum) || datum > heute || datum < `${Number(heute.slice(0, 4)) - 2}-01-01`) return zurueck("Bitte ein Datum bis heute wählen (höchstens zwei Jahre zurück).");
     if (!lieferant) return zurueck("Bitte den Lieferanten angeben.");
-    const id = crypto.randomUUID();
+    const dateiId = t("datei_id", 36), dateiMime = t("datei_mime", 20);
+    const vorhanden = /^[0-9a-f-]{36}$/.test(dateiId) && TYPEN.includes(dateiMime) && !!(await env.DATEN?.head(dateiSchluessel(firma, dateiId)));
+    const id = vorhanden ? dateiId : crypto.randomUUID();
     const b = form.get("beleg");
-    let mime: string | null = null, bytes: Uint8Array | null = null;
-    if (b && typeof b !== "string" && b.size) {
+    let mime: string | null = vorhanden ? dateiMime : null, bytes: Uint8Array | null = null;
+    if (!vorhanden && b && typeof b !== "string" && b.size) {
       bytes = new Uint8Array(await b.arrayBuffer());
       if (b.size > 5 * 1024 * 1024 || !TYPEN.includes(b.type) || !passt(bytes, b.type)) return zurueck("Beleg bitte als Foto (JPG/PNG) oder PDF bis 5 MB.");
       mime = b.type;
@@ -160,5 +182,5 @@ export async function belege(request: Request, env: KontoEnv): Promise<Response 
   const l = await laden(monat);
   const hinweis = url.searchParams.get("hinweis");
   const d = await datevLaden();
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${belegeSeite(l.ok ? l.daten : [], { monat, heute, nurLesen, datev: { ...d, admin: f.admin } })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${belegeSeite(l.ok ? l.daten : [], { monat, heute, nurLesen, kiAn: !!(env.ANTHROPIC_API_KEY && env.HYPERDRIVE), datev: { ...d, admin: f.admin } })}`);
 }
