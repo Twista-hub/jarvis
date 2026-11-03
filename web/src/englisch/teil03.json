@@ -234,5 +234,6 @@
  "🤖 Die Dateien werden zur Auswertung an den KI-Dienst Claude (Anthropic, USA) übermittelt und nach 30 Tagen gelöscht. Keine Personalakten oder Gesundheitsdaten hochladen.": "🤖 The files are sent to the AI service Claude (Anthropic, USA) for analysis and deleted after 30 days. Do not upload personnel files or health data.",
  "🔍 KI-Datum, bitte prüfen": "🔍 AI date, please check",
  "Von der KI aus dem Dokument gelesen. Unter Ändern prüfen und speichern.": "Read from the document by the AI. Check and save under Edit.",
- "🤖 Von KI erstellt (Claude, Anthropic). Vor der Verwendung mit den Originalunterlagen prüfen.": "🤖 Created by AI (Claude, Anthropic). Check against the original documents before use."
+ "🤖 Von KI erstellt (Claude, Anthropic). Vor der Verwendung mit den Originalunterlagen prüfen.": "🤖 Created by AI (Claude, Anthropic). Check against the original documents before use.",
+ "⚖️ Gibt es einen Betriebsrat oder eine andere Arbeitnehmervertretung, muss sie vor der Nutzung dieser Funktion zustimmen bzw. beteiligt werden (Deutschland § 87 Abs. 1 Nr. 6 BetrVG, Österreich § 96 ArbVG, Frankreich CSE, Italien Art. 4 Statuto dei lavoratori, Niederlande Art. 27 WOR). Die Beschäftigten vorher informieren (Art. 13 DSGVO).": "⚖️ If there is a works council or other employee representation, it must consent to or be involved in the use of this function beforehand (Germany § 87(1) no. 6 BetrVG, Austria § 96 ArbVG, France CSE, Italy Art. 4 Statuto dei lavoratori, Netherlands Art. 27 WOR). Inform employees beforehand (Art. 13 GDPR)."
 }

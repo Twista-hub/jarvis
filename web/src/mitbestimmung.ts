@@ -1,0 +1,3 @@
+// Rechtsprüfung D12/K10/D19: functions that can monitor performance or behaviour (time clock with location check,
+// patrol scans, ratings, staff evaluation) need the works council's consent where one exists. Shown to the office.
+export const MITBESTIMMUNG = `<p class="klein mitbestimmung">⚖️ Gibt es einen Betriebsrat oder eine andere Arbeitnehmervertretung, muss sie vor der Nutzung dieser Funktion zustimmen bzw. beteiligt werden (Deutschland § 87 Abs. 1 Nr. 6 BetrVG, Österreich § 96 ArbVG, Frankreich CSE, Italien Art. 4 Statuto dei lavoratori, Niederlande Art. 27 WOR). Die Beschäftigten vorher informieren (Art. 13 DSGVO).</p>`;

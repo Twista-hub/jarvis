@@ -1,6 +1,7 @@
 // T27: Einsatz-Bewertung. After an assignment the office notes how satisfied the customer was (1–5 stars) and whether the
 // customer wants the person again. Only the office sees it; "not again" keeps the person out of replacement suggestions
 // for that customer.
+import { MITBESTIMMUNG } from "./mitbestimmung.ts";
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
@@ -40,7 +41,7 @@ ${kunden.length ? `<label>Kunde<select name="kunde"><option value="">– anderer
 <label>Datum<input type="date" name="datum" required value="${o.heute}" max="${o.heute}"></label><label>Zufriedenheit<select name="sterne">${[5, 4, 3, 2, 1].map((n) => `<option value="${n}">${sterneText(n)}</option>`).join("")}</select></label>
 <fieldset class="ganz"><legend>Will der Kunde die Person wieder?</legend><div class="chips"><label><input type="radio" name="wieder" value="ja"><span>👍 gern wieder</span></label><label><input type="radio" name="wieder" value="egal" checked><span>egal</span></label><label><input type="radio" name="wieder" value="nein"><span>🚫 nicht wieder</span></label></div></fieldset>
 <label class="ganz">Notiz<input name="notiz" maxlength="500" placeholder="z. B. sehr zuverlässig, kam zweimal zu spät"></label></div><button>Speichern</button></form></details>` : "";
-  return `<p class="klein">Rückmeldungen der Kunden zu Einsätzen. Nur das Büro sieht sie. „Nicht wieder“ nimmt die Person bei diesem Kunden aus den Ersatzvorschlägen. Bitte sachlich bleiben, die Person hat ein Recht auf Auskunft.</p>${form}
+  return `${MITBESTIMMUNG}<p class="klein">Rückmeldungen der Kunden zu Einsätzen. Nur das Büro sieht sie. „Nicht wieder“ nimmt die Person bei diesem Kunden aus den Ersatzvorschlägen. Bitte sachlich bleiben, die Person hat ein Recht auf Auskunft.</p>${form}
 ${rangliste.length ? `<h2>Pro Person</h2><ul class="kontakt-liste">${rangliste.map(({ p, s }) => `<li><div><strong>${escape(name(p))}</strong><span class="klein">${escape(schnittText(s))}</span></div><span class="sterne">${sterneText(s!.schnitt)}</span></li>`).join("")}</ul>` : ""}
 ${liste.length ? `<h2>Zuletzt</h2><ul class="kontakt-liste">${liste.slice(0, 50).map((b) => `<li class="${b.wieder === "nein" ? "abgelaufen" : ""}"><div><strong>${escape(pName(b.personal_id))} · ${escape(kName(b.kunde_id, b.einsatz))}</strong><span class="klein">${datum(b.datum)} · ${sterneText(b.sterne)}${b.wieder === "ja" ? " · 👍 gern wieder" : b.wieder === "nein" ? " · 🚫 nicht wieder" : ""}${b.notiz ? ` · ${escape(b.notiz)}` : ""}</span></div>${o.darfAendern ? `<form method="post" action="/konto/bewertungen"><input type="hidden" name="loeschen" value="${b.id}"><button class="zweit" aria-label="Bewertung löschen">✕</button></form>` : ""}</li>`).join("")}</ul>` : `<p class="treffer-leer">Noch keine Bewertungen.</p>`}`;
 }

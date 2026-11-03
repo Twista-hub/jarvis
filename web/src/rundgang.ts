@@ -2,6 +2,7 @@
 // (/konto/rundgaenge, printable QR sheet), staff scan them with the phone camera (/k/<token>, stored with server time
 // by rundgang_scannen) and write guard log entries (report, incident, handover). Office: everything of the firm;
 // staff: only their own entries (row level security, migration 20261103040000).
+import { MITBESTIMMUNG } from "./mitbestimmung.ts";
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, sitzung, weiterleiten, type KontoEnv } from "./konto.ts";
 import { qrSvg } from "./qr.ts";
@@ -22,7 +23,7 @@ export function rundgangSeite(orte: Ort[], punkte: Punkt[], scans: Scan[], eintr
   const pName = (id: string) => { const p = personen.find((x) => x.id === id); return p ? `${p.vorname} ${p.nachname}`.trim() : "–"; };
   const punkt = (id: string) => punkte.find((x) => x.id === id);
   const oName = (id: string | null) => orte.find((x) => x.id === id)?.name ?? "";
-  return `<p class="klein">Kontrollpunkte als QR-Code ausdrucken und vor Ort anbringen. Die Einsatzkraft scannt sie mit der Handy-Kamera; Jarvis speichert Zeit und Person. Ins Wachbuch schreiben Einsatzkräfte Meldungen, Vorfälle und Übergaben.</p>
+  return `${MITBESTIMMUNG}<p class="klein">Kontrollpunkte als QR-Code ausdrucken und vor Ort anbringen. Die Einsatzkraft scannt sie mit der Handy-Kamera; Jarvis speichert Zeit und Person. Ins Wachbuch schreiben Einsatzkräfte Meldungen, Vorfälle und Übergaben.</p>
 ${orte.length ? orte.map((o) => {
     const liste = punkte.filter((p) => p.einsatzort_id === o.id);
     return `<details${liste.length ? "" : " open"}><summary>📍 ${escape(o.name)} (${liste.length} Kontrollpunkte)</summary>
