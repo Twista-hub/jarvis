@@ -32,7 +32,10 @@ globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
   h.delete("apikey");
   const t0 = Date.now();
   try {
-    return await echt(ziel, { method: methode, headers: h, body: init?.body ?? (req && methode !== "GET" ? await req.text() : undefined), signal: AbortSignal.timeout(15_000) });
+    const r = await echt(ziel, { method: methode, headers: h, body: init?.body ?? (req && methode !== "GET" ? await req.text() : undefined), signal: AbortSignal.timeout(15_000) });
+    const ms = Date.now() - t0;
+    if (ms > 1500) langsam.push(`DB ${methode} ${url.pathname.replace("/rest/v1/", "")}?${[...url.searchParams.keys()].join("&")} ${ms} ms (HTTP ${r.status})`);
+    return r;
   } catch (e) { langsam.push(`${methode} ${url.pathname.replace("/rest/v1/", "")} nach ${Date.now() - t0} ms: ${String(e).slice(0, 80)}`); throw e; }
 }) as typeof fetch;
 
@@ -40,13 +43,13 @@ const { default: worker } = await import("../../src/index.ts");
 const env = { SUPABASE_URL: "https://supabase.test", SUPABASE_KEY: "public", TAGES_LIMIT: "10",
   DATEN: { get: async () => null, put: async () => {}, head: async () => null, delete: async () => {}, list: async () => ({ objects: [] }) } } as never;
 const ohneIds = (p: string) => p.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/g, ":id").replace(/[A-Za-z0-9_-]{32,}/g, ":token");
-const START = ["/konto", "/konto/team", "/konto/einstellungen", "/konto/treffer", "/konto/fristen", "/konto/unterlagen", "/konto/angebote", "/konto/kalkulation", "/konto/markt", "/konto/suchprofil", "/konto/profil", "/konto/ich", "/konto/hilfe"];
+const START = process.env.START ? process.env.START.split(",") : ["/konto", "/konto/team", "/konto/einstellungen", "/konto/treffer", "/konto/fristen", "/konto/unterlagen", "/konto/angebote", "/konto/kalkulation", "/konto/markt", "/konto/suchprofil", "/konto/profil", "/konto/ich", "/konto/hilfe"];
 let gesamtProbleme = 0;
-for (const firma of [...firmen, ""]) {
+for (const firma of process.env.START ? firmen.slice(0, 1) : [...firmen, ""]) {
   const cookie = `jv_at=${token}${firma ? `; jv_firma=${firma}` : "; jv_firma=99999999-9999-4999-8999-999999999999"}`;
   const gesehen = new Map<string, { von: string; status: number; ziel: string; problem: string }>();
   const warte: [string, string][] = START.map((s) => [s, "(Start)"]);
-  while (warte.length && gesehen.size < 300) {
+  while (warte.length && gesehen.size < Number(process.env.MAX ?? 300)) {
     const [pfad, von] = warte.shift()!;
     if (gesehen.has(pfad)) continue;
     let status = 0, ziel = "", problem = "", text = "";
@@ -91,5 +94,5 @@ log(`\nFehlermeldungen der App: ${zaehl.size}`);
 for (const [f, n] of zaehl) log(`  x${n} ${ohneIds(f).slice(0, 300)}`);
 log(`Schreibversuche (alle zurückgerollt): ${[...new Set(schreibversuche)].join(", ") || "keine"}`);
 log(`Langsam/abgebrochen: ${langsam.length}`);
-for (const l of langsam.slice(0, 40)) log(`  ${ohneIds(l)}`);
+for (const l of [...new Set(langsam.map(ohneIds))].slice(0, 60)) log(`  ${l}`);
 process.exit(0);
