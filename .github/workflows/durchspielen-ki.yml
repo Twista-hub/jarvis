@@ -48,6 +48,11 @@ jobs:
           sudo apt-get update -qq && sudo apt-get install -y -qq poppler-utils fonts-dejavu-core unzip >/dev/null
           pip install -q pillow
           cd web && npm ci --silent
+      - name: Testunterlagen aus dem privaten Speicher holen
+        uses: ./.github/actions/testunterlagen
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Muster erzeugen (Belege, Nachweise, Vergabeunterlagen)
         run: |
           python3 alarm/musterbelege.py "$RUNNER_TEMP/belege" >/dev/null

@@ -1,7 +1,7 @@
 """Download the public tender documents of one project page (e.g. DTVP), politely.
 
 Respects robots.txt for every request, one request at a time with a pause.
-CLI: python3 alarm/unterlagen.py <url> <name>  -> alarm/test-unterlagen/<name>/
+CLI: python3 alarm/unterlagen.py <url> <name>  -> alarm/test-unterlagen/<name>/ (not committed: kept privately in R2, workflow unterlagen.yml)
 """
 import re
 import sys

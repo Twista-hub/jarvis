@@ -2,7 +2,7 @@
 
 Both models get exactly the same instructions and input as in production:
 - notices: open notices from oeffentlichevergabe.de (CC0) as the daily alarm builds them (full eForms notice),
-- documents: the public Bundesbank tender in alarm/test-unterlagen (text via pdftotext, bundled like web/src/bundle.ts).
+- documents: the Bundesbank tender in alarm/test-unterlagen, fetched privately from R2 (text via pdftotext, bundled like web/src/bundle.ts).
 A third call (Opus, blind: the two Steckbriefe in random order as A and B) checks both against the source text and
 lists wrong facts and important gaps. Nothing is saved in the database. The log shows numbers and the judged errors (public tenders
 only); the full texts go to the workflow artifact. Hard cost cap: GRENZE_DOLLAR (default 4 $), checked before every call.

@@ -5,3 +5,6 @@ alarm/treffer.json
 
 # Local Supabase CLI metadata (no source).
 supabase/.temp/
+
+# Test tender documents live privately in R2 (testdaten/test-unterlagen.tar), never in this public repo.
+alarm/test-unterlagen/
