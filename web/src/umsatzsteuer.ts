@@ -91,7 +91,7 @@ export async function umsatzsteuer(request: Request, env: KontoEnv): Promise<Res
   const quartal = url.searchParams.get("zeitraum") === "quartal", ist = url.searchParams.get("ist") === "1";
   const [re, be, pr] = await Promise.all([
     db<ReZeile[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&status=eq.ausgestellt&datum=gte.${jahr - 1}-01-01&select=datum,netto,ust_satz,bezahlt_am,monat,art,ust_betrag,kleinunternehmer&limit=20000`),
-    db<BeZeile[]>(f.s, env, `belege?firma_id=eq.${firma}&datum=gte.${jahr}-01-01&datum=lt.${jahr + 1}-01-01&select=datum,brutto,ust_satz&limit=20000`),
+    db<BeZeile[]>(f.s, env, `belege?firma_id=eq.${firma}&storniert_am=is.null&datum=gte.${jahr}-01-01&datum=lt.${jahr + 1}-01-01&select=datum,brutto,ust_satz&limit=20000`),
     db<{ kleinunternehmer: boolean }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=kleinunternehmer`),
   ]);
   const rechnungen = re.ok ? re.daten : [], ku = !!(pr.ok && pr.daten[0]?.kleinunternehmer);

@@ -11,7 +11,9 @@ import type { Rechnung } from "./rechnungen.ts";
 import { belegLesen, type Gelesen } from "./belegleser.ts";
 import type { KiEnv } from "./api-budget.ts";
 
-export type Beleg = { id: string; datum: string; lieferant: string; kategorie: string; brutto: number | string; ust_satz: number | string; notiz: string; beleg_mime: string | null };
+export type Beleg = { id: string; datum: string; lieferant: string; kategorie: string; brutto: number | string; ust_satz: number | string; notiz: string; beleg_mime: string | null; storniert_am?: string | null; storno_grund?: string };
+/** Cancelled receipts stay visible but count for nothing (GoBD, Rechtsprüfung 03.11.2026 S5). */
+export const gueltig = (l: Beleg[]) => l.filter((b) => !b.storniert_am);
 export const KATEGORIEN: Record<string, string> = { material: "🔩 Material & Waren", fahrzeug: "🚐 Fahrzeug & Tanken", buero: "🖇️ Büro & Software", miete: "🏠 Miete & Nebenkosten", versicherung: "🛡️ Versicherung", telefon: "📞 Telefon & Internet", reise: "🚆 Reise & Übernachtung", personal: "👷 Personal (Fremdleistung, Schulung)", sonstiges: "📦 Sonstiges" };
 const SAETZE = [19, 7, 0];
 const TYPEN = ["application/pdf", "image/png", "image/jpeg"];
@@ -24,7 +26,8 @@ const tag = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("de-DE"
 const monatName = (m: string) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
 /** Sums per category and per VAT rate (gross, VAT, net). */
-export function summen(liste: Beleg[]) {
+export function summen(alle: Beleg[]) {
+  const liste = gueltig(alle);
   const z = (l: Beleg[]) => { const brutto = rund(l.reduce((n, b) => n + Number(b.brutto), 0)), ust = rund(l.reduce((n, b) => n + ustAus(Number(b.brutto), Number(b.ust_satz)), 0)); return { anzahl: l.length, brutto, ust, netto: rund(brutto - ust) }; };
   return {
     gesamt: z(liste),
@@ -76,7 +79,7 @@ ${v ? `<p class="${g?.sicher ? "hinweis ok" : "hinweis"}">${g ? g.sicher ? "🤖
 ${v ? `<p class="klein ganz">📎 Foto ist angehängt.</p>` : `<label class="ganz">Beleg (Foto oder PDF bis 5 MB)<input type="file" name="beleg" accept="image/jpeg,image/png,application/pdf" capture="environment"></label>`}</div><button>Speichern</button></form></details>`}
 ${liste.length ? `<p class="gewerk-zahlen"><span><strong>${euro(s.gesamt.brutto)}</strong> brutto</span> <span><strong>${euro(s.gesamt.ust)}</strong> Vorsteuer laut Eingabe</span> <span><strong>${s.gesamt.anzahl}</strong> Belege</span></p>
 <p><a class="knopf" href="/konto/belege.csv?monat=${o.monat}" download>📤 CSV für die Steuerberatung</a></p>
-<ul class="kontakt-liste">${liste.map((b) => `<li><div><strong>${tag(b.datum)} · ${escape(b.lieferant)}</strong><span class="klein">${KATEGORIEN[b.kategorie] ?? escape(b.kategorie)} · ${Number(b.ust_satz)} % USt${b.notiz ? ` · ${escape(b.notiz)}` : ""} · ${b.beleg_mime ? `<a href="/konto/belege/${b.id}" target="_blank" rel="noopener">📎 Beleg</a>` : "⚠️ ohne Beleg"}</span></div><span class="knopf-zeile"><strong>${euro(Number(b.brutto))}</strong>${o.nurLesen ? "" : `<form method="post" action="/konto/belege"><input type="hidden" name="monat" value="${o.monat}"><input type="hidden" name="weg" value="${b.id}"><button class="zweit" aria-label="Beleg löschen">✕</button></form>`}</span></li>`).join("")}</ul>
+<ul class="kontakt-liste">${liste.map((b) => `<li><div><strong>${tag(b.datum)} · ${escape(b.lieferant)}</strong><span class="klein">${KATEGORIEN[b.kategorie] ?? escape(b.kategorie)} · ${Number(b.ust_satz)} % USt${b.notiz ? ` · ${escape(b.notiz)}` : ""} · ${b.beleg_mime ? `<a href="/konto/belege/${b.id}" target="_blank" rel="noopener">📎 Beleg</a>` : "⚠️ ohne Beleg"}</span></div><span class="knopf-zeile">${b.storniert_am ? `<s>${euro(Number(b.brutto))}</s> <span class="klein">↩︎ storniert${b.storno_grund ? `: ${escape(b.storno_grund)}` : ""}</span>` : `<strong>${euro(Number(b.brutto))}</strong>${o.nurLesen ? "" : `<details class="storno"><summary class="knopf zweit" aria-label="Beleg stornieren">↩︎</summary><form method="post" action="/konto/belege"><input type="hidden" name="monat" value="${o.monat}"><input type="hidden" name="storno" value="${b.id}"><label>Grund<input name="grund" required minlength="3" maxlength="300" placeholder="z. B. doppelt erfasst"></label><button class="zweit">Beleg stornieren</button><p class="klein">Belege werden nicht gelöscht (GoBD): Der Beleg bleibt mit Grund sichtbar, zählt aber nicht mehr für Vorsteuer und DATEV.</p></form></details>`}`}</span></li>`).join("")}</ul>
 ${tabelle("Nach Kategorie", s.kategorien.map((x) => ({ ...x, name: KATEGORIEN[x.k] })))}${tabelle("Nach Steuersatz", s.saetze.map((x) => ({ ...x, name: `${x.s} %` })))}` : `<p class="treffer-leer">Keine Belege in diesem Monat.</p>`}${o.datev ? datevTeil(o.datev, o.monat) : ""}`;
 }
 
@@ -101,7 +104,7 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
     if (!x || !obj) return new Response("Nicht gefunden", { status: 404 });
     return new Response(obj.body, { headers: kopf({ "content-type": x.beleg_mime!, "content-disposition": "inline", "cache-control": "private, no-store", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" }) });
   }
-  const laden = (monat: string) => db<Beleg[]>(f.s, env, `belege?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,datum,lieferant,kategorie,brutto,ust_satz,notiz,beleg_mime&order=datum.desc,erstellt.desc&limit=5000`);
+  const laden = (monat: string) => db<Beleg[]>(f.s, env, `belege?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,datum,lieferant,kategorie,brutto,ust_satz,notiz,beleg_mime,storniert_am,storno_grund&order=datum.desc,erstellt.desc&limit=5000`);
   const datevLaden = async (): Promise<{ e: DatevEinstellung; lohnarten: Lohnarten }> => {
     const r = await db<{ datev_berater: string; datev_mandant: string; datev_skr: "03" | "04"; datev_wj_beginn: number; kleinunternehmer: boolean; lohnarten: Lohnarten }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=datev_berater,datev_mandant,datev_skr,datev_wj_beginn,kleinunternehmer,lohnarten`);
     const x = r.ok ? r.daten[0] : undefined;
@@ -117,7 +120,7 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
     if (fehltDatev(d.e).length) return weiterleiten(`/konto/belege?monat=${monat}&hinweis=${encodeURIComponent("Bitte zuerst die DATEV-Einstellungen ausfüllen.")}`, f.s.cookies);
     const rechnungen = r.ok ? r.daten : [], kunden = k.ok ? k.daten : [];
     const kundeName = (x: Pick<Rechnung, "nummer">) => kunden.find((c) => c.id === rechnungen.find((y) => y.nummer === x.nummer)?.kunde_id)?.name ?? "";
-    const text = buchungsstapel(d.e, monat, buchungenAus(rechnungen, l.ok ? l.daten : [], d.e, kundeName));
+    const text = buchungsstapel(d.e, monat, buchungenAus(rechnungen, l.ok ? gueltig(l.daten) : [], d.e, kundeName));
     return new Response(cp1252(text), { headers: kopf({ "content-type": "text/csv; charset=windows-1252", "content-disposition": `attachment; filename="EXTF_Buchungsstapel_${monat}.csv"`, "cache-control": "private, no-store" }) });
   }
   if (csv) {
@@ -151,11 +154,10 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
       const l = await laden(monat);
       return antwort(belegeSeite(l.ok ? l.daten : [], { monat, heute, kiAn, vorschlag: { g, dateiId, mime: b.type } }));
     }
-    const weg = t("weg", 36);
-    if (/^[0-9a-f-]{36}$/.test(weg)) {
-      const r = await db<{ id: string }[]>(f.s, env, `belege?id=eq.${weg}&firma_id=eq.${firma}&select=id`, { method: "DELETE", headers: { prefer: "return=representation" } });
-      if (r.ok && r.daten.length) await env.DATEN?.delete(dateiSchluessel(firma, weg));
-      return zurueck(r.ok && r.daten.length ? "Beleg gelöscht." : "Löschen hat nicht geklappt.");
+    const storno = t("storno", 36);
+    if (/^[0-9a-f-]{36}$/.test(storno)) {
+      const r = await db<boolean>(f.s, env, "rpc/beleg_stornieren", { method: "POST", body: JSON.stringify({ b: storno, grund: t("grund", 300) }) });
+      return zurueck(r.ok ? (r.daten ? "Beleg storniert." : "Der Beleg war schon storniert.") : /"message":"([^"]+)"/.exec(r.fehler)?.[1] ?? "Stornieren hat nicht geklappt.");
     }
     const brutto = Number(t("brutto", 14).replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
     const datum = t("datum", 10), satz = Number(t("ust_satz", 2)), lieferant = t("lieferant", 160);

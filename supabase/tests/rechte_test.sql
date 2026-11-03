@@ -83,6 +83,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103150000_personal_aufbewahrung.sql
 \ir ../migrations/20261103160000_arbzg_schicht_uebernehmen.sql
 \ir ../migrations/20261103170000_zeitarbeit_tarif.sql
+\ir ../migrations/20261103180000_belege_storno.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1336,6 +1337,16 @@ set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000b');
 select pruefe((select count(*) >= 1 from public.personal) and (select count(*) = 0 from public.personal_nachweise) and (select count(*) = 0 from public.wachbuch)
   and (select count(*) = 0 from public.stempel) and (select count(*) = 0 from public.rundgang_scans), 'Steuerbüro sieht Namen, aber keine Nachweise, Wachbuch, Stempel und Rundgänge');
+reset role;
+-- Rechtsprüfung S5: receipts are cancelled with a reason, never deleted.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+do $$ begin
+  delete from public.belege;
+  raise exception 'FEHLER: Beleg gelöscht';
+exception when insufficient_privilege then null; end $$;
+select pruefe(public.beleg_stornieren((select id from public.belege limit 1), 'doppelt erfasst'), 'Beleg mit Grund storniert');
+select pruefe((select storniert_am is not null and storno_grund = 'doppelt erfasst' from public.belege limit 1), 'Stornierter Beleg bleibt mit Grund erhalten');
 reset role;
 update public.mitglieder set finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
 set role authenticated;
