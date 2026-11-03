@@ -1,0 +1,47 @@
+# Click check with Benjamin's real account, READ-ONLY: a local PostgREST talks to the real database with the user's
+# rights (row level security as in the app) and rolls back every transaction (db-tx-end=rollback). The app runs in
+# Node and every page and link of the account area is opened. The log shows only paths and status, no contents.
+name: Klickprüfung (echtes Konto, nur lesend)
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      REF: juuuifrcxmitkqudqngq
+      PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: cd web && npm ci --silent
+      - name: Verbindung finden
+        run: |
+          pw=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["PW"],safe=""))')
+          for host in aws-1-eu-central-1 aws-0-eu-central-1; do
+            url="postgresql://postgres.$REF:$pw@$host.pooler.supabase.com:5432/postgres"
+            if psql "$url" -tAc "select 1" >/dev/null 2>&1; then echo "::add-mask::$url"; echo "DB_URL=$url" >> "$GITHUB_ENV"; exit 0; fi
+          done
+          echo "::error::Keine Verbindung"; exit 1
+      - name: Konto und Firmen bestimmen (nur IDs, maskiert)
+        run: |
+          nutzer=$(psql "$DB_URL" -tAc "select m.user_id from public.mitglieder m join public.firmen f on f.id = m.firma_id where f.name = 'WP Digital Ranger' and m.rolle = 'inhaber' limit 1")
+          firmen=$(psql "$DB_URL" -tAc "select string_agg(firma_id::text, ',' order by erstellt) from public.mitglieder where user_id = '$nutzer' and aktiv")
+          echo "::add-mask::$nutzer"; echo "NUTZER=$nutzer" >> "$GITHUB_ENV"; echo "FIRMEN=$firmen" >> "$GITHUB_ENV"
+          geheim=$(openssl rand -hex 32); echo "::add-mask::$geheim"; echo "JWT_SECRET=$geheim" >> "$GITHUB_ENV"
+      - name: PostgREST starten (alles wird zurückgerollt)
+        run: |
+          docker run -d --name pgrst --network host \
+            -e PGRST_DB_URI="$DB_URL" -e PGRST_DB_SCHEMAS=public -e PGRST_DB_ANON_ROLE=anon \
+            -e PGRST_JWT_SECRET="$JWT_SECRET" -e PGRST_DB_TX_END=rollback -e PGRST_DB_PREPARED_STATEMENTS=false \
+            -e PGRST_DB_POOL=4 -e PGRST_SERVER_PORT=3000 postgrest/postgrest:v12.2.3
+          for i in $(seq 1 30); do curl -sf http://localhost:3000/ >/dev/null && break; sleep 2; done
+          docker logs pgrst 2>&1 | tail -5
+      - name: Alle Seiten anklicken
+        env:
+          PGRST: http://localhost:3000
+        run: cd web && node --experimental-strip-types --import ./scripts/klickpruefung/register.mjs scripts/klickpruefung/echt.ts 2>&1 | grep -v ExperimentalWarning
