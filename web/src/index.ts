@@ -1,6 +1,6 @@
 // Jarvis upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import kunden from "../kunden.json";
-import { BRANCHEN_VORLAGEN, euro, FELDER, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
+import { BRANCHEN_VORLAGEN, euro, FELDER, losStunden, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
 import profile from "../../alarm/profile.json";
 import { CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
@@ -482,7 +482,7 @@ async function kalkulationsTeil(job: Job, env: Env, request: Request): Promise<s
     const vorschlag = l.eg && GVP.merkmale[l.eg] ? `<p class="klein">📜 Vorschlag laut Tarifvertrag: <strong>EG ${escape(l.eg)}</strong>${l.eg_grund ? ` – ${escape(l.eg_grund)}` : ""}<br>Merkmal EG ${escape(l.eg)}: „${escape(GVP.merkmale[l.eg])}“</p>` : "";
     return `<fieldset data-los="${escape(l.nr)}"><legend>Los ${escape(l.nr)}: ${escape(l.name)}</legend>
       ${l.taetigkeit ? `<p>👷 <strong>Gebraucht:</strong> ${escape(l.taetigkeit)}</p>` : ""}${vorschlag}${personalVorschlag ? `<p class="klein">👥 Aus eurem Personal: <strong>EG ${escape(personalVorschlag.eg)}</strong> wie ${escape(personalVorschlag.wer)} (${escape(personalVorschlag.beruf)}${personalVorschlag.tarif ? `, ${escape(personalVorschlag.tarif)}` : ""})</p>` : ""}
-      <label>Stunden${l.zeitraum ? ` (${escape(l.zeitraum)})` : ""}<input name="los_${escape(l.nr)}" inputmode="decimal" value="${fmt(mengen[l.nr] ?? (/stunde|std/i.test(l.einheit) ? l.menge : 0))}"></label>
+      <label>Stunden${l.zeitraum ? ` (${escape(l.zeitraum)})` : ""}<input name="los_${escape(l.nr)}" inputmode="decimal" value="${fmt(mengen[l.nr] ?? losStunden(l))}"></label>
       <label>Entgeltgruppe<select name="eg_${escape(l.nr)}">${egOptionen(eg, l.eg)}</select></label>
       ${eg ? `<p class="klein">Tariflohn EG ${escape(eg)}: heute ${euro(lohnAm(eg, heute, 0))}, im Schnitt über ${tarif.monate} Monate ab ${escape(tarif.beginn)} ${euro(tariflohn(eg, tarif))} pro Stunde.</p>` : ""}
       <label>Eigener Stundenlohn (€, leer = Standard; gilt nur ohne Entgeltgruppe)<input name="lohn_${escape(l.nr)}" inputmode="decimal" value="${proLos[l.nr]?.lohn ? fmt(proLos[l.nr].lohn!) : ""}" placeholder="${fmt(vorlage.lohn)}"></label>
