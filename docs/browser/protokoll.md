@@ -7,11 +7,17 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 |---|---|---|---|
 | Domain crewtender.eu | Namecheap → Cloudflare | gekauft 03.11.2026 (Benjamin), Cloudflare aktiv | |
 | E-Mail hello@crewtender.eu | Cloudflare Email Routing → kontakt@wpdigitalranger.com | aktiv 03.11.2026 | |
-| Instagram | – | offen | |
+| Instagram | @crew_tender (Unternehmenskonto, Kategorie Software) | angelegt 03.11.2026 (Benjamin), eingerichtet | https://www.instagram.com/crew_tender/ |
 | Facebook-Seite | Crewtender (Kategorie Software) | angelegt 03.11.2026 unter Benjamins persönlichem Profil | https://www.facebook.com/profile.php?id=61596423171638 |
 | LinkedIn-Seite | – | gesperrt bis frühestens 04.11.2026 (neues Konto, LinkedIn verlangt 1 Tag Wartezeit) | |
 
 ## Einträge
+
+### 03.11.2026 – Browser-Chat: Instagram
+- Benjamin hat das Konto mit hello@crewtender.eu angelegt. Benutzername **@crew_tender** („crewtender“ war vergeben), Name „crewtender“.
+- Profilbild (Logo), Bio auf Englisch: „Find public tenders, write bids, plan your crew – for trades & service companies. 🌐 crewtender.eu · ✉️ hello@crewtender.eu“. Link crewtender.eu ist im Profil sichtbar.
+- Auf Unternehmenskonto umgestellt, Kategorie Software (sichtbar). Öffentlicher Kontakt nur E-Mail hello@crewtender.eu, keine Telefonnummer, keine Adresse. Nicht mit RestockHero (@restockhero6) oder dessen Meta-Portfolio verknüpft, nichts gepostet.
+- LinkedIn: Benjamin hat das Titelbild fürs persönliche Profil hochgeladen.
 
 ### 03.11.2026 – Browser-Chat: Links auf crewtender.eu umgestellt
 - Auf Benjamins Wunsch überall https://crewtender.eu statt app.wpdigitalranger.com: Facebook-Link, LinkedIn-Kontaktinfo (Website, Geschäftlich).
