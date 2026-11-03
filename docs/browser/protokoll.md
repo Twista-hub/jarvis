@@ -19,6 +19,17 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 03.11.2026 – Browser-Chat: Facebook-Reels und geplante Posts
+- **Instagram mit der Facebook-Seite verbinden: nicht erledigt.** Business Suite (Seite Crewtender, ohne RestockHero-Portfolio) → „Instagram verknüpfen“ öffnet ein eigenes Instagram-Anmeldefenster außerhalb meines Tabs. Das muss Benjamin machen. Abgebrochen, nichts verknüpft.
+- **Reels auf Facebook „Crewtender“ veröffentlicht** (nur Facebook, keine Story, keine Gruppen):
+  - 03.11.2026, 21:30: reel1-ausschreibungen.mp4 (Englisch), Text „Find your next public contract. 👉 https://crewtender.eu“, Musik „Pulse Of Innovation“ (Giulio Cercato).
+  - 03.11.2026, 21:33: reel2-team.mp4 (Deutsch), Text „Auftrag gewinnen. Dann das Team planen. 👉 https://crewtender.eu“, Musik „Kingdom“ (Ross Lara, wie bei Instagram).
+- **Bild-Posts geplant** (Facebook „Crewtender“, öffentlich, nicht beworben), Texte wie im Auftrag:
+  - Do 05.11.2026, 18:00: post1-ausschreibungen.png
+  - Sa 07.11.2026, 18:00: post3-registerkarten.png
+  - Di 10.11.2026, 18:00: post2-auftragswert.png
+  - Hinweis: Im Auftrag stand Mi/Fr/Mo. Diese Wochentage passen zu 2025, die Daten wurden wie angegeben übernommen.
+
 ### 03.11.2026 – Browser-Chat: Bluesky und Mastodon
 - **Bluesky:** RestockHero war angemeldet, deshalb über „Weiteren Account hinzufügen“ gearbeitet, an RestockHero nichts geändert. Benjamin hat das Konto mit kontakt@wpdigitalranger.com angelegt (crewtender.bsky.social).
 - Profil: Anzeigename „Crewtender“, Logo (profil.png), Banner (facebook-titel.png), Bio „Find public tenders, write bids, plan your crew – the app for trades and service companies. 🌐 crewtender.eu · ✉️ hello@crewtender.eu“.
