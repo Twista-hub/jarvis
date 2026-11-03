@@ -27,6 +27,7 @@ export function fehlendFuerXRechnung(a: Absender, k: Kunde | null): string[] {
   ].filter(Boolean);
 }
 
+/** Without a VAT ID (e.g. small businesses, § 19 UStG) the tax number is also the seller identifier BT-29 (BR-CO-26). */
 export function xrechnungXml(r: Rechnung, k: Kunde | null, a: Absender, kaeuferReferenz = ""): string {
   const netto = Number(r.netto);
   const satz = a.kleinunternehmer ? 0 : Number(r.ust_satz);
@@ -53,7 +54,7 @@ export function xrechnungXml(r: Rechnung, k: Kunde | null, a: Absender, kaeuferR
 ${a.kleinunternehmer ? "<cbc:Note>Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.</cbc:Note>\n" : ""}<cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
 <cbc:BuyerReference>${x(kaeuferReferenz.trim() || r.nummer)}</cbc:BuyerReference>
 <cac:InvoicePeriod><cbc:StartDate>${r.monat}-01</cbc:StartDate><cbc:EndDate>${ende}</cbc:EndDate></cac:InvoicePeriod>
-<cac:AccountingSupplierParty><cac:Party><cbc:EndpointID schemeID="EM">${x(a.email)}</cbc:EndpointID><cac:PartyName><cbc:Name>${x(a.name)}</cbc:Name></cac:PartyName>${adresse(a.strasse, a.plz, a.ort)}${a.ustid ? `<cac:PartyTaxScheme><cbc:CompanyID>${x(a.ustid)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}${a.steuernummer ? `<cac:PartyTaxScheme><cbc:CompanyID>${x(a.steuernummer)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>FC</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}<cac:PartyLegalEntity><cbc:RegistrationName>${x(a.name)}</cbc:RegistrationName></cac:PartyLegalEntity><cac:Contact><cbc:Name>${x(a.name)}</cbc:Name><cbc:Telephone>${x(a.telefon || "nicht angegeben")}</cbc:Telephone><cbc:ElectronicMail>${x(a.email)}</cbc:ElectronicMail></cac:Contact></cac:Party></cac:AccountingSupplierParty>
+<cac:AccountingSupplierParty><cac:Party><cbc:EndpointID schemeID="EM">${x(a.email)}</cbc:EndpointID>${!a.ustid && a.steuernummer ? `<cac:PartyIdentification><cbc:ID>${x(a.steuernummer)}</cbc:ID></cac:PartyIdentification>` : ""}<cac:PartyName><cbc:Name>${x(a.name)}</cbc:Name></cac:PartyName>${adresse(a.strasse, a.plz, a.ort)}${a.ustid ? `<cac:PartyTaxScheme><cbc:CompanyID>${x(a.ustid)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}${a.steuernummer ? `<cac:PartyTaxScheme><cbc:CompanyID>${x(a.steuernummer)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>FC</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>` : ""}<cac:PartyLegalEntity><cbc:RegistrationName>${x(a.name)}</cbc:RegistrationName></cac:PartyLegalEntity><cac:Contact><cbc:Name>${x(a.name)}</cbc:Name><cbc:Telephone>${x(a.telefon || "nicht angegeben")}</cbc:Telephone><cbc:ElectronicMail>${x(a.email)}</cbc:ElectronicMail></cac:Contact></cac:Party></cac:AccountingSupplierParty>
 <cac:AccountingCustomerParty><cac:Party><cbc:EndpointID schemeID="EM">${x(k?.email || a.email)}</cbc:EndpointID><cac:PartyName><cbc:Name>${x(k?.name ?? "")}</cbc:Name></cac:PartyName>${adresse(k?.strasse ?? "", k?.plz ?? "", k?.ort ?? "")}<cac:PartyLegalEntity><cbc:RegistrationName>${x(k?.name ?? "")}</cbc:RegistrationName></cac:PartyLegalEntity></cac:Party></cac:AccountingCustomerParty>
 ${zahlung}
 <cac:PaymentTerms><cbc:Note>Zahlbar ohne Abzug bis ${faellig}.${a.zahlungshinweis ? ` ${x(a.zahlungshinweis)}` : ""}</cbc:Note></cac:PaymentTerms>
