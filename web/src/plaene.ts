@@ -26,6 +26,11 @@ export const GRENZEN: Record<string, Grenzen> = {
   test: { suchprofile: null, laender: null, nutzer: null, einsatzkraefte: null, steckbriefe_monat: null, ki_euro_monat: null, arbeitsoberflaeche: true, taeglich: true },
 };
 
+/** Trial (Benjamin, 03.11.2026; NOT active): every new firm gets Pro for 30 days without a card, once per firm (website
+ * domain or VAT id), at most 10 Steckbriefe from documents; reminders on day 23 and 28, then Free (nothing deleted).
+ * Same for all firm sizes, no video setup. */
+export const PROBE = { plan: "pro", tage: 30, steckbriefe: 10, erinnerung_tage: [23, 28] } as const;
+
 /** Monthly price per additional field worker (Benjamin, 03.11.2026; NOT active): Pro 3.50 €, Business 3 €, Business from
  * the 501st field worker 2.50 €. Free and Basis have no field-worker access. */
 export function einsatzkraefteZusatz(plan: string, anzahl: number): number {
