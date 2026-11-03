@@ -131,7 +131,7 @@ Ziel: Eine Firma braucht neben Jarvis kein zweites Programm mehr für Planung, P
 
 | Nr | Idee | Nutzen für die Firma | Aufwand | baut auf | Rechtliche Hinweise | Abo |
 |---|---|---|---|---|---|---|
-| 41 | **Nachkalkulation je Objekt und Auftrag**: geplante gegen echte Stunden, Lohnkosten gegen Rechnung, Deckungsbeitrag | Man sieht sofort, welcher Kunde Geld kostet. | M | Kalkulation, Stundenzettel, Rechnungen, Tarife | Nur mit Finanzfreigabe | Pro |
+| 41 | ✅ (03.11.2026) **Nachkalkulation je Objekt und Auftrag**: geplante gegen echte Stunden, Lohnkosten gegen Rechnung, Deckungsbeitrag | Man sieht sofort, welcher Kunde Geld kostet. | M | Kalkulation, Stundenzettel, Rechnungen, Tarife | Nur mit Finanzfreigabe | Pro |
 | 42 | **Chef-Cockpit**: Kontostand in 4/8/12 Wochen (offene Rechnungen, Löhne, feste Kosten) und Wochenbericht per Mail oder Handy | Der Chef weiß jeden Montag in einer Minute, wo die Firma steht. | M | Auswertung (N6), Mahnwesen (Nr. 18), Lohnliste | Nur Planungshilfe; anonyme Branchenvergleiche ohne Preise (Kartellrecht) | Pro |
 
 ### 13. KI-Assistent
