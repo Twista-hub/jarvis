@@ -72,6 +72,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103040000_rundgang_wachbuch.sql
 \ir ../migrations/20261103050000_belege.sql
 \ir ../migrations/20261103060000_kundenportal.sql
+\ir ../migrations/20261103070000_datev.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1193,6 +1194,38 @@ select pruefe((select count(*) = 0 from public.kunden_portale) and (select count
 reset role;
 update public.kunden_portale set aktiv = false;
 select pruefe(public.portal_abrufen('portal-geheim-1') is null, 'Gesperrter Portal-Link zeigt nichts');
+-- DATEV settings in the firm profile: only admins, numbers checked.
+insert into public.firmenprofil (firma_id) values (:'firma') on conflict do nothing;
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
+update public.firmenprofil set datev_berater = '1234567', datev_mandant = '42', datev_skr = '04', lohnarten = '{"stunden":"1000"}' where firma_id = :'firma';
+select pruefe((select datev_skr = '04' and lohnarten->>'stunden' = '1000' from public.firmenprofil where firma_id = :'firma'), 'Inhaber trägt DATEV-Daten ein');
+do $$ begin
+  update public.firmenprofil set datev_berater = '12' where firma_id = current_setting('test.firma')::uuid;
+  raise exception 'FEHLER: ungültige Beraternummer gespeichert';
+exception when check_violation then null; end $$;
+select test_als('00000000-0000-0000-0000-00000000000b');
+update public.firmenprofil set datev_mandant = '99' where firma_id = :'firma';
+select pruefe((select datev_mandant = '42' from public.firmenprofil where firma_id = :'firma'), 'Bearbeiter ändert DATEV-Daten nicht');
+reset role;
+-- Tax adviser: reader with finance access reads invoices and receipts, changes nothing; reader without finance sees nothing.
+update public.mitglieder set rolle = 'leser', finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select count(*) >= 1 from public.rechnungen) and (select count(*) = 1 from public.belege), 'Steuerbüro (Leser mit Finanzfreigabe) liest Rechnungen und Belege');
+do $$ begin
+  insert into public.belege (firma_id, datum, brutto) values (current_setting('test.firma')::uuid, current_date, 1);
+  raise exception 'FEHLER: Leser legt Beleg an';
+exception when insufficient_privilege then null; end $$;
+delete from public.rechnungen; delete from public.belege;
+reset role;
+select pruefe((select count(*) >= 2 from public.rechnungen) and (select count(*) = 1 from public.belege), 'Leser löscht nichts');
+update public.mitglieder set finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select count(*) = 0 from public.rechnungen) and (select count(*) = 0 from public.belege), 'Leser ohne Finanzfreigabe sieht keine Rechnungen und Belege');
+reset role;
+update public.mitglieder set rolle = 'bearbeiter', finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
 -- Link invitation without e-mail links the personnel record.
 update public.personal set user_id = null where id = :'p_hamburg';
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e2', 'neu.kraft@perlease.test');
