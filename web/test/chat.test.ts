@@ -33,3 +33,11 @@ test("Chat: Liste zeigt Ungelesenes, Seite schützt vor HTML und zeigt Löschen 
   assert.equal((admin.match(/name="loeschen"/g) ?? []).length, 2, "Inhaber/Admin können alles entfernen");
   assert.match(raumSeite({ bereich_id: B, einsatzort_id: null, name: "Berlin" }, [], { ich: "ich", admin: false, mitglieder, heute: "2026-11-03" }), /Noch keine Nachricht/);
 });
+
+test("Beispielfirma: Markierung wird erkannt (kein KI-Suchlauf)", async () => {
+  const { istBeispiel } = await import("../src/einrichtung.ts");
+  assert.equal(istBeispiel({ demo: true }), true);
+  assert.equal(istBeispiel({ demo: "true" }), false);
+  assert.equal(istBeispiel({}), false);
+  assert.equal(istBeispiel(null), false);
+});

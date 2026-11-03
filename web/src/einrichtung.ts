@@ -100,7 +100,7 @@ async function anzeigen(s: Sitzung, env: KontoEnv, firma: string, name: string, 
     return html(seite(`Firma prüfen: ${name}`, automatischeSeite(firma, name, e.recherche_website ?? website, plz, ort, meldung, bereinigen({ ...e, beschreibung: gespeichert.beschreibung }))));
   }
   if (gespeichert?.einstellungen?.leistungen && !neu) {
-    if (!gespeichert.einstellungen.websuche_beschreibung && gespeichert.einstellungen.recherche_version !== 2) return html(seite(`Firmenrecherche: ${name}`, automatischeSeite(firma, name, website, plz, ort)));
+    if (!istBeispiel(gespeichert.einstellungen) && !gespeichert.einstellungen.websuche_beschreibung && gespeichert.einstellungen.recherche_version !== 2) return html(seite(`Firmenrecherche: ${name}`, automatischeSeite(firma, name, website, plz, ort)));
     return html(seite(`Suchprofil: ${name}`, profilFormular(firma, { ...leer(), ...gespeichert.einstellungen, beschreibung: gespeichert.beschreibung }, "", website)));
   }
   if (!neu && (automatisch || !gespeichert)) return html(seite(`Firma prüfen: ${name}`, automatischeSeite(firma, name, website, plz, ort)));
@@ -129,6 +129,7 @@ async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: str
   const alt = await db<{ id: string; beschreibung: string; einstellungen: Partial<Vorschlag> }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,beschreibung,einstellungen&limit=1`);
   if (!alt.ok) return html(seite("Suchprofil", automatischeSeite(firma, name, alteWebsite, plz, ort, "Das vorhandene Suchprofil konnte nicht geladen werden. Bitte erneut versuchen.")), 503);
   const vorhanden = alt.daten[0];
+  if (istBeispiel(vorhanden?.einstellungen)) return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(BEISPIEL_HINWEIS)}`, s.cookies);
   const eingerichtet = Boolean(vorhanden && vorhanden.einstellungen?.recherche_status !== "wartet");
   const basis = eingabe.has("beschreibung") ? ausFormular(eingabe) : bereinigen({ ...vorhanden?.einstellungen, beschreibung: vorhanden?.beschreibung ?? "" });
   const eigeneBeschreibung = basis.beschreibung;
@@ -509,7 +510,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     // Language of the AI texts (fact sheets, ratings): the language the profile was saved in.
     einstellungen: { sprache: (["en", "fr", "pl", "es", "it"] as const).find((s) => s === form.get("sprache_app")) ?? "de", radius_km: v.radius_km ?? 50, regionsmodus: v.regionsmodus === true, min_punkte: v.min_punkte, recherchiert_am: v.recherchiert_am, recherche_version: v.recherche_version, website_hinweis: v.website_hinweis, leistungen: v.leistungen, website_beschreibung: v.website_beschreibung, websuche_beschreibung: v.websuche_beschreibung, websuche_quellen: v.websuche_quellen, firmenstandorte: v.firmenstandorte, suchgebiet_modus: v.suchgebiet_modus, ausschluss: v.ausschluss, ausschluss_cpv: v.ausschluss_cpv, standorte: v.standorte, laender: v.laender, departements: v.departements ?? [], woiwodschaften: v.woiwodschaften ?? [], comunidades: v.comunidades ?? [], regioni: v.regioni ?? [], bundeslaender: v.bundeslaender ?? [], auftraggeber_bevorzugt: v.auftraggeber_bevorzugt, auftraggeber_aus: v.auftraggeber_aus, wert_min: v.wert_min ?? null, wert_max: v.wert_max ?? null, wert_unbekannt: v.wert_unbekannt } as Record<string, unknown>,
   };
-  const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean; zusatzprofile?: unknown; ausschluss_schnell?: unknown }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zusatzprofile:einstellungen->zusatzprofile,ausschluss_schnell:einstellungen->ausschluss_schnell&limit=1`);
+  const alt = await db<{ id: string; erstlauf: string | null; fertig: string | null; ergebnis?: unknown; fehler?: boolean; zusatzprofile?: unknown; ausschluss_schnell?: unknown; demo?: unknown }[]>(s, env, `suchprofile?firma_id=eq.${firma}&bereich_id=is.null&select=id,erstlauf:einstellungen->>erstlauf,fertig:einstellungen->>erstlauf_fertig,ergebnis:einstellungen->suchlauf_ergebnis,fehler:einstellungen->suchlauf_fehler,zusatzprofile:einstellungen->zusatzprofile,ausschluss_schnell:einstellungen->ausschluss_schnell,demo:einstellungen->demo&limit=1`);
   // A completed search can be rerun; only suppress duplicate concurrent runs.
   const zuletzt = alt.ok && alt.daten[0]?.erstlauf ? Date.parse(alt.daten[0].erstlauf) : 0;
   const fertig = alt.ok ? alt.daten[0]?.fertig : null;
@@ -518,6 +519,8 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   if (zuletzt) einstellungen.erstlauf = new Date(zuletzt).toISOString();
   if (fertig) einstellungen.erstlauf_fertig = fertig;
   if (alt.ok && alt.daten[0]?.ergebnis) einstellungen.suchlauf_ergebnis = alt.daten[0].ergebnis;
+  const beispiel = alt.ok && alt.daten[0]?.demo === true;
+  if (beispiel) einstellungen.demo = true;  // example firms keep their mark (no paid AI search)
   if (alt.ok && alt.daten[0]?.fehler !== undefined) einstellungen.suchlauf_fehler = alt.daten[0].fehler;
   // Kept from the saved profile: further search profiles (H3) and exclusions added via 👎 (H2) are edited elsewhere.
   if (alt.ok && Array.isArray(alt.daten[0]?.zusatzprofile)) einstellungen.zusatzprofile = alt.daten[0].zusatzprofile;
@@ -543,7 +546,7 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   }
   if (form.get("aktion") === "recherche") return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(`Firmeninfos aktualisiert: ${v.leistungen.length} Arbeitsbereiche. Du kannst jetzt nach Ausschreibungen suchen.`)}`, s.cookies);
   if (form.has("stunde")) await mailZeitSetzen(s, env, firma, form.get("stunde"));
-  const laufstart: Laufstart = sofort ? await ersterLauf(env, firma) : { gestartet: false, hinweis: "Jarvis durchsucht diese Firma gerade. Warte bitte, bis der laufende Suchlauf fertig ist." };
+  const laufstart: Laufstart = beispiel ? { gestartet: false, hinweis: BEISPIEL_HINWEIS } : sofort ? await ersterLauf(env, firma) : { gestartet: false, hinweis: "Jarvis durchsucht diese Firma gerade. Warte bitte, bis der laufende Suchlauf fertig ist." };
   const gestartet = laufstart.gestartet;
   if (gestartet) {
     // Remembered for the "Jarvis is searching" notice in the overview and the 2-hour limit.
@@ -572,6 +575,7 @@ async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: 
   const zuletzt = alt.einstellungen?.erstlauf ? String(alt.einstellungen.erstlauf) : null;
   const fertig = alt.einstellungen?.erstlauf_fertig ? String(alt.einstellungen.erstlauf_fertig) : null;
   if (suchlaufLaeuft(zuletzt, fertig)) return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent("Jarvis sucht für diese Firma bereits. Die Treffer erscheinen nach Abschluss.")}`, s.cookies);
+  if (istBeispiel(alt.einstellungen)) return weiterleiten(`/konto/suchprofil?firma=${firma}&hinweis=${encodeURIComponent(BEISPIEL_HINWEIS)}`, s.cookies);
   const laufstart = await ersterLauf(env, firma);
   if (!laufstart.gestartet) {
     const hinweis = `Der Suchlauf wurde nicht gestartet. ${laufstart.hinweis} Deine Suche bleibt gespeichert.`;
@@ -582,6 +586,10 @@ async function gespeicherteSucheStarten(s: Sitzung, env: EinrichtungEnv, firma: 
   await db(s, env, `suchprofile?id=eq.${alt.id}`, { method: "PATCH", body: JSON.stringify({ einstellungen }) });
   return weiterleiten(`/konto?firma=${firma}`);
 }
+
+/** Example firm (supabase/demo/beispielfirma.sql): everything works except the paid AI search and research. */
+export const istBeispiel = (e: unknown): boolean => (e as { demo?: unknown } | null | undefined)?.demo === true;
+export const BEISPIEL_HINWEIS = "Das ist eine Beispielfirma: Jarvis startet hier keinen echten Suchlauf und keine Firmenprüfung, damit keine KI-Kosten entstehen.";
 
 /** Starts the alarm for this firm only (last 7 days) via GitHub Actions. */
 async function ersterLauf(env: EinrichtungEnv, firma: string): Promise<Laufstart> {

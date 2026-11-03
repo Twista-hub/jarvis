@@ -1,0 +1,52 @@
+# Example firm "Rheinland Facility Service GmbH (Beispiel)" in Benjamin's account (owner with finance access), so every
+# area of the app can be tried with data. All people, customers and tenders are invented. Script:
+# supabase/demo/beispielfirma.sql (no AI run, no mails; phone notifications from triggers are deleted).
+# The log shows only counts, no personal data.
+name: Beispielfirma
+on:
+  workflow_dispatch:
+    inputs:
+      aktion:
+        type: choice
+        options: [anlegen, entfernen]
+        default: anlegen
+      bestaetigung:
+        description: "Zum Ausführen hier JA eintippen"
+        default: ""
+permissions:
+  contents: read
+jobs:
+  beispiel:
+    if: inputs.bestaetigung == 'JA'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      REF: juuuifrcxmitkqudqngq
+      PW: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verbindung finden
+        run: |
+          pw=$(python3 -c 'import os,urllib.parse;print(urllib.parse.quote(os.environ["PW"],safe=""))')
+          for host in aws-1-eu-central-1 aws-0-eu-central-1; do
+            url="postgresql://postgres.$REF:$pw@$host.pooler.supabase.com:5432/postgres"
+            if psql "$url" -tAc "select 1" >/dev/null 2>&1; then echo "::add-mask::$url"; echo "DB_URL=$url" >> "$GITHUB_ENV"; exit 0; fi
+          done
+          echo "::error::Keine Verbindung"; exit 1
+      - name: Konto bestimmen (Inhaber von „WP Digital Ranger“, nur ID, maskiert)
+        run: |
+          nutzer=$(psql "$DB_URL" -tAc "select m.user_id from public.mitglieder m join public.firmen f on f.id = m.firma_id where f.name = 'WP Digital Ranger' and m.rolle = 'inhaber' limit 1")
+          [ -n "$nutzer" ] || { echo "::error::Konto nicht gefunden"; exit 1; }
+          echo "::add-mask::$nutzer"; echo "NUTZER=$nutzer" >> "$GITHUB_ENV"
+      - name: Beispielfirma ${{ inputs.aktion }}
+        run: |
+          extra=""; [ "${{ inputs.aktion }}" = entfernen ] && extra="-v entfernen=1"
+          psql "$DB_URL" -v ON_ERROR_STOP=1 -q -v nutzer="$NUTZER" $extra -f supabase/demo/beispielfirma.sql 2>&1 | sed -E 's/[0-9a-f]{8}-[0-9a-f-]{27}/<id>/g'
+      - name: Ergebnis (nur Anzahlen)
+        run: |
+          psql "$DB_URL" -tA <<'SQL'
+          select 'Firmen: ' || count(*) from public.firmen where name = 'Rheinland Facility Service GmbH (Beispiel)';
+          select 'Personal: ' || count(*) from public.personal p join public.firmen f on f.id = p.firma_id where f.name = 'Rheinland Facility Service GmbH (Beispiel)';
+          select 'Ausschreibungen: ' || count(*) from public.vorgaenge v join public.firmen f on f.id = v.firma_id where f.name = 'Rheinland Facility Service GmbH (Beispiel)';
+          select 'Schichten: ' || count(*) from public.schichten s join public.firmen f on f.id = s.firma_id where f.name = 'Rheinland Facility Service GmbH (Beispiel)';
+          SQL
