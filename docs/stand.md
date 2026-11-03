@@ -92,6 +92,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - DATEV: `web/src/datev.ts` (Buchungsstapel EXTF 700 `/konto/belege/datev.csv`, LODAS `/konto/lohn-lodas.txt`, Windows-1252), Einstellungen im Firmenprofil (Migration `20261103070000`), Steuerbüro = Leser mit Finanzfreigabe (Policies `steuerbuero_lesen`, Seiten nur lesen). Erster Import beim echten Steuer-/Lohnbüro noch offen.
 - Auftragsbörse: `web/src/boerse.ts` (`/konto/boerse`, ABGESCHALTET mit `BOERSE_AKTIV = false`), Tabellen `boerse_auftraege`, `boerse_interessen`, `boerse_meldungen`, RPC `boerse_kontakt`/`boerse_firmennamen` (Migration `20261103080000`). Einschalten erst nach anwaltlicher AGB-Prüfung und OK von Benjamin.
 - Anfragen PLACSP (datos.abiertos@hacienda.gob.es) und TenderNed (functioneelbeheer@tenderned.nl) am 03.11.2026 mit Benjamins OK verschickt (`alarm/anfrage_senden.py`, Workflow `anfrage-senden.yml`, Kopie an kontakt@). Entscheidungen Benjamin 03.11.: Stripe/Preise noch warten; Börse erst nach Anwalts-Check.
+- Entwurf Zusatzbedingungen Auftragsbörse mit Fragen an den Anwalt: `docs/recht/boerse-nutzungsbedingungen-entwurf.md`.
+- Nachkalkulation: `web/src/nachkalkulation.ts`, `/konto/nachkalkulation` (Finanzfreigabe): Plan- vs. Ist-Stunden je Kunde, Lohnkosten vs. Erlös (Rechnung oder geschätzt), DB mit Ampel; Tabellen `personal_loehne`, `nachkalkulation_werte` (Migration `20261103090000`).
 
 ### 02./03.11.2026 – Claude (Nacht: KI-Kosten, Italien, Niederlande, Ideen, Abos)
 - KI-Kosten: Prompt-Caching und Haiku-Vorfilter (Schwelle 3, Sonnet bewertet endgültig), gemessen 51/51 Treffer erhalten, ca. 40–45 % billiger (`docs/ki-kosten.md`). Batch-API als nächster Hebel vorgeschlagen.

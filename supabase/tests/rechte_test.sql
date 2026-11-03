@@ -74,6 +74,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103060000_kundenportal.sql
 \ir ../migrations/20261103070000_datev.sql
 \ir ../migrations/20261103080000_auftragsboerse.sql
+\ir ../migrations/20261103090000_nachkalkulation.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1271,6 +1272,27 @@ select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.boerse_auftraege) and (select count(*) = 0 from public.boerse_firmennamen(array[current_setting('test.firma')::uuid])) and (select count(*) = 0 from public.boerse_kontakt(current_setting('test.job')::uuid)), 'Ohne Firma: keine Börse');
 reset role;
 select pruefe((select count(*) = 1 from public.push_warteschlange where titel = '🤝 Interesse an deinem Auftrag' and user_id = '00000000-0000-0000-0000-00000000000a'), 'Auftraggeber bekommt Handy-Nachricht zum Interesse');
+-- Idea 41: wages per person and cost factors only with finance access.
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.personal_loehne (personal_id, firma_id, stundenlohn) values (:'p_berlin', :'firma', 16.5);
+insert into public.nachkalkulation_werte (firma_id, lohn) values (:'firma', 15.5);
+do $$ begin
+  insert into public.personal_loehne (personal_id, firma_id, stundenlohn) values (current_setting('test.p_hh')::uuid, current_setting('test.firma')::uuid, 20);
+  raise exception 'FEHLER: Lohn für Person am fremden Standort';
+exception when insufficient_privilege then null; end $$;
+select pruefe((select count(*) = 1 from public.personal_loehne) and (select count(*) = 1 from public.nachkalkulation_werte), 'Finanzfreigabe: Lohn und Kostenwerte gespeichert');
+reset role;
+update public.mitglieder set finanzen = false where user_id = '00000000-0000-0000-0000-00000000000b';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+select pruefe((select count(*) = 0 from public.personal_loehne) and (select count(*) = 0 from public.nachkalkulation_werte), 'Ohne Finanzfreigabe keine Löhne');
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 0 from public.personal_loehne), 'Einsatzkraft sieht keine Löhne, auch nicht den eigenen');
+select test_als('00000000-0000-0000-0000-00000000000c');
+select pruefe((select count(*) = 0 from public.personal_loehne) and (select count(*) = 0 from public.nachkalkulation_werte), 'Fremde sehen keine Löhne');
+reset role;
+update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000-0000-00000000000b';
 -- Link invitation without e-mail links the personnel record.
 update public.personal set user_id = null where id = :'p_hamburg';
 insert into auth.users (id, email) values ('00000000-0000-0000-0000-0000000000e2', 'neu.kraft@perlease.test');
