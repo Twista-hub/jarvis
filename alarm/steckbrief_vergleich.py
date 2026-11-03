@@ -115,14 +115,16 @@ def bekanntmachungen(anzahl: int) -> list[dict]:
     with verbinden() as c:
         c.execute("set transaction read only")
         for muster in MUSTER[:anzahl]:
-            row = c.execute("""select roh from public.vergabekatalog where quelle = 'bks' and status = 'offen'
-                               and frist > now() + interval '5 days' and roh->'tender'->>'title' ~* %s
+            row = c.execute("""select roh from public.vergabekatalog where quelle = 'bks' and status in ('offen', 'unbekannt')
+                               and (frist is null or frist > now()) and titel ~* %s
                                order by quell_datum desc limit 1""", (muster,)).fetchone()
             if not row:
+                print(f"Keine offene Bekanntmachung für „{muster}“")
                 continue
             rel = row[0]
             voll = eforms_text(rel)
             if not voll:
+                print(f"eForms fehlt für „{muster}“, Fall ausgelassen")
                 continue
             kopf = json.dumps(item(0, rel), ensure_ascii=False)
             dokumente = ("Nur die öffentliche Bekanntmachung, keine Vergabeunterlagen.\n"
