@@ -1,4 +1,4 @@
-# Jarvis – aktueller Stand (gemeinsames Gedächtnis von Claude und ChatGPT)
+# Jarvis (Crewtender) – aktueller Stand (gemeinsames Gedächtnis; ChatGPT seit 03.11.2026 raus)
 
 Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
@@ -84,7 +84,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 03.11.2026 – Claude (Name: Crewtender)
 - App heißt jetzt **Crewtender** (Benjamin, TMview ohne Treffer). In Oberfläche, Rechtstexten (6 Sprachen), Mails, Hilfe-Center, Übersetzungen und Tests ersetzt; technische Namen (Datenbank `jarvis_*`, Worker, Bucket, Cookies `jv_`, Repo) bleiben. User-Agent der Alarm-Abrufe bleibt `JarvisAlarm/0.1`.
 - Domain: crewtender.eu frei (DNS), .com vergeben. Kauf durch Benjamin (Namecheap, ~6 $). Mail: Cloudflare Email Routing kostenlos (nur Empfang), Senden später z. B. Zoho Free.
-- **ChatGPT-Auftrag:** `docs/auftraege/crewtender-konten.md` (Domain kaufen, Social-Konten anlegen, Profiltexte).
+- **Auftrag für den Browser-Chat (Claude mit Browser-Steuerung):** `docs/auftraege/crewtender-konten.md` (Domain kaufen, Social-Konten anlegen, Profiltexte).
 
 ### 03.11.2026 – Claude (eForms-Abruf repariert)
 - Ursache der 404 („eForms nicht geladen“ 8×, „eForms geladen“ 0× im Alarm 41631964906; Steckbrief-Vergleich ebenso): Die Notice-API `oeffentlichevergabe.de/api/notices/<id>?format=eforms` kennt nur die **Bekanntmachungs-ID** (BT-701 = OCDS-Release-`id`, Dateiname `<id>-01.json`). Die UUID in der `ocid` ist die **Verfahrens-ID** (BT-04, `cbc:ContractFolderID`) und stimmt nur bei manchen Erstbekanntmachungen überein. Der Katalog speicherte in `roh` nur die `ocid`, daher 404. `noticeVersion=1` liefert immer 404 (Version heißt „01“), entfernt.

@@ -1,9 +1,10 @@
-# Auftrag an ChatGPT (Agent-Modus): Crewtender – Domain und Konten anlegen
+# Auftrag an den Browser-Chat (Claude mit Browser-Steuerung): Crewtender – Domain und Konten anlegen
 
 Stand 03.11.2026. Die App heißt ab jetzt **Crewtender** (vorher „Jarvis“). Markenprüfung bei TMview: kein Treffer (Benjamin, 03.11.2026).
 Anbieter bleibt **WP Digital Ranger, Benjamin Schiffer**, Rochusstraße 19, 52531 Übach-Palenberg.
 
 ## Regeln (aus AGENTS.md, gelten hier besonders)
+- Immer in einem neuen Tab arbeiten, Benjamins offene Tabs nicht anfassen.
 - **Passwörter, Zahlungsdaten, Bank- und Steuerdaten gibt Benjamin selbst ein.** An diesen Stellen anhalten und übergeben.
 - **Ausgaben nur nach OK von Benjamin.** Vor dem Bezahlen den Warenkorb mit Preis zeigen.
 - **Strikte Trennung von RestockHero:** neue, eigene Seiten und Konten. Nichts unter der RestockHero-Facebook-Seite,
