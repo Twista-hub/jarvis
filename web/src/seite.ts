@@ -722,6 +722,9 @@ ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">`
   .ag-kopf form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .ag-kopf button { width: auto; min-height: 32px; padding: 4px 10px; font-size: 13px; white-space: nowrap; } .ag-kopf form { flex-shrink: 0; }
   .kontakt-liste { list-style: none; margin: 8px 0; padding: 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
   .kontakt-liste li { display: flex; justify-content: space-between; gap: 8px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--line); }
+  /* Rows with several buttons (invoices, applicants, customers): text keeps at least 220px, buttons wrap below on phones. */
+  .kontakt-liste li:has(> .knopf-zeile) { flex-wrap: wrap; } .kontakt-liste li:has(> .knopf-zeile) > div { flex: 1 1 220px; }
+  .kontakt-liste li > .knopf-zeile { flex-wrap: wrap; justify-content: flex-end; max-width: 100%; } .kontakt-liste li > .knopf-zeile > * { flex: 0 0 auto; width: auto; }
   .kontakt-liste li:last-child { border-bottom: 0; } .kontakt-liste li div { display: grid; gap: 2px; min-width: 0; }
   .kontakt-liste form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .kontakt-liste button { width: auto; min-height: 30px; padding: 2px 8px; font-size: 12px; white-space: nowrap; } .kontakt-liste form { flex-shrink: 0; }
   .angebot-zeile form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .angebot-zeile form button { width: auto; min-height: 30px; padding: 2px 10px; font-size: 13px; }
@@ -1034,6 +1037,8 @@ export function hilfe(titel: string, text: string): string {
 
 /** Model output may contain text from the documents: escape all HTML, allow only http(s) links. */
 export function markdown(md: string): string {
+  // The fixed heading of the Steckbrief (an anchor the app parses) reads from Jarvis' point of view; firms see "zu euch".
+  md = md.replace(/^(#+\s*)Passt das zum Kunden\?/gm, "$1Passt das zu euch?");
   const safe = md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   return stapeln(marked.parse(safe, {
     async: false,

@@ -20,14 +20,16 @@ async function app(pfad, { nutzer = INHABER, firma, body, methode } = {}) {
   const r = await fetch(APP + pfad, { method: methode ?? (body ? "POST" : "GET"), body, headers: { cookie }, redirect: "manual" });
   return { status: r.status, ort: r.headers.get("location") ?? "", html: await r.text() };
 }
+const NUR = (process.env.NUR ?? "").split(",").map((x) => x.trim()).filter(Boolean);
+const teil = (name) => !NUR.length || NUR.includes(name);
 const t0 = Date.now(); const dauer = () => `${Math.round((Date.now() - t0) / 1000)} s`;
 const demo = sql("select id from public.firmen where name = 'Rheinland Facility Service GmbH (Beispiel)'");
 
 // ---------- 1. Sign-up, new firm, automatic research ----------
-try {
+if (teil("recherche")) try {
   let r = await app("/konto", { nutzer: NEU });
   melde("Einstieg", /firma|Firma/.test(text(r.html)), `Neues Konto ohne Firma: Startseite fragt nach der Firma (HTTP ${r.status})`);
-  r = await app("/konto/firma", { nutzer: NEU, body: new URLSearchParams({ name: "WP Digital Ranger Testlauf" }) });
+  r = await app("/konto/firma", { nutzer: NEU, body: new URLSearchParams({ name: "WP Digital Ranger" }) });
   const firma = /firma=([0-9a-f-]{36})/.exec(r.ort)?.[1];
   melde("Einstieg", !!firma, `Firma angelegt, weiter zu ${r.ort.replace(/[0-9a-f-]{36}/, ":id")}`);
   r = await app(`/konto/einrichtung?firma=${firma}`, { nutzer: NEU, firma });
@@ -44,13 +46,14 @@ try {
   const e = JSON.parse(sql(`select coalesce(einstellungen, '{}')::text from public.suchprofile where firma_id = '${firma}' and bereich_id is null`) || "{}");
   const leistungen = (e.leistungen ?? []).map((l) => `${l.name} (${(l.woerter ?? []).slice(0, 4).join(", ")})`);
   melde("Firmenrecherche", leistungen.length > 0, `${sek} s, ${leistungen.length} Arbeitsbereiche: ${leistungen.join(" · ").slice(0, 400)}`);
+  melde("Firmenrecherche", Boolean(e.website_beschreibung), `Website gelesen: ${(e.website_beschreibung ?? "").slice(0, 300) || "nichts"}${e.website_hinweis ? ` (Hinweis: ${e.website_hinweis})` : ""}`);
   melde("Firmenrecherche", true, `Quellen: ${(e.websuche_quellen ?? []).map((q) => q.url).slice(0, 4).join(", ") || "keine"}; Standorte: ${(e.firmenstandorte ?? e.standorte ?? []).map((o) => o.name).join(", ") || "keine"}`);
   const seite = text(r.html || (await app(r.ort || `/konto/suchprofil?firma=${firma}`, { nutzer: NEU, firma })).html);
   melde("Firmenrecherche", !/schiefgegangen/.test(seite), `Danach angezeigt: ${seite.slice(0, 300)}`);
 } catch (e) { melde("Firmenrecherche", false, `Abbruch: ${String(e).slice(0, 200)}`); }
 
 // ---------- 2. Receipts ----------
-try {
+if (teil("belege")) try {
   const wahr = JSON.parse(readFileSync(join(BELEGE, "wahrheit.json"), "utf8"));
   let richtig = 0, gesamt = 0;
   for (const datei of Object.keys(wahr).slice(0, 8)) {
@@ -69,7 +72,7 @@ try {
 } catch (e) { melde("Belege lesen", false, `Abbruch: ${String(e).slice(0, 200)}`); }
 
 // ---------- 3. Company proofs: expiry date ----------
-try {
+if (teil("nachweise")) try {
   const wahr = JSON.parse(readFileSync(join(NACHWEISE, "wahrheit.json"), "utf8"));
   let richtig = 0;
   for (const [datei, soll] of Object.entries(wahr)) {
@@ -86,7 +89,7 @@ try {
 } catch (e) { melde("Nachweise Datum", false, `Abbruch: ${String(e).slice(0, 200)}`); }
 
 // ---------- 4. Tender documents -> Steckbrief -> calculation ----------
-try {
+if (teil("steckbrief")) try {
   const v = sql(`select id from public.vorgaenge where firma_id = '${demo}' and titel like 'Servicepersonal für Kongresse%'`);
   const fd = new FormData();
   const dateien = readdirSync(UNTERLAGEN).filter((d) => /^(A0|B0|B5)_/.test(d));
@@ -99,7 +102,7 @@ try {
   const t = text(seite.html);
   const lose = (seite.html.match(/\bLos\b/g) ?? []).length;
   melde("Steckbrief", /Steckbrief aus den Vergabeunterlagen|Lose|Eignung/.test(t), `nach ${Math.round((Date.now() - tw) / 1000)} s fertig; Seite zeigt ${lose}× „Los“. Auszug: ${t.slice(t.indexOf("Steckbrief"), t.indexOf("Steckbrief") + 700)}`);
-  const link = /href="(\/auftrag\/[^"]+\/kalkulation)"/.exec(seite.html)?.[1];
+  const link = /href="(\/auftrag\/[0-9a-z-]+)#kalkulation"/.exec(seite.html)?.[1];
   melde("Kalkulation", !!link, `Link zur Kalkulation auf der Ausschreibungsseite: ${link ? "vorhanden" : "fehlt"}`);
   const k = await app(link ?? `/konto/vorgang/${v}`, { firma: demo });
   const kt = text(k.html);

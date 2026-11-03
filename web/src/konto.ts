@@ -998,7 +998,7 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
     finanzen ? `<a href="/konto/vorgang/${v.id}/angebot">📝 Angebot vorbereiten</a>` : "",
     finanzen ? `<a class="zweit" href="${kalkulation}">💶 Kalkulation</a>` : "",
   ].filter(Boolean).join("");
-  const leiste = knoepfe ? `<h2>Was möchtest du tun?</h2><nav class="aktionsleiste" aria-label="Aktionen">${knoepfe}</nav>` : "";
+  let leiste = knoepfe ? `<h2>Was möchtest du tun?</h2><nav class="aktionsleiste" aria-label="Aktionen">${knoepfe}</nav>` : "";
   // N5/N4: the contracting authority's page and, after the award, the running contract.
   const ag = v.katalog_id && rolle !== "mitarbeiter" ? await db<{ auftraggeber: string; auftraggeber_id: string }[]>(s, env, `vergabekatalog?id=eq.${encodeURIComponent(v.katalog_id)}&select=auftraggeber,auftraggeber_id&limit=1`) : null;
   const agZeile = ag?.ok && ag.daten[0] ? `<a class="standort-zeile" href="/konto/auftraggeber?id=${encodeURIComponent(ag.daten[0].auftraggeber_id)}"><span class="standort-icon" aria-hidden="true">🏛️</span><span class="standort-text"><strong>${escape(ag.daten[0].auftraggeber)}</strong><span class="klein">Frühere Ausschreibungen und Ansprechpartner</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>` : "";
@@ -1008,7 +1008,12 @@ async function vorgangZeigen(id: string, request: Request, env: KontoEnv): Promi
   const gaeb = finanzen && !/^https:\/\/www\.boamp\.fr\//.test(v.link ?? "");
   const lvVorhanden = gaeb ? await db<{ id: string }[]>(s, env, `leistungsverzeichnisse?vorgang_id=eq.${v.id}&select=id&limit=1`) : null;
   const lvZeile = gaeb ? `<a class="standort-zeile" href="/konto/vorgang/${v.id}/lv"><span class="standort-icon" aria-hidden="true">📐</span><span class="standort-text"><strong>Leistungsverzeichnis (GAEB)</strong><span class="klein">${lvVorhanden?.ok && lvVorhanden.daten.length ? "Einheitspreise eintragen, X84 herunterladen" : "X83-Datei einlesen und Preise eintragen"}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>` : "";
-  const verweise = agZeile || auftragZeile || lvZeile ? `<div class="standort-liste vorgang-verweise">${auftragZeile}${lvZeile}${agZeile}</div>` : "";
+  // The GAEB row sits on top only once a bill of quantities exists; before that it is a button next to the calculation,
+  // so the Steckbrief stays the first thing on the page.
+  const lvDa = Boolean(lvVorhanden?.ok && lvVorhanden.daten.length);
+  if (gaeb && !lvDa && leiste) leiste = leiste.replace("</nav>", `<a class="zweit" href="/konto/vorgang/${v.id}/lv">📐 Leistungsverzeichnis (GAEB)</a></nav>`);
+  const lvOben = lvDa ? lvZeile : "";
+  const verweise = agZeile || auftragZeile || lvOben ? `<div class="standort-liste vorgang-verweise">${auftragZeile}${lvOben}${agZeile}</div>` : "";
   // Head: score, deadline with traffic light, state and distance as tags; the portal right below.
   const fristKlasse = v.frist ? ampel({ id: v.id, titel: v.titel, frist: v.frist, status: v.status }) : "grau";
   const kopf = `<ul class="kopf-chips">${v.punkte ? `<li class="punkte">${v.punkte}/10</li>` : ""}<li class="frist ${fristKlasse}">⏰ ${v.frist ? `${datum(v.frist)} · ${abstand(v.frist)}` : "Frist unbekannt"}</li><li>${escape(STATUS[v.status] ?? v.status)}</li>${v.entfernung_km != null ? `<li>📍 ${Math.round(v.entfernung_km)} km</li>` : ""}</ul>
