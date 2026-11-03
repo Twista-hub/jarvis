@@ -40,12 +40,12 @@ export function tabelleHtml(i: Inhalt): string {
 }
 
 /** Public page for the customer. */
-export function oeffentlicheSeite(d: { firma: string; titel: string; monat: string; inhalt: Inhalt; bestaetigt_am: string | null; bestaetigt_name: string; rueckfrage: boolean; abgelaufen: boolean }, token: string, hinweis = ""): string {
+export function oeffentlicheSeite(d: { firma: string; titel: string; monat: string; inhalt: Inhalt | null; bestaetigt_am: string | null; bestaetigt_name: string; rueckfrage: boolean; abgelaufen: boolean }, token: string, hinweis = ""): string {
   const status = d.bestaetigt_am ? `<p class="hinweis ok">${d.rueckfrage ? "❓ Rückfrage gesendet" : "✅ Bestätigt"} von <strong>${escape(d.bestaetigt_name)}</strong> am ${zeitpunkt(d.bestaetigt_am)} Uhr. Vielen Dank!</p>` : d.abgelaufen ? `<p class="hinweis">Dieser Link ist abgelaufen. Bitte wenden Sie sich an ${escape(d.firma)}.</p>` : "";
   const form = !d.bestaetigt_am && !d.abgelaufen ? `<form method="post" action="/nachweis/${encodeURIComponent(token)}" class="nachweis-bestaetigen"><label>Ihr Name<input name="name" required minlength="2" maxlength="120" autocomplete="name"></label>
 <label>Anmerkung (freiwillig)<textarea name="anmerkung" maxlength="1000" rows="2"></textarea></label>${unterschriftFeld("unterschrift", { text: "Unterschrift (freiwillig)" })}
 <div class="knopf-zeile"><button name="aktion" value="ok">✅ Stunden bestätigen</button><button name="aktion" value="frage" class="zweit">❓ Rückfrage senden</button></div><p class="klein">Mit „Bestätigen“ bestätigen Sie die oben aufgeführten Stunden. Ihr Name, die Uhrzeit und ggf. Ihre Unterschrift werden für ${escape(d.firma)} gespeichert.</p></form>` : "";
-  return `${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}<p class="klein">Leistungsnachweis von <strong>${escape(d.firma)}</strong></p><h2>${escape(d.titel)} · ${monatName(d.monat)}</h2>${status}${tabelleHtml(d.inhalt)}<p class="klein">Std. = Arbeitsstunden (Pausen abgezogen). Nacht (23–6 Uhr), Sonntag und Feiertag sind in den Stunden enthalten.</p>${form}`;
+  return `${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}<p class="klein">Leistungsnachweis von <strong>${escape(d.firma)}</strong></p><h2>${escape(d.titel)} · ${monatName(d.monat)}</h2>${status}${d.inhalt ? tabelleHtml(d.inhalt) : ""}<p class="klein">Std. = Arbeitsstunden (Pausen abgezogen). Nacht (23–6 Uhr), Sonntag und Feiertag sind in den Stunden enthalten.</p>${form}`;
 }
 
 const anon = (env: KontoEnv, fn: string, body: unknown) => fetch(`${env.SUPABASE_URL}/rest/v1/rpc/${fn}`, { method: "POST", headers: { apikey: env.SUPABASE_KEY, "content-type": "application/json" }, body: JSON.stringify(body) });
@@ -57,7 +57,7 @@ export async function kundenlinkOeffentlich(request: Request, env: KontoEnv): Pr
   const token = m[1];
   const antwort = (t: string, status = 200) => { const r = html(seite("Leistungsnachweis bestätigen", t), status); r.headers.set("x-robots-tag", "noindex, nofollow"); r.headers.set("referrer-policy", "no-referrer"); return r; };
   const r = await anon(env, "nachweis_abrufen", { token });
-  const d = r.ok ? ((await r.json()) as { id: string; firma_id: string; firma: string; titel: string; monat: string; inhalt: Inhalt; bestaetigt_am: string | null; bestaetigt_name: string; rueckfrage: boolean; abgelaufen: boolean }[])[0] : undefined;
+  const d = r.ok ? ((await r.json()) as { id: string; firma_id: string; firma: string; titel: string; monat: string; inhalt: Inhalt | null; bestaetigt_am: string | null; bestaetigt_name: string; rueckfrage: boolean; abgelaufen: boolean }[])[0] : undefined;
   if (!d) return antwort("<p>Dieser Link ist ungültig.</p>", 404);
   if (request.method === "POST") {
     const form = await request.formData();

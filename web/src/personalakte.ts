@@ -9,7 +9,9 @@ export type Akte = { eintritt?: string | null; beschaeftigung?: string; wochenst
 export type Nachweis = { id: string; personal_id: string; bezeichnung: string; erworben: string | null; gueltig_bis: string | null; datei_name: string | null; datei_mime: string | null };
 export const BESCHAEFTIGUNG: Record<string, string> = { vollzeit: "Vollzeit", teilzeit: "Teilzeit", minijob: "Minijob", aushilfe: "Aushilfe", azubi: "Auszubildende/r" };
 export const FUEHRERSCHEINE = ["B", "BE", "C1", "C1E", "C", "CE", "D1", "D", "T", "L", "Stapler"];
-export const NACHWEIS_VORSCHLAEGE = ["Staplerschein", "Erste Hilfe", "Hygieneschulung (§ 43 IfSG)", "Sachkunde § 34a GewO", "Unterrichtung § 34a GewO", "Brandschutzhelfer", "Ersthelfer", "Schweißerprüfung", "Höhentauglichkeit / Absturzsicherung", "Gabelstapler (DGUV 308-001)", "Hebebühne / PSA", "Elektrofachkraft", "SCC-Dokument", "Führungszeugnis", "Gesundheitszeugnis"];
+export const NACHWEIS_VORSCHLAEGE = ["Staplerschein", "Erste Hilfe", "Hygieneschulung (§ 43 IfSG)", "Sachkunde § 34a GewO", "Unterrichtung § 34a GewO", "Brandschutzhelfer", "Ersthelfer", "Schweißerprüfung", "Absturzsicherung (Unterweisung)", "Gabelstapler (DGUV 308-001)", "Hebebühne / PSA", "Elektrofachkraft", "SCC-Dokument", "Führungszeugnis eingesehen", "Gesundheitszeugnis / Belehrung eingesehen"];
+/** Criminal-record and health certificates: only the date of inspection is kept, never a copy (Art. 9/10 DSGVO, § 53 BZRG). */
+export const OHNE_KOPIE = /f(ü|ue)hrungszeugnis|gesundheit|(ä|ae)rztlich|tauglichkeit|attest|vorsorge|bzr|strafregister/i;
 
 const datum = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("de-DE");
 const monatJahr = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("de-DE", { month: "2-digit", year: "2-digit" });
@@ -94,7 +96,7 @@ export function nachweisTeil(personId: string, eigene: Nachweis[], heute: string
   return `<div class="nachweis-teil"><h4>🎓 Qualifikationen mit Nachweis</h4>${eigene.length ? `<ul class="abwesenheit-liste">${eigene.map((n) => `<li><span class="${ampel(n.gueltig_bis, heute)}">${escape(n.bezeichnung)}${n.gueltig_bis ? ` · bis ${datum(n.gueltig_bis)}` : ""}${n.datei_name ? ` · <a href="/konto/personal/${personId}/nachweis/${n.id}">📎 Datei</a>` : ""}</span><form method="post" action="/konto/personal/${personId}/nachweis" class="termin-weg"><input type="hidden" name="loeschen" value="${n.id}"><button class="zweit" aria-label="Nachweis löschen">✕</button></form></li>`).join("")}</ul>` : ""}
 <form method="post" action="/konto/personal/${personId}/nachweis" enctype="multipart/form-data" class="nachweis-form"><label class="ganz">Qualifikation<input name="bezeichnung" list="nachweis-vorschlaege" required maxlength="120"></label><datalist id="nachweis-vorschlaege">${NACHWEIS_VORSCHLAEGE.map((v) => `<option value="${v}">`).join("")}</datalist>
 <label>Erworben<input name="erworben" type="date"></label><label>Gültig bis<input name="gueltig_bis" type="date"></label>
-<label class="ganz">Nachweis (PDF/Foto, freiwillig, max. 5 MB)<input type="file" name="datei" accept="application/pdf,image/png,image/jpeg"></label><button class="zweit">Hinzufügen</button></form>
+<label class="ganz">Nachweis (PDF/Foto, freiwillig, max. 5 MB)<input type="file" name="datei" accept="application/pdf,image/png,image/jpeg"></label><button class="zweit">Hinzufügen</button><p class="klein ganz">Führungs- und Gesundheitszeugnisse oder ärztliche Bescheinigungen bitte nicht hochladen: Jarvis speichert dafür nur „eingesehen am“ und „gültig bis“, keine Kopie. Keine Gesundheitsangaben in die Bezeichnung.</p></form>
 <p class="klein">Jarvis erinnert in Firma &amp; Team 60 Tage vor dem Ablauf. <a href="/konto/personal/${personId}/profil.docx">📄 Kurzprofil (Word)</a> für Angebote, nur mit Einverständnis der Person weitergeben.</p></div>`;
 }
 
@@ -150,6 +152,7 @@ export async function personalakte(request: Request, env: KontoEnv): Promise<Res
     return wordAntwort(kurzprofilDocx(fn.ok ? fn.daten[0]?.name ?? "" : "", person, n.ok ? n.daten : [], einsaetze, heute), `Profil_${person.vorname}_${person.nachname}.docx`.replace(/[^\wäöüÄÖÜß.-]+/g, "_"), f.s.cookies);
   }
   if (m[3] && request.method === "GET") {
+    if (!["inhaber", "admin", "bearbeiter", "standortleitung"].includes(f.m.rolle)) return new Response("Nicht erlaubt", { status: 403 });
     const n = await db<Nachweis[]>(f.s, env, `personal_nachweise?id=eq.${m[3]}&personal_id=eq.${pid}&select=id,personal_id,bezeichnung,erworben,gueltig_bis,datei_name,datei_mime`);
     const nw = n.ok ? n.daten[0] : undefined;
     const obj = nw?.datei_name ? await env.DATEN?.get(`personal_nachweise/${person.firma_id}/${pid}/${nw.id}`) : null;
@@ -172,7 +175,8 @@ export async function personalakte(request: Request, env: KontoEnv): Promise<Res
   if (zeile.bezeichnung.length < 2 || (zeile.erworben && zeile.gueltig_bis && zeile.gueltig_bis < zeile.erworben)) return zurueck("Bitte Qualifikation angeben (gültig bis nicht vor erworben).");
   const datei = form.get("datei");
   let bytes: Uint8Array | null = null;
-  if (datei && typeof datei !== "string" && datei.size > 0) {
+  const ohneKopie = OHNE_KOPIE.test(zeile.bezeichnung);
+  if (datei && typeof datei !== "string" && datei.size > 0 && !ohneKopie) {
     bytes = new Uint8Array(await datei.arrayBuffer());
     if (datei.size > 5 * 1024 * 1024 || !DATEI_TYPEN.includes(datei.type) || !passtZuTyp(bytes, datei.type)) return zurueck("Bitte ein PDF, PNG oder JPG bis 5 MB wählen.");
     Object.assign(zeile, { datei_name: datei.name.replace(/[^\wäöüÄÖÜß.\- ]+/g, "_").slice(0, 200), datei_mime: datei.type, datei_groesse: datei.size });
@@ -180,5 +184,5 @@ export async function personalakte(request: Request, env: KontoEnv): Promise<Res
   if (bytes) await env.DATEN?.put(`personal_nachweise/${person.firma_id}/${pid}/${zeile.id}`, bytes, { httpMetadata: { contentType: zeile.datei_mime! } });
   const r = await db(f.s, env, "personal_nachweise", { method: "POST", body: JSON.stringify(zeile) });
   if (!r.ok && bytes) await env.DATEN?.delete(`personal_nachweise/${person.firma_id}/${pid}/${zeile.id}`);
-  return zurueck(r.ok ? "Nachweis gespeichert." : "Speichern hat nicht geklappt. Hast du Rechte für den Standort dieser Person?");
+  return zurueck(r.ok ? (ohneKopie && datei && typeof datei !== "string" && datei.size > 0 ? "Gespeichert, aber ohne Datei: Für Führungs- und Gesundheitszeugnisse speichert Jarvis nur das Datum der Einsicht." : "Nachweis gespeichert.") : "Speichern hat nicht geklappt. Hast du Rechte für den Standort dieser Person?");
 }

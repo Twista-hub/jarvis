@@ -158,7 +158,8 @@ export async function firmenunterlagen(request: Request, env: KontoEnv & Partial
       d.ordner = ordnerWahl && ordnerWahl !== ordnerVon(d) ? ordnerWahl : null;
       // No date entered: Jarvis reads it from the document (PDF or photo of a proof).
       let erkannt = "";
-      if (art==="nachweis" && !gueltig && ablaufLesbar(file.name, file.size) && env.ANTHROPIC_API_KEY && env.HYPERDRIVE) {
+      // Never send criminal-record extracts (Führungszeugnis, Gewerbezentralregister) to the AI service automatically (Art. 10 DSGVO).
+      if (art==="nachweis" && !gueltig && ablaufLesbar(file.name, file.size) && !/f(ü|ue)hrungszeugnis|gewerbezentral|bzr|strafregister/i.test(`${name} ${file.name}`) && env.ANTHROPIC_API_KEY && env.HYPERDRIVE) {
         const datum = await ablaufLesen(env as KiEnv, bytes, file.name, f.m.firma_id).catch(() => null);
         if (datum) { d.gueltig_bis = datum; d.gueltig_erkannt = true; }
         erkannt = `&erkannt=${datum ?? "0"}`;

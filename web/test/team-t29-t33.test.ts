@@ -116,7 +116,7 @@ test("T32: Ausfall, Ersatzvorschläge und Meldeknopf", () => {
   assert.doesNotMatch(html, /Auto kaputt/);
   assert.match(html, /name="person" value="p3"/);
   assert.match(html, /name="einsatzort"><option value="">– frei eingeben –<\/option><option value="o1">Messe Halle 3/);
-  const ersetzt = schichtenSeite([...liste, s("n", heute, "06:00", "14:00", { personal_id: "p3", notiz: "Ersatz für Eva" })], personen, abw, { montag: "2026-11-02", heute, darfAendern: true, bereiche: [], ueb: [] });
+  const ersetzt = schichtenSeite([...liste, s("n", heute, "06:00", "14:00", { personal_id: "p3", notiz: "Ersatzschicht" })], personen, abw, { montag: "2026-11-02", heute, darfAendern: true, bereiche: [], ueb: [] });
   assert.match(ersetzt, /Keine offene Schicht \(mehr\)/, "nach dem Ersatz keine Vorschläge mehr");
   const ich = ichSeite({ ich: { id: "p1", firma_id: "f", vorname: "Eva", nachname: "M", berufe: [], qualifikationen: [], status: "verfuegbar" }, auftraege: [], ueberlassungen: [], abwesenheiten: [], nachweise: [], unterweisungen: [], heute });
   assert.match(ich, /Ich falle kurzfristig aus/);

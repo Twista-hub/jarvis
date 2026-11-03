@@ -45,7 +45,7 @@ export function ichSeite(d: { ich: Ich; auftraege: MeinAuftrag[]; ueberlassungen
   const abw = d.abwesenheiten.filter((a) => a.bis >= heute).sort((a, b) => a.von.localeCompare(b.von));
   const unterweisungen = d.unterweisungen.map((u) => ({ ...u, faellig: naechsteUnterweisung(u, heute) })).sort((a, b) => a.faellig.localeCompare(b.faellig));
   return `<div class="ich-kopf"><h2>👋 Hallo ${escape(ich.vorname)}</h2><p class="klein">${escape([ich.berufe.join(", "), ich.qualifikationen.join(", ")].filter(Boolean).join(" · ")) || "Beruf noch nicht eingetragen"}</p></div>
-<details class="ausfall-melden"><summary>🚨 Ich falle kurzfristig aus</summary><form method="post" action="/konto/ich"><input type="hidden" name="aktion" value="ausfall"><div class="aueg-form"><label>Wann?<select name="tag"><option value="${heute}">heute</option><option value="${plusTage(heute, 1)}">morgen</option></select></label><label>Notiz (freiwillig)<input name="notiz" maxlength="200" placeholder="z. B. Auto kaputt, Zug fällt aus"></label></div><button>Ausfall melden</button><p class="klein">Bitte keine Gesundheitsangaben. Deine Schichten an dem Tag werden abgesagt und das Büro wird benachrichtigt. Eine Krankmeldung gibst du wie gewohnt ab.</p></form></details>
+<details class="ausfall-melden"><summary>🚨 Ich falle kurzfristig aus</summary><form method="post" action="/konto/ich"><input type="hidden" name="aktion" value="ausfall"><div class="aueg-form"><label>Wann?<select name="tag"><option value="${heute}">heute</option><option value="${plusTage(heute, 1)}">morgen</option></select></label></div><button>Ausfall melden</button><p class="klein">Bitte keine Gesundheitsangaben. Deine Schichten an dem Tag werden abgesagt und das Büro wird benachrichtigt. Eine Krankmeldung gibst du wie gewohnt ab.</p></form></details>
 ${d.oben ?? ""}<div class="ich-raster">
 <section><h3>📋 Meine Einsätze</h3>${einsaetze.length ? `<ul class="kontakt-liste ich-liste">${einsaetze.map((e) => `<li class="${laufend(e.von, e.bis) ? "aktiv" : ""}"><div><strong>${escape(e.titel)}</strong><span class="klein">${zeitraum(e.von, e.bis)}${laufend(e.von, e.bis) ? " · läuft" : ""}</span></div></li>`).join("")}</ul>` : `<p class="treffer-leer">Gerade keine Einsätze eingetragen.</p>`}</section>
 ${meineSchichtenTeil(d.schichten ?? [], heute)}${d.zeitkontoText ?? ""}${d.stunden ? meineStundenTeil(d.stunden, laufendeTitel, heute) : ""}
@@ -160,7 +160,7 @@ export async function ich(request: Request, env: KontoEnv): Promise<Response | n
     if (t("aktion", 20) === "ausfall") {
       const tag = d("tag");
       if (!tag || (tag !== heute && tag !== plusTage(heute, 1))) return zurueck("Bitte heute oder morgen wählen.");
-      const r = await db<number>(f.s, env, "rpc/ausfall_melden", { method: "POST", body: JSON.stringify({ tag, notiz: t("notiz", 200) }) });
+      const r = await db<number>(f.s, env, "rpc/ausfall_melden", { method: "POST", body: JSON.stringify({ tag, notiz: "" }) }); // no reason stored (Art. 9 DSGVO)
       const n = r.ok ? Number(r.daten) : -1;
       return zurueck(n >= 0 ? `Ausfall für ${tag === heute ? "heute" : "morgen"} gemeldet.${n ? ` ${n} ${n === 1 ? "Schicht ist" : "Schichten sind"} abgesagt.` : ""} Das Büro ist informiert. Gute Besserung, falls du krank bist!` : n === -2 ? "Für diesen Tag bist du schon als abwesend eingetragen." : "Melden hat nicht geklappt. Bitte ruf im Büro an.");
     }
