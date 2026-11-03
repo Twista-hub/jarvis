@@ -16,7 +16,7 @@ export function impressumEs(): string {
   return `<h2>Información conforme al § 5 de la ley alemana de servicios digitales (DDG)</h2>
 <p>${anschrift()}</p>
 <h2>Contacto</h2>
-<p>Correo electrónico: ${mail()}<br>Formulario de contacto: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Teléfono: ${escape(FIRMA.telefon)}` : ""}</p>
+<p>Correo electrónico: ${mail()}<br>Formulario de contacto: <a href="/kontakt">crewtender.eu/kontakt</a>${FIRMA.telefon ? `<br>Teléfono: ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>IVA</h2><p>Número de identificación a efectos del IVA conforme al § 27a de la ley alemana del IVA (UStG): ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>IVA</h2><p>Pequeño empresario conforme al § 19 de la ley alemana del IVA (UStG); por ello no se repercute IVA.</p>` : ""}
 <h2>Responsable del contenido</h2>
 <p>${escape(FIRMA.name)}, dirección indicada arriba.</p>

@@ -25,7 +25,7 @@ export function impressum(): string {
   return `<h2>Angaben gemäß § 5 DDG</h2>
 <p>${anschrift()}</p>
 <h2>Kontakt</h2>
-<p>E-Mail: <a href="mailto:${FIRMA.email}">${FIRMA.email}</a><br>Kontaktformular: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
+<p>E-Mail: <a href="mailto:${FIRMA.email}">${FIRMA.email}</a><br>Kontaktformular: <a href="/kontakt">crewtender.eu/kontakt</a>${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>Umsatzsteuer</h2><p>Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>Umsatzsteuer</h2><p>Kleinunternehmer nach § 19 UStG, daher keine Umsatzsteuer.</p>` : ""}
 <h2>Verantwortlich für den Inhalt</h2>
 <p>${escape(FIRMA.name)}, Anschrift wie oben.</p>

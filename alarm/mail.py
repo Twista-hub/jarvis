@@ -19,7 +19,7 @@ from zoneinfo import ZoneInfo
 import push
 from profile_db import sprache as profil_sprache, verbinden
 
-APP = "https://app.wpdigitalranger.com"
+APP = "https://crewtender.eu"
 ABSENDER = ("Crewtender", "kontakt@wpdigitalranger.com")
 BERLIN = ZoneInfo("Europe/Berlin")
 ERINNERN = (7, 2)  # days before the deadline

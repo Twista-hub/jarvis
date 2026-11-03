@@ -13,7 +13,7 @@ type Punkt = { id: string; einsatzort_id: string; name: string; token: string };
 type Scan = { zeit: string; kontrollpunkt_id: string; personal_id: string };
 type Eintrag = { zeit: string; art: string; text: string; einsatzort_id: string | null; personal_id: string };
 type Person = { id: string; vorname: string; nachname: string };
-const ADRESSE = "https://app.wpdigitalranger.com";
+const ADRESSE = "https://crewtender.eu";
 const ART: Record<string, string> = { meldung: "📝 Meldung", vorfall: "⚠️ Vorfall", uebergabe: "🔁 Übergabe" };
 const zeit = (z: string) => new Date(z).toLocaleString("de-DE", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit", timeZone: "Europe/Berlin" });
 

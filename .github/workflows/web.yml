@@ -39,7 +39,7 @@ jobs:
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       ACTIONS_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-      URL: https://app.wpdigitalranger.com
+      URL: https://crewtender.eu
     steps:
       - uses: actions/checkout@v4
       - name: Cloudflare-Schlüssel vorhanden?

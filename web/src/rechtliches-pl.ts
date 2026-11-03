@@ -16,7 +16,7 @@ export function impressumPl(): string {
   return `<h2>Informacje zgodnie z § 5 niemieckiej ustawy o usługach cyfrowych (DDG)</h2>
 <p>${anschrift()}</p>
 <h2>Kontakt</h2>
-<p>E-mail: ${mail()}<br>Formularz kontaktowy: <a href="/kontakt">app.wpdigitalranger.com/kontakt</a>${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
+<p>E-mail: ${mail()}<br>Formularz kontaktowy: <a href="/kontakt">crewtender.eu/kontakt</a>${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
 ${FIRMA.ustId ? `<h2>Podatek VAT</h2><p>Numer identyfikacyjny VAT zgodnie z § 27a niemieckiej ustawy o podatku od towarów i usług (UStG): ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>Podatek VAT</h2><p>Mały przedsiębiorca w rozumieniu § 19 niemieckiej ustawy o podatku od towarów i usług (UStG), w związku z czym podatek VAT nie jest naliczany.</p>` : ""}
 <h2>Odpowiedzialny za treść</h2>
 <p>${escape(FIRMA.name)}, adres jak wyżej.</p>

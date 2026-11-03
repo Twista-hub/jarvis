@@ -13,7 +13,7 @@ test("Rundgänge & Wachbuch: Büro-Seite, QR-Bogen, Scan-Seite", () => {
   assert.match(html, /⚠️ Vorfall/);
   assert.match(html, /href="\/konto\/rundgaenge\/qr\?ort=o1"/);
   assert.doesNotMatch(rundgangSeite(orte, punkte, [], [], [], false), /name="weg"/, "Lesende können nichts löschen");
-  assert.equal(scanLink("a".repeat(32)), `https://app.wpdigitalranger.com/k/${"a".repeat(32)}`);
+  assert.equal(scanLink("a".repeat(32)), `https://crewtender.eu/k/${"a".repeat(32)}`);
   assert.match(qrBogen(orte[0], punkte), /<svg class="qr"/);
   assert.match(scanSeite({ punkt: "Notausgang Nord", ort: "Messe Halle 3", zeit: "2026-11-03T21:15:00Z" }, "a".repeat(32)), /✅ Notausgang Nord[\s\S]*name="text"/);
   assert.match(scanSeite(null, "x"), /nicht erkannt/);
