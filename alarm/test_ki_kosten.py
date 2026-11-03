@@ -77,10 +77,11 @@ class Batch(unittest.TestCase):
                             stop_reason="end_turn", content=[N(type="text", text=j.dumps(antwort(q["params"]["model"], items)))])
                     yield N(custom_id=q["custom_id"], result=N(type="succeeded", message=msg))
 
+        protokoll: list = []
         alt = (ki.client, ki._reservieren, ki.katalog.abschliessen, ki.VORFILTER_SCHWELLE)
         ki.client = N(messages=N(batches=Batches()))
         ki._reservieren = lambda kwargs: "r"
-        ki.katalog.abschliessen = lambda r, k: None
+        ki.katalog.abschliessen = lambda r, k, *a: protokoll.append(a)
         ki.VORFILTER_SCHWELLE = 3
         try:
             pakete = [[{"nr": 0, "titel": "Reinigung Schule"}, {"nr": 1, "titel": "Bäckerei Brötchen"}], [{"nr": 0, "titel": "Bäckerei"}]]
@@ -88,6 +89,7 @@ class Batch(unittest.TestCase):
         finally:
             ki.client, ki._reservieren, ki.katalog.abschliessen, ki.VORFILTER_SCHWELLE = alt
         self.assertEqual(len(gesendet), 2, "ein Vorfilter-Batch, ein Sonnet-Batch")
+        self.assertTrue(protokoll and all(len(a) == 2 and a[0] in ki.PREISE for a in protokoll), "Modell und Batch-ID werden protokolliert")
         self.assertEqual([q["params"]["model"] for q in gesendet[1]], [ki.MODEL_BEWERTEN], "Paket 2 braucht kein Sonnet")
         self.assertNotIn("fallbacks", gesendet[0][0]["params"], "Batch kennt keine Ersatzmodell-Regel")
         self.assertEqual({k: v["grund"] for k, v in r[0].items()}, {0: "Sonnet", 1: "Haiku"})

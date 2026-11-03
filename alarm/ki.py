@@ -108,7 +108,7 @@ def _create(model: str = MODEL_BEWERTEN, **kwargs):
         # fallbacks="default": a safety decline is retried server-side on Anthropic's recommended model.
         response = client.beta.messages.create(model=model, betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
     _zaehlen(response.usage, model)
-    katalog.abschliessen(reservierung, kosten() - vorher)
+    katalog.abschliessen(reservierung, kosten() - vorher, getattr(response, "model", None) or model, getattr(response, "_request_id", None))
     return response
 
 
@@ -175,7 +175,7 @@ def _batch(model: str, beschreibung: str, pakete: list[list[dict]], sprache: str
             if time.monotonic() > ende:
                 client.messages.batches.cancel(b.id)
                 print(f"Batch {b.id} nach {BATCH_MINUTEN} Minuten nicht fertig: abgebrochen, direkte Bewertung.")
-                katalog.abschliessen(reservierung, kosten() - vorher)
+                katalog.abschliessen(reservierung, kosten() - vorher, model, b.id)
                 return None
             time.sleep(30)
             b = client.messages.batches.retrieve(b.id)
@@ -193,7 +193,7 @@ def _batch(model: str, beschreibung: str, pakete: list[list[dict]], sprache: str
         print(f"Batch nicht möglich ({type(e).__name__}), direkte Bewertung.")
         katalog.abschliessen(reservierung, kosten() - vorher)
         return None
-    katalog.abschliessen(reservierung, kosten() - vorher)
+    katalog.abschliessen(reservierung, kosten() - vorher, model, b.id)
     return ergebnis
 
 
@@ -291,7 +291,8 @@ def steckbrief(beschreibung: str, kopf: str, dokumente: str, sprache: str = "de"
     ) as stream:
         message = stream.get_final_message()
     _zaehlen(message.usage)
-    katalog.abschliessen(reservierung, kosten() - vorher)
+    katalog.abschliessen(reservierung, kosten() - vorher, getattr(message, "model", None) or MODEL,
+                         getattr(message, "_request_id", None) or getattr(stream, "request_id", None))
     if message.stop_reason == "refusal":
         return ""
     return "\n".join(b.text for b in message.content if b.type == "text").strip()
