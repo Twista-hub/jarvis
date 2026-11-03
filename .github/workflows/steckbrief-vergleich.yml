@@ -25,6 +25,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install -q anthropic "psycopg[binary]" cryptography && sudo apt-get install -y -q poppler-utils >/dev/null
+      - name: Testunterlagen aus dem privaten Speicher holen
+        if: inputs.unterlagen != 'keine'
+        uses: ./.github/actions/testunterlagen
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       - name: Vergleichen
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}

@@ -156,6 +156,9 @@ jobs:
           PY
           cat recherche-check.json >> "$GITHUB_STEP_SUMMARY"
 
+      - name: Testunterlagen aus dem privaten Speicher holen
+        if: inputs.test && env.OHNE_SCHLUESSEL != '1'
+        uses: ./.github/actions/testunterlagen
       - name: Test mit Bundesbank-Unterlagen
         if: inputs.test && env.OHNE_SCHLUESSEL != '1'
         working-directory: alarm/test-unterlagen/dtvp-CXP4Y63M3X1
