@@ -158,18 +158,24 @@ ${dienstleisterTabelle()}
 <p>Bei Widersprüchen geht dieser Vertrag den Nutzungsbedingungen vor, soweit es um Datenschutz geht. Wer einen unterschriebenen Vertrag braucht, schreibt an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>.</p>`;
 }
 
+
+const karte = (icon: string, titel: string, text: string) => `<div class="start-karte"><span class="start-icon" aria-hidden="true">${icon}</span><h3>${titel}</h3><p>${text}</p></div>`;
+
+/** Public landing page (German visitors): light blue hero with glass cards, stacked buttons on phones. */
 export function startseite(beispiel: string): string {
-  return `<h1>Crewtender findet passende Ausschreibungen für deine Firma</h1>
-<p>Jeden Morgen liest Crewtender alle neuen öffentlichen Ausschreibungen in Deutschland, rund 500 am Tag, und zeigt dir nur die, die zu deiner Firma passen.</p>
-<h2>So funktioniert's</h2>
-<ol>
-<li><strong>Treffer jeden Morgen:</strong> Crewtender bewertet jede Ausschreibung mit 1 bis 10 Punkten und sagt in einem Satz, warum sie passt oder nicht, sortiert nach deinen Standorten.</li>
-<li><strong>Steckbrief auf einen Blick:</strong> Fristen, Lose, Mengen, geforderte Nachweise und Referenzen, Zuschlagskriterien und eine klare Empfehlung.</li>
-<li><strong>Unterlagen prüfen und kalkulieren:</strong> Tippe auf „Hier runterladen“, wähle die Datei aus, und Crewtender liest alle Vergabeunterlagen. Danach rechnet er mit deinen Löhnen den Angebotspreis pro Stunde und pro Los aus.</li>
-</ol>
-<div class="knopf-zeile"><a class="knopf" href="/registrieren">Jetzt registrieren</a><a class="knopf zweit" href="/demo">🎬 Erst ansehen (Demo ohne Anmeldung)</a></div>
-<p>Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
-<p class="klein">Nach der Bestätigung deiner E-Mail-Adresse geht es sofort los. Fragen an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>.</p>
+  return `<section class="start-held">
+<p class="start-fuer">Für Handwerk, Reinigung, Sicherheit, Zeitarbeit und Gastro</p>
+<h1>Öffentliche Aufträge finden. Angebote schreiben. Dein Team planen.</h1>
+<p class="start-unter">Jeden Morgen liest Crewtender rund 500 neue Ausschreibungen in Deutschland und zeigt dir nur die, die zu deiner Firma passen. Mit Steckbrief, Kalkulation und Personalplanung in einer App.</p>
+<div class="start-knoepfe"><a class="start-knopf" href="/registrieren">Kostenlos testen</a><a class="start-knopf glas" href="/demo">🎬 Demo ansehen</a></div>
+<p class="start-klein">Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
+<ul class="start-chips"><li>✓ Demo ohne Anmeldung</li><li>✓ Keine Kreditkarte nötig</li><li>✓ Daten in der EU</li><li>✓ Los geht's nach der E-Mail-Bestätigung</li></ul>
+</section>
+<h2 class="start-h2">So funktioniert's</h2>
+<div class="start-raster">${karte("🔎", "Treffer jeden Morgen", "Jede Ausschreibung bekommt 1 bis 10 Punkte und einen Satz, warum sie passt oder nicht, sortiert nach deinen Standorten.")}${karte("📋", "Steckbrief auf einen Blick", "Fristen, Lose, Mengen, geforderte Nachweise und Referenzen, Zuschlagskriterien und eine klare Empfehlung.")}${karte("🧮", "Kalkulieren und anbieten", "Vergabeunterlagen hochladen, Crewtender liest alles und rechnet mit deinen Löhnen den Preis pro Stunde und pro Los.")}</div>
+<h2 class="start-h2">Und wenn der Auftrag da ist</h2>
+<div class="start-raster">${karte("📅", "Schichten planen", "Schichtplan mit Prüfung des Arbeitszeitgesetzes, offene Schichten fürs Team und Ersatz bei Ausfall.")}${karte("⏱️", "Stunden und Stempeluhr", "Einsatzkräfte erfassen Stunden im Handy, das Büro gibt frei und lädt die Lohnliste für DATEV.")}${karte("🧾", "Nachweis und Rechnung", "Leistungsnachweis zum Unterschreiben, Rechnung mit eigenem Logo und XRechnung für Behörden.")}</div>
+<section class="start-held start-schluss"><h2>Bereit für den ersten Auftrag?</h2><p class="start-unter">In zwei Minuten eingerichtet. Crewtender liest deine Website und schlägt das Suchprofil vor.</p><div class="start-knoepfe"><a class="start-knopf" href="/registrieren">Kostenlos testen</a><a class="start-knopf glas" href="/hilfe">📚 Anleitungen ansehen</a></div><p class="start-klein">Fragen an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a> oder über das <a href="/kontakt">Kontaktformular</a>.</p></section>
 <h2>Ausschreibungen nach Gewerk</h2>
 <p><a href="/ausschreibungen/elektro">Elektro</a> · <a href="/ausschreibungen/sanitaer-heizung-lueftung">Sanitär, Heizung, Lüftung</a> · <a href="/ausschreibungen/tischler-schreiner">Tischler</a> · <a href="/ausschreibungen/gebaeudereinigung">Gebäudereinigung</a> · <a href="/ausschreibungen/maler-trockenbau">Maler und Trockenbau</a> · <a href="/ausschreibungen/dach-zimmerer">Dach und Zimmerer</a> · <a href="/ausschreibungen/garten-landschaftsbau-winterdienst">Garten- und Landschaftsbau</a> · <a href="/ausschreibungen/sicherheitsdienst">Sicherheitsdienst</a> · <a href="/ausschreibungen/bodenbelaege-fliesen">Bodenbeläge und Fliesen</a> · <a href="/ausschreibungen/zeitarbeit-personaldienstleister">Zeitarbeit</a> · <a href="/ausschreibungen">alle</a></p>
 <h2>Beispiel-Steckbrief</h2>
