@@ -99,8 +99,8 @@ class Kostenmodell(unittest.TestCase):
         import kostenmodell as k
         self.assertAlmostEqual(k.euro(1), 1.071)
         teile = k.kosten({"bewertung": 1000, "steckbrief": 2}, {**k.STUECK, "einrichtung": 0})
-        self.assertAlmostEqual(teile["summe"], 1000 * 0.002 + 2 * 1.80)
-        # The proposed quotas keep at least 60 % margin even when every quota is used up with the largest Steckbrief.
+        self.assertAlmostEqual(teile["summe"], 1000 * 0.002 + 2 * 0.50)
+        # The proposed quotas (5 / 30 / 100) keep at least 60 % margin even when every quota is used up with the largest Steckbrief.
         for plan in ("Basis", "Pro", "Business"):
             self.assertGreater(k.obergrenze(plan)["marge"], 0.6, plan)
         self.assertEqual(len(k.tabelle()), 8)
