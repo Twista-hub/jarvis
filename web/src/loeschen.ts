@@ -1,5 +1,6 @@
 // Removing all stored files of deleted firms (R2), used by the own account deletion and by the operator page
-// /konto/betreiber (look up a customer login by e-mail and delete it, optionally with the firms it owns alone).
+// /konto/betreiber (look up a customer login by e-mail and delete it, optionally with the firms it owns alone; list all
+// firms and set their AI limit and plan without SQL).
 import { db, html, sitzung, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 
@@ -66,6 +67,43 @@ ${team.length ? `<label class="zeile"><input type="checkbox" name="firmen_mit">A
 <p class="klein">Löscht den Zugang sofort und endgültig, dazu Firmen, in denen er allein ist, mit allen Daten und Dateien (Unterlagen, Fotos, Belege, Unterschriften, Bewerbungen, Nachweise). Nicht rückgängig zu machen.</p></form>`;
 }
 
+export type BetreiberFirma = { id: string; name: string; erstellt: string; website: string; paket: string; ki_budget_usd: number | null; ki_verbraucht: number; mitglieder: number; inhaber: string | null; letzte_anmeldung: string | null };
+
+export const PAKETE = ["kostenlos", "test", "basis", "pro", "erfolg"];
+/** AI limit choices on the operator page: "" = no limit (null), otherwise USD. */
+export const KI_STUFEN: [string, string][] = [["", "ohne Grenze"], ["5.5", "Probe 5,50 $"], ["20", "20 $"], ["0", "Demo, keine KI"]];
+
+const dollar = (x: number) => `${x.toFixed(2).replace(".", ",")} $`;
+const tag = (iso: string | null) => iso ? new Date(iso).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin", day: "2-digit", month: "2-digit", year: "numeric" }) : "nie";
+
+/** "1,20 $ von 5,50 $", "ohne Grenze (3,00 $ verbraucht)" or "Demo, keine KI". */
+export function kiStand(budget: number | null, verbraucht: number): string {
+  if (budget === null) return `ohne Grenze (${dollar(verbraucht)} verbraucht)`;
+  if (Number(budget) === 0) return verbraucht > 0 ? `Demo, keine KI (${dollar(verbraucht)} verbraucht)` : "Demo, keine KI";
+  return `${dollar(verbraucht)} von ${dollar(Number(budget))}${verbraucht >= Number(budget) ? " · aufgebraucht" : ""}`;
+}
+
+/** Form value -> budget: "" = no limit, a number >= 0, undefined when invalid. */
+export function kiWert(x: unknown): number | null | undefined {
+  const t = String(x ?? "").trim().replace(",", ".");
+  if (t === "") return null;
+  const n = Number(t);
+  return Number.isFinite(n) && n >= 0 && n <= 10000 ? Math.round(n * 100) / 100 : undefined;
+}
+
+export function firmenListe(firmen: BetreiberFirma[]): string {
+  if (!firmen.length) return `<p class="klein">Noch keine Firmen.</p>`;
+  return `<ul class="kontakt-liste">${firmen.map((f) => {
+    const budget = f.ki_budget_usd === null ? null : Number(f.ki_budget_usd);
+    const stufen = KI_STUFEN.some(([w]) => (w === "" ? budget === null : budget !== null && Number(w) === budget)) || budget === null ? KI_STUFEN : [...KI_STUFEN, [String(budget), dollar(budget)] as [string, string]];
+    const kiOpt = stufen.map(([w, t]) => `<option value="${w}"${(w === "" ? budget === null : budget !== null && Number(w) === budget) ? " selected" : ""}>${escape(t)}</option>`).join("");
+    const paketOpt = PAKETE.map((p) => `<option${p === f.paket ? " selected" : ""}>${p}</option>`).join("");
+    return `<li id="firma-${escape(f.id)}"><div><strong>${escape(f.name)}</strong><span class="klein">${escape(f.inhaber ?? "kein Inhaber")} · ${f.mitglieder} ${f.mitglieder === 1 ? "Mitglied" : "Mitglieder"} · seit ${tag(f.erstellt)} · zuletzt angemeldet ${tag(f.letzte_anmeldung)}${f.website ? ` · ${escape(f.website)}` : ""}</span><span class="klein">Plan ${escape(f.paket)} · KI ${escape(kiStand(budget, Number(f.ki_verbraucht ?? 0)))}</span>
+<form method="post" action="/konto/betreiber" class="zeile-form"><input type="hidden" name="aktion" value="firma"><input type="hidden" name="firma" value="${escape(f.id)}"><input type="hidden" name="ki_alt" value="${budget === null ? "" : budget}"><input type="hidden" name="paket_alt" value="${escape(f.paket)}">
+<label>KI-Grenze<select name="ki">${kiOpt}</select></label><label>Plan<select name="paket">${paketOpt}</select></label><button>Speichern</button></form></div></li>`;
+  }).join("")}</ul>`;
+}
+
 export async function betreiber(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== "/konto/betreiber") return null;
@@ -73,9 +111,26 @@ export async function betreiber(request: Request, env: KontoEnv): Promise<Respon
   if (!s) return weiterleiten("/konto");
   const ist = await db<boolean>(s, env, "rpc/ist_betreiber", { method: "POST", body: "{}" });
   if (!ist.ok || ist.daten !== true) return new Response("Nicht gefunden", { status: 404 });
-  const antwort = (t: string, status = 200) => { const r = html(seite("Betreiber: Zugang löschen", t, 0, ""), status, s.cookies); r.headers.set("cache-control", "private, no-store"); return r; };
+  const antwort = (t: string, status = 200) => { const r = html(seite("Betreiber", t, 0, ""), status, s.cookies); r.headers.set("cache-control", "private, no-store"); return r; };
   if (request.method === "POST") {
     const form = await request.formData();
+    if (form.get("aktion") === "firma") {
+      const firma = String(form.get("firma") ?? "");
+      const ki = kiWert(form.get("ki")), kiAlt = kiWert(form.get("ki_alt"));
+      const paket = String(form.get("paket") ?? ""), paketAlt = String(form.get("paket_alt") ?? "");
+      if (!/^[0-9a-f-]{36}$/.test(firma) || ki === undefined || !PAKETE.includes(paket)) return weiterleiten(`/konto/betreiber?hinweis=${encodeURIComponent("Eingabe ungültig.")}`, s.cookies);
+      const fehler: string[] = [];
+      if (ki !== kiAlt) {
+        const r = await db(s, env, "rpc/betreiber_ki_budget", { method: "POST", body: JSON.stringify({ f: firma, budget: ki }) });
+        if (!r.ok) fehler.push("KI-Grenze");
+      }
+      if (paket !== paketAlt) {
+        const r = await db(s, env, "rpc/betreiber_paket", { method: "POST", body: JSON.stringify({ f: firma, neu: paket }) });
+        if (!r.ok) fehler.push("Plan");
+      }
+      const hinweis = fehler.length ? `${fehler.join(" und ")} nicht gespeichert.` : ki === kiAlt && paket === paketAlt ? "Nichts geändert." : "Gespeichert.";
+      return weiterleiten(`/konto/betreiber?hinweis=${encodeURIComponent(hinweis)}#firma-${firma}`, s.cookies);
+    }
     const mail = String(form.get("mail") ?? "").trim().toLowerCase();
     if (String(form.get("bestaetigung") ?? "").trim().toLowerCase() !== mail) return weiterleiten(`/konto/betreiber?mail=${encodeURIComponent(mail)}&hinweis=${encodeURIComponent("Die Bestätigung stimmt nicht mit der Adresse überein.")}`, s.cookies);
     const r = await db<{ firmen: string[]; vorgaenge: string[] }>(s, env, "rpc/betreiber_konto_loeschen", { method: "POST", body: JSON.stringify({ mail, firmen_mit: form.has("firmen_mit") }) });
@@ -88,7 +143,11 @@ export async function betreiber(request: Request, env: KontoEnv): Promise<Respon
   }
   const mail = url.searchParams.get("mail")?.trim() ?? "";
   const hinweis = url.searchParams.get("hinweis") ?? "";
-  if (!mail) return antwort(betreiberSeite("", null, hinweis));
-  const t = await db<Treffer[]>(s, env, "rpc/betreiber_konto_suchen", { method: "POST", body: JSON.stringify({ mail }) });
-  return antwort(`${hinweis ? `<p class="hinweis" role="status">${escape(hinweis)}</p>` : ""}${betreiberSeite(mail, t.ok ? t.daten : [])}`);
+  let loeschen = betreiberSeite("", null, hinweis);
+  if (mail) {
+    const t = await db<Treffer[]>(s, env, "rpc/betreiber_konto_suchen", { method: "POST", body: JSON.stringify({ mail }) });
+    loeschen = `${hinweis ? `<p class="hinweis" role="status">${escape(hinweis)}</p>` : ""}${betreiberSeite(mail, t.ok ? t.daten : [])}`;
+  }
+  const f = await db<BetreiberFirma[]>(s, env, "rpc/betreiber_firmen", { method: "POST", body: "{}" });
+  return antwort(`<h2>Zugang löschen</h2>${loeschen}<h2>Firmen${f.ok ? ` (${f.daten.length})` : ""}</h2><p class="klein">KI-Grenze: „ohne Grenze“ für zahlende Kunden und Tester, „Probe 5,50 $“ für neue Firmen mit eigener Website, „Demo“ ohne KI. Der Plan wird später von der Abrechnung gesetzt.</p>${f.ok ? firmenListe(f.daten) : `<p class="hinweis">Firmenliste konnte nicht geladen werden.</p>`}`);
 }
