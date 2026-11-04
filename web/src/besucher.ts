@@ -137,7 +137,7 @@ export function kopfZeile(html: string, s: Sprache): string {
   return html.replace(' · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>', ` · ${escape(KOPF[s][0])} · <a href="/konto">${escape(KOPF[s][1])}</a></header>`);
 }
 
-export function landesSeite(b: Besucher, adresse: string, zusatzDe: string): { titel: string; inhalt: string; kopf: string } {
+export function landesSeite(b: Besucher, adresse: string, zusatzDe: string): { titel: string; inhalt: string; kopf: string; beschreibung: string } {
   const t = T[b.sprache];
   const abgedeckt = Boolean(b.iso3);
   const land = landName(b.land, b.sprache);
@@ -155,7 +155,7 @@ ${wahl}
 <p class="klein">${escape(t.keineBehoerde)}</p>`;
   const alle = Object.keys(ISO2).map((l) => `<link rel="alternate" hreflang="${HAUPTSPRACHE[l] ?? "en"}-${l}" href="${adresse}/${l.toLowerCase()}">`).join("");
   const kopf = `<link rel="canonical" href="${adresse}/${b.iso3 ? b.land.toLowerCase() : ""}">${alle}<link rel="alternate" hreflang="x-default" href="${adresse}/">`;
-  return { titel: t.titel, inhalt, kopf };
+  return { titel: t.titel, inhalt, kopf, beschreibung: abgedeckt ? t.intro(land) : t.titel };
 }
 
 /** Cookies that remember an explicit choice (country from /xx, language from ?sprache=). One year. */
