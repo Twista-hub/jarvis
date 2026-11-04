@@ -1,5 +1,7 @@
 // Where a visitor comes from: country (Cloudflare geo, cookie jv_land or /xx in the address) and the matching language.
-// Public start page per country: /de, /us, /fr … ; "/" shows the page of the detected country. The app inside stays German for now.
+// Public start page per country: /de, /us, /fr … ; "/" is the international page. English is the standard (Benjamin, 04.11.2026):
+// without an own choice (address /xx, cookie) the language follows the browser if we offer it, otherwise English, never the IP
+// alone; the detected country only adds a link to its own page. Search engines (no cookie, mostly no browser language) see English.
 import { escape } from "./seite.ts";
 import { LAENDER } from "./laender.ts";
 
@@ -16,7 +18,8 @@ export type Sprache = typeof SPRACHEN_OEFFENTLICH[number];
 const HAUPTSPRACHE: Record<string, Sprache> = { DE: "de", AT: "de", LI: "de", CH: "de", LU: "fr", FR: "fr", BE: "fr", ES: "es", IT: "it", NL: "nl", PL: "pl", PT: "pt" };
 const MEHRSPRACHIG: Record<string, Sprache[]> = { CH: ["de", "fr", "it"], BE: ["nl", "fr", "de"], LU: ["fr", "de"] };
 
-export type Besucher = { land: string; iso3: string | null; sprache: Sprache };
+/** explizit: the country comes from the address (/de) or an earlier choice (cookie), not only from the IP. */
+export type Besucher = { land: string; iso3: string | null; sprache: Sprache; explizit?: boolean };
 
 function cookie(request: Request, name: string): string {
   return new RegExp(`(?:^|;\\s*)${name}=([A-Za-z]{2})`).exec(request.headers.get("cookie") ?? "")?.[1] ?? "";
@@ -34,13 +37,16 @@ export function browserSprache(request: Request, erlaubt: readonly string[] = SP
 /** Country: address /xx → cookie jv_land → Cloudflare (cf.country / cf-ipcountry) → Germany. */
 export function besucher(request: Request, ausAdresse?: string): Besucher {
   const cf = ((request as unknown as { cf?: { country?: string } }).cf?.country ?? request.headers.get("cf-ipcountry") ?? "").toUpperCase();
-  const land = [ausAdresse?.toUpperCase(), cookie(request, "jv_land").toUpperCase(), cf].find((l) => l && /^[A-Z]{2}$/.test(l) && l !== "XX" && l !== "T1") ?? "DE";
+  const gueltig = (l: string | undefined) => !!l && /^[A-Z]{2}$/.test(l) && l !== "XX" && l !== "T1";
+  const eigen = [ausAdresse?.toUpperCase(), cookie(request, "jv_land").toUpperCase()].find(gueltig);
+  const land = eigen ?? [cf].find(gueltig) ?? "DE";
   const gewaehlt = cookie(request, "jv_psprache").toLowerCase();
   const browser = browserSprache(request);
   const sprache: Sprache = (SPRACHEN_OEFFENTLICH as readonly string[]).includes(gewaehlt) ? gewaehlt as Sprache
+    : !eigen ? browser ?? "en"
     : MEHRSPRACHIG[land] ? (browser && MEHRSPRACHIG[land].includes(browser) ? browser : HAUPTSPRACHE[land])
     : HAUPTSPRACHE[land] ?? (ISO2[land] ? "en" : browser ?? "en");
-  return { land, iso3: ISO2[land] ?? null, sprache };
+  return { land, iso3: ISO2[land] ?? null, sprache, explizit: !!eigen };
 }
 
 /** Default countries for a new search profile: the visitor's country if we search there, else Germany. */
@@ -137,15 +143,34 @@ export function kopfZeile(html: string, s: Sprache): string {
   return html.replace(' · Ausschreibungs-Alarm · <a href="/konto">Konto</a></header>', ` · ${escape(KOPF[s][0])} · <a href="/konto">${escape(KOPF[s][1])}</a></header>`);
 }
 
+const INTERNATIONAL = "Every morning Crewtender reads all new public tenders across Europe and in the United States and shows you only the ones that fit your company.";
+
+/** Address search engines should list: "/" for the page without an own choice, otherwise the country page. */
+export function kanonisch(b: Besucher, adresse: string): string {
+  return b.explizit === false || !b.iso3 ? `${adresse}/` : `${adresse}/${b.land.toLowerCase()}`;
+}
+
+const flagge = (l: string) => String.fromCodePoint(...[...l.toUpperCase()].map((c) => 0x1f1e6 + c.charCodeAt(0) - 65));
+/** Visitors without an own choice from a country we cover: a link to its page, named in that country's language. */
+export function landHinweis(b: Besucher): string {
+  if (b.explizit !== false || !b.iso3) return "";
+  const sprache = HAUPTSPRACHE[b.land] ?? "en";
+  if (sprache === b.sprache && b.land !== "US" && b.land !== "GB" && b.land !== "IE") return "";
+  return `<p class="hinweis"><a href="/${b.land.toLowerCase()}" hreflang="${sprache}" lang="${sprache}">${flagge(b.land)} ${escape(landName(b.land, sprache))} →</a></p>`;
+}
+
 export function landesSeite(b: Besucher, adresse: string, zusatzDe: string): { titel: string; inhalt: string; kopf: string; beschreibung: string } {
   const t = T[b.sprache];
+  // International page: "/" without an own country choice, in English (the standard). No country-specific texts.
+  const international = b.explizit === false && b.sprache === "en";
   const abgedeckt = Boolean(b.iso3);
   const land = landName(b.land, b.sprache);
   const wahl = landWahl(b);
-  const inhalt = `<h1>${escape(t.titel)}</h1>
-${abgedeckt ? `<p>${escape(t.intro(land))}</p><p class="klein">${escape(t.quelle)}: ${escape(quelle(b.land))}</p>` : `<p class="hinweis">${escape(t.nichtAbgedeckt)}</p>`}
+  const intro = international ? INTERNATIONAL : abgedeckt ? t.intro(land) : "";
+  const inhalt = `${landHinweis(b)}<h1>${escape(t.titel)}</h1>
+${international ? `<p>${escape(INTERNATIONAL)}</p><p class="klein">${escape(t.quelle)}: TED (EU), national procurement portals, SAM.gov (US)</p>` : abgedeckt ? `<p>${escape(intro)}</p><p class="klein">${escape(t.quelle)}: ${escape(quelle(b.land))}</p>` : `<p class="hinweis">${escape(t.nichtAbgedeckt)}</p>`}
 <ol>${t.schritte.map(([k, v]) => `<li><strong>${escape(k)}:</strong> ${escape(v)}</li>`).join("")}</ol>
-${b.land === "US" && b.sprache === "en" ? US_EXTRA : ""}
+${b.land === "US" && b.sprache === "en" && !international ? US_EXTRA : ""}
 ${b.land === "FR" && b.sprache === "fr" ? FR_EXTRA : ""}
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">${escape(t.registrieren)}</a><a class="knopf zweit" href="/demo">${escape(t.demo)}</a></div>
 <p>${escape(t.konto)} <a href="/anmelden">${escape(t.anmelden)}</a></p>
@@ -154,8 +179,8 @@ ${b.land === "DE" && b.sprache === "de" ? zusatzDe : ""}
 ${wahl}
 <p class="klein">${escape(t.keineBehoerde)}</p>`;
   const alle = Object.keys(ISO2).map((l) => `<link rel="alternate" hreflang="${HAUPTSPRACHE[l] ?? "en"}-${l}" href="${adresse}/${l.toLowerCase()}">`).join("");
-  const kopf = `<link rel="canonical" href="${adresse}/${b.iso3 ? b.land.toLowerCase() : ""}">${alle}<link rel="alternate" hreflang="x-default" href="${adresse}/">`;
-  return { titel: t.titel, inhalt, kopf, beschreibung: abgedeckt ? t.intro(land) : t.titel };
+  const kopf = `<link rel="canonical" href="${kanonisch(b, adresse)}">${alle}<link rel="alternate" hreflang="x-default" href="${adresse}/">`;
+  return { titel: t.titel, inhalt, kopf, beschreibung: intro || t.titel };
 }
 
 /** Cookies that remember an explicit choice (country from /xx, language from ?sprache=). One year. */

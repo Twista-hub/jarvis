@@ -87,7 +87,7 @@ import { hilfecenter } from "./hilfecenter.ts";
 import { usProfil, usRadar } from "./usprofil.ts";
 import { samAnleitungSeite } from "./samanleitung.ts";
 import { APP_SPRACHEN, appSprache, sprachFuss, sprachWechsel, uebersetzen, type AppSprache } from "./englisch.ts";
-import { ISO2, SPRACHEN_OEFFENTLICH, besucher, keineBehoerde, kopfZeile, landWahl, landesSeite, wahlCookies, type Sprache } from "./besucher.ts";
+import { ISO2, SPRACHEN_OEFFENTLICH, besucher, kanonisch, keineBehoerde, kopfZeile, landWahl, landesSeite, wahlCookies, type Sprache } from "./besucher.ts";
 import { escape, markdown, seite, stapeln } from "./seite";
 import { GVP, lohnAm, standardTarif, tariflohn, type TarifWahl } from "./tarife";
 import { loseLesen } from "./lose";
@@ -658,7 +658,7 @@ function landesStart(request: Request, url: URL, ausAdresse?: string): Response 
   const body = deutsch ? `${zusatz}${landWahl(b)}<p class="klein">${keineBehoerde("de")}</p>` : l.inhalt;
   const titel = deutsch ? "Crewtender – Öffentliche Aufträge finden, Angebote schreiben, Team planen" : l.titel;
   const beschreibung = deutsch ? START_BESCHREIBUNG : l.beschreibung;
-  const r = html(kopfZeile(seite(titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}${seoKopf({ beschreibung, url: `${ADRESSE}/${b.iso3 ? b.land.toLowerCase() : ""}`, jsonld: START_JSONLD })}`));
+  const r = html(kopfZeile(seite(titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}${seoKopf({ beschreibung, url: kanonisch(b, ADRESSE), jsonld: START_JSONLD })}`));
   r.headers.delete("x-robots-tag");
   r.headers.set("vary", "cookie, accept-language");
   r.headers.set("cache-control", "private, no-store");

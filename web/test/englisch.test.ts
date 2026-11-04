@@ -32,14 +32,16 @@ test("Englisch: ganze Seite, Attribute, geschützte Bereiche, Entities", () => {
 });
 
 test("Englisch: Sprache aus Cookie oder Land, Umschalter im Fuß, Wechsel-Route", () => {
-  const anfrage = (cookie = "", land = "DE", url = "https://x/konto") => new Request(url, { headers: { cookie, "cf-ipcountry": land } });
-  assert.equal(appSprache(anfrage("", "DE")), "de");
+  const anfrage = (cookie = "", land = "DE", url = "https://x/konto", browser = "") => new Request(url, { headers: { cookie, "cf-ipcountry": land, "accept-language": browser } });
+  // English is the standard (04.11.2026): without an own choice the browser language decides, never the IP alone.
+  assert.equal(appSprache(anfrage("", "DE", undefined, "de-DE,de;q=0.9")), "de");
+  assert.equal(appSprache(anfrage("", "DE")), "en", "ohne Browsersprache Englisch, auch aus Deutschland");
   assert.equal(appSprache(anfrage("", "US")), "en");
-  assert.equal(appSprache(anfrage("", "IT")), "it", "Italien hat eine eigene App-Sprache");
-  assert.equal(appSprache(anfrage("", "NL")), "en", "ohne eigene App-Sprache Englisch");
+  assert.equal(appSprache(anfrage("", "IT", undefined, "it-IT")), "it", "Italien hat eine eigene App-Sprache");
+  assert.equal(appSprache(anfrage("", "NL", undefined, "nl-NL")), "en", "ohne eigene App-Sprache Englisch");
   assert.equal(appSprache(anfrage("jv_psprache=de", "US")), "de");
   assert.equal(appSprache(anfrage("jv_psprache=en", "DE")), "en");
-  assert.equal(appSprache(anfrage("", "FR")), "fr");
+  assert.equal(appSprache(anfrage("", "FR", undefined, "fr-FR")), "fr");
   assert.equal(appSprache(anfrage("jv_psprache=fr", "DE")), "fr");
   assert.equal(appSprache(anfrage("jv_psprache=it", "FR")), "it");
   assert.equal(appSprache(anfrage("jv_psprache=nl", "FR")), "en", "Niederländisch hat keine App-Sprache");
@@ -93,7 +95,7 @@ test("Polnisch: Wörterbuch, Sprache aus Land, Umschalter", () => {
   const pl = uebersetzen(seite("x", "<h2>Mein Profil</h2>"), "pl");
   assert.match(pl, /<html lang="pl"/);
   assert.doesNotMatch(pl, /Mein Profil/);
-  const anfrage = (cookie = "", land = "PL") => new Request("https://x/konto", { headers: { cookie, "cf-ipcountry": land } });
+  const anfrage = (cookie = "", land = "PL") => new Request("https://x/konto", { headers: { cookie, "cf-ipcountry": land, "accept-language": "pl-PL,pl;q=0.9" } });
   assert.equal(appSprache(anfrage()), "pl");
   assert.equal(appSprache(anfrage("jv_psprache=pl", "DE")), "pl");
   assert.match(sprachFuss(seite("x", "<p>y</p>"), "de", "/"), /zu=pl[^>]*>Polski<\/a>/);
@@ -102,6 +104,6 @@ test("Polnisch: Wörterbuch, Sprache aus Land, Umschalter", () => {
 test("Spanisch: Wörterbuch und Sprache aus Land", () => {
   assert.ok(wortschatz("es").genau > 1500);
   assert.equal(wort("Steckbrief: Limpieza", "es"), "Ficha de la licitación: Limpieza");
-  assert.equal(appSprache(new Request("https://x/", { headers: { "cf-ipcountry": "ES" } })), "es");
+  assert.equal(appSprache(new Request("https://x/", { headers: { "cf-ipcountry": "ES", "accept-language": "es-ES" } })), "es");
   assert.doesNotMatch(uebersetzen(seite("x", "<h2>Mein Profil</h2>"), "es"), /Mein Profil/);
 });
