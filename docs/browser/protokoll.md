@@ -19,6 +19,11 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 04.11.2026 – Browser-Chat: Search Console Demopin, Prüfung gestartet
+- Vorher live geprüft (Googlebot): /event/9113 und /event/886 haben jetzt eigene Titel mit Datum („– Oct 26, 2026, Upper Marlboro“ bzw. „– Oct 6, 2026“) und eigene Canonicals. Eine unbekannte URL liefert 404.
+- sc-domain:demopin.app → Seiten: „Fehlerbehebung überprüfen“ gestartet für „Duplikat – Google hat eine andere Seite als der Nutzer als kanonische Seite bestimmt“ (433 Seiten) und „Soft 404“ (2). Startdatum 04.11.26. Google braucht meist einige Tage bis zwei Wochen.
+- Sitemap nicht neu eingereicht (Adresse bleibt https://demopin.app/sitemap.xml).
+
 ### 04.11.2026 – Claude Code: SEO umgesetzt (aus der Bestandsaufnahme)
 - Live: Titel ohne doppeltes „Crewtender“, Beschreibung und Vorschaubild für geteilte Links (Open Graph, https://crewtender.eu/og-v1.jpg), strukturierte Daten (Organisation, Web-App) auf der Startseite, HEAD-Anfragen antworten jetzt 200 statt 404, Hilfe-Center (15 Seiten) und Kontakt in der Sitemap.
 - Die Datei `C:\Dokumente\Jarvis\seo-auftrag-2026-11-04.md` liegt nur auf Benjamins PC; umgesetzt nach den Stichpunkten oben. Offen: „/ vs. /de“ (Entscheidung Benjamin) und Gewerk×Region-Seiten (bitte den Auftragstext unter `docs/auftraege/` ablegen).
