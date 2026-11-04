@@ -20,7 +20,7 @@ test("N10: Termine mit Fristen, Bieterfragen und Text fürs Portal", () => {
   assert.match(html, /name="weiter" value="\/konto\/vorgang\/v1#termine"/);
   assert.equal(fragenText(fragen), "1. Sind Zuschläge enthalten?\n\n2. Wer stellt Kleidung?");
   assert.doesNotMatch(termineSeite({ id: "v1", frist: null }, termine, fragen, { darfAendern: false, jetzt }), /<form/);
-  const fr = fristenSeite([{ id: "t1", titel: "Ortsbesichtigung", frist: "2026-11-03T08:00:00Z", status: "neu", art: "eigen", terminart: "besichtigung", ort: "Halle 7" }], { eigene: [], abo: "", terminForm: "", tag: "", erledigte: false, monat: "2026-11", zustaendig: () => "", kalkuliert: new Set() } as any);
+  const fr = fristenSeite([{ id: "t1", titel: "Ortsbesichtigung", frist: "2026-11-03T08:00:00Z", status: "neu", art: "eigen", terminart: "besichtigung", ort: "Halle 7" }], { eigene: [], abo: "", terminForm: "", tag: "", erledigte: false, monat: "2026-11", zustaendig: () => "", kalkuliert: new Set(), jetzt } as any);
   assert.match(fr, /🏗️ Ortsbesichtigung/);
   assert.match(fr, /📍 Halle 7/);
 });
