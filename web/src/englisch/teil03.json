@@ -421,5 +421,9 @@
  "⏳ # laufen in # Tagen ab": "⏳ # expire within # days",
  "⏳ # läuft in # Tagen ab": "⏳ # expires within # days",
  "Arbeitstage": "Working days",
- "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "For leave: only these days count, minimum leave # days per working day (§ # BUrlG)."
+ "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "For leave: only these days count, minimum leave # days per working day (§ # BUrlG).",
+ "Wie am Gerät (hell oder dunkel)": "Same as device (light or dark)",
+ "Hell · Glas": "Light · Glass",
+ "Dunkel · Premium": "Dark · Premium",
+ "Technisch": "Technical"
 }

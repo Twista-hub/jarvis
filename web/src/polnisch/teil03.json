@@ -421,5 +421,9 @@
  "⏳ # laufen in # Tagen ab": "⏳ # wygasa w ciągu # dni",
  "⏳ # läuft in # Tagen ab": "⏳ # wygasa w ciągu # dni",
  "Arbeitstage": "Dni pracy",
- "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Dla urlopu: liczą się tylko te dni, minimalny urlop # dni na każdy dzień pracy w tygodniu (§ # BUrlG)."
+ "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Dla urlopu: liczą się tylko te dni, minimalny urlop # dni na każdy dzień pracy w tygodniu (§ # BUrlG).",
+ "Wie am Gerät (hell oder dunkel)": "Jak w urządzeniu (jasny lub ciemny)",
+ "Hell · Glas": "Jasny · Szkło",
+ "Dunkel · Premium": "Ciemny · Premium",
+ "Technisch": "Techniczny"
 }

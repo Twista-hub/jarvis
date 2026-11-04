@@ -167,7 +167,7 @@ export default worker;
 function darstellen(request: Request, r: Response): Response {
   if (!(r.headers.get("content-type") ?? "").startsWith("text/html") || !r.body) return r;
   const wahl = /(?:^|;\s*)jv_darstellung=([a-z-]{1,20})/.exec(request.headers.get("cookie") ?? "")?.[1] ?? "";
-  const theme = wahl.includes("dark") ? "dark" : wahl.includes("light") ? "light" : "";
+  const theme = wahl.includes("technik") ? "technik" : wahl.includes("dark") ? "dark" : wahl.includes("light") ? "light" : "";
   const attribute = `${theme ? ` data-theme="${theme}"` : ""}${wahl.includes("gross") ? ' data-schrift="gross"' : ""}`;
   // Pages written in one language (foreign trade and legal pages) say so; everything else follows the visitor's choice.
   const fest = r.headers.get("x-jv-sprache");

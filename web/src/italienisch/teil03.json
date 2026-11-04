@@ -421,5 +421,9 @@
  "⏳ # laufen in # Tagen ab": "⏳ # scadono entro # giorni",
  "⏳ # läuft in # Tagen ab": "⏳ # scade entro # giorni",
  "Arbeitstage": "Giorni lavorativi",
- "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Per le ferie: contano solo questi giorni, ferie minime # giorni per ogni giorno lavorativo settimanale (§ # BUrlG)."
+ "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Per le ferie: contano solo questi giorni, ferie minime # giorni per ogni giorno lavorativo settimanale (§ # BUrlG).",
+ "Wie am Gerät (hell oder dunkel)": "Come il dispositivo (chiaro o scuro)",
+ "Hell · Glas": "Chiaro · Vetro",
+ "Dunkel · Premium": "Scuro · Premium",
+ "Technisch": "Tecnico"
 }
