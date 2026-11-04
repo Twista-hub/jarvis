@@ -3,8 +3,8 @@
 Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Aktueller Stand (03.11.2026, nachts) – zuerst lesen
-- **Repo privat → alle GitHub-Abläufe blockiert** (seit ca. 21:30 Uhr): kein Alarm, keine Mails, keine Sicherung, kein Ausrollen, keine Migrationen. Alles ab Commit 347ffab ist gepusht, aber **nicht live**. Lösung (Benjamin): https://github.com/Twista-hub/jarvis/settings → „Change visibility“ → „Change to public“, oder Ausgabenlimit unter https://github.com/settings/billing. GitHub Pro (3.000 Min.) reicht allein nicht (`docs/actions-minuten.md`). Danach: Live-Prüfung und Klickprüfung neu anstoßen, Mastodon-Profil einmal speichern (rel=me).
-- **Neu, wartet aufs Ausrollen:**
+- **GitHub (04.11.2026, ca. 04:05):** Repo wieder **öffentlich** (Browser-Chat), Crewtender verbraucht keine Actions-Minuten mehr. Benjamin hat GitHub Pro gebucht (3.000 Min./Monat für das private RestockHero). Datensicherung nachgeholt, Migrationen eingespielt, App ausgerollt, Live-Prüfung grün (alle öffentlichen Seiten 200, Betreiber-Seiten leiten zur Anmeldung).
+- **Neu und live seit 04.11.2026:**
   - Betreiber-Seite https://crewtender.eu/konto/betreiber: alle Firmen mit Inhaber, Plan, KI-Verbrauch, letzter Anmeldung; KI-Grenze (ohne Grenze / Probe 5,50 $ / 20 $ / Demo) und Plan per Knopf. Damit lässt sich die KI-Grenze des Testers ohne SQL aufheben.
   - Kundenrechnungen https://crewtender.eu/konto/betreiber/rechnungen: Rechnungen von WP Digital Ranger an Crewtender-Kunden, Nummern CT-Jahr-0001, Kleinunternehmer-Hinweis, Druckansicht/PDF, Storno statt Ändern, 8 Jahre aufbewahrt. **Geht erst mit Steuernummer** (Feld auf der Seite, Benjamin trägt sie selbst ein). Kunden im Ausland erst mit USt-IdNr.
   - Datenschutzerklärung (6 Sprachen): Aufbewahrung der eigenen Kundenrechnungen 8 Jahre.
