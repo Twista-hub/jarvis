@@ -19,6 +19,12 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 04.11.2026 – Browser-Chat: Google Search Console eingerichtet
+- Domain-Property **sc-domain:crewtender.eu** im selben Google-Konto wie Demopin und RestockHero angelegt (Benjamins Wunsch).
+- Bestätigung über DNS: Cloudflare-TXT `@` mit `google-site-verification=…` hinzugefügt (manuell, Google bekam keinen Zugriff auf Cloudflare). Google meldet „Inhaberschaft bestätigt“. **Den TXT-Eintrag nicht löschen.** Andere DNS-Einträge nicht angefasst.
+- Sitemap https://crewtender.eu/sitemap.xml eingereicht. Status direkt danach „Konnte nicht abgerufen werden“ (bei neuen Properties oft nur vorläufig; per GET liefert die Sitemap 200). In ein paar Tagen erneut prüfen.
+- Indexierung für https://crewtender.eu/de beantragt.
+
 ### 04.11.2026 – Browser-Chat: SEO-Bestandsaufnahme
 - Crewtender ist **noch nicht** in der Google Search Console. Anmeldung (Domain-Property per DNS bei Cloudflare) folgt nach Benjamins Entscheidung, welches Google-Konto.
 - SEO-Auftrag für Claude Code: C:\Dokumente\Jarvis\seo-auftrag-2026-11-04.md (Titel doppelt, Description, Open Graph, HEAD-404, / vs. /de, JSON-LD, Gewerk×Region-Seiten).
