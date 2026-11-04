@@ -421,5 +421,9 @@
  "⏳ # laufen in # Tagen ab": "⏳ # caducan en # días",
  "⏳ # läuft in # Tagen ab": "⏳ # caduca en # días",
  "Arbeitstage": "Días laborables",
- "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Para las vacaciones: solo cuentan estos días, vacaciones mínimas de # días por cada día laborable semanal (§ # BUrlG)."
+ "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Para las vacaciones: solo cuentan estos días, vacaciones mínimas de # días por cada día laborable semanal (§ # BUrlG).",
+ "Wie am Gerät (hell oder dunkel)": "Como el dispositivo (claro u oscuro)",
+ "Hell · Glas": "Claro · Cristal",
+ "Dunkel · Premium": "Oscuro · Premium",
+ "Technisch": "Técnico"
 }

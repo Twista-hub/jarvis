@@ -421,5 +421,9 @@
  "⏳ # laufen in # Tagen ab": "⏳ # expirent dans # jours",
  "⏳ # läuft in # Tagen ab": "⏳ # expire dans # jours",
  "Arbeitstage": "Jours travaillés",
- "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Pour les congés : seuls ces jours comptent, congé minimum # jours par jour travaillé (§ # BUrlG)."
+ "Für Urlaub: gezählt werden nur diese Tage, Mindesturlaub # Tage je Arbeitstag (§ # BUrlG).": "Pour les congés : seuls ces jours comptent, congé minimum # jours par jour travaillé (§ # BUrlG).",
+ "Wie am Gerät (hell oder dunkel)": "Comme l'appareil (clair ou sombre)",
+ "Hell · Glas": "Clair · Verre",
+ "Dunkel · Premium": "Sombre · Premium",
+ "Technisch": "Technique"
 }

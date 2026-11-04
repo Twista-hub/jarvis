@@ -102,7 +102,7 @@ document.querySelectorAll("[data-chat-stand]").forEach(function (v) {
 // Display settings: stored in a cookie so the server draws the page in the chosen look right away.
 (function () {
   var wahl = (document.cookie.match(/(?:^|;\s*)jv_darstellung=([a-z-]+)/) || [])[1] || "";
-  var theme = wahl.indexOf("dark") >= 0 ? "dark" : wahl.indexOf("light") >= 0 ? "light" : "";
+  var theme = wahl.indexOf("technik") >= 0 ? "technik" : wahl.indexOf("dark") >= 0 ? "dark" : wahl.indexOf("light") >= 0 ? "light" : "";
   var schrift = wahl.indexOf("gross") >= 0 ? "gross" : "";
   document.querySelectorAll("[data-darstellung]").forEach(function (sel) {
     sel.value = sel.dataset.darstellung === "theme" ? theme : schrift;

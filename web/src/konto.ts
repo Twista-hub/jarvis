@@ -585,7 +585,7 @@ ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmen
 <p><button type="button" id="push-an" hidden>📱 Nachrichten auf diesem Handy einschalten</button> <button type="button" id="push-test" hidden>🔔 Test auf diesem Handy</button></p>
 <p class="klein" id="push-status"></p>
 <h2>🎨 Darstellung</h2>
-<div class="darstellung"><label>Farben<select data-darstellung="theme"><option value="">Wie am Gerät</option><option value="light">Hell</option><option value="dark">Dunkel</option></select></label><label>Schrift<select data-darstellung="schrift"><option value="">Normal</option><option value="gross">Groß</option></select></label></div>
+<div class="darstellung"><label>Farben<select data-darstellung="theme"><option value="">Wie am Gerät (hell oder dunkel)</option><option value="light">Hell · Glas</option><option value="dark">Dunkel · Premium</option><option value="technik">Technisch</option></select></label><label>Schrift<select data-darstellung="schrift"><option value="">Normal</option><option value="gross">Groß</option></select></label></div>
 <p class="klein">Gilt für dieses Gerät.</p>
 <h2>Konto</h2>${abmelden}`);
   }

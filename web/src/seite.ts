@@ -1,4 +1,6 @@
 import { grundTags, seitenTitel } from "./seo.ts";
+import { THEMEN_CSS } from "./themen.ts";
+import { kachelSymbole, symbol } from "./symbole.ts";
 import { marked } from "marked";
 
 // Page frame: plain HTML (the only script is /app.js, see app.ts), readable on a phone, light and dark.
@@ -9,6 +11,7 @@ export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, konto
   // Collect only the controlled markup emitted by hilfe(), after access checks have built this page.
   // One icon next to the title replaces separate rows for every contextual explanation.
   const hinweise: string[] = [];
+  inhalt = kachelSymbole(inhalt);
   inhalt = inhalt.replace(/<details class="hilfe"><summary aria-label="([^"]*)" title="[^"]*"><span aria-hidden="true">ℹ️<\/span><\/summary><p>([\s\S]*?)<\/p><\/details>/g, (_block, name, text) => {
     hinweise.push(`<p><strong>${name}</strong><br>${text}</p>`);
     return "";
@@ -42,7 +45,7 @@ ${grundTags(titel)}
 <style>
   :root { --bg: #f7f7f5; --text: #1d1d1b; --muted: #66665f; --card: #fff; --line: #ddddd6; --accent: #1f5f8b; --error: #a8321f; }
   @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) { --bg: #161615; --text: #ececea; --muted: #a3a39c; --card: #20201e; --line: #3a3a36; --accent: #7cb6e0; --error: #f0907c; }
+    :root:not([data-theme="light"]):not([data-theme="technik"]) { --bg: #161615; --text: #ececea; --muted: #a3a39c; --card: #20201e; --line: #3a3a36; --accent: #7cb6e0; --error: #f0907c; }
   }
   /* Own choice in the settings (cookie jv_darstellung): dark mode and larger text. */
   :root[data-theme="dark"] { --bg: #161615; --text: #ececea; --muted: #a3a39c; --card: #20201e; --line: #3a3a36; --accent: #7cb6e0; --error: #f0907c; }
@@ -101,7 +104,7 @@ ${grundTags(titel)}
   .start-mehr-link { margin: 12px 0 0; font-weight: 700; }
   .start-schluss { margin-top: 30px; }
   .start-schluss h2 { margin: 0 0 8px; color: #102a40; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .start-karte { background: var(--card); } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="technik"]) .start-karte { background: var(--card); } }
   :root[data-theme="dark"] .start-karte { background: var(--card); }
 
   h2 { font-size: 1.2rem; margin: 28px 0 8px; }
@@ -567,7 +570,7 @@ ${grundTags(titel)}
   /* Firm documents: folder chips, compact file rows, ⋯ menu; references. */
   .erfolg, .hinweis { padding: 8px 12px; border-radius: 10px; font-size: 14px; }
   .erfolg { background: #e7f4ec; color: #1e6b40; } .hinweis { background: #fff6dd; color: #6b5200; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .erfolg { background: #17321f; color: #9fd8b0; } :root:not([data-theme="light"]) .hinweis { background: #3a3014; color: #f0d68a; } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="technik"]) .erfolg { background: #17321f; color: #9fd8b0; } :root:not([data-theme="light"]):not([data-theme="technik"]) .hinweis { background: #3a3014; color: #f0d68a; } }
   .unterlagen-werkzeuge { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
   .unterlagen-werkzeuge .knopf { flex: 1 1 0; min-height: 34px; padding: 7px 10px; font-size: 14px; white-space: nowrap; }
   .ordner-chips { display: flex; gap: 6px; overflow-x: auto; margin: 8px 0 4px; padding-bottom: 4px; scrollbar-width: none; }
@@ -612,7 +615,7 @@ ${grundTags(titel)}
   /* Calculation: price floor, price build-up bar, award comparison, templates. */
   .untergrenze { display: grid; gap: 2px; margin: 10px 0; padding: 8px 12px; border: 1px solid var(--line); border-left: 4px solid var(--error); border-radius: 10px; background: var(--card); font-size: 14px; }
   .untergrenze.fehler { background: #fdecea; }
-  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .untergrenze.fehler { background: #3a1d19; } :root:not([data-theme="light"]) .vergleich-skala .spanne { background: #2c4a63; } }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="technik"]) .untergrenze.fehler { background: #3a1d19; } :root:not([data-theme="light"]):not([data-theme="technik"]) .vergleich-skala .spanne { background: #2c4a63; } }
   :root[data-theme="dark"] .untergrenze.fehler { background: #3a1d19; } :root[data-theme="dark"] .vergleich-skala .spanne { background: #2c4a63; }
   .preis-grafik { margin: 12px 0; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
   .preis-balken { display: flex; height: 22px; overflow: hidden; border-radius: 6px; }
@@ -1065,6 +1068,7 @@ ${grundTags(titel)}
   .nur-drucken { display: none; }
   @media print { .nicht-drucken, .konto-zurueck { display: none !important; } .nur-drucken { display: block; } .einladungen-karten { grid-template-columns: 1fr 1fr; } .einladung-karte { border: 1px solid #999; } .einladung-qr svg { width: 150px; height: 150px; } .einladung-karte { grid-template-columns: 150px 1fr; } }
   html[dir="rtl"] .konto-zurueck a { transform: scaleX(-1); display: inline-block; }
+${THEMEN_CSS}
 </style>
 </head>
 <body><main>
@@ -1078,7 +1082,7 @@ ${inhalt.replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace
 }
 
 export function kontoNavigation(aktiv: string): string {
-  return `<nav class="konto-nav" aria-label="Konto-Navigation">${[["", "🏠", "Übersicht"], ["treffer", "🔎", "Treffer"], ["fristen", "⏰", "Fristen"], ["einstellungen", "⚙️", "Mehr"]].map(([pfad, icon, text]) => `<a href="/konto${pfad ? `/${pfad}` : ""}"${aktiv === pfad ? ' aria-current="page"' : ""}><span aria-hidden="true">${icon}</span><span>${text}</span></a>`).join("")}</nav>`;
+  return `<nav class="konto-nav" aria-label="Konto-Navigation">${[["", "haus", "Übersicht"], ["treffer", "suche", "Treffer"], ["fristen", "glocke", "Fristen"], ["einstellungen", "raster", "Mehr"]].map(([pfad, icon, text]) => `<a href="/konto${pfad ? `/${pfad}` : ""}"${aktiv === pfad ? ' aria-current="page"' : ""}>${symbol(icon, 23)}<span>${text}</span></a>`).join("")}</nav>`;
 }
 
 export function escape(s: string): string {
