@@ -19,6 +19,8 @@ jobs:
           for p in $PFADE; do
             code=$(curl -s -o seite -w "%{http_code} %{time_total}s" "https://crewtender.eu$p")
             echo "== $p → $code"
+            echo "   HEAD → $(curl -s -o /dev/null -I -w '%{http_code}' "https://crewtender.eu$p")"
+            grep -oE '<title>[^<]*</title>|<meta (name|property)="(description|og:title|og:image|og:url)" content="[^"]{0,100}|<link rel="canonical" href="[^"]*' seite | head -6 || true
             grep -oE '<strong>[0-9.]+</strong><span>[^<]*' seite | head -2 || true
             grep -oE '<li><div><strong>[^<]{0,80}' seite | head -3 || true
             case "$p" in *.txt|*.xml) head -c 600 seite; echo;; esac
