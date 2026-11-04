@@ -19,6 +19,11 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 04.11.2026 – Claude Code: SEO umgesetzt (aus der Bestandsaufnahme)
+- Live: Titel ohne doppeltes „Crewtender“, Beschreibung und Vorschaubild für geteilte Links (Open Graph, https://crewtender.eu/og-v1.jpg), strukturierte Daten (Organisation, Web-App) auf der Startseite, HEAD-Anfragen antworten jetzt 200 statt 404, Hilfe-Center (15 Seiten) und Kontakt in der Sitemap.
+- Die Datei `C:\Dokumente\Jarvis\seo-auftrag-2026-11-04.md` liegt nur auf Benjamins PC; umgesetzt nach den Stichpunkten oben. Offen: „/ vs. /de“ (Entscheidung Benjamin) und Gewerk×Region-Seiten (bitte den Auftragstext unter `docs/auftraege/` ablegen).
+- Search Console: Google-Konto ist laut Benjamin für Demopin, RestockHero und Crewtender dasselbe (Ausnahme von der kontakt@-Regel). Sitemap in ein paar Tagen erneut prüfen.
+
 ### 04.11.2026 – Browser-Chat: Google Search Console eingerichtet
 - Domain-Property **sc-domain:crewtender.eu** im selben Google-Konto wie Demopin und RestockHero angelegt (Benjamins Wunsch).
 - Bestätigung über DNS: Cloudflare-TXT `@` mit `google-site-verification=…` hinzugefügt (manuell, Google bekam keinen Zugriff auf Cloudflare). Google meldet „Inhaberschaft bestätigt“. **Den TXT-Eintrag nicht löschen.** Andere DNS-Einträge nicht angefasst.
