@@ -19,6 +19,10 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 04.11.2026 – Browser-Chat: SEO-Bestandsaufnahme
+- Crewtender ist **noch nicht** in der Google Search Console. Anmeldung (Domain-Property per DNS bei Cloudflare) folgt nach Benjamins Entscheidung, welches Google-Konto.
+- SEO-Auftrag für Claude Code: C:\Dokumente\Jarvis\seo-auftrag-2026-11-04.md (Titel doppelt, Description, Open Graph, HEAD-404, / vs. /de, JSON-LD, Gewerk×Region-Seiten).
+
 ### 04.11.2026 – Browser-Chat: Repo öffentlich
 - Twista-hub/jarvis auf **Public** umgestellt (GitHub Actions waren blockiert, weil die Gratis-Minuten für private Repos im November aufgebraucht waren: $14,19 von $12). Öffentliche Repos verbrauchen keine Actions-Minuten.
 - Geprüft: https://github.com/Twista-hub/jarvis ist ohne Anmeldung erreichbar, Sichtbarkeit „public“.
