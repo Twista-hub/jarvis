@@ -425,5 +425,16 @@
  "Wie am Gerät (hell oder dunkel)": "Same as device (light or dark)",
  "Hell · Glas": "Light · Glass",
  "Dunkel · Premium": "Dark · Premium",
- "Technisch": "Technical"
+ "Technisch": "Technical",
+ "Nächste Frist": "Next deadline",
+ "Angebot weiterschreiben": "Continue the bid",
+ "Ausschreibung öffnen": "Open tender",
+ "neue Treffer": "new matches",
+ "neuer Treffer": "new match",
+ "Fristen in # Tagen": "deadlines in # days",
+ "Angebote in Arbeit": "bids in progress",
+ "Firma auf einen Blick": "Company at a glance",
+ "Abgabe #.#.#": "Due #.#.#",
+ "#/# passend": "#/# match",
+ "in # Tagen": "in # days"
 }

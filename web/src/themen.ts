@@ -33,6 +33,26 @@ export const THEMEN_CSS = `
   .reiter a[aria-current="page"] { background: var(--knopf); color: var(--knopf-text, #fff) !important; }
   h1 { letter-spacing: -.02em; }
 
+  /* Overview head (step 2): greeting, key figures, next deadline */
+  .begruessung { margin: -10px 0 14px; }
+  .kennzahlen { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 9px; margin-bottom: 14px; }
+  .kennzahl { display: flex; flex-direction: column; gap: 2px; padding: 12px; border: 1px solid var(--line); border-radius: var(--rund, 16px); background: var(--card); box-shadow: var(--karte-schatten);
+    backdrop-filter: var(--unschaerfe, none); -webkit-backdrop-filter: var(--unschaerfe, none); color: var(--text); text-decoration: none; }
+  .kennzahl strong { font-size: 1.55rem; line-height: 1.1; letter-spacing: -.02em; } .kennzahl span { font-size: 12px; color: var(--muted); line-height: 1.25; }
+  .kennzahl.akzent strong { color: var(--aktiv); }
+  .naechste-frist { padding: 15px 16px 16px; margin-bottom: 18px; border: 1px solid var(--line); border-radius: var(--rund, 18px); background: var(--card); box-shadow: var(--karte-schatten);
+    backdrop-filter: var(--unschaerfe, none); -webkit-backdrop-filter: var(--unschaerfe, none); }
+  .naechste-kopf { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 12px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .frist-pille { display: inline-flex; align-items: center; gap: 5px; padding: 4px 9px; border-radius: 999px; background: rgba(31,111,168,.1); color: var(--accent); letter-spacing: .04em; }
+  .frist-pille.knapp { background: rgba(232,105,46,.14); color: #d9582b; }
+  .naechste-frist h2 { margin: 8px 0 6px; font-size: 1.08rem; line-height: 1.3; text-transform: none; letter-spacing: -.01em; color: var(--text); }
+  .naechste-fakten { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; } .naechste-fakten span { font-size: 12.5px; font-weight: 600; padding: 4px 9px; border-radius: 999px; background: rgba(127,140,155,.12); }
+  .naechste-frist .knopf { display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 1rem; }
+  :root[data-theme="technik"] .kennzahl, :root[data-theme="technik"] .naechste-frist { border-color: #d5dce3; }
+  :root[data-theme="technik"] .kennzahl strong, :root[data-theme="technik"] .frist-pille { font-family: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace; }
+  :root[data-theme="technik"] .kennzahl.akzent strong { color: #0e7490; }
+  :root[data-theme="technik"] .frist-pille, :root[data-theme="technik"] .naechste-fakten span { border-radius: 3px; }
+
   /* Tiles: line icon in a soft square */
   .konto-symbol { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--symbol-bg); color: var(--symbol); font-size: 0; }
   :root:not([data-theme="technik"]) .konto-symbol { box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 2px 6px rgba(31,95,139,.1); }
