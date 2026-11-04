@@ -17,6 +17,7 @@ import { ungelesen } from "./brett.ts";
 import { chatUngelesen } from "./chat.ts";
 import { menueGruppieren } from "./menue.ts";
 import { naechsterSchritt } from "./naechster.ts";
+import { uebersichtKopf, uebersichtTitel } from "./uebersicht.ts";
 import { aktiv as aktivAm, vertretungHinweis, vertretungenLaden } from "./vertretung.ts";
 import { reichtTeil } from "./kapazitaet.ts";
 import { escape, hilfe, markdown, seite } from "./seite.ts";
@@ -40,7 +41,7 @@ import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchs
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
 import { bundeslandZeile, comunidadZeile, departementZeile, regioneZeile, suchgebietKarte, woiwodschaftZeile, type Suchpunkt } from "./karte.ts";
 import { ampelChip, usKasten, type UsDaten, type UsProfil } from "./ampel.ts";
-import { usSprache } from "./englisch.ts";
+import { appSprache, usSprache } from "./englisch.ts";
 import { usProfilLaden } from "./usprofil.ts";
 import { marktKasten, vergleichbare } from "./usaspending.ts";
 import { bewertung, daumen, eckdaten, filterLeiste, sortieren, SORTIERUNGEN, suchbegriff } from "./treffer.ts";
@@ -365,21 +366,26 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
   const sichtbareKarten = cards.filter(([path]) => m.rolle === "mitarbeiter" ? ["freigaben", "ich", "brett", "chat"].includes(path) : (path !== "kalkulation" || finanzrecht) && (path !== "markt" || aboZahl > 0));
   const kacheln = `<div class="konto-kacheln">${sichtbareKarten.map(([path, icon, title, hint]) => `<a class="konto-kachel" href="/konto/${path}"><span class="konto-icon" aria-hidden="true">${icon}</span><strong>${escape(title)}</strong><span class="klein">${hint}</span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>`;
   let inhalt: string;
+  let startTitel = m.firmen.name;
   if (!unterseite) {
     // "Heute wichtig": what needs attention today, each with a direct link.
     const wartend = admin && finanzrecht ? await db<{ id: string }[]>(s, env, `angebotsmappen?firma_id=eq.${m.firma_id}&freigabe_status=eq.wartet&select=id&limit=50`) : null;
     const freigaben = wartend?.ok ? wartend.daten.length : 0;
     const nachweise = ablaufZahl;
     const wichtig = [
-      neu ? `<li><a href="/konto/treffer"><strong>${neu}</strong> ${neu === 1 ? "neuer Treffer" : "neue Treffer"}</a></li>` : "",
-      bald ? `<li><a class="dringend" href="/konto/fristen"><strong>${bald}</strong> ${bald === 1 ? "Frist" : "Fristen"} in 7 Tagen</a></li>` : "",
       freigaben ? `<li><a href="/konto/angebotsfreigaben"><strong>${freigaben}</strong> ${freigaben === 1 ? "Angebot wartet" : "Angebote warten"} auf Freigabe</a></li>` : "",
       ausfallZahl ? `<li><a class="dringend" href="/konto/schichten#ausfall"><strong>${ausfallZahl}</strong> ${ausfallZahl === 1 ? "Ausfall" : "Ausfälle"} heute – Ersatz planen</a></li>` : "",
       brettZahl ? `<li><a href="/konto/brett"><strong>${brettZahl}</strong> ${brettZahl === 1 ? "neue Mitteilung" : "neue Mitteilungen"}</a></li>` : "",
       chatZahl ? `<li><a href="/konto/chat"><strong>${chatZahl}</strong> ${chatZahl === 1 ? "neue Chat-Nachricht" : "neue Chat-Nachrichten"}</a></li>` : "",
       nachweise ? `<li><a class="dringend" href="/konto/unterlagen"><strong>${nachweise}</strong> ${nachweise === 1 ? "Nachweis läuft" : "Nachweise laufen"} ab</a></li>` : "",
     ].join("");
-    const heuteWichtig = wichtig ? `<h2>Heute wichtig</h2><ul class="heute-wichtig">${wichtig}</ul>` : `<p class="klein">✅ Heute steht nichts Dringendes an.</p>`;
+    // Design step 2 (04.11.2026): greeting, key figures and the next deadline; new hits and deadlines are shown there.
+    const naechste = fristen.find((v) => Date.parse(v.frist!) > Date.now());
+    const sprache = appSprache(request);
+    startTitel = uebersichtTitel((m.anzeigename ?? "").trim().split(/\s+/)[0] ?? "", new Date(), sprache);
+    const kopfUebersicht = uebersichtKopf({ firma: m.firmen.name, jetzt: new Date(), neu, bald, sprache, angebote: liste.filter((v) => v.status === "angebot").length,
+      naechste: naechste ? { id: naechste.id, titel: naechste.titel, frist: naechste.frist!, punkte: naechste.punkte, status: naechste.status } : null });
+    const heuteWichtig = wichtig ? `<h2>Heute wichtig</h2><ul class="heute-wichtig">${wichtig}</ul>` : "";
     const ids = zuletztAngesehen(request);
     const angesehen = ids.length ? await db<Vorgang[]>(s, env, `vorgaenge?firma_id=eq.${m.firma_id}&id=in.(${ids.join(",")})&select=id,titel,frist,punkte,status,erstellt,link`) : null;
     const zuletzt = angesehen?.ok && angesehen.daten.length ? `<h2>Zuletzt angesehen</h2><div class="standort-liste">${ids.map((id) => angesehen.daten.find((v) => v.id === id)).filter((v): v is Vorgang => !!v).map((v) => `<a class="standort-zeile" href="/konto/vorgang/${v.id}"><span class="standort-text"><strong>${escape(v.titel)}</strong><span class="klein">${v.punkte !== null ? `${v.punkte}/10 · ` : ""}${v.frist ? `Frist ${datum(v.frist)}` : "Frist unbekannt"}</span></span><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>` : "";
@@ -405,7 +411,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       const namen = Object.fromEntries((mitglieder.ok ? mitglieder.daten : []).map((x) => [x.user_id, x.anzeigename || x.funktion || "Ohne Namen"]));
       vertretungBanner = vertretungHinweis(vertretungenHeute, s.userId, namen, heute, zahlen);
     }
-    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>${eigeneAkte ? "Schichten, Stunden, Urlaub und Nachweise findest du unter „Meine Einsätze &amp; Daten“, Neuigkeiten vom Büro am Schwarzen Brett." : "Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat."}</p>${kacheln}`) : rahmen(`${vertretungBanner}${einfuehrung}${meldungen}${heuteWichtig}<h2>Was möchtest du tun?</h2>${kacheln}${zuletzt}`);
+    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>${eigeneAkte ? "Schichten, Stunden, Urlaub und Nachweise findest du unter „Meine Einsätze &amp; Daten“, Neuigkeiten vom Büro am Schwarzen Brett." : "Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat."}</p>${kacheln}`) : rahmen(`${vertretungBanner}${einfuehrung}${meldungen}${kopfUebersicht}${heuteWichtig}<h2>Firma auf einen Blick</h2>${kacheln}${zuletzt}`);
   } else if (unterseite === "treffer") {
     const fb = await db<{ vorgang_id: string; grund: string }[]>(s, env, `treffer_feedback?firma_id=eq.${m.firma_id}&select=vorgang_id,grund`);
     const rueckmeldungen = new Map((fb.ok ? fb.daten : []).map((x) => [x.vorgang_id, x.grund]));
@@ -589,7 +595,7 @@ ${beschreibung || websiteBeschreibung || websucheBeschreibung || aktuell?.firmen
 <p class="klein">Gilt für dieses Gerät.</p>
 <h2>Konto</h2>${abmelden}`);
   }
-  return html(seite(unterseite ? labels[unterseite] : m.firmen.name, inhalt, sucht ? 30 : 0, unterseite), 200, s.cookies);
+  return html(seite(unterseite ? labels[unterseite] : m.rolle === "mitarbeiter" ? m.firmen.name : startTitel, inhalt, sucht ? 30 : 0, unterseite), 200, s.cookies);
 }
 
 async function probeMail(s: Sitzung, _form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
