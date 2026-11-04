@@ -120,5 +120,8 @@ export function hilfecenter(request: Request, seite: (titel: string, inhalt: str
   if (request.method !== "GET" || (p !== "/hilfe" && !p.startsWith("/hilfe/"))) return null;
   const a = p === "/hilfe" ? null : ANLEITUNGEN.find((x) => `/hilfe/${x.slug}` === p);
   if (p !== "/hilfe" && !a) return new Response(seite("Nicht gefunden", `${kopf}<p>Diese Anleitung gibt es nicht.</p>`), { status: 404, headers: { "content-type": "text/html; charset=utf-8" } });
-  return new Response(a ? seite(`${a.icon} ${a.titel}`, anleitungSeite(a)) : seite("📚 Hilfe-Center", hilfeUebersicht()), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" } });
+  const beschreibung = a ? `${a.titel}: ${a.kurz} Schritt-für-Schritt-Anleitung für Crewtender.` : "Schritt-für-Schritt-Anleitungen für Crewtender: Ausschreibungen finden, Angebote schreiben, Team und Schichten planen, Rechnungen und Datenschutz.";
+  const html = (a ? seite(`${a.icon} ${a.titel}`, anleitungSeite(a)) : seite("📚 Hilfe-Center", hilfeUebersicht()))
+    .replace("</title>", `</title><meta name="description" content="${escape(beschreibung)}"><meta property="og:description" content="${escape(beschreibung)}"><link rel="canonical" href="https://crewtender.eu${a ? `/hilfe/${a.slug}` : "/hilfe"}">`);
+  return new Response(html, { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=300" } });
 }

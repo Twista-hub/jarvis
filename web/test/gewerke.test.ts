@@ -1,3 +1,4 @@
+import { ANLEITUNGEN } from "../src/hilfecenter.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { GEWERKE, gewerkSeite, ROBOTS, sitemap, uebersichtGewerke } from "../src/gewerke.ts";
@@ -16,7 +17,7 @@ test("Gewerke-Seiten: 10 Gewerke, Zahlen, Beispiele, FAQ, Sitemap", () => {
   assert.doesNotMatch(gewerkSeite(GEWERKE[0], null), /gewerk-zahlen/, "ohne Zahlen keine leere Box");
   assert.equal((uebersichtGewerke().match(/href="\/ausschreibungen\//g) ?? []).length, 10);
   const map = sitemap("https://app.example");
-  assert.equal((map.match(/<loc>/g) ?? []).length, 93); // 49 + je 11 französische, polnische, spanische, italienische Seiten
+  assert.equal((map.match(/<loc>/g) ?? []).length, 93 + 2 + ANLEITUNGEN.length); // 49 + je 11 französische, polnische, spanische, italienische Seiten + Kontakt, Hilfe-Center und Anleitungen
   assert.match(ROBOTS("https://app.example"), /Disallow: \/konto[\s\S]*Sitemap: https:\/\/app.example\/sitemap.xml/);
 });
 

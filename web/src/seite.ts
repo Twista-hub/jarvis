@@ -1,3 +1,4 @@
+import { grundTags, seitenTitel } from "./seo.ts";
 import { marked } from "marked";
 
 // Page frame: plain HTML (the only script is /app.js, see app.ts), readable on a phone, light and dark.
@@ -30,7 +31,8 @@ export function seite(titel: string, inhalt: string, neuLadenSekunden = 0, konto
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 ${neuLadenSekunden ? `<meta http-equiv="refresh" content="${neuLadenSekunden}">` : ""}
-<title>${escape(titel)} · Crewtender</title>
+<title>${escape(seitenTitel(titel))}</title>
+${grundTags(titel)}
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="me" href="https://mastodon.social/@crewtender">
 <link rel="icon" href="/icon-v2-192.png">

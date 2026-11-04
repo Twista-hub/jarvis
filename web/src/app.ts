@@ -1,6 +1,7 @@
 // The small amount of browser code: start the upload as soon as a file is chosen, switch on phone
 // notifications, and the service worker that shows them and opens the right page on tap.
 // Served from our own origin, so the content security policy only needs script-src 'self'.
+import { OG_BILD } from "./og-bild.ts";
 import { ICON_192, ICON_512 } from "./icons.ts";
 import { ARBEITSAUSWAHL_JS } from "./arbeitsauswahl-browser.ts";
 import { SUCH_AKTION_JS } from "./suchaktionen.ts";
@@ -365,6 +366,8 @@ const DATEIEN: Record<string, [string, string | (() => Uint8Array)]> = {
   "/sw.js": ["text/javascript; charset=utf-8", SW_JS],
   "/manifest.webmanifest": ["application/manifest+json", MANIFEST],
   // New file names for the Crewtender mark (03.11.2026), so phones do not keep the cached old "J" icon.
+  // Link preview image (Open Graph), see seo.ts.
+  "/og-v1.jpg": ["image/jpeg", () => Uint8Array.from(atob(OG_BILD), (c) => c.charCodeAt(0))],
   "/icon-v2-192.png": ["image/png", () => Uint8Array.from(atob(ICON_192), (c) => c.charCodeAt(0))],
   "/icon-v2-512.png": ["image/png", () => Uint8Array.from(atob(ICON_512), (c) => c.charCodeAt(0))],
   "/icon-192.png": ["image/png", () => Uint8Array.from(atob(ICON_192), (c) => c.charCodeAt(0))],
@@ -377,7 +380,7 @@ export function statisch(pfad: string): Response | null {
   if (!d) return null;
   const inhalt = typeof d[1] === "string" ? d[1] : d[1]();
   // Scripts and manifest: always check for the newest version; icons may be cached.
-  const cache = pfad.endsWith(".png") ? "public, max-age=86400" : "no-cache";
+  const cache = /\.(png|jpg)$/.test(pfad) ? "public, max-age=86400" : "no-cache";
   return new Response(inhalt, { headers: { "content-type": d[0], "cache-control": cache, "x-content-type-options": "nosniff" } });
 }
 

@@ -1,4 +1,5 @@
 // Crewtender upload page: customers upload tender documents, a Workflow writes the Steckbrief.
+import { START_BESCHREIBUNG, START_JSONLD, ogErgaenzen, seoKopf } from "./seo.ts";
 import kunden from "../kunden.json";
 import { BRANCHEN_VORLAGEN, euro, FELDER, losStunden, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
 import profile from "../../alarm/profile.json";
@@ -127,7 +128,7 @@ const ID = /^[0-9a-f-]{36}$/;
 
 export const ADRESSE = "https://crewtender.eu";
 
-export default {
+const worker = {
   async fetch(request: Request, env: Env, ctx?: ExecutionContext): Promise<Response> {
     // KI cost settlement may finish after the page has answered (time limit); keep it alive past the response.
     if (ctx) env = { ...env, WARTEN: (p: Promise<unknown>) => ctx.waitUntil(p) };
@@ -137,6 +138,11 @@ export default {
     if (alt.hostname.endsWith(".workers.dev") || alt.hostname === "app.wpdigitalranger.com") return Response.redirect(`${ADRESSE}${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
     // www.crewtender.eu forwards to the bare domain (one address for links, cookies and search engines).
     if (alt.hostname === "www.crewtender.eu") return Response.redirect(`https://crewtender.eu${alt.pathname}${alt.search}`, request.method === "GET" || request.method === "HEAD" ? 301 : 308);
+    // HEAD (link checkers, search engines) answers like GET, without the body; before, many pages said 404.
+    if (request.method === "HEAD") {
+      const r = await worker.fetch(new Request(request, { method: "GET" }), env, ctx);
+      return new Response(null, { status: r.status, statusText: r.statusText, headers: r.headers });
+    }
     let antwort: Response;
     try { antwort = await verarbeiten(request, env); }
     catch (e) {
@@ -154,6 +160,7 @@ export default {
     return new Response(r.body,{status:r.status,statusText:r.statusText,headers});
   },
 };
+export default worker;
 
 /** After rendering: display choice (cookie jv_darstellung, e.g. "dark-gross") onto <html>, office language (English
  *  dictionary, see englisch.ts) and the language switch in the footer. Non-HTML answers pass through untouched. */
@@ -649,7 +656,9 @@ function landesStart(request: Request, url: URL, ausAdresse?: string): Response 
   const zusatz = startseite(markdown(MUSTER.replace(/^>.*\n/m, "")));
   const l = landesSeite(b, ADRESSE, "");
   const body = deutsch ? `${zusatz}${landWahl(b)}<p class="klein">${keineBehoerde("de")}</p>` : l.inhalt;
-  const r = html(kopfZeile(seite(deutsch ? "Crewtender" : l.titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}`));
+  const titel = deutsch ? "Crewtender – Öffentliche Aufträge finden, Angebote schreiben, Team planen" : l.titel;
+  const beschreibung = deutsch ? START_BESCHREIBUNG : l.beschreibung;
+  const r = html(kopfZeile(seite(titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}${seoKopf({ beschreibung, url: `${ADRESSE}/${b.iso3 ? b.land.toLowerCase() : ""}`, jsonld: START_JSONLD })}`));
   r.headers.delete("x-robots-tag");
   r.headers.set("vary", "cookie, accept-language");
   r.headers.set("cache-control", "private, no-store");
@@ -658,7 +667,7 @@ function landesStart(request: Request, url: URL, ausAdresse?: string): Response 
 }
 
 function html(body: string, status = 200): Response {
-  return new Response(body, {
+  return new Response(ogErgaenzen(body), {
     status,
     headers: {
       "content-type": "text/html; charset=utf-8",
