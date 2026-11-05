@@ -436,5 +436,8 @@
  "Firma auf einen Blick": "La empresa de un vistazo",
  "Abgabe #.#.#": "Entrega #.#.#",
  "#/# passend": "#/# adecuado",
- "in # Tagen": "en # días"
+ "in # Tagen": "en # días",
+ "Neue Treffer · # Tage": "Resultados nuevos · # días",
+ "Fristen · # Tage": "Plazos · # días",
+ "Keine Fristen in den nächsten # Tagen.": "Sin plazos en los próximos # días."
 }

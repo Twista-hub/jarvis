@@ -436,5 +436,8 @@
  "Firma auf einen Blick": "Company at a glance",
  "Abgabe #.#.#": "Due #.#.#",
  "#/# passend": "#/# match",
- "in # Tagen": "in # days"
+ "in # Tagen": "in # days",
+ "Neue Treffer · # Tage": "New matches · # days",
+ "Fristen · # Tage": "Deadlines · # days",
+ "Keine Fristen in den nächsten # Tagen.": "No deadlines in the next # days."
 }
