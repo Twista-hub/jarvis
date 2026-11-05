@@ -11,6 +11,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Teilzeit: Arbeitstage pro Person (Personalakte, Migration `20261103320000_arbeitstage.sql`). Urlaubskonto, Lohnliste und „Ich“-Seite zählen nur diese Tage; Mindesturlaub 4 Tage je Arbeitstag. Offen: Zeitkonto-Soll rechnet Abwesenheiten weiter mit Wochenstunden ÷ 5.
   - Alarm (Python) protokolliert Modell und Anfrage-ID je KI-Anfrage (Rechtsprüfung K7 komplett).
   - Achtung beim ersten Ausrollen: Datenbank und Web laufen parallel. Bis die Migration durch ist (1–2 Min.), kann das Speichern einer Person kurz fehlschlagen.
+- **Neues Aussehen (04./05.11.2026, live):** drei Darstellungen unter Mehr → Darstellung → Farben: Hell · Glas (Standard), Dunkel · Premium (auch automatisch bei dunklem Handy), Technisch. Code: `web/src/themen.ts` (CSS, nach den Grundstilen), `web/src/symbole.ts` (Liniensymbole statt Emojis: Kacheln, Leiste, Listen in `seite()`, Überschriften und Reiter erst nach der Übersetzung in `darstellen()`), `web/src/uebersicht.ts` (Begrüßung als Seitentitel, Kennzahlen, nächste Frist, Punkte-/Fristen-Balken, Leitstand nur im technischen Modus). Entwürfe: `docs/design/crewtender/app-entwuerfe/`. Startseite: „und viele weitere Branchen“. Englisch ist Standard (Browsersprache, sonst Englisch), `/` international.
 - **Browser-Chat:** Auftrag LinkedIn-Unternehmensseite ab 04.11. liegt in `docs/auftraege/crewtender-linkedin.md`.
 
 ## Aktueller Stand (31.10.2026)
