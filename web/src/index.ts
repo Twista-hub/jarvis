@@ -1,4 +1,5 @@
 // Crewtender upload page: customers upload tender documents, a Workflow writes the Steckbrief.
+import { textSymbole } from "./symbole.ts";
 import { START_BESCHREIBUNG, START_JSONLD, ogErgaenzen, seoKopf } from "./seo.ts";
 import kunden from "../kunden.json";
 import { BRANCHEN_VORLAGEN, euro, FELDER, losStunden, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
@@ -181,6 +182,7 @@ function darstellen(request: Request, r: Response): Response {
     let t = await body;
     t = uebersetzen(t, sprache);
     t = sprachFuss(t, sprache, pfad);
+    t = textSymbole(t);
     if (attribute) t = t.replace(/<html lang="([a-z]{2})"/, `<html lang="$1"${attribute}`);
     c.enqueue(new TextEncoder().encode(t)); c.close();
   } }), { status: r.status, statusText: r.statusText, headers: h });
