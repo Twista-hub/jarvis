@@ -165,7 +165,7 @@ const karte = (icon: string, titel: string, text: string) => `<div class="start-
 /** Public landing page (German visitors): light blue hero with glass cards, stacked buttons on phones. */
 export function startseite(beispiel: string): string {
   return `<section class="start-held">
-<p class="start-fuer">Für Handwerk, Reinigung, Sicherheit, Zeitarbeit und Gastro</p>
+<p class="start-fuer">Für Handwerk, Reinigung, Sicherheit, Zeitarbeit, Gastro und viele weitere Branchen</p>
 <h1>Öffentliche Aufträge finden. Angebote schreiben. Dein Team planen.</h1>
 <p class="start-unter">Jeden Morgen liest Crewtender rund 500 neue Ausschreibungen in Deutschland und zeigt dir nur die, die zu deiner Firma passen. Mit Steckbrief, Kalkulation und Personalplanung in einer App.</p>
 <div class="start-knoepfe"><a class="start-knopf" href="/registrieren">Kostenlos testen</a><a class="start-knopf glas" href="/demo">🎬 Demo ansehen</a></div>

@@ -40,4 +40,4 @@ export const START_JSONLD = {
   ],
 };
 
-export const START_BESCHREIBUNG = "Crewtender findet jeden Morgen passende öffentliche Ausschreibungen, hilft beim Angebot und plant dein Team. Für Handwerk, Reinigung, Sicherheit und Personaldienstleister. Kostenlos testen.";
+export const START_BESCHREIBUNG = "Crewtender findet jeden Morgen passende öffentliche Ausschreibungen, hilft beim Angebot und plant dein Team. Für Handwerk, Reinigung, Sicherheit, Personaldienstleister und viele weitere Branchen. Kostenlos testen.";
