@@ -82,6 +82,13 @@ export const THEMEN_CSS = `
   .lz:last-child { padding-bottom: 10px; } .lp { width: 8px; height: 8px; border-radius: 50%; background: #0e7490; } .lp.knapp { background: #e8692e; }
   .ld, .lr { font-family: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace; font-size: 11.5px; color: #5d7083; } .lt { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
+  /* Line icons in headings, tab chips and setting lists (step 4) */
+  .titel-symbol { display: inline-grid; place-items: center; width: 30px; height: 30px; margin-right: 9px; vertical-align: -7px; border-radius: 9px; background: var(--symbol-bg); color: var(--symbol); }
+  :root[data-theme="technik"] .titel-symbol { width: auto; background: none; margin-right: 7px; vertical-align: -4px; }
+  .chip-symbol { display: inline-flex; vertical-align: -3px; margin-right: 5px; }
+  .zeilen-symbol { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--symbol-bg); color: var(--symbol); }
+  :root[data-theme="technik"] .zeilen-symbol { width: 24px; background: none; }
+
   /* Tiles: line icon in a soft square */
   .konto-symbol { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--symbol-bg); color: var(--symbol); font-size: 0; }
   :root:not([data-theme="technik"]) .konto-symbol { box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 2px 6px rgba(31,95,139,.1); }

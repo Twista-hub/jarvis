@@ -46,3 +46,15 @@ test("Schritt 3: Punkte-Balken, Fristen-Balken und Leitstand", () => {
   assert.doesNotMatch(l, /Später/, "nur 30 Tage");
   assert.match(l, /<b>MI<\/b>/);
 });
+
+import { kachelSymbole, textSymbole } from "../src/symbole.ts";
+test("Schritt 4: Emojis in Überschriften, Reitern und Listen werden Liniensymbole (nach der Übersetzung)", () => {
+  assert.match(textSymbole("<h2>🎨 Appearance</h2>"), /<h2><span class="titel-symbol" aria-hidden="true"><svg[\s\S]*<\/span>Appearance<\/h2>/);
+  assert.equal(textSymbole("<h2>Ohne Emoji</h2>"), "<h2>Ohne Emoji</h2>");
+  assert.equal(textSymbole("<h2>🤖 KI</h2>"), "<h2>🤖 KI</h2>", "unbekannte Emojis bleiben");
+  const chips = textSymbole('<nav class="ordner-chips" aria-label="Ansicht"><a href="/a">Urlaubskonto</a><a href="/b">📅 Teamkalender</a><a href="/c">🟢 Frei</a></nav><a href="/x">📅 außerhalb</a>');
+  assert.match(chips, /<a href="\/b"><span class="chip-symbol"[\s\S]*<\/span>Teamkalender<\/a>/);
+  assert.match(chips, /🟢 Frei/);
+  assert.match(chips, /📅 außerhalb/, "nur in den Reitern");
+  assert.match(kachelSymbole('<span class="standort-icon" aria-hidden="true">🏛️</span>'), /zeilen-symbol[\s\S]*<svg/);
+});

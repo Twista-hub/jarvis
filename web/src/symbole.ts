@@ -38,6 +38,15 @@ const P: Record<string, string> = {
   kompass: '<circle cx="12" cy="12" r="8.5"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
   transporter: '<path d="M2.5 16.5V7A1.5 1.5 0 0 1 4 5.5h10V16.5M14 9h3.5l3.5 4v3.5h-2"/><circle cx="7" cy="17.5" r="2"/><circle cx="17" cy="17.5" r="2"/><path d="M9 17.5h6"/>',
   schloss: '<rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/>',
+  megafon: '<path d="M4 10v4h3l7 4V6L7 10z"/><path d="M17.5 9a4 4 0 0 1 0 6M7 14l1 5h2.5l-1-4.5"/>',
+  ordner: '<path d="M3.5 7.5A1.5 1.5 0 0 1 5 6h4l2 2h8a1.5 1.5 0 0 1 1.5 1.5v8A1.5 1.5 0 0 1 19 19H5a1.5 1.5 0 0 1-1.5-1.5z"/>',
+  warnung: '<path d="M12 4 2.8 19.5h18.4z"/><path d="M12 10v4.5M12 17.2h.01"/>',
+  idee: '<path d="M9 17h6M10 20.5h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/>',
+  lineal: '<path d="m4 15.5 11.5-11.5 4.5 4.5L8.5 20z"/><path d="m8 11.5 2 2M11 8.5l2 2M14 5.5l2 2"/>',
+  palette: '<path d="M12 3.5a8.5 8.5 0 1 0 0 17c1.2 0 1.8-.8 1.8-1.7 0-1-.8-1.4-.8-2.3 0-1 .8-1.6 1.8-1.6h2.2a3.5 3.5 0 0 0 3.5-3.5c0-4.4-3.8-7.9-8.5-7.9z"/><circle cx="7.5" cy="11" r="1"/><circle cx="10.5" cy="7.5" r="1"/><circle cx="15" cy="8" r="1"/>',
+  hochladen: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4.5 15v3.5A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5V15"/>',
+  bild: '<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 17.5 5-4.5 4 3.5 3-2.5 4 3.5"/>',
+  pokal: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20.5h7M9.5 17h5v3.5h-5z"/>',
   pfeil: '<path d="m9 5 7 7-7 7"/>',
   haus: '<path d="M4 11 12 4l8 7v8.5a1 1 0 0 1-1 1h-4.5V15h-5v5.5H5a1 1 0 0 1-1-1z"/>',
   glocke: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
@@ -52,7 +61,9 @@ const EMOJI: Record<string, string> = {
   "📨": "brief", "📅": "kalender", "🗓️": "kalender", "🗓": "kalender", "🌴": "sonne", "📊": "balken", "🔁": "kreislauf", "🚪": "tuer", "⏳": "sanduhr",
   "🦺": "weste", "⭐": "stern", "📲": "handy", "📈": "kurve", "⏱️": "stoppuhr", "⏱": "stoppuhr", "🧾": "beleg", "📸": "kamera", "🧮": "rechner",
   "🏢": "gebaeude", "🔗": "kette", "🛡️": "schild", "🛡": "schild", "🏛️": "saeulen", "🏛": "saeulen", "🧭": "kompass", "🚐": "transporter", "🔐": "schloss",
-  "🏠": "haus", "⚙️": "zahnrad", "⚙": "zahnrad",
+  "🏠": "haus", "⚙️": "zahnrad", "⚙": "zahnrad", "📣": "megafon", "🗂️": "ordner", "🗂": "ordner", "📁": "ordner", "👤": "person", "✉️": "brief", "✉": "brief",
+  "🚨": "warnung", "⚠️": "warnung", "⚠": "warnung", "🔄": "kreislauf", "💡": "idee", "📐": "lineal", "🎨": "palette", "📤": "hochladen", "🚗": "transporter",
+  "🖼️": "bild", "🖼": "bild", "🏅": "stern", "🏆": "pokal",
 };
 
 export function symbol(name: string, groesse = 24): string {
@@ -60,10 +71,28 @@ export function symbol(name: string, groesse = 24): string {
   return p ? `<svg class="symbol-svg" viewBox="0 0 24 24" width="${groesse}" height="${groesse}" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${p}</svg>` : "";
 }
 
-/** Tile icons: emoji spans become line icons where we have one. */
+/** Tile and list icons: emoji-only spans become line icons where we have one. */
 export function kachelSymbole(html: string): string {
   return html.replace(/<span class="konto-icon" aria-hidden="true">([^<]{1,8})<\/span>/g, (ganz, e: string) => {
     const name = EMOJI[e.trim()];
     return name ? `<span class="konto-icon konto-symbol" aria-hidden="true">${symbol(name, 22)}</span>` : ganz;
+  }).replace(/<span class="standort-icon" aria-hidden="true">([^<]{1,8})<\/span>/g, (ganz, e: string) => {
+    const name = EMOJI[e.trim()];
+    return name ? `<span class="standort-icon zeilen-symbol" aria-hidden="true">${symbol(name, 20)}</span>` : ganz;
   });
+}
+
+const VORNE = /^(\p{Extended_Pictographic}\uFE0F?)\s+/u;
+/** After translation (the dictionaries contain the emoji): a leading emoji in section headings and in the small tab chips
+ *  becomes a line icon. Unknown emojis (coloured dots, the AI robot) stay. */
+export function textSymbole(html: string): string {
+  const ersetzen = (text: string, groesse: number, klasse: string) => {
+    const m = VORNE.exec(text);
+    const name = m ? EMOJI[m[1]] ?? EMOJI[m[1].replace("\uFE0F", "")] : undefined;
+    return m && name ? `<span class="${klasse}" aria-hidden="true">${symbol(name, groesse)}</span>${text.slice(m[0].length)}` : text;
+  };
+  return html
+    .replace(/<h2>([^<]+)/g, (_g, t: string) => `<h2>${ersetzen(t, 20, "titel-symbol")}`)
+    .replace(/(<nav class="ordner-chips[^"]*"[^>]*>)([\s\S]*?)(<\/nav>)/g, (_g, a: string, innen: string, z: string) =>
+      a + innen.replace(/(<a\b[^>]*>)([^<]+)/g, (_x, tag: string, t: string) => tag + ersetzen(t, 16, "chip-symbol")) + z);
 }
