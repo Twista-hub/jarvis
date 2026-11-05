@@ -53,6 +53,35 @@ export const THEMEN_CSS = `
   :root[data-theme="technik"] .kennzahl.akzent strong { color: #0e7490; }
   :root[data-theme="technik"] .frist-pille, :root[data-theme="technik"] .naechste-fakten span { border-radius: 3px; }
 
+  /* Tender list (step 3): score pill, deadline progress bar; segmented score bar only in the technical look */
+  .treffer-punkte { padding: 4px 10px; border-radius: 999px; background: rgba(22,138,90,.12); color: #127a50; font-weight: 700; font-size: 12.5px; }
+  @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-theme="technik"]) .treffer-punkte { background: rgba(94,214,160,.15); color: #7fe0b4; } }
+  :root[data-theme="dark"] .treffer-punkte { background: rgba(94,214,160,.15); color: #7fe0b4; }
+  .punkte-balken { display: none; }
+  .frist-balken { display: block; height: 5px; margin-top: 7px; border-radius: 3px; background: rgba(127,140,155,.18); overflow: hidden; max-width: 220px; }
+  .frist-balken i { display: block; height: 100%; border-radius: 3px; background: var(--accent); }
+  .frist-balken.frist-rot i { background: #e8692e; } .frist-balken.frist-gelb i { background: #d9a21b; }
+  .nur-technik { display: none; }
+  :root[data-theme="technik"] .nur-technik { display: grid; }
+  :root[data-theme="technik"] .treffer-punkte { display: none; }
+  :root[data-theme="technik"] .punkte-balken { display: inline-flex; gap: 2px; align-items: center; }
+  :root[data-theme="technik"] .punkte-balken i { width: 7px; height: 10px; border-radius: 1px; background: #d6dee6; } :root[data-theme="technik"] .punkte-balken i.an { background: #0e8a64; }
+  :root[data-theme="technik"] .frist-balken { border-radius: 0; max-width: none; } :root[data-theme="technik"] .frist-balken i { border-radius: 0; background: #0e7490; }
+  :root[data-theme="technik"] .frist-balken.frist-rot i { background: #e8692e; }
+  /* Technical overview: 7-day bars and 30-day deadline timeline */
+  .leitstand { gap: 12px; margin-bottom: 16px; }
+  .lpanel { background: #fff; border: 1px solid #d5dce3; border-radius: 6px; }
+  .lkopf { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid #e3e8ed; font-size: 10.5px; letter-spacing: .09em; text-transform: uppercase; color: #5d7083; font-weight: 650; font-family: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace; }
+  .lbalken { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; height: 74px; padding: 10px 12px 6px; }
+  .lb { display: flex; flex-direction: column; justify-content: flex-end; align-items: stretch; gap: 4px; }
+  .lb i { display: block; min-height: 3px; background: #cfe3ef; border-radius: 2px 2px 0 0; } .lb.heute i { background: #0e7490; }
+  .lb b { font-size: 9.5px; font-weight: 500; color: #7a8c9c; text-align: center; font-family: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace; }
+  .lachse { position: relative; height: 2px; margin: 18px 14px 12px; background: #cfd8e1; }
+  .lm { position: absolute; top: -4px; width: 10px; height: 10px; margin-left: -5px; border-radius: 50%; background: #0e7490; border: 2px solid #fff; } .lm.knapp { background: #e8692e; }
+  .lz { display: grid; grid-template-columns: 10px auto 1fr auto; gap: 8px; align-items: center; padding: 6px 12px; color: var(--text); text-decoration: none; font-size: 13px; }
+  .lz:last-child { padding-bottom: 10px; } .lp { width: 8px; height: 8px; border-radius: 50%; background: #0e7490; } .lp.knapp { background: #e8692e; }
+  .ld, .lr { font-family: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace; font-size: 11.5px; color: #5d7083; } .lt { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
   /* Tiles: line icon in a soft square */
   .konto-symbol { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--symbol-bg); color: var(--symbol); font-size: 0; }
   :root:not([data-theme="technik"]) .konto-symbol { box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 2px 6px rgba(31,95,139,.1); }

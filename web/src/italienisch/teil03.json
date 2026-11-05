@@ -436,5 +436,8 @@
  "Firma auf einen Blick": "L'impresa in sintesi",
  "Abgabe #.#.#": "Consegna #.#.#",
  "#/# passend": "#/# adatto",
- "in # Tagen": "tra # giorni"
+ "in # Tagen": "tra # giorni",
+ "Neue Treffer · # Tage": "Nuovi risultati · # giorni",
+ "Fristen · # Tage": "Scadenze · # giorni",
+ "Keine Fristen in den nächsten # Tagen.": "Nessuna scadenza nei prossimi # giorni."
 }

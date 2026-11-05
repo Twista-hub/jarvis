@@ -436,5 +436,8 @@
  "Firma auf einen Blick": "Firma w skrócie",
  "Abgabe #.#.#": "Złożenie #.#.#",
  "#/# passend": "#/# pasuje",
- "in # Tagen": "za # dni"
+ "in # Tagen": "za # dni",
+ "Neue Treffer · # Tage": "Nowe wyniki · # dni",
+ "Fristen · # Tage": "Terminy · # dni",
+ "Keine Fristen in den nächsten # Tagen.": "Brak terminów w ciągu najbliższych # dni."
 }

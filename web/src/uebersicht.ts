@@ -55,3 +55,44 @@ export function uebersichtKopf(o: { firma: string; jetzt: Date; neu: number; bal
   return `<p class="begruessung klein">${escape(datum)} · ${escape(o.firma)} · ${zeile}</p>
 <div class="kennzahlen">${zahl(o.neu, o.neu === 1 ? "neuer Treffer" : "neue Treffer", "/konto/treffer", true)}${zahl(o.bald, "Fristen in 7 Tagen", "/konto/fristen")}${zahl(o.angebote, "Angebote in Arbeit", "/konto/angebote")}</div>${karte}`;
 }
+
+/** Ten segments for the score (shown as a bar in the technical look, see themen.ts). */
+export function punkteBalken(punkte: number): string {
+  const n = Math.max(0, Math.min(10, Math.round(punkte)));
+  return `<span class="punkte-balken" aria-hidden="true">${Array.from({ length: 10 }, (_, i) => `<i${i < n ? ' class="an"' : ""}></i>`).join("")}</span>`;
+}
+
+/** How much of the time between "found" and the deadline has passed (0–100 %). */
+export function fristAnteil(erstellt: string, frist: string, jetzt = Date.now()): number {
+  const a = Date.parse(erstellt), b = Date.parse(frist);
+  if (!Number.isFinite(a) || !Number.isFinite(b) || b <= a) return 100;
+  return Math.max(0, Math.min(100, Math.round(((jetzt - a) / (b - a)) * 100)));
+}
+
+export function fristBalken(erstellt: string, frist: string, ampel: string, jetzt = Date.now()): string {
+  return `<span class="frist-balken frist-${ampel}" aria-hidden="true"><i style="width:${fristAnteil(erstellt, frist, jetzt)}%"></i></span>`;
+}
+
+/** Technical look: new hits per day over the last 7 days (Berlin days, oldest first). */
+export function siebenTage(erstellt: string[], jetzt: Date): { tag: string; anzahl: number }[] {
+  const tagVon = (d: Date) => d.toLocaleDateString("en-CA", { timeZone: BERLIN });
+  const heute = Date.parse(tagVon(jetzt));
+  const tage = Array.from({ length: 7 }, (_, i) => new Date(heute - (6 - i) * TAG).toISOString().slice(0, 10));
+  return tage.map((tag) => ({ tag, anzahl: erstellt.filter((e) => tagVon(new Date(e)) === tag).length }));
+}
+
+const WOCHENTAG: Record<string, string[]> = { de: ["SO", "MO", "DI", "MI", "DO", "FR", "SA"], en: ["SU", "MO", "TU", "WE", "TH", "FR", "SA"], fr: ["DI", "LU", "MA", "ME", "JE", "VE", "SA"], pl: ["ND", "PN", "WT", "ŚR", "CZ", "PT", "SB"], es: ["DO", "LU", "MA", "MI", "JU", "VI", "SA"], it: ["DO", "LU", "MA", "ME", "GI", "VE", "SA"] };
+
+/** Technical look only (hidden in the other two): 7-day bars of new hits and a 30-day deadline timeline. */
+export function leitstand(o: { erstellt: string[]; fristen: { id: string; titel: string; frist: string }[]; jetzt: Date; sprache?: string }): string {
+  const tage = siebenTage(o.erstellt, o.jetzt);
+  const max = Math.max(1, ...tage.map((t) => t.anzahl));
+  const wt = WOCHENTAG[o.sprache ?? "de"] ?? WOCHENTAG.de;
+  const balken = tage.map((t, i) => `<span class="lb${i === 6 ? " heute" : ""}" title="${t.anzahl}"><i style="height:${Math.round((t.anzahl / max) * 100)}%"></i><b>${wt[new Date(`${t.tag}T12:00:00Z`).getUTCDay()]}</b></span>`).join("");
+  const kommend = o.fristen.map((f) => ({ ...f, t: tageBisFrist(f.frist, o.jetzt) })).filter((f) => f.t >= 0 && f.t <= 30).slice(0, 4);
+  const achse = kommend.map((f) => `<span class="lm${f.t <= 3 ? " knapp" : ""}" style="left:${Math.round((f.t / 30) * 100)}%"></span>`).join("");
+  const liste = kommend.map((f) => `<a class="lz" href="/konto/vorgang/${escape(f.id)}"><span class="lp${f.t <= 3 ? " knapp" : ""}"></span><span class="ld">${new Date(f.frist).toLocaleDateString("de-DE", { timeZone: BERLIN, day: "2-digit", month: "2-digit" })}</span><span class="lt">${escape(f.titel)}</span><span class="lr">${f.t} T</span></a>`).join("");
+  const summe = tage.reduce((n, t) => n + t.anzahl, 0);
+  return `<section class="leitstand nur-technik"><div class="lpanel"><div class="lkopf"><span>Neue Treffer · 7 Tage</span><span>Σ ${summe}</span></div><div class="lbalken">${balken}</div></div>
+<div class="lpanel"><div class="lkopf"><span>Fristen · 30 Tage</span><span>${kommend.length}</span></div><div class="lachse">${achse}</div>${liste || `<p class="klein">Keine Fristen in den nächsten 30 Tagen.</p>`}</div></section>`;
+}

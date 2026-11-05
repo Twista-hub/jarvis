@@ -17,7 +17,7 @@ import { ungelesen } from "./brett.ts";
 import { chatUngelesen } from "./chat.ts";
 import { menueGruppieren } from "./menue.ts";
 import { naechsterSchritt } from "./naechster.ts";
-import { uebersichtKopf, uebersichtTitel } from "./uebersicht.ts";
+import { fristBalken, leitstand, punkteBalken, uebersichtKopf, uebersichtTitel } from "./uebersicht.ts";
 import { aktiv as aktivAm, vertretungHinweis, vertretungenLaden } from "./vertretung.ts";
 import { reichtTeil } from "./kapazitaet.ts";
 import { escape, hilfe, markdown, seite } from "./seite.ts";
@@ -411,7 +411,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       const namen = Object.fromEntries((mitglieder.ok ? mitglieder.daten : []).map((x) => [x.user_id, x.anzeigename || x.funktion || "Ohne Namen"]));
       vertretungBanner = vertretungHinweis(vertretungenHeute, s.userId, namen, heute, zahlen);
     }
-    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>${eigeneAkte ? "Schichten, Stunden, Urlaub und Nachweise findest du unter „Meine Einsätze &amp; Daten“, Neuigkeiten vom Büro am Schwarzen Brett." : "Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat."}</p>${kacheln}`) : rahmen(`${vertretungBanner}${einfuehrung}${meldungen}${kopfUebersicht}${heuteWichtig}<h2>Firma auf einen Blick</h2>${kacheln}${zuletzt}`);
+    inhalt = m.rolle === "mitarbeiter" ? rahmen(`<p>${eigeneAkte ? "Schichten, Stunden, Urlaub und Nachweise findest du unter „Meine Einsätze &amp; Daten“, Neuigkeiten vom Büro am Schwarzen Brett." : "Hier findest du die Informationen, die dir dein Team persönlich freigegeben hat."}</p>${kacheln}`) : rahmen(`${vertretungBanner}${einfuehrung}${meldungen}${kopfUebersicht}${leitstand({ erstellt: liste.map((v) => v.erstellt), fristen: fristen.filter((v) => Date.parse(v.frist!) > Date.now()).map((v) => ({ id: v.id, titel: v.titel, frist: v.frist! })), jetzt: new Date(), sprache: appSprache(request) })}${heuteWichtig}<h2>Firma auf einen Blick</h2>${kacheln}${zuletzt}`);
   } else if (unterseite === "treffer") {
     const fb = await db<{ vorgang_id: string; grund: string }[]>(s, env, `treffer_feedback?firma_id=eq.${m.firma_id}&select=vorgang_id,grund`);
     const rueckmeldungen = new Map((fb.ok ? fb.daten : []).map((x) => [x.vorgang_id, x.grund]));
@@ -843,13 +843,13 @@ export function trefferListe(liste: Vorgang[], bereichName: (id: string | null |
     const { gesucht, warum } = bewertung(v.steckbrief);
     const fakten = [...eckdaten(v.steckbrief), ...(v.entfernung_km != null ? [{ label: "", wert: `📍 ${Math.round(v.entfernung_km)} km entfernt` }] : [])];
     return `<li><article class="treffer-karte">
-  <div class="treffer-meta">${auswahl(v)}<span class="treffer-punkte">${v.punkte !== null ? `${v.punkte}/10 Punkte` : "Noch ohne KI-Bewertung"}</span><span class="treffer-status">${escape(STATUS[v.status] ?? v.status)}</span></div>
+  <div class="treffer-meta">${auswahl(v)}<span class="treffer-punkte">${v.punkte !== null ? `${v.punkte}/10 Punkte` : "Noch ohne KI-Bewertung"}</span>${v.punkte !== null ? punkteBalken(v.punkte) : ""}<span class="treffer-status">${escape(STATUS[v.status] ?? v.status)}</span></div>
   <h2><a href="/konto/vorgang/${v.id}"><span>${istNeu(v) ? '<span class="neu-punkt" title="Neu seit deinem letzten Besuch" aria-label="neu seit deinem letzten Besuch"></span>' : ""}${escape(v.titel)}</span><span aria-hidden="true">›</span></a></h2>
   ${fakten.length || v.us ? `<ul class="treffer-fakten">${v.us ? ampelChip(v.us, opts.us?.profil ?? null, opts.us?.sprache ?? "de") : ""}${fakten.map((f) => `<li>${f.label ? `<span>${escape(f.label)}</span>` : ""}${escape(f.wert)}${/^ca\./.test(f.wert) ? `<span class="dl-hinweis" title="Geschätzt – genaue Angaben in den Vergabeunterlagen">${DL_ICON}</span>` : ""}</li>`).join("")}</ul>` : ""}
   ${gesucht ? `<p class="treffer-gesucht">${escape(gesucht)}</p>` : !warum && bewertungsErklaerung(v.steckbrief) ? `<p class="treffer-gesucht">${escape(bewertungsErklaerung(v.steckbrief))}</p>` : ""}
   ${warum ? `<p class="treffer-warum" data-ki-erstellt="true"><span title="Von KI erstellt (Claude, Anthropic)" aria-label="KI-Einschätzung">🤖</span> ${escape(warum)}</p>` : ""}
   <div class="treffer-unten">
-    <p class="treffer-frist"><span>Abgabefrist</span>${v.frist ? `<time datetime="${escape(v.frist)}">${datum(v.frist)}${OFFEN.includes(v.status) ? ` <em class="frist-abstand frist-${ampel(v)}">${abstand(v.frist)}</em>` : ""}</time>` : `<strong>Noch nicht bekannt</strong>`}${v.bereich_id ? `<small>${escape(bereichName(v.bereich_id))}</small>` : ""}</p>
+    <p class="treffer-frist"><span>Abgabefrist</span>${v.frist ? `<time datetime="${escape(v.frist)}">${datum(v.frist)}${OFFEN.includes(v.status) ? ` <em class="frist-abstand frist-${ampel(v)}">${abstand(v.frist)}</em>` : ""}</time>${OFFEN.includes(v.status) ? fristBalken(v.erstellt, v.frist, ampel(v)) : ""}` : `<strong>Noch nicht bekannt</strong>`}${v.bereich_id ? `<small>${escape(bereichName(v.bereich_id))}</small>` : ""}</p>
     ${daumen(v.id, rueckmeldungen.get(v.id), weiter)}
   </div>
   ${schnell(v)}
