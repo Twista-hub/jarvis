@@ -19,6 +19,12 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 06.11.2026 – Crewtender Facebook: 2 Posts neu eingeplant
+- Beim Social-Media-Check war auf der Facebook-Seite nichts mehr geplant. Auf Benjamins OK („Ja, neu einplanen“) neu angelegt:
+  - 07.11.2026, 18:00: post3-registerkarten.png, Text „From tender to team. One app. …“
+  - 10.11.2026, 18:00: post2-auftragswert.png, Text „📑 Around 500 new public tenders every morning. …“
+- Texte aus docs/auftraege/crewtender-facebook-planen.md. In der Content-Bibliothek unter „Geplant“ geprüft: beide da.
+
 ### 06.11.2026 – Claude Code: Mail-Weiterleitung und LinkedIn
 - Weiterleitung kontakt@wpdigitalranger.com → restockhero.contact@gmail.com (Kopie bleibt in kontakt@) funktioniert, Label „Crewtender“ in Gmail. Testmail um 07:03 angekommen. Ältere Mails wurden nicht nachträglich weitergeleitet.
 - LinkedIn-Unternehmensseite laut Benjamin angelegt. Link bei Gelegenheit in der Konten-Übersicht ergänzen.
