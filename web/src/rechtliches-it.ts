@@ -17,7 +17,7 @@ export function impressumIt(): string {
 <p>${anschrift()}</p>
 <h2>Contatti</h2>
 <p>E-mail: ${mail()}<br>Modulo di contatto: <a href="/kontakt">crewtender.eu/kontakt</a>${FIRMA.telefon ? `<br>Telefono: ${escape(FIRMA.telefon)}` : ""}</p>
-${FIRMA.ustId ? `<h2>IVA</h2><p>Partita IVA ai sensi del § 27a della legge tedesca sull'IVA (UStG): ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>IVA</h2><p>Piccolo imprenditore ai sensi del § 19 della legge tedesca sull'IVA (UStG); pertanto non viene addebitata l'IVA.</p>` : ""}
+${FIRMA.ustId || FIRMA.kleinunternehmer ? `<h2>IVA</h2>${FIRMA.ustId ? `<p>Partita IVA ai sensi del § 27a della legge tedesca sull'IVA (UStG): ${escape(FIRMA.ustId)}</p>` : ""}${FIRMA.kleinunternehmer ? `<p>Piccolo imprenditore ai sensi del § 19 della legge tedesca sull'IVA (UStG); pertanto non viene addebitata l'IVA.</p>` : ""}` : ""}
 <h2>Responsabile dei contenuti</h2>
 <p>${escape(FIRMA.name)}, indirizzo come sopra.</p>
 <h2>Risoluzione delle controversie dei consumatori</h2>

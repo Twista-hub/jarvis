@@ -9,7 +9,7 @@ export const FIRMA = {
   ort: "52531 Übach-Palenberg", // e.g. "12345 Musterstadt"
   telefon: "", // optional
   email: "kontakt@wpdigitalranger.com",
-  ustId: "", // USt-IdNr., if any
+  ustId: "DE466249844", // USt-IdNr. since 03.11.2026 (Benjamin, 06.11.2026)
   steuernummer: "", // from the tax office; Benjamin can also type it on /konto/betreiber/rechnungen (kept per invoice)
   kleinunternehmer: true, // true: § 19 UStG
   aufsicht: "Landesbeauftragte für Datenschutz und Informationsfreiheit Nordrhein-Westfalen, Kavalleriestraße 2–4, 40213 Düsseldorf, www.ldi.nrw.de", // data protection authority of the state, e.g. "Landesbeauftragte für Datenschutz ..., https://..."
@@ -27,7 +27,7 @@ export function impressum(): string {
 <p>${anschrift()}</p>
 <h2>Kontakt</h2>
 <p>E-Mail: <a href="mailto:${FIRMA.email}">${FIRMA.email}</a><br>Kontaktformular: <a href="/kontakt">crewtender.eu/kontakt</a>${FIRMA.telefon ? `<br>Telefon: ${escape(FIRMA.telefon)}` : ""}</p>
-${FIRMA.ustId ? `<h2>Umsatzsteuer</h2><p>Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: ${escape(FIRMA.ustId)}</p>` : FIRMA.kleinunternehmer ? `<h2>Umsatzsteuer</h2><p>Kleinunternehmer nach § 19 UStG, daher keine Umsatzsteuer.</p>` : ""}
+${FIRMA.ustId || FIRMA.kleinunternehmer ? `<h2>Umsatzsteuer</h2>${FIRMA.ustId ? `<p>Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: ${escape(FIRMA.ustId)}</p>` : ""}${FIRMA.kleinunternehmer ? `<p>Kleinunternehmer nach § 19 UStG, daher keine Umsatzsteuer.</p>` : ""}` : ""}
 <h2>Verantwortlich für den Inhalt</h2>
 <p>${escape(FIRMA.name)}, Anschrift wie oben.</p>
 <h2>Verbraucherstreitbeilegung</h2>

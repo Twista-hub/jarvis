@@ -38,7 +38,8 @@ test("Kundenrechnung: Pflichtangaben auf der Rechnung (§ 34a UStDV)", () => {
 test("Kundenrechnung: Formular mit Kunde, Steuernummer-Hinweis und Liste", () => {
   const f = [{ id: "22222222-2222-4222-8222-222222222222", name: "Weg GmbH", erstellt: "", website: "", paket: "pro", ki_budget_usd: null, ki_verbraucht: 0, mitglieder: 1, inhaber: "a@weg.de", letzte_anmeldung: null }];
   const ohne = rechnungenSeite({ liste: [], firmen: f, steuernummer: "", zahlungshinweis: "Zahlbar", heute: new Date("2026-12-01T08:00:00Z") });
-  assert.match(ohne, /Ohne Steuernummer darf noch keine Rechnung raus/);
+  assert.doesNotMatch(ohne, /Ohne Steuernummer darf noch keine Rechnung raus/, "mit USt-IdNr. gehen Rechnungen auch ohne Steuernummer");
+  assert.match(ohne, /USt-IdNr. DE466249844 steht schon auf jeder Rechnung/);
   assert.match(ohne, /value="November 2026"/);
   assert.match(ohne, /Noch keine Rechnungen/);
   const mit = rechnungenSeite({ liste: [R, { ...R, id: "x", nummer: "CT-2026-0002", storno_von: R.id, summe: -179 }], firmen: f, firma: f[0].id, steuernummer: "202/123/45678", zahlungshinweis: "Zahlbar" });
@@ -46,4 +47,23 @@ test("Kundenrechnung: Formular mit Kunde, Steuernummer-Hinweis und Liste", () =>
   assert.match(mit, /<option value="22222222-2222-4222-8222-222222222222" selected>Weg GmbH \(a@weg\.de\)/);
   assert.match(mit, /CT-2026-0001<\/a>[\s\S]*CT-2026-0002<\/a>[\s\S]*Stornorechnung/);
   assert.match(mit, /name="steuernummer"[^>]*value="202\/123\/45678"/);
+});
+
+import { impressum } from "../src/rechtliches.ts";
+import * as en from "../src/rechtliches-en.ts";
+import * as fr from "../src/rechtliches-fr.ts";
+import * as es from "../src/rechtliches-es.ts";
+import * as it from "../src/rechtliches-it.ts";
+import * as pl from "../src/rechtliches-pl.ts";
+test("Impressum: USt-IdNr. und Kleinunternehmer-Satz zusammen, in allen Sprachen", () => {
+  const de = impressum();
+  assert.match(de, /Umsatzsteuer-Identifikationsnummer gemäß § 27a UStG: DE466249844/);
+  assert.match(de, /Kleinunternehmer nach § 19 UStG/);
+  for (const m of [en, fr, es, it, pl]) {
+    const f = Object.values(m).find((x) => typeof x === "function" && /impressum/i.test((x as Function).name)) as (() => string) | undefined;
+    assert.ok(f, "Impressum-Funktion");
+    const h = f!();
+    assert.match(h, /DE466249844/);
+    assert.match(h, /§ 19/);
+  }
 });

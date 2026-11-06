@@ -24,5 +24,6 @@ jobs:
             grep -oE '<strong>[0-9.]+</strong><span>[^<]*' seite | head -2 || true
             grep -oE '<li><div><strong>[^<]{0,80}' seite | head -3 || true
             grep -oE 'demo/katalog/[^"]{0,60}"><strong>[^<]{0,80}' seite | head -4 || true
+            grep -oE '(§ 27a|§ 19)[^<]{0,90}' seite | head -3 || true
             case "$p" in *.txt|*.xml) head -c 600 seite; echo;; esac
           done
