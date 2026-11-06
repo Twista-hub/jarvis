@@ -115,6 +115,27 @@ document.querySelectorAll("[data-chat-stand]").forEach(function (v) {
     });
   });
 })();
+// Header button: cycles the look (Hell · Glas → Dunkel · Premium → Technisch) on every page, also without login.
+document.querySelectorAll("[data-thema-wechsel]").forEach(function (knopf) {
+  knopf.addEventListener("click", function () {
+    var wahl = (document.cookie.match(/(?:^|;\s*)jv_darstellung=([a-z-]+)/) || [])[1] || "";
+    var schrift = wahl.indexOf("gross") >= 0 ? "gross" : "";
+    var jetzt = document.documentElement.dataset.theme || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    var folge = { light: "dark", dark: "technik", technik: "light" };
+    var neu = folge[jetzt] || "light";
+    document.cookie = "jv_darstellung=" + [neu, schrift].filter(Boolean).join("-") + "; Path=/; Max-Age=31536000; SameSite=Lax; Secure";
+    document.documentElement.dataset.theme = neu;
+    document.querySelectorAll('[data-darstellung="theme"]').forEach(function (sel) { sel.value = neu; });
+    var alt = document.querySelector(".thema-hinweis");
+    if (alt) alt.remove();
+    var hinweis = document.createElement("div");
+    hinweis.className = "thema-hinweis";
+    hinweis.setAttribute("role", "status");
+    hinweis.textContent = { light: "Hell · Glas", dark: "Dunkel · Premium", technik: "Technisch" }[neu];
+    document.body.appendChild(hinweis);
+    setTimeout(function () { hinweis.remove(); }, 1600);
+  });
+});
 // Search profile: warn about the paid re-scoring only when fields that change the scores were edited.
 document.querySelectorAll("form[data-kosten-warnung]").forEach(function (form) {
   var hinweis = form.querySelector("[data-kosten-hinweis]");

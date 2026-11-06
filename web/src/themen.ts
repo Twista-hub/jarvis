@@ -27,7 +27,7 @@ export const THEMEN_CSS = `
   html { min-height: 100%; background: var(--bg); }
   body { min-height: 100vh; background: var(--flaeche, var(--bg)); -webkit-font-smoothing: antialiased; }
   input, select, textarea { background: var(--feld, var(--bg)); }
-  form, .konto-kachel, .treffer-karte, .laedt, .hilfe-inhalt, .reiter, .profil-icon, .konto-zurueck a, .oeffentlich-login, details.kalk-gruppe, .standort-zeile, table {
+  form, .konto-kachel, .treffer-karte, .laedt, .hilfe-inhalt, .reiter, .profil-icon, .thema-knopf, .konto-zurueck a, .oeffentlich-login, details.kalk-gruppe, .standort-zeile, table {
     backdrop-filter: var(--unschaerfe, none); -webkit-backdrop-filter: var(--unschaerfe, none); }
   form, .konto-kachel, .treffer-karte, .laedt { border-radius: var(--rund, 14px); box-shadow: var(--karte-schatten); }
   button:not(.zweit):not(.daumen):not(.gefahr):not(.gefahr-voll):not(.knopf-leise), .knopf:not(.zweit) { background: var(--knopf); color: var(--knopf-text, #fff); box-shadow: var(--knopf-schatten, none); }
@@ -128,7 +128,7 @@ export const THEMEN_CSS = `
   :root[data-theme="technik"] .konto-kopf { margin: -24px -16px 18px; padding: 12px 16px; background: #0f2537; color: #e8f1f8; }
   :root[data-theme="technik"] .konto-kopf .konto-marke, :root[data-theme="technik"] .konto-kopf .konto-marke strong { color: #e8f1f8; }
   :root[data-theme="technik"] .konto-kopf small { color: #8fb0c8; }
-  :root[data-theme="technik"] .konto-kopf .profil-icon { background: transparent; border-color: #2c4a62; color: #9fe3c6; }
+  :root[data-theme="technik"] .konto-kopf .profil-icon, :root[data-theme="technik"] .thema-knopf { background: transparent; border-color: #2c4a62; color: #9fe3c6; }
   :root[data-theme="technik"] main > h2 { font-size: .78rem; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
   :root[data-theme="technik"] .konto-kachel, :root[data-theme="technik"] form, :root[data-theme="technik"] .treffer-karte { border-color: #d5dce3; }
   :root[data-theme="technik"] .konto-kacheln { gap: 0; border: 1px solid #d5dce3; border-radius: 6px; overflow: hidden; background: #fff; }

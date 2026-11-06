@@ -64,6 +64,9 @@ ${grundTags(titel)}
   .konto-aktionen { display: flex; align-items: center; gap: 10px; }
   .profil-icon { display: grid; place-items: center; width: 44px; height: 44px; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); }
   .profil-icon svg { width: 24px; height: 24px; }
+  .thema-knopf { display: grid; place-items: center; width: 44px; height: 44px; min-height: 0; padding: 0; flex-shrink: 0; border: 1px solid var(--line); border-radius: 50%; background: var(--card); color: var(--text); box-shadow: none; }
+  .thema-knopf svg { width: 22px; height: 22px; }
+  .thema-hinweis { position: fixed; left: 50%; top: 14px; transform: translateX(-50%); z-index: 50; padding: 8px 14px; border-radius: 999px; background: var(--text); color: var(--bg); font-size: 14px; font-weight: 650; box-shadow: 0 6px 20px rgba(0,0,0,.2); }
   h1 { font-size: 1.6rem; line-height: 1.25; margin: 0 0 16px; }
 
   .oeffentlich-kopf { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 14px; font-size: 1rem; }
@@ -482,7 +485,7 @@ ${grundTags(titel)}
   .treffer-liste { gap: 10px; }
   .reiter { margin: 14px 0; }
   .reiter a { min-height: 36px; padding: 7px 6px; font-size: 13px; }
-  .konto-zurueck a, .profil-icon { width: 38px; height: 38px; }
+  .konto-zurueck a, .profil-icon, .thema-knopf { width: 38px; height: 38px; }
   .konto-zurueck a { font-size: 20px; }
   .live-satz strong { font-size: 1.2rem; }
   button.daumen { width: 38px; height: 38px; font-size: 16px; }
@@ -565,7 +568,7 @@ ${grundTags(titel)}
   @media (max-width: 380px) {
     main { padding-right: 12px; padding-left: 12px; }
     .konto-kacheln { gap: 8px; }
-    .konto-zurueck a, .profil-icon { width: 44px; height: 44px; }
+    .konto-zurueck a, .profil-icon, .thema-knopf { width: 44px; height: 44px; }
   }
   /* Firm documents: folder chips, compact file rows, ⋯ menu; references. */
   .erfolg, .hinweis { padding: 8px 12px; border-radius: 10px; font-size: 14px; }
@@ -1073,7 +1076,7 @@ ${THEMEN_CSS}
 </style>
 </head>
 <body><main>
-${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto">${ZEICHEN}<span><strong>Crewtender</strong><small>WP Digital Ranger</small></span></a><div class="konto-aktionen"><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header class="oeffentlich-kopf"><a class="oeffentlich-marke" href="/">${ZEICHEN}<strong>Crewtender</strong></a><a class="oeffentlich-login" href="/konto">Anmelden</a></header>`}
+${kontoBereich !== undefined ? `<header class="konto-kopf"><a class="konto-marke" href="/konto">${ZEICHEN}<span><strong>Crewtender</strong><small>WP Digital Ranger</small></span></a><div class="konto-aktionen"><button type="button" class="thema-knopf zweit" data-thema-wechsel aria-label="Aussehen wechseln: Hell, Dunkel, Technisch" title="Aussehen wechseln">${symbol("palette", 22)}</button><a class="profil-icon" href="/konto/profil" aria-label="Mein Profil" title="Mein Profil"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21v-2a8 8 0 0 1 16 0v2"/></svg></a></div></header>` : `<header class="oeffentlich-kopf"><a class="oeffentlich-marke" href="/">${ZEICHEN}<strong>Crewtender</strong></a><div class="konto-aktionen"><button type="button" class="thema-knopf zweit" data-thema-wechsel aria-label="Aussehen wechseln: Hell, Dunkel, Technisch" title="Aussehen wechseln">${symbol("palette", 22)}</button><a class="oeffentlich-login" href="/konto">Anmelden</a></div></header>`}
 ${eigenerZurueck || (kontoBereich ? `<p class="konto-zurueck"><a href="/konto" aria-label="Zur Übersicht" title="Zur Übersicht"><span aria-hidden="true">←</span></a></p>` : "")}
 ${kopf}
 ${inhalt.replace(/<table(\s[^>]*)?>/g, '<div class="tabelle"><table$1>').replace(/<\/table>/g, "</table></div>")}

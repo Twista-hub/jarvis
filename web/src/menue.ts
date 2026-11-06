@@ -3,7 +3,7 @@
 import { escape } from "./seite.ts";
 
 const GRUPPEN: [string, string[]][] = [
-  ["Konto & Suche", ["/konto/profil", "/konto/suchprofil", "/konto/team"]],
+  ["Konto & Suche", ["/konto/profil", "/konto/einstellungen", "/konto/plan", "/konto/suchprofil", "/konto/team"]],
   ["Ausschreibungen & Angebote", ["/konto/unterlagen", "/konto/angebote", "/konto/kalkulation", "/konto/textbausteine", "/konto/partner", "/konto/markt", "/konto/auftraggeber", "/konto/radar", "/konto/foerderung", "/konto/auftraege", "/konto/auswertung"]],
   ["Planung & Personal", ["/konto/ich", "/konto/schichten", "/konto/disposition", "/konto/stunden", "/konto/zeitkonto", "/konto/spesen", "/konto/urlaub", "/konto/aufgaben", "/konto/vertretung", "/konto/kapazitaet", "/konto/personalfristen", "/konto/bewerber", "/konto/checklisten", "/konto/psa", "/konto/bewertungen", "/konto/personalauswertung", "/konto/kraefte-einladen"]],
   ["Abrechnung & Kunden", ["/konto/kunden", "/konto/leistungsnachweis", "/konto/rechnungen", "/konto/belege", "/konto/nachkalkulation", "/konto/umsatzsteuer", "/konto/kundenportal", "/konto/rundgaenge"]],
