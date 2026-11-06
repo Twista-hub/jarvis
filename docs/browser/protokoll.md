@@ -19,6 +19,14 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 06.11.2026 – Browser-Chat: Instagram-Posts eingeplant
+- **Weg:** eigene Instagram-Posts. Bei geplanten Facebook-Posts ist das Feld „Posten in“ gesperrt, Instagram lässt sich dort nicht anhaken. Neu angelegt in der Business Suite (Portfolio crewtender), Ziel nur @crew_tender, Texte aus dem Auftrag (mit „link in bio“ und Hashtags):
+  - 07.11.2026, 18:00: post3-registerkarten.png („From tender to team. One app. …“)
+  - 10.11.2026, 18:00: post2-auftragswert.png („📑 Around 500 new public tenders every morning. …“)
+- Beide stehen unter Content → „Geplant“. Werbung jeweils abgelehnt („Vielleicht später“).
+- **Profil-Link:** stimmt, im Profil steht crewtender.eu.
+- **Achtung, Facebook doppelt:** Unter „Geplant“ steht jeder Facebook-Post **zweimal** (07.11. und 10.11., je 18:00). Wahrscheinlich hat der Planer heute Morgen nichts angezeigt, und die Posts wurden neu angelegt, obwohl die alten noch da waren. Je einen davon löschen, das klärt Benjamin.
+
 ### 06.11.2026 – Browser-Chat: Anthropic-Guthaben
 Nur gelesen. Nichts gekauft, kein Limit geändert, nichts verknüpft.
 - **Organisation:** „Twista's Individual Org“ (API-Plan für Einzelpersonen). Das ist die **einzige** Organisation im Console-Konto. Dort liegen die Schlüssel „jarvis-alarm“ (Arbeitsbereich Jarvis, erstellt 29.10., bisher 16,23 $) und „Streik app“ (1,07 $). Achtung: Das Console-Konto läuft über die RestockHero-Mailadresse. Eine eigene Jarvis-Organisation gibt es nicht.
