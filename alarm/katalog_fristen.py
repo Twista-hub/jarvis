@@ -72,14 +72,20 @@ def eforms_fristen(xml: str):
     return ids, {"frist": frist, "fragefrist": fragefrist, "lose": lose}
 
 
-def export_lesen(tag: str) -> dict:
+def export_lesen(tag: str) -> dict | None:
     req = urllib.request.Request(f"https://oeffentlichevergabe.de/api/notice-exports?pubDay={tag}&format=eforms.zip", headers={"User-Agent": UA})
-    try:
-        with urllib.request.urlopen(req, timeout=120) as r:
-            daten = r.read(30_000_000)
-    except Exception as e:  # noqa: BLE001
-        print(f"{tag}: eForms-Export nicht lesbar ({e})")
-        return {}
+    daten = None
+    # The source refuses connections after many downloads in a row: wait longer each time instead of pushing on.
+    for versuch, pause in enumerate((0, 30, 90, 240)):
+        time.sleep(pause)
+        try:
+            with urllib.request.urlopen(req, timeout=120) as r:
+                daten = r.read(30_000_000)
+            break
+        except Exception as e:  # noqa: BLE001
+            print(f"{tag}: eForms-Export nicht lesbar, Versuch {versuch + 1} ({e})")
+    if daten is None:
+        return None
     karte = {}
     with zipfile.ZipFile(io.BytesIO(daten)) as z:
         for name in z.namelist():
@@ -98,11 +104,16 @@ def main() -> None:
                                 where quelle = 'bks' and frist is null and status in ('offen', 'unbekannt')""").fetchall()
     print(f"{len(zeilen)} Bekanntmachungen ohne Frist")
     tage = sorted({d + timedelta(days=k) for *_, d in zeilen for k in (-1, 0, 1)} - {date.today(), date.today() + timedelta(days=1)})
-    karte = {}
+    karte, fehlt = {}, []
     for tag in tage:
-        karte.update(export_lesen(tag.isoformat()))
-        time.sleep(1)
-    print(f"{len(tage)} Tagesexporte gelesen, {len(karte)} Einträge mit Frist")
+        teil = export_lesen(tag.isoformat())
+        if teil is None:
+            fehlt.append(tag.isoformat())
+        else:
+            karte.update(teil)
+        time.sleep(6)
+    print(f"{len(tage) - len(fehlt)} von {len(tage)} Tagesexporten gelesen, {len(karte)} Einträge mit Frist"
+          + (f"; nicht lesbar: {', '.join(fehlt)} (beim nächsten Lauf erneut)" if fehlt else ""))
     neu = []
     for kid, roh, lose, status, _ in zeilen:
         roh = roh or {}
