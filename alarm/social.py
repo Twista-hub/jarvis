@@ -41,6 +41,9 @@ TIPPS = [
     ("Shift plan, timesheets and proof of service in one place – and an app for your crew in 6 languages.", "/demo/schichten"),
     ("Light, dark or technical: switch the look with the palette button at the top right.", "/demo"),
 ]
+DIENSTE = {"building cleaning", "security services", "temporary staffing", "landscaping & winter service", "catering"}
+STRASSE = re.compile(r"^[\wäöüß.-]*(straße|strasse|str\.|weg|platz|allee|gasse|ring)\s*\d", re.I)
+NUTS = re.compile(r"\bDE[0-9A-Z]{1,3}\b")
 NAMEN = re.compile(r"\b(Herrn?|Frau|Mr\.?|Mrs\.?|Ms\.?)\s+(?:(?:Dr|Prof)\.\s+)*[A-ZÄÖÜ][a-zäöüß]+(?:[- ][A-ZÄÖÜ][a-zäöüß]+)?")
 EMAIL = re.compile(r"[\w.+-]+@[\w-]+\.[\w.-]+")
 
@@ -75,7 +78,7 @@ def datum_en(wert) -> str:
 
 def ausschreibung_text(t: dict, kanal: str) -> str:
     url = adresse("/demo/katalog/" + urllib.parse.quote(t["id"], safe=""), kanal)
-    zeilen = [f"📍 {kuerzen(sauber(t['ort']).replace(' (Auftraggeberadresse; Einsatzort prüfen)', ''), 60)}" if t.get("ort") else "",
+    zeilen = [f"📍 {kuerzen(re.sub(r'\\s+', ' ', NUTS.sub('', sauber(t['ort']).replace(' (Auftraggeberadresse; Einsatzort prüfen)', ''))).strip(' ·'), 60)}" if t.get("ort") else "",
               f"⏰ Deadline {datum_en(t['frist'])}",
               f"💶 Est. value {t['wert']}" if t.get("wert") else "",
               f"Source: {QUELLE.get(t.get('quelle'), 'official notice')}"]
@@ -112,22 +115,25 @@ def art_heute(heute: date) -> str:
 def ausschreibung_waehlen(con) -> dict | None:
     praefixe = [p + "%" for _, ps in GEWERKE for p in ps]
     zeilen = con.execute("""
-        select k.id, k.titel, k.ort, k.frist, k.quelle, k.roh->'tender'->'value', k.roh->'tender'->'lots'
+        select k.id, k.titel, k.ort, k.frist, k.quelle, k.roh->'tender'->'value', k.roh->'tender'->'lots', k.cpv
         from public.vergabekatalog k
         where k.quelle = 'bks' and k.status in ('offen', 'unbekannt') and k.frist > now() + interval '7 days'
           and k.quell_datum > now() - interval '5 days'
           and exists (select 1 from unnest(k.cpv) c where c like any(%s))
           and not exists (select 1 from jarvis_intern.social_posts p where p.katalog_id = k.id)
-        order by (k.roh->'tender'->'value'->>'amount') is not null desc, k.quell_datum desc limit 30""", (praefixe,)).fetchall()
-    for kid, titel, ort, frist, quelle, wert, lose in zeilen:
-        w = wert_text((wert or {}).get("amount"), (wert or {}).get("currency"))
-        if not w and lose:
-            summe = sum(float((l.get("value") or {}).get("amount") or 0) for l in lose)
-            w = wert_text(summe, ((lose[0].get("value") or {}).get("currency")))
+        order by k.quell_datum desc limit 60""", (praefixe,)).fetchall()
+    kandidaten = []
+    for kid, titel, ort, frist, quelle, wert, lose, cpv in zeilen:
+        # The value only when it clearly belongs to this tender (one lot at most): a multi-lot project value would
+        # make a small lot look huge.
+        w = wert_text((wert or {}).get("amount"), (wert or {}).get("currency")) if len(lose or []) <= 1 else ""
         t = {"id": kid, "titel": titel, "ort": ort, "frist": frist, "quelle": quelle, "wert": w}
-        if ausschreibung_text(t, "bluesky"):
-            return t
-    return None
+        if not ausschreibung_text(t, "bluesky"):
+            continue
+        dienst = any(c.startswith(p) for name, ps in GEWERKE if name in DIENSTE for p in ps for c in (cpv or []))
+        punkte = 3 * dienst + bool(w) + (25 <= len(sauber(titel)) <= 120) - 3 * bool(STRASSE.match(sauber(titel)))
+        kandidaten.append((punkte, t))
+    return max(kandidaten, key=lambda x: x[0])[1] if kandidaten else None
 
 
 def zahl_waehlen(con, heute: date) -> dict | None:
@@ -140,14 +146,14 @@ def zahl_waehlen(con, heute: date) -> dict | None:
             break
     else:
         return None
-    reihe = GEWERKE[heute.isocalendar()[1] % len(GEWERKE):] + GEWERKE[:heute.isocalendar()[1] % len(GEWERKE)]
-    for name, ps in reihe:
+    zahlen = []
+    for name, ps in GEWERKE:
         n = con.execute("""select count(*) from public.vergabekatalog where quelle = 'bks' and frist is not null
                            and (quell_datum at time zone 'Europe/Berlin')::date = %s and exists (select 1 from unnest(cpv) c where c like any(%s))""",
                         (tag, [p + "%" for p in ps])).fetchone()[0]
-        if n >= 3:
-            return {"tag": tag, "neu": neu, "gewerk": name, "gewerk_n": n}
-    return {"tag": tag, "neu": neu}
+        zahlen.append((n, name))
+    n, name = max(zahlen)
+    return {"tag": tag, "neu": neu, "gewerk": name, "gewerk_n": n} if n >= 3 else {"tag": tag, "neu": neu}
 
 
 def facetten(text: str) -> list:
