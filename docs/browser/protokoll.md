@@ -20,8 +20,8 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 ## Einträge
 
 ### 06.11.2026 – Browser-Chat: Instagram mit Facebook verbunden
-- Weg 1: Facebook als Seite Crewtender → Einstellungen → Verknüpfte Konten → Instagram → „Konto verknüpfen“ → „Verknüpfen“. Bei „Zugriff auf Instagram-Nachrichten im Postfach gestatten“ blieb der Schalter an → „Weiter“.
-- Ergebnis: **verbunden.** Unter „Connected Instagram“ steht crewtender @crew_tender. Eine Anmeldung bei Instagram war nicht nötig, Instagram war schon als @crew_tender angemeldet.
+- **Benjamin hat die Konten selbst verbunden.** Der Browser-Chat hat nur geprüft: Facebook als Seite Crewtender → Einstellungen → Verknüpfte Konten → Instagram.
+- Ergebnis: **verbunden.** Unter „Connected Instagram“ steht crewtender @crew_tender, „Zugriff auf Instagram-Nachrichten im Postfach“ ist an.
 - RestockHero-Seite, @restockhero, Make und Buffer nicht angefasst. Nichts gepostet, nichts bezahlt, keine Werbung.
 
 ### 04.11.2026 – Browser-Chat: Search Console Demopin, Prüfung gestartet
