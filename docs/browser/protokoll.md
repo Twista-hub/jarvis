@@ -19,6 +19,11 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 06.11.2026 – Browser-Chat: Mail-Weiterleitung
+- Private Email (kontakt@wpdigitalranger.com, neue Oberfläche): Settings → Forwarding → „Add a forwarding address“ restockhero.contact@gmail.com → Save (Benjamin war angemeldet und hat gespeichert). „Email forwarding“ an, **„Keep an email copy“ an**, nach dem Neuladen geprüft. Keine Regeln geändert, nichts gelöscht.
+- Gmail (restockhero.contact@gmail.com): neues Label „Crewtender“ und Filter `to:(kontakt@wpdigitalranger.com OR hello@crewtender.eu)` → Label „Crewtender“ (auch auf vorhandene Mails angewendet). Bestehende Filter unverändert.
+- **Test ok:** Benjamins Mail „Test Weiterleitung“ (06.11., 07:03) liegt in kontakt@ und in Gmail im Posteingang mit Label „Crewtender“.
+
 ### 06.11.2026 – Browser-Chat: Instagram mit Facebook verbunden
 - **Benjamin hat die Konten selbst verbunden.** Der Browser-Chat hat nur geprüft: Facebook als Seite Crewtender → Einstellungen → Verknüpfte Konten → Instagram.
 - Ergebnis: **verbunden.** Unter „Connected Instagram“ steht crewtender @crew_tender, „Zugriff auf Instagram-Nachrichten im Postfach“ ist an.
