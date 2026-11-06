@@ -12,6 +12,20 @@ export const KI_SPERRE: Record<KiSperre, string> = {
   tag: "Die KI von Crewtender ist für heute ausgelastet. Treffer nach Stichworten gibt es weiter, ab morgen wieder mit KI.",
 };
 const ALLGEMEIN = "Das KI-Kontingent ist gerade aufgebraucht. Bitte später erneut versuchen.";
+/** Prepaid credit at the AI provider used up (HTTP 400 "credit balance is too low"): an operator matter, not the firm's. */
+export const GUTHABEN_TEXT = "Die KI von Crewtender ist gerade nicht verfügbar. Treffer nach Stichworten gibt es weiter; wir sind informiert und schalten so schnell wie möglich wieder frei.";
+const GUTHABEN = /credit balance is too low|purchase credits/i;
+export function istGuthabenFehler(fehler: unknown): boolean {
+  const gesehen = new Set<unknown>();
+  let aktuell = fehler;
+  while (aktuell && typeof aktuell === "object" && !gesehen.has(aktuell) && gesehen.size < 8) {
+    gesehen.add(aktuell);
+    const e = aktuell as { message?: unknown; error?: unknown; cause?: unknown };
+    if (GUTHABEN.test(`${e.message ?? ""} ${JSON.stringify(e.error ?? "")}`)) return true;
+    aktuell = e.cause;
+  }
+  return typeof fehler === "string" && GUTHABEN.test(fehler);
+}
 export const istSperre = (x: unknown): x is KiSperre => typeof x === "string" && Object.prototype.hasOwnProperty.call(KI_SPERRE, x);
 
 /** Thrown by the API client when no AI budget could be reserved; the message names the reason for the customer. */
@@ -34,7 +48,7 @@ export function kiSperrText(fehler: unknown): string | null {
     if (m.startsWith("KI-Budget: ")) return m.slice(11);
     aktuell = (aktuell as { cause?: unknown }).cause;
   }
-  return null;
+  return istGuthabenFehler(fehler) ? GUTHABEN_TEXT : null;
 }
 
 /** The SDK wraps exceptions from its fetch hook in an APIConnectionError. */
@@ -46,7 +60,7 @@ export function kiFehlerart(fehler: unknown): KiFehlerart | undefined {
     gesehen.add(aktuell);
     const e = aktuell as { message?: unknown; name?: unknown; cause?: unknown; status?: unknown };
     const text = `${e.name || ""} ${e.message || ""}`;
-    if (/budget|KI-Ausgabelimit/i.test(text)) return "budget";
+    if (/budget|KI-Ausgabelimit|credit balance is too low|purchase credits/i.test(text)) return "budget";
     if (/timeout|timed out|Zeitlimit/i.test(text)) art = "zeitlimit";
     else if (art !== "zeitlimit" && /connection|Verbindung|network|fetch failed|Datenbankzugang/i.test(text)) art = "verbindung";
     if (!art && [429, 500, 502, 503, 529].includes(Number(e.status))) art = "dienst";

@@ -13,7 +13,7 @@ import { firmenInfos } from "./firmeninfos.ts";
 import { rechercheProfil } from "./firmenrecherche.ts";
 import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { apiClient } from "./api-budget.ts";
-import { kiFehlerart, kiFehlermeldung, type KiFehlerart } from "./ki-fehler.ts";
+import { istGuthabenFehler, kiFehlerart, kiFehlermeldung, type KiFehlerart } from "./ki-fehler.ts";
 import { standorteBereinigen, standortSchluessel, suchorteAnStandorten, type Firmenstandort, type SuchgebietModus } from "./firmenstandorte.ts";
 export { FIRMEN_WEB_SUCHTOOL } from "./firmenrecherche.ts";
 import { db, html, mailZeitSetzen, sitzung, stundenOptionen, weiterleiten, type Bereich, type KontoEnv, type Sitzung } from "./konto.ts";
@@ -96,7 +96,7 @@ async function anzeigen(s: Sitzung, env: KontoEnv, firma: string, name: string, 
   if (gespeichert?.einstellungen?.recherche_status === "wartet" && !neu) {
     const e = gespeichert.einstellungen;
     const warten = Date.parse(e.recherche_wiederholen_ab || "") > Date.now();
-    const meldung = warten ? kiFehlermeldung(new Error(e.recherche_fehler === "budget" ? "KI-Budget" : "Connection error")) : "";
+    const meldung = warten ? kiFehlermeldung(new Error(e.recherche_fehler === "budget" ? `KI-Budget ${String((e as { recherche_fehler_text?: string }).recherche_fehler_text ?? "")}` : "Connection error")) : "";
     return html(seite(`Firma prüfen: ${name}`, automatischeSeite(firma, name, e.recherche_website ?? website, plz, ort, meldung, bereinigen({ ...e, beschreibung: gespeichert.beschreibung }))));
   }
   if (gespeichert?.einstellungen?.leistungen && !neu) {
@@ -156,6 +156,7 @@ async function automatischEinrichten(s: Sitzung, env: EinrichtungEnv, firma: str
   } catch (e) {
     console.warn(`Automatische Einrichtung: ${e instanceof Error ? e.message : String(e)}`);
     if (kiFehlerart(e) !== "budget") await fehlerMelden(env, "einrichtung", `${name.slice(0, 60)}: ${fehlerText(e)}`);
+    else if (istGuthabenFehler(e)) await fehlerMelden(env, "budget", "Guthaben bei Anthropic aufgebraucht: alle KI-Funktionen stehen still. Guthaben aufladen oder Max-Guthaben verknüpfen.");
     const meldung = `Die Firmenrecherche wurde nicht abgeschlossen. ${kiFehlermeldung(e)}`;
     if (!eingerichtet) {
       const art = kiFehlerart(e);

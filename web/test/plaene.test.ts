@@ -76,3 +76,14 @@ test("Belege: Ist die KI pausiert, steht der Grund statt 'nicht lesbar'", () => 
   assert.match(h, /für heute ausgelastet/);
   assert.doesNotMatch(h, /konnte nicht gelesen werden/);
 });
+
+import { GUTHABEN_TEXT, istGuthabenFehler } from "../src/ki-fehler.ts";
+test("Guthaben beim KI-Anbieter leer: klare Meldung statt 'nicht abgeschlossen'", () => {
+  const api = Object.assign(new Error('400 {"type":"error","error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits."}}'), { status: 400 });
+  assert.equal(istGuthabenFehler(api), true);
+  assert.equal(kiFehlerart(api), "budget");
+  assert.equal(kiSperrText(api), GUTHABEN_TEXT);
+  assert.match(kiFehlermeldung(api), /gerade nicht verfügbar/);
+  assert.match(kiFehlermeldung(new Error("KI-Budget Your credit balance is too low")), /gerade nicht verfügbar/, "gespeicherter Fehler beim Wiederaufruf");
+  assert.equal(istGuthabenFehler(new Error("Connection error")), false);
+});
