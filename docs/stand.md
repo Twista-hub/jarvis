@@ -14,6 +14,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Neues Aussehen (04./05.11.2026, live):** drei Darstellungen unter Mehr → Darstellung → Farben: Hell · Glas (Standard), Dunkel · Premium (auch automatisch bei dunklem Handy), Technisch. Code: `web/src/themen.ts` (CSS, nach den Grundstilen), `web/src/symbole.ts` (Liniensymbole statt Emojis: Kacheln, Leiste, Listen in `seite()`, Überschriften und Reiter erst nach der Übersetzung in `darstellen()`), `web/src/uebersicht.ts` (Begrüßung als Seitentitel, Kennzahlen, nächste Frist, Punkte-/Fristen-Balken, Leitstand nur im technischen Modus). Entwürfe: `docs/design/crewtender/app-entwuerfe/`. Startseite: „und viele weitere Branchen“. Englisch ist Standard (Browsersprache, sonst Englisch), `/` international.
 - **Klickprüfung 05.11.2026:** 3 Firmen, je 259–300 Seiten, 0 Probleme, 0 Fehler. Katalogsuche (Markt & Chancen) war einmal 8,5 s langsam → Migration `20261105010000_katalog_suche_schneller.sql` (Rolle einmal prüfen, Teilindizes), live.
 - **Preise live (06.11.2026):** /preise öffentlich, /konto/plan mit Bestellung per Mail an kontakt@ (Plan setzen auf /konto/betreiber, Rechnung über Kundenrechnungen). Free 0, Basis 59, Pro 149, Business 399 €/Monat, jährlich 10 Monatspreise. Nutzungsbedingungen §5/§9 angepasst (Stand 06.11.). Plangrenzen noch NICHT durchgesetzt.
+- **KI-Kostenbremse live (06.11.2026):** Migration `20261106010000_ki_planbudget.sql`. Bezahlte Pläne haben ein KI-Monatskontingent pro Firma (Basis 10 $, Pro 25 $, Business 60 $). Gratis-Firmen (Demo/Probe) teilen sich zusätzlich 5 $ im Monat; ist der Topf leer, kommt einmal im Monat eine Handy-Meldung an Benjamin, zahlende Kunden laufen weiter. Firmen ohne Grenze (Betreiber-Seite) bleiben ohne Grenze. `jarvis_katalog.ki_sperrgrund(firma, betrag)` nennt den Grund (demo, probe, plan, topf, anfrage, monat, tag); Kunden sehen ihn als Hinweis in der Übersicht (Inhaber/Admin), im Steckbrief („Steckbrief pausiert“), bei der Firmenprüfung und beim Beleg-Lesen, in 6 Sprachen. Das globale Limit (20 $/Monat) bleibt; anheben, sobald zahlende Kunden da sind.
+- **Instagram ↔ Facebook verbunden** (Benjamin, 06.11.2026).
 - **Mails:** kontakt@ leitet Kopien an restockhero.contact@gmail.com (Label „Crewtender“), Claude liest sie dort. LinkedIn-Seite angelegt (Benjamin).
 - **Browser-Chat:** Auftrag LinkedIn-Unternehmensseite ab 04.11. liegt in `docs/auftraege/crewtender-linkedin.md`.
 
@@ -95,6 +97,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 06.11.2026 – Claude Code (KI-Kostenbremse mit Hinweisen)
+- Benjamin: „Schalte die Kostenbremse live, aber mit Hinweisen, wenn etwas aufgebraucht ist.“ Umgesetzt und live (Datenbank-Lauf grün, „Applying migration 20261106010000_ki_planbudget.sql“; Upload-Seite ausgerollt). Code: `web/src/ki-fehler.ts` (`KI_SPERRE`, `KiBudgetFehler`, `kiSperrText`), `api-budget.ts` (fragt bei Ablehnung den Grund ab), `konto.ts` (`probeHinweis`), `workflow.ts`, `belege.ts`. Tests: Rechte-Test und 390 Web-Tests grün.
 
 ### 03.11.2026 nachts – Claude Code (Betreiber-Seite, Kundenrechnungen, LinkedIn-Auftrag)
 - Migration `20261103300000_betreiber_firmen.sql`: `betreiber_firmen()`, `betreiber_ki_budget(f, budget)`, `betreiber_paket(f, neu)`; die Schutz-Trigger `probe_ki` und `paket_schuetzen` lassen nur den Betreiber durch. Seite `/konto/betreiber` erweitert (web/src/loeschen.ts).
