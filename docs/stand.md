@@ -88,6 +88,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
   - Suche: Umkreis-Filter um den Firmensitz; KI liest alle Ausschreibungen der Region statt nur Wortabgleich; Bewertung mit Opus statt Sonnet; Daumen hoch/runter je Treffer schärft das Profil nach.
   - Steckbrief: höherer Effort, Eignungs-Checkliste gegen die Firmenunterlagen.
   - Reihenfolge laut Claude: Suchprofil + Umkreis zuerst, dann Bewertung, dann Steckbrief. Die Verbesserungen dürfen vorher gebaut werden; nur die Budgeterhöhung wartet auf das Guthaben.
+  - Stand 06.11.: Umkreis je Standort (Standard 50 km), Auftraggeber- und Auftragswert-Filter, Ausschlüsse, Daumen runter → Ausschlusswort und Füllwort-Liste sind bereits gebaut. Offen bleiben nur die teureren Modelle/Effort (Opus für Suchprofil und Bewertung, höherer Steckbrief-Effort) – warten auf das Max-Guthaben.
 - ~~**Supabase-Testkonto löschen**~~: Ursache behoben (Migration `20261031150000_kontoloeschung_inhaber.sql`, live seit 31.10.), Testkonto von Benjamin erfolgreich gelöscht.
 - **Erster Suchlauf nach Registrierung:** Firmenrecherche samt strukturiertem Suchprofil ist jetzt wirklich live im App-Worker geprüft. Ein vollständiger Live-Sofortlauf mit einem neu registrierten Konto bleibt separat offen. Der interne Test legt kein Konto an, schreibt keine Kundenprofildaten und versendet keine Nachrichten. Scheitert der Sofortstart, bleibt das Profil gespeichert und kann erneut gestartet werden.
 - **Schweiz (simap.ch):** wartet auf Benjamins OK, weil die API-AGB akzeptiert werden müssten und die Nutzung kosten kann (`docs/oesterreich.md`).
@@ -102,6 +103,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 06.11.2026 – Claude Code (RestockHero-PR, Alarm-eForms)
+- RestockHero: Kein PR angelegt – dieselbe Minuten-Sparänderung an checks.yml ist inzwischen auf main (andere Sitzung); Branch main-zn4fkv ist damit überholt.
+- Alarm: Bekanntmachungen mit Nummer statt UUID laden jetzt die volle eForms-Fassung (Test mit echtem Export 04.11.).
 
 ### 06.11.2026 – Claude Code (Fristen-Nachtrag fertig, Social-Posts)
 - Nachtrag: 68 von 68 Tagesexporten gelesen, 13.018 Bekanntmachungen mit Frist (5.659 noch offen), bei Firmen 77 Fristen und 42 Fragefristen nachgetragen; 22.793 ohne Frist (meist Zuschläge/Vorinformationen).
