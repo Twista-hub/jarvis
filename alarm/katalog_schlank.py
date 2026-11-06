@@ -26,6 +26,20 @@ def main() -> None:
     modus = sys.argv[1] if len(sys.argv) > 1 else "probe"
     with verbinden() as con:
         print("Vorher:", groesse(con))
+        heap, toast, idx = con.execute("""select pg_relation_size('public.vergabekatalog'), coalesce(pg_total_relation_size(reltoastrelid), 0), pg_indexes_size('public.vergabekatalog')
+                                          from pg_class where oid = 'public.vergabekatalog'::regclass""").fetchone()
+        tot, lebend = con.execute("select n_dead_tup, n_live_tup from pg_stat_user_tables where relid = 'public.vergabekatalog'::regclass").fetchone()
+        spalten = con.execute("""select sum(pg_column_size(roh)), sum(pg_column_size(beschreibung)), sum(pg_column_size(lose)), sum(pg_column_size(bedarf)),
+                                        sum(pg_column_size(zuschlaege)), count(*) filter (where status in ('offen', 'unbekannt') and frist is null),
+                                        sum(pg_column_size(roh)) filter (where status in ('offen', 'unbekannt') and frist is null) from public.vergabekatalog""").fetchone()
+        print(f"Tabelle {heap / 1e6:.0f} MB, ausgelagerte Daten (TOAST) {toast / 1e6:.0f} MB, Indizes {idx / 1e6:.0f} MB; Zeilen {lebend}, tote Zeilen {tot}")
+        print("Spalten: roh {:.0f} MB, beschreibung {:.0f} MB, lose {:.0f} MB, bedarf {:.0f} MB, zuschlaege {:.0f} MB; ohne Frist (gelten als offen): {} Zeilen, roh {:.0f} MB".format(
+            *(x / 1e6 for x in spalten[:5]), spalten[5], (spalten[6] or 0) / 1e6))
+        for name, groesse_ in con.execute("""select indexrelid::regclass::text, pg_relation_size(indexrelid) from pg_index where indrelid = 'public.vergabekatalog'::regclass order by 2 desc""").fetchall():
+            print(f"  Index {name}: {groesse_ / 1e6:.0f} MB")
+        for name, g in con.execute("""select relname, pg_total_relation_size(c.oid) from pg_class c join pg_namespace n on n.oid = c.relnamespace
+                                      where c.relkind = 'r' and n.nspname not in ('pg_catalog', 'information_schema') order by 2 desc limit 8""").fetchall():
+            print(f"  Tabelle {name}: {g / 1e6:.0f} MB")
         n, alt, neu = con.execute(f"""select count(*), coalesce(sum(pg_column_size(k.roh)), 0), coalesce(sum(pg_column_size(jarvis_intern.roh_schlank(k.roh))), 0)
                                       from public.vergabekatalog k where {ZIEL}""").fetchone()
         print(f"{n} abgeschlossene oder abgelaufene Bekanntmachungen: Rohdaten {alt / 1e6:.0f} MB → {neu / 1e6:.0f} MB")
