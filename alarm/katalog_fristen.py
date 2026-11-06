@@ -6,7 +6,7 @@ notice of the same source. New days get them in the importer (web/src/katalog-da
 fills the existing rows: catalog frist/status/lots/roh and, for firm records taken over from the catalog, only an empty
 deadline (vorgaenge.frist / fragefrist). Nothing else in firm records is changed.
 
-CLI: python3 katalog_fristen.py [--probe]   (--probe: count only, write nothing)
+CLI: python3 katalog_fristen.py [--probe | --stand]   (--probe: count only; --stand: database size only)
 """
 import io
 import json
@@ -97,8 +97,21 @@ def export_lesen(tag: str) -> dict | None:
     return karte
 
 
+GRENZE_BYTES = 400_000_000  # Supabase free plan: 500 MB; the importer pauses at 350 MB.
+
+
+def stand(con) -> int:
+    groesse, katalog = con.execute("select pg_database_size(current_database()), pg_total_relation_size('public.vergabekatalog')").fetchone()
+    print(f"Datenbank {groesse / 1e6:.0f} MB, davon Katalog {katalog / 1e6:.0f} MB (Grenze für diesen Ablauf {GRENZE_BYTES / 1e6:.0f} MB)")
+    return groesse
+
+
 def main() -> None:
     probe = "--probe" in sys.argv
+    if "--stand" in sys.argv:
+        with verbinden() as con:
+            stand(con)
+        return
     with verbinden() as con:
         zeilen = con.execute("""select id, roh, lose, status, (quell_datum at time zone 'UTC')::date from public.vergabekatalog
                                 where quelle = 'bks' and frist is null and status in ('offen', 'unbekannt')""").fetchall()
@@ -137,6 +150,8 @@ def main() -> None:
         print("Probelauf: nichts geschrieben")
         return
     with verbinden() as con:
+        if stand(con) > GRENZE_BYTES:
+            raise SystemExit("Datenbank zu groß, nichts geschrieben (Kostenschutz).")
         for i in range(0, len(neu), 500):
             with con.cursor() as c:
                 c.executemany("update public.vergabekatalog set frist = %s, status = %s, lose = %s::jsonb, roh = %s::jsonb where id = %s and frist is null", neu[i:i + 500])
@@ -147,6 +162,7 @@ def main() -> None:
                            where v.katalog_id = k.id and v.fragefrist is null and k.roh->'tender'->'enquiryPeriod'->>'endDate' is not null""").rowcount
         con.commit()
         rest = con.execute("select count(*) from public.vergabekatalog where quelle = 'bks' and frist is null and status in ('offen', 'unbekannt')").fetchone()[0]
+        stand(con)
     print(f"Geschrieben. Vorgänge der Firmen: {n} Fristen und {m} Fragefristen nachgetragen. Ohne Frist bleiben {rest} Bekanntmachungen (meist Zuschläge oder Vorinformationen).")
 
 
