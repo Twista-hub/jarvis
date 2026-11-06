@@ -1,0 +1,28 @@
+# Fill missing deadlines in the catalog from the eForms exports (alarm/katalog_fristen.py). Public CC0 data only;
+# firm records get only an empty deadline filled. "probe" counts without writing.
+name: Katalog-Fristen
+on:
+  workflow_dispatch:
+    inputs:
+      modus:
+        description: "probe (nur zählen) oder schreiben"
+        default: "probe"
+permissions:
+  contents: read
+concurrency:
+  group: katalog-fristen
+jobs:
+  fristen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q "psycopg[binary]"
+      - name: Fristen nachtragen
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          MODUS: ${{ inputs.modus }}
+        run: cd alarm && python katalog_fristen.py $([ "$MODUS" = schreiben ] || echo --probe)

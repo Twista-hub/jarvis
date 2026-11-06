@@ -1,3 +1,4 @@
+import { Unzip, UnzipInflate } from "fflate";
 import { BERUFE, BERUF_SYNONYME } from "./berufe.ts";
 
 // Source data only. No customer profiles, contact lists or private documents are shared.
@@ -121,4 +122,82 @@ export async function normalisieren(rel: any, tag: string, vorher?: any): Promis
   const data = { id: `bks:${quelleId}`, quelle: "bks", quelle_id: quelleId, quell_datum: datum, titel: str(t.title, 1000), beschreibung, link: str(link, 3000), auftraggeber, auftraggeber_id: `bks:${buyerId}`, ort: adresse.map((x: any) => [x.postalCode, x.locality, x.region].filter(Boolean).join(" ")).filter(Boolean).join(" · ") + (liefer.length ? "" : " (Auftraggeberadresse; Einsatzort prüfen)"), plz: [...new Set<string>(adresse.map((x: any) => str(x.postalCode, 15)).filter(Boolean))], cpv, frist, status, lose, bedarf, zuschlaege, vertragsende };
   const { quell_datum: _datum, ...inhalt } = data;
   return { ...data, version: await hash(JSON.stringify(inhalt)), roh };
+}
+
+// Deadlines (06.11.2026): the OCDS export of oeffentlichevergabe.de carries no tenderPeriod; the deadline for tenders
+// (BT-131) and for questions (BT-13) is only in the eForms notice of the same CC0 source. The importer reads the daily
+// eForms export alongside and writes the deadlines into the OCDS release, so catalog, search and alarm see them.
+export type EformsFristen = { frist: string | null; fragefrist: string | null; lose: Record<string, string> };
+const eZeit = (datum?: string, uhr?: string): string | null => {
+  const d = datum?.match(/^(\d{4}-\d{2}-\d{2})(Z|[+-]\d{2}:\d{2})?$/);
+  if (!d) return null;
+  const u = uhr?.match(/^(\d{2}:\d{2}(?::\d{2})?)(Z|[+-]\d{2}:\d{2})?$/);
+  const zone = u?.[2] || d[2] || "+01:00";
+  const iso = `${d[1]}T${u ? (u[1].length === 5 ? `${u[1]}:00` : u[1]) : "23:59:59"}${zone}`;
+  return Number.isFinite(Date.parse(iso)) ? new Date(iso).toISOString() : null;
+};
+const ePeriode = (xml: string, element: string): string | null => {
+  const m = xml.match(new RegExp(`<cac:${element}>([\\s\\S]*?)</cac:${element}>`));
+  if (!m) return null;
+  return eZeit(m[1].match(/<cbc:EndDate>([^<]+)</)?.[1]?.trim(), m[1].match(/<cbc:EndTime>([^<]+)</)?.[1]?.trim());
+};
+const spaeteste = (werte: (string | null)[]) => werte.filter(Boolean).sort().at(-1) as string | undefined ?? null;
+
+/** Deadlines of one eForms notice, under its notice id (BT-701) and its procedure id (BT-04, part of the OCID). */
+export function eformsFristen(xml: string): { ids: string[]; fristen: EformsFristen } | null {
+  const id = xml.match(/<cbc:ID schemeName="notice-id">([^<]+)</)?.[1]?.trim();
+  const verfahren = xml.match(/<cbc:ContractFolderID>([^<]+)</)?.[1]?.trim();
+  if (!id && !verfahren) return null;
+  const lose: Record<string, string> = {};
+  const fragen: (string | null)[] = [];
+  for (const m of xml.matchAll(/<cac:ProcurementProjectLot>([\s\S]*?)<\/cac:ProcurementProjectLot>/g)) {
+    const los = m[1].match(/<cbc:ID schemeName="Lot">([^<]+)</)?.[1]?.trim();
+    const frist = ePeriode(m[1], "TenderSubmissionDeadlinePeriod");
+    if (los && frist) lose[los] = frist;
+    fragen.push(ePeriode(m[1], "AdditionalInformationRequestPeriod"));
+  }
+  const ohneLose = xml.replace(/<cac:ProcurementProjectLot>[\s\S]*?<\/cac:ProcurementProjectLot>/g, "");
+  const frist = spaeteste([ePeriode(ohneLose, "TenderSubmissionDeadlinePeriod"), ...Object.values(lose)]);
+  const fragefrist = spaeteste([ePeriode(ohneLose, "AdditionalInformationRequestPeriod"), ...fragen]);
+  if (!frist && !fragefrist) return null;
+  return { ids: [id, verfahren].filter(Boolean) as string[], fristen: { frist, fragefrist, lose } };
+}
+
+/** OCDS release with the eForms deadlines filled in where the release has none (copy; the release itself stays). */
+export function fristenEinsetzen(rel: any, karte: Map<string, EformsFristen>): any {
+  if (!rel?.tender || !karte.size) return rel;
+  const verfahren = String(rel.ocid ?? "").replace(/^ocds-[a-z0-9]+-/, "");
+  const f = karte.get(String(rel.id ?? "")) ?? karte.get(verfahren);
+  if (!f) return rel;
+  const t = rel.tender;
+  const lots = (t.lots ?? []).map((l: any) => (l?.tenderPeriod?.endDate || !f.lose[l?.id] ? l : { ...l, tenderPeriod: { ...(l.tenderPeriod ?? {}), endDate: f.lose[l.id] } }));
+  return { ...rel, tender: { ...t, lots: t.lots ? lots : t.lots,
+    tenderPeriod: t.tenderPeriod?.endDate || !f.frist ? t.tenderPeriod : { ...(t.tenderPeriod ?? {}), endDate: f.frist },
+    enquiryPeriod: t.enquiryPeriod?.endDate || !f.fragefrist ? t.enquiryPeriod : { ...(t.enquiryPeriod ?? {}), endDate: f.fragefrist } } };
+}
+
+/** Deadlines of a whole daily eForms export (zip), read file by file so only one notice is in memory at a time. */
+export function eformsKarte(zip: Uint8Array, grenze = 5_000_000): Map<string, EformsFristen> {
+  const karte = new Map<string, EformsFristen>();
+  const unzip = new Unzip((datei) => {
+    if (!datei.name.endsWith(".xml")) return;
+    const teile: Uint8Array[] = [];
+    let groesse = 0;
+    datei.ondata = (fehler, daten, ende) => {
+      if (fehler || groesse > grenze) return;
+      groesse += daten.length;
+      if (groesse > grenze) return;
+      teile.push(daten);
+      if (!ende) return;
+      const alles = new Uint8Array(groesse);
+      let o = 0;
+      for (const t of teile) { alles.set(t, o); o += t.length; }
+      const r = eformsFristen(new TextDecoder().decode(alles));
+      if (r) for (const id of r.ids) karte.set(id, r.fristen);
+    };
+    datei.start();
+  });
+  unzip.register(UnzipInflate);
+  unzip.push(zip, true);
+  return karte;
 }

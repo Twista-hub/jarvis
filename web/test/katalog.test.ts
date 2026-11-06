@@ -75,3 +75,37 @@ test("Eingeschränkte Mitarbeiter dürfen keine Markt- oder Partnerdaten lesen",
   assert.equal(r!.status, 403);
   assert.equal(spy.mock.callCount(), 1);
 });
+
+import { zipSync, strToU8 } from "fflate";
+import { eformsFristen, eformsKarte, fristenEinsetzen } from "../src/katalog-daten.ts";
+const EFORMS = `<ContractNotice><cbc:ID schemeName="notice-id">aaaa-1111</cbc:ID><cbc:ContractFolderID>proc-2222</cbc:ContractFolderID>
+<cac:ProcurementProjectLot><cbc:ID schemeName="Lot">LOT-0001</cbc:ID><cac:TenderingProcess><cac:TenderSubmissionDeadlinePeriod><cbc:EndDate>2026-12-09+01:00</cbc:EndDate>
+<cbc:EndTime>10:30:00+01:00</cbc:EndTime></cac:TenderSubmissionDeadlinePeriod><cac:AdditionalInformationRequestPeriod><cbc:EndDate>2026-12-01+01:00</cbc:EndDate></cac:AdditionalInformationRequestPeriod></cac:TenderingProcess></cac:ProcurementProjectLot>
+<cac:ProcurementProjectLot><cbc:ID schemeName="Lot">LOT-0002</cbc:ID><cac:TenderingProcess><cac:TenderSubmissionDeadlinePeriod><cbc:EndDate>2026-12-12+01:00</cbc:EndDate></cac:TenderSubmissionDeadlinePeriod></cac:TenderingProcess></cac:ProcurementProjectLot></ContractNotice>`;
+test("Fristen aus eForms: je Los, späteste als Verfahrensfrist, Fragefrist", () => {
+  const r = eformsFristen(EFORMS)!;
+  assert.deepEqual(r.ids, ["aaaa-1111", "proc-2222"]);
+  assert.equal(r.fristen.lose["LOT-0001"], "2026-12-09T09:30:00.000Z");
+  assert.equal(r.fristen.lose["LOT-0002"], "2026-12-12T22:59:59.000Z", "ohne Uhrzeit: Tagesende");
+  assert.equal(r.fristen.frist, "2026-12-12T22:59:59.000Z");
+  assert.equal(r.fristen.fragefrist, "2026-12-01T22:59:59.000Z");
+  assert.equal(eformsFristen("<ContractAwardNotice><cbc:ID schemeName=\"notice-id\">x</cbc:ID></ContractAwardNotice>"), null, "Zuschlag ohne Frist");
+});
+
+test("Fristen aus eForms: Export-Zip lesen und in die OCDS-Bekanntmachung einsetzen", async () => {
+  const karte = eformsKarte(zipSync({ "aaaa-1111-01.xml": strToU8(EFORMS), "liesmich.txt": strToU8("x") }));
+  assert.equal(karte.size, 2);
+  const rel = { ocid: "ocds-mnwr74-proc-2222", id: "anders", date: "2026-11-04T08:00:00Z", tender: { title: "Reinigung", lots: [{ id: "LOT-0001", title: "Los 1" }, { id: "LOT-0002", title: "Los 2" }] } };
+  const mit = fristenEinsetzen(rel, karte);
+  assert.equal(mit.tender.tenderPeriod.endDate, "2026-12-12T22:59:59.000Z", "über die Verfahrens-ID gefunden");
+  assert.equal(mit.tender.lots[0].tenderPeriod.endDate, "2026-12-09T09:30:00.000Z");
+  assert.equal(mit.tender.enquiryPeriod.endDate, "2026-12-01T22:59:59.000Z");
+  assert.equal((rel.tender as any).tenderPeriod, undefined, "Original bleibt unverändert");
+  const n = (await normalisieren(mit, "2026-11-04"))!;
+  assert.equal(n.frist, "2026-12-12T22:59:59.000Z");
+  assert.equal(n.status, "offen");
+  assert.equal(n.lose[0].frist, "2026-12-09T09:30:00.000Z");
+  const schon = { ...rel, tender: { ...rel.tender, tenderPeriod: { endDate: "2027-01-01T00:00:00Z" } } };
+  assert.equal(fristenEinsetzen(schon, karte).tender.tenderPeriod.endDate, "2027-01-01T00:00:00Z", "vorhandene Frist bleibt");
+  assert.equal(fristenEinsetzen(rel, new Map()), rel);
+});
