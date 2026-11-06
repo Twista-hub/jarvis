@@ -9,7 +9,7 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 | E-Mail hello@crewtender.eu | Cloudflare Email Routing → kontakt@wpdigitalranger.com | aktiv 03.11.2026 | |
 | Instagram | @crew_tender (Unternehmenskonto, Kategorie Software; Anmeldung mit kontakt@wpdigitalranger.com, laut Benjamin 03.11.) | angelegt 03.11.2026 (Benjamin), eingerichtet, mit Facebook-Seite Crewtender verbunden (06.11.2026) | https://www.instagram.com/crew_tender/ |
 | Facebook-Seite | Crewtender (Kategorie Software) | angelegt 03.11.2026 unter Benjamins persönlichem Profil, mit Instagram @crew_tender verbunden (06.11.2026) | https://www.facebook.com/profile.php?id=61596423171638 |
-| LinkedIn-Seite | – | gesperrt bis frühestens 04.11.2026 (neues Konto, LinkedIn verlangt 1 Tag Wartezeit) | |
+| LinkedIn-Seite | Crewtender | angelegt (Benjamin, bestätigt 06.11.2026) | Link noch eintragen |
 | Bluesky | @crewtender.eu (Anmeldung kontakt@wpdigitalranger.com) | angelegt 03.11.2026 (Benjamin), eingerichtet, Domain-Handle verifiziert, E-Mail bestätigt | https://bsky.app/profile/crewtender.eu |
 | Mastodon | @crewtender@mastodon.social (Anmeldung kontakt@wpdigitalranger.com) | angelegt 03.11.2026 (Benjamin), eingerichtet | https://mastodon.social/@crewtender |
 
@@ -18,6 +18,10 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 - hello@crewtender.eu ist nur die **öffentliche** Kontaktadresse in Profilen und auf der Website (leitet an kontakt@ weiter).
 
 ## Einträge
+
+### 06.11.2026 – Claude Code: Mail-Weiterleitung und LinkedIn
+- Weiterleitung kontakt@wpdigitalranger.com → restockhero.contact@gmail.com (Kopie bleibt in kontakt@) funktioniert, Label „Crewtender“ in Gmail. Testmail um 07:03 angekommen. Ältere Mails wurden nicht nachträglich weitergeleitet.
+- LinkedIn-Unternehmensseite laut Benjamin angelegt. Link bei Gelegenheit in der Konten-Übersicht ergänzen.
 
 ### 06.11.2026 – Browser-Chat: Mail-Weiterleitung
 - Private Email (kontakt@wpdigitalranger.com, neue Oberfläche): Settings → Forwarding → „Add a forwarding address“ restockhero.contact@gmail.com → Save (Benjamin war angemeldet und hat gespeichert). „Email forwarding“ an, **„Keep an email copy“ an**, nach dem Neuladen geprüft. Keine Regeln geändert, nichts gelöscht.
