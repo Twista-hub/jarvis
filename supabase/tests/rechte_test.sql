@@ -102,6 +102,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261106010000_ki_planbudget.sql
 \ir ../migrations/20261106020000_demo_katalog.sql
 \ir ../migrations/20261106030000_social_posts.sql
+\ir ../migrations/20261106040000_katalog_roh_schlank.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -413,6 +414,18 @@ set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000a');
 select pruefe((select count(*)=1 from public.katalog_suche(:'firma','','','','offen')),'Bestandssuche schließt abgelaufene Fristen aus');
 select pruefe((select count(*)=0 from public.katalog_suche(:'selbst','','','','offen')),'Katalogsuche verlangt Mitgliedschaft der angegebenen Firma');
+reset role;
+-- Rohdaten verkleinern: Fristen, Werte, Laufzeiten, Lose und Zuschläge bleiben, Beschreibung, Positionen und Dokumente fallen weg.
+select pruefe((select r ? '_schlank' and r #>> '{tender,tenderPeriod,endDate}' = '2026-12-01' and r #>> '{tender,lots,0,contractPeriod,endDate}' = '2028-01-31'
+   and r #>> '{tender,value,amount}' = '1000' and r #>> '{awards,0,suppliers,0,name}' = 'Firma X' and r #>> '{buyer,contactPoint,email}' = 'vergabe@stadt.test'
+   and not (r -> 'tender') ? 'description' and not (r -> 'tender') ? 'items' and not (r -> 'tender') ? 'documents' and not r ? 'parties'
+   and length(r::text) < length(o::text)
+  from (select o, jarvis_intern.roh_schlank(o) r from (select '{"ocid":"ocds-1","id":"n1","date":"2026-11-01","parties":[{"id":"x","name":"Max"}],
+   "buyer":{"name":"Stadt","contactPoint":{"email":"vergabe@stadt.test"}},
+   "tender":{"title":"T","description":"lang lang lang","value":{"amount":1000,"currency":"EUR"},"tenderPeriod":{"endDate":"2026-12-01"},
+   "items":[{"id":"1","classification":{"id":"90911000"}}],"documents":[{"url":"https://x"}],
+   "lots":[{"id":"LOT-1","title":"Los","description":"d","contractPeriod":{"endDate":"2028-01-31"}}]},
+   "awards":[{"id":"a","suppliers":[{"name":"Firma X","address":{"street":"s"}}]}]}'::jsonb o) x) y), 'Rohdaten schlank: Nötiges bleibt, Ballast fällt weg');
 -- Öffentliche Demo: anonyme Suche in den öffentlichen Bekanntmachungen, nie Kundendaten.
 reset role;
 insert into jarvis_intern.demo_steckbriefe (katalog_id, titel, markdown) values ('bks:test', 'Elektriker für die Verwaltung', repeat('Neutraler Steckbrief. ', 20));

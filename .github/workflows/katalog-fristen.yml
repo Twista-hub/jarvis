@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       modus:
-        description: "probe (nur zählen), schreiben oder stand (nur Datenbankgröße)"
+        description: "probe, schreiben, stand (Datenbankgröße), schlank-probe oder schlank (Rohdaten alter Bekanntmachungen verkleinern)"
         default: "probe"
 permissions:
   contents: read
@@ -15,6 +15,7 @@ jobs:
   fristen:
     runs-on: ubuntu-latest
     timeout-minutes: 150
+
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -25,4 +26,12 @@ jobs:
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           MODUS: ${{ inputs.modus }}
-        run: cd alarm && python katalog_fristen.py $(case "$MODUS" in schreiben) ;; stand) echo --stand ;; *) echo --probe ;; esac)
+        run: |
+          cd alarm
+          case "$MODUS" in
+            schlank) python katalog_schlank.py schreiben ;;
+            schlank-probe) python katalog_schlank.py probe ;;
+            schreiben) python katalog_fristen.py ;;
+            stand) python katalog_fristen.py --stand ;;
+            *) python katalog_fristen.py --probe ;;
+          esac
