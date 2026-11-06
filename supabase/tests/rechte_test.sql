@@ -101,6 +101,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261105010000_katalog_suche_schneller.sql
 \ir ../migrations/20261106010000_ki_planbudget.sql
 \ir ../migrations/20261106020000_demo_katalog.sql
+\ir ../migrations/20261106030000_social_posts.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -426,6 +427,10 @@ select pruefe((select count(*) = 1 from public.demo_steckbriefe()) and public.de
 do $$ begin
   perform 1 from public.vergabekatalog;
   raise exception 'FEHLER: anon liest den Katalog direkt';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  perform 1 from jarvis_intern.social_posts;
+  raise exception 'FEHLER: anon liest die Social-Posts';
 exception when insufficient_privilege then null; end $$;
 do $$ begin
   perform 1 from jarvis_intern.demo_steckbriefe;

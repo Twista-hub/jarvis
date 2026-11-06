@@ -103,6 +103,7 @@ export type DemoTreffer = { id: string; titel: string; auftraggeber: string; ort
 export type DemoBeispiel = { katalog_id: string; titel: string; auftraggeber: string; ort: string; frist: string | null; gewerk: string };
 export type DemoEintrag = { id: string; titel: string; auftraggeber?: string; ort?: string; frist: string | null; link: string; status?: string; beschreibung?: string; lose?: string[]; steckbrief: string | null };
 
+const ECHT_BANNER = `<aside class="demo-banner" role="note"><strong>📢 Echte öffentliche Ausschreibung</strong> aus amtlicher Quelle. Crewtender findet jeden Morgen die passenden Ausschreibungen für deine Firma. <a class="knopf" href="/registrieren">Kostenlos registrieren</a></aside>`;
 const katalogLink = (id: string) => `/demo/katalog/${encodeURIComponent(id)}`;
 const QUELLEN: Record<string, string> = { bks: "Bekanntmachungsservice des Bundes", ted: "TED (EU-Amtsblatt)", boamp: "BOAMP (Frankreich)" };
 const KI_FENSTER = `<aside class="hinweis demo-ki">🤖 <strong>Passt das zu deiner Firma?</strong> Nach der Anmeldung bewertet die KI jede neue Ausschreibung für deine Firma (1–10 Punkte mit Begründung) und schreibt Steckbriefe zu den besten Treffern. <a class="knopf" href="/registrieren">Kostenlos registrieren</a></aside>`;
@@ -122,7 +123,7 @@ export function demoKatalogSeite(e: DemoEintrag): string {
   const brief = e.steckbrief
     ? `<h2 id="steckbrief">Beispiel-Steckbrief</h2><p class="klein">Neutral, nur aus der öffentlichen Bekanntmachung geschrieben, ohne Bezug zu einer Firma. Nach der Anmeldung bekommst du Steckbriefe mit Bewertung für deine Firma – und aus hochgeladenen Vergabeunterlagen mit Losen, Mengen und Stunden.</p><div class="steckbrief-karte" data-ki-erstellt="true" data-ki-anbieter="Anthropic Claude">${KI_KENNUNG}${markdown(personenMaskieren(e.steckbrief))}</div>`
     : `${e.beschreibung ? `<h2>Beschreibung (aus der Bekanntmachung)</h2>${personenMaskieren(e.beschreibung).split(/\n{2,}/).slice(0, 8).map((x) => `<p>${escape(x)}</p>`).join("")}` : ""}${lose}<p class="klein">Zu dieser Ausschreibung gibt es in der Demo keinen Steckbrief. Nach der Anmeldung schreibt Crewtender Steckbriefe zu deinen besten Treffern. <a href="/demo/suche">Beispiel-Steckbriefe ansehen</a></p>`;
-  return `${banner}${reiter("suche")}<ul class="kopf-chips">${fakten}</ul>${e.link ? `<p><a class="knopf zweit" href="${escape(e.link)}" rel="noopener" target="_blank">Zur Bekanntmachung beim Auftraggeber ↗</a></p>` : ""}${brief}${KI_FENSTER}<p><a href="/demo/suche">← Zur Suche</a></p>`;
+  return `${ECHT_BANNER}${reiter("suche")}<ul class="kopf-chips">${fakten}</ul>${e.link ? `<p><a class="knopf zweit" href="${escape(e.link)}" rel="noopener" target="_blank">Zur Bekanntmachung beim Auftraggeber ↗</a></p>` : ""}${brief}${KI_FENSTER}<p><a href="/demo/suche">← Zur Suche</a></p>`;
 }
 
 type DemoEnv = { SUPABASE_URL: string; SUPABASE_KEY: string };
