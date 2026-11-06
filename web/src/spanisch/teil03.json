@@ -497,5 +497,11 @@
  "Bitte einen Plan wählen.": "Elige un plan.",
  "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "El cupo de IA de tu plan está agotado este mes. Los resultados por palabras clave siguen; la IA vuelve el día #. Más cupo:",
  "Plan wechseln": "Cambiar de plan",
- "oder Zusatzpaket.": "o paquete adicional."
+ "oder Zusatzpaket.": "o paquete adicional.",
+ "Das KI-Kontingent der Probezeit ist aufgebraucht. Treffer nach Stichworten gibt es weiter; mit einem Plan geht es sofort mit KI weiter.": "La cuota de IA del periodo de prueba se ha agotado. Los resultados por palabras clave continúan; con un plan, la IA sigue de inmediato.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent gibt es mit einem größeren Plan.": "La cuota de IA de vuestro plan se ha agotado este mes. Los resultados por palabras clave continúan; la IA vuelve el día #. Un plan mayor ofrece más cuota.",
+ "Das KI-Kontingent für Gratis-Konten ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI; mit einem Plan sofort.": "La cuota de IA de las cuentas gratuitas se ha agotado este mes. Los resultados por palabras clave continúan; la IA vuelve el día #, o de inmediato con un plan.",
+ "Die KI von Crewtender ist für diesen Monat ausgelastet. Treffer nach Stichworten gibt es weiter; wir sind informiert und schalten so schnell wie möglich wieder frei.": "La IA de Crewtender está al límite este mes. Los resultados por palabras clave continúan; estamos informados y la restableceremos lo antes posible.",
+ "Die KI von Crewtender ist für heute ausgelastet. Treffer nach Stichworten gibt es weiter, ab morgen wieder mit KI.": "La IA de Crewtender está al límite por hoy. Los resultados por palabras clave continúan; la IA vuelve mañana.",
+ "Pläne ansehen": "Ver planes"
 }

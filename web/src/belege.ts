@@ -10,6 +10,7 @@ import { buchungenAus, buchungsstapel, cp1252, fehltDatev, LOHNARTEN, type Datev
 import type { Rechnung } from "./rechnungen.ts";
 import { belegLesen, type Gelesen } from "./belegleser.ts";
 import type { KiEnv } from "./api-budget.ts";
+import { kiSperrText } from "./ki-fehler.ts";
 
 export type Beleg = { id: string; datum: string; lieferant: string; kategorie: string; brutto: number | string; ust_satz: number | string; notiz: string; beleg_mime: string | null; storniert_am?: string | null; storno_grund?: string };
 /** Cancelled receipts stay visible but count for nothing (GoBD, Rechtsprüfung 03.11.2026 S5). */
@@ -61,7 +62,7 @@ ${Object.entries(LOHNARTEN).map(([k, t]) => `<label>Lohnart ${t}<input name="la_
 <p class="klein">Buchungsstapel im DATEV-Format mit den Rechnungen und Belegen dieses Monats, SKR ${d.e.skr}. Die Konten sind ein <strong>Vorschlag</strong> (Sammeldebitor 10000, Sammelkreditor 70000, Erlöse ${d.e.skr === "03" ? "8400" : "4400"}); buchen und prüfen macht das Steuerbüro. Lohndaten für LODAS gibt es unter <a href="/konto/stunden">Stundenzettel</a>. <strong>Zugang fürs Steuerbüro:</strong> unter <a href="/konto/team">Firma &amp; Team</a> als „Leser“ mit Finanzfreigabe einladen (kostenlos) – dann sieht es Rechnungen und Belege und lädt alles selbst herunter, ändern kann es nichts.</p>${form}`;
 }
 
-export type Vorschlag = { g: Gelesen | null; dateiId: string; mime: string };
+export type Vorschlag = { g: Gelesen | null; dateiId: string; mime: string; sperre?: string | null };
 export function belegeSeite(liste: Beleg[], o: { monat: string; heute: string; nurLesen?: boolean; datev?: DatevTeil; vorschlag?: Vorschlag; kiAn?: boolean }): string {
   const v = o.vorschlag, g = v?.g;
   const wert = (x: string | number | undefined) => x === undefined || x === "" || x === 0 ? "" : escape(String(x));
@@ -71,7 +72,7 @@ export function belegeSeite(liste: Beleg[], o: { monat: string; heute: string; n
 <p class="klein">Firmenbelege (Tanken, Material, Miete …) per Foto erfassen. Am Monatsende die Liste als CSV an die Steuerberatung geben. Kategorie und Steuersatz trägst du ein; Crewtender gibt keine Steuerberatung. Mitarbeiter-Auslagen laufen weiter über <a href="/konto/spesen">Spesen</a>.</p>
 ${o.nurLesen ? "" : `<details class="termin-neu"${liste.length && !v ? "" : " open"}><summary>📸 Beleg erfassen</summary>
 ${o.kiAn && !v ? `<form method="post" action="/konto/belege" enctype="multipart/form-data" class="formular-zeile"><input type="hidden" name="aktion" value="lesen"><input type="hidden" name="monat" value="${o.monat}"><label>Foto oder PDF<input type="file" name="beleg" required accept="image/jpeg,image/png,application/pdf" capture="environment"></label><button>🤖 Auslesen lassen</button></form><p class="klein">Crewtender liest Datum, Lieferant, Betrag, Steuersatz und Kategorie vor, du prüfst und speicherst. Das Foto geht dafür an den KI-Dienst Claude (Anthropic, USA), der es nicht zum Training nutzt. Oder unten alles selbst eintragen.</p>` : ""}
-${v ? `<p class="${g?.sicher ? "hinweis ok" : "hinweis"}">${g ? g.sicher ? "🤖 Vorschlag aus dem Foto – bitte kurz prüfen." : "🤖 Teilweise lesbar – bitte die leeren oder falschen Felder ergänzen." : "🤖 Das Foto konnte nicht gelesen werden – bitte selbst eintragen."}${g?.gemischt ? " Der Beleg hat mehrere Steuersätze; eingetragen ist der größte Anteil – ggf. als zwei Belege erfassen." : ""}</p>` : ""}
+${v ? `<p class="${g?.sicher ? "hinweis ok" : "hinweis"}">${g ? g.sicher ? "🤖 Vorschlag aus dem Foto – bitte kurz prüfen." : "🤖 Teilweise lesbar – bitte die leeren oder falschen Felder ergänzen." : v.sperre ? `🤖 ${escape(v.sperre)} Bitte den Beleg selbst eintragen.` : "🤖 Das Foto konnte nicht gelesen werden – bitte selbst eintragen."}${g?.gemischt ? " Der Beleg hat mehrere Steuersätze; eingetragen ist der größte Anteil – ggf. als zwei Belege erfassen." : ""}</p>` : ""}
 <form method="post" action="/konto/belege" enctype="multipart/form-data"><input type="hidden" name="monat" value="${o.monat}">${v ? `<input type="hidden" name="datei_id" value="${v.dateiId}"><input type="hidden" name="datei_mime" value="${escape(v.mime)}">` : ""}<div class="aueg-form">
 <label>Datum<input type="date" name="datum" required value="${g?.datum || o.heute}" max="${o.heute}"></label><label>Lieferant<input name="lieferant" maxlength="160" required placeholder="z. B. Aral, Würth" value="${wert(g?.lieferant)}"></label>
 <label>Betrag brutto (€)<input name="brutto" inputmode="decimal" required maxlength="12" placeholder="z. B. 59,90" value="${g?.brutto ? g.brutto.toFixed(2).replace(".", ",") : ""}"></label><label>USt-Satz<select name="ust_satz">${SAETZE.map((x) => `<option value="${x}"${g && g.ust_satz === x ? " selected" : ""}>${x} %</option>`).join("")}</select></label>
@@ -150,9 +151,10 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
       if (b.size > 5 * 1024 * 1024 || !TYPEN.includes(b.type) || !passt(bytes, b.type)) return zurueck("Beleg bitte als Foto (JPG/PNG) oder PDF bis 5 MB.");
       const dateiId = crypto.randomUUID();
       await env.DATEN?.put(dateiSchluessel(firma, dateiId), bytes, { httpMetadata: { contentType: b.type } });
-      const g = kiAn ? await belegLesen(env as KiEnv, bytes, b.type, firma, heute).catch(() => null) : null;
+      let sperre: string | null = null;
+      const g = kiAn ? await belegLesen(env as KiEnv, bytes, b.type, firma, heute).catch((e) => { sperre = kiSperrText(e); return null; }) : null;
       const l = await laden(monat);
-      return antwort(belegeSeite(l.ok ? l.daten : [], { monat, heute, kiAn, vorschlag: { g, dateiId, mime: b.type } }));
+      return antwort(belegeSeite(l.ok ? l.daten : [], { monat, heute, kiAn, vorschlag: { g, dateiId, mime: b.type, sperre } }));
     }
     const storno = t("storno", 36);
     if (/^[0-9a-f-]{36}$/.test(storno)) {

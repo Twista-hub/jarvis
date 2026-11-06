@@ -16,27 +16,75 @@ language sql immutable set search_path = '' as $$
 $$;
 revoke all on function jarvis_katalog.ki_planbudget(text) from public, anon, authenticated;
 
-create or replace function jarvis_katalog.ki_reservieren_fuer(betrag numeric, zweck text, firma uuid) returns uuid
-language plpgsql set search_path = '' as $$
-declare i uuid; grenze numeric; p text; plan numeric; monat timestamptz := date_trunc('month', now());
+-- Why a firm gets no AI right now (null = it may). Firm-specific reasons first, then the global limits:
+-- 'demo' (0 $), 'probe' (trial budget used), 'plan' (monthly plan allowance used), 'topf' (shared pot of free firms
+-- empty), 'anfrage' (single request over 3 $), 'monat' / 'tag' (global monthly or daily limit).
+create or replace function jarvis_katalog.ki_firmensperre(firma uuid, betrag numeric) returns text
+language plpgsql stable set search_path = '' as $$
+declare grenze numeric; p text; plan numeric; monat timestamptz := date_trunc('month', now());
 begin
+  if firma is null then return null; end if;
   select ki_budget_usd, paket into grenze, p from public.firmen where id = firma;
+  if not found then return null; end if;
   plan := jarvis_katalog.ki_planbudget(p);
   if plan is not null then
     -- Paid plan: monthly allowance of this firm.
     if coalesce((select sum(coalesce(k.verbraucht, k.reserviert)) from jarvis_katalog.ki_kosten k where k.firma_id = firma and k.zeit >= monat), 0) + betrag > plan then
-      return null;
+      return 'plan';
     end if;
   elsif grenze is not null then
     -- Free firm in demo or trial: its own one-off budget ...
+    if grenze <= 0 then return 'demo'; end if;
     if coalesce((select sum(coalesce(k.verbraucht, k.reserviert)) from jarvis_katalog.ki_kosten k where k.firma_id = firma), 0) + betrag > grenze then
-      return null;
+      return 'probe';
     end if;
     -- ... and the shared monthly pot of all free firms, so paying customers keep the rest of the monthly budget.
     if coalesce((select sum(coalesce(k.verbraucht, k.reserviert)) from jarvis_katalog.ki_kosten k join public.firmen f on f.id = k.firma_id
                  where k.zeit >= monat and jarvis_katalog.ki_planbudget(f.paket) is null and f.ki_budget_usd is not null), 0) + betrag > 5 then
-      return null;
+      return 'topf';
     end if;
+  end if;
+  return null;
+end $$;
+revoke all on function jarvis_katalog.ki_firmensperre(uuid, numeric) from public, anon, authenticated;
+
+create or replace function jarvis_katalog.ki_sperrgrund(firma uuid, betrag numeric) returns text
+language plpgsql stable set search_path = '' as $$
+declare g text := jarvis_katalog.ki_firmensperre(firma, betrag);
+begin
+  if g is not null then return g; end if;
+  if betrag > 3 then return 'anfrage'; end if;
+  if coalesce((select b.reserviert + betrag > b.limit_usd from jarvis_katalog.ki_budget b where b.monat = date_trunc('month', now())::date), false) then
+    return 'monat';
+  end if;
+  if coalesce((select sum(k.reserviert) from jarvis_katalog.ki_kosten k where k.zeit >= (date_trunc('day', now() at time zone 'UTC') at time zone 'UTC')), 0) + betrag
+     > jarvis_katalog.ki_tageslimit(now()) then
+    return 'tag';
+  end if;
+  return null;
+end $$;
+revoke all on function jarvis_katalog.ki_sperrgrund(uuid, numeric) from public, anon, authenticated;
+
+-- Operator notice once per month when the shared pot of free firms is empty (shows demand for paid plans).
+create or replace function jarvis_intern.topf_melden() returns void
+language plpgsql security definer set search_path = '' as $$
+declare t text := format('Gratis-KI-Topf (5 USD) für %s aufgebraucht. Gratis-Firmen bekommen bis zum Monatswechsel nur Stichwort-Treffer; zahlende Kunden sind nicht betroffen.', to_char(now(), 'MM/YYYY'));
+begin
+  if not exists (select 1 from jarvis_intern.fehler_meldungen m where m.art = 'budget' and m.text = t) then
+    perform public.fehler_melden('budget', t);
+  end if;
+end $$;
+revoke all on function jarvis_intern.topf_melden() from public, anon, authenticated;
+
+create or replace function jarvis_katalog.ki_reservieren_fuer(betrag numeric, zweck text, firma uuid) returns uuid
+language plpgsql set search_path = '' as $$
+declare i uuid; g text := jarvis_katalog.ki_firmensperre(firma, betrag);
+begin
+  if g is not null then
+    if g = 'topf' then
+      begin perform jarvis_intern.topf_melden(); exception when others then null; end;
+    end if;
+    return null;
   end if;
   i := jarvis_katalog.ki_reservieren(betrag, zweck);
   if i is not null and firma is not null and exists (select 1 from public.firmen where id = firma) then
@@ -46,15 +94,17 @@ begin
 end $$;
 revoke all on function jarvis_katalog.ki_reservieren_fuer(numeric, text, uuid) from public, anon, authenticated;
 
--- What the firm sees: plan allowance this month, or the trial/demo budget, or no limit.
+-- What the firm sees: plan allowance this month, or the trial/demo budget, or no limit; plus why AI is paused, if it is
+-- ("sperre", for a small request of 5 cents), so the page can say so (Benjamin 06.11.2026: "Hinweise, wenn etwas
+-- aufgebraucht ist").
 create or replace function public.ki_kontingent(f uuid) returns jsonb
 language sql stable security definer set search_path = '' as $$
   select case when public.meine_rolle(f) is null then null
     when jarvis_katalog.ki_planbudget(x.paket) is not null then jsonb_build_object(
-      'budget', jarvis_katalog.ki_planbudget(x.paket), 'monatlich', true,
+      'budget', jarvis_katalog.ki_planbudget(x.paket), 'monatlich', true, 'sperre', jarvis_katalog.ki_sperrgrund(f, 0.05),
       'verbraucht', round(coalesce((select sum(coalesce(k.verbraucht, k.reserviert)) from jarvis_katalog.ki_kosten k where k.firma_id = f and k.zeit >= date_trunc('month', now())), 0), 2))
     else jsonb_build_object(
-      'budget', x.ki_budget_usd, 'monatlich', false,
+      'budget', x.ki_budget_usd, 'monatlich', false, 'sperre', jarvis_katalog.ki_sperrgrund(f, 0.05),
       'verbraucht', round(coalesce((select sum(coalesce(k.verbraucht, k.reserviert)) from jarvis_katalog.ki_kosten k where k.firma_id = f), 0), 2)) end
     from public.firmen x where x.id = f
 $$;

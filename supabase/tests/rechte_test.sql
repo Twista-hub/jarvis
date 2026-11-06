@@ -746,6 +746,7 @@ reset role;
 -- Probezeit-Schutz: a new firm is in demo mode (no AI); a unique website gives a 5.50 $ trial budget.
 select pruefe((select ki_budget_usd = 0 from public.firmen where id = :'firma'), 'Neue Firma startet im Demo-Modus ohne KI');
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.01, 'test', :'firma') is null, 'Demo-Modus: keine KI-Anfrage');
+select pruefe(jarvis_katalog.ki_sperrgrund(:'firma', 0.05) = 'demo', 'Sperrgrund Demo-Modus');
 update public.firmen set website = 'https://www.test-reinigung.example/kontakt' where id = :'firma';
 select pruefe((select ki_budget_usd = 5.50 from public.firmen where id = :'firma'), 'Mit eigener Website: Probezeit mit 5,50 $ KI');
 insert into public.firmen (name, website) values ('Zweite Anmeldung', 'https://test-reinigung.example') returning id as zweite \gset
@@ -754,6 +755,7 @@ update public.firmen set website = 'https://gmail.com' where id = :'zweite';
 select pruefe((select ki_budget_usd = 0 from public.firmen where id = :'zweite'), 'Freemail-Domain zählt nicht');
 delete from public.firmen where id = :'zweite';
 select pruefe(jarvis_katalog.ki_reservieren_fuer(6, 'test', :'firma') is null, 'Mehr als das Probe-Kontingent geht nicht');
+select pruefe(jarvis_katalog.ki_sperrgrund(:'firma', 6) = 'probe' and jarvis_katalog.ki_sperrgrund(:'firma', 0.05) is null, 'Sperrgrund Probezeit nur, wenn sie aufgebraucht ist');
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.01, 'test', :'firma') is not null, 'KI-Buchung mit Firma');
 select pruefe((select count(*) = 1 from jarvis_katalog.ki_kosten where firma_id = :'firma'), 'KI-Buchung ist der Firma zugeordnet');
 -- KI-Kostenbremse nach Plan: Monatskontingent für bezahlte Pläne, gemeinsamer Topf für Gratis-Firmen.
@@ -763,6 +765,7 @@ insert into public.firmen (name, paket, ki_budget_usd) values ('Zahlt Basis', 'b
 select pruefe(jarvis_katalog.ki_reservieren_fuer(2, 'test', :'zahlt') is not null, 'Basis: KI trotz Demo-Wert, weil der Plan zählt');
 insert into jarvis_katalog.ki_kosten (zweck, reserviert, verbraucht, firma_id) values ('test', 0, 7.5, :'zahlt'); -- verbraucht zählt fürs Kontingent, reserviert 0 lässt die Tagesgrenze in Ruhe
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.6, 'test', :'zahlt') is null, 'Basis: über 10 $ im Monat keine KI mehr');
+select pruefe(jarvis_katalog.ki_sperrgrund(:'zahlt', 0.6) = 'plan', 'Sperrgrund Planekontingent');
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.4, 'test', :'zahlt') is not null, 'Basis: bis 10 $ im Monat erlaubt');
 update jarvis_katalog.ki_kosten set zeit = now() - interval '40 days' where firma_id = :'zahlt';
 select pruefe(jarvis_katalog.ki_reservieren_fuer(2, 'test', :'zahlt') is not null, 'Im neuen Monat wieder Kontingent');
@@ -772,15 +775,25 @@ insert into public.firmen (name, ki_budget_usd) values ('Gratis A', 5.50) return
 insert into public.firmen (name, ki_budget_usd) values ('Gratis B', 5.50) returning id as gratis_b \gset
 insert into jarvis_katalog.ki_kosten (zweck, reserviert, verbraucht, firma_id) values ('test', 0, 4.8, :'gratis_a');
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'gratis_b') is null, 'Gratis-Topf (5 $ im Monat, alle Gratis-Firmen zusammen) ist leer');
+select pruefe(jarvis_katalog.ki_sperrgrund(:'gratis_b', 0.3) = 'topf', 'Sperrgrund Gratis-Topf');
+select pruefe((select count(*) = 1 from jarvis_intern.fehler_meldungen where art = 'budget' and text like 'Gratis-KI-Topf%'), 'Betreiber bekommt eine Meldung zum leeren Gratis-Topf');
+select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'gratis_b') is null and (select count(*) = 1 from jarvis_intern.fehler_meldungen where art = 'budget' and text like 'Gratis-KI-Topf%'), 'Meldung zum Gratis-Topf nur einmal im Monat');
+select pruefe(jarvis_katalog.ki_sperrgrund(null, 4) = 'anfrage', 'Sperrgrund zu große Einzelanfrage');
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'zahlt') is not null, 'Zahlende Firma bekommt trotzdem KI');
 update public.firmen set ki_budget_usd = null where id = :'gratis_b';
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'gratis_b') is not null, 'Vom Betreiber ohne Grenze: nicht im Gratis-Topf');
+insert into jarvis_katalog.ki_budget (monat) values (date_trunc('month', now())::date) on conflict do nothing;
+update jarvis_katalog.ki_budget set limit_usd = 0 where monat = date_trunc('month', now())::date;
+select pruefe(jarvis_katalog.ki_sperrgrund(:'gratis_b', 0.05) = 'monat', 'Sperrgrund Monatsbudget gesamt');
+update jarvis_katalog.ki_budget set limit_usd = 20 where monat = date_trunc('month', now())::date;
+select pruefe(jarvis_katalog.ki_sperrgrund(:'gratis_b', 0.05) is null, 'Ohne Grenze und mit Budget: kein Sperrgrund');
 delete from jarvis_katalog.ki_kosten where firma_id in (:'zahlt', :'gratis_a', :'gratis_b');
 delete from public.firmen where id in (:'zahlt', :'gratis_a', :'gratis_b');
 select set_config('test.uid', :'alt_uid', false);
 update public.mitglieder set rolle = 'admin' where user_id = '00000000-0000-0000-0000-00000000000b';
 set role authenticated;
 select pruefe((select kosten >= 0.01 and anfragen = 1 from public.ki_kosten_firma(:'firma') where zweck = 'test'), 'Admin sieht die KI-Kosten der eigenen Firma');
+select pruefe((select (k->>'budget')::numeric = 5.5 and k ? 'sperre' and k->>'sperre' is null from public.ki_kontingent(:'firma') k), 'Kontingent zeigt Budget und keinen Sperrgrund');
 select test_als('00000000-0000-0000-0000-00000000000c');
 select pruefe((select count(*) = 0 from public.vertraege) and (select count(*) = 0 from public.auftraggeber_kontakte) and (select count(*) = 0 from public.ki_kosten_firma(:'firma')), 'Fremde Firma sieht keine Verträge, Kontakte oder Kosten');
 reset role;

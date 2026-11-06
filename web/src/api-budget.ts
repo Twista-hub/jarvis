@@ -1,5 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { katalogDb, type DbEnv } from "./katalog-db.ts";
+import { istSperre, KiBudgetFehler } from "./ki-fehler.ts";
 
 export type KiEnv = DbEnv & { ANTHROPIC_API_KEY: string; WARTEN?: (p: Promise<unknown>) => void };
 export function webSuchNutzung(tools: unknown): number {
@@ -55,7 +56,11 @@ export function apiClient(env: KiEnv, firma?: string | null): Anthropic {
     // A UTF-8 byte is a conservative token bound, including JSON/prompt overhead.
     const worst = kiReserve(new TextEncoder().encode(String(init?.body)).length, output, preise[0], preise[1], webSuchNutzung(body.tools));
     const id = await katalogDb(env, async (sql) => (fuer ? await sql`select jarvis_katalog.ki_reservieren_fuer(${worst}::numeric,'web',${fuer}::uuid) as id` : await sql`select jarvis_katalog.ki_reservieren(${worst}::numeric,'web') as id`)[0]?.id);
-    if (!id) throw new Error("Das KI-Tages- oder Monatsbudget oder das KI-Kontingent der Probezeit ist erreicht. Bitte später erneut versuchen.");
+    if (!id) {
+      // Name the reason (plan allowance, trial, free pot, daily or monthly limit), so the customer knows what happened.
+      const grund = await katalogDb(env, async (sql) => (await sql`select jarvis_katalog.ki_sperrgrund(${fuer}::uuid, ${worst}::numeric) as g`)[0]?.g).catch(() => null);
+      throw new KiBudgetFehler(istSperre(grund) ? grund : null);
+    }
     // Settlement runs on its own: when a page stops waiting (time limit), it still records the real cost if the
     // worker lives long enough. Reservations that stay open are settled later by ki_reservieren (estimate).
     const abrechnung = (async () => {

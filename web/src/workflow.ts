@@ -1,6 +1,7 @@
 // Turns one upload into a Steckbrief: files -> text (Workers AI) -> Claude -> ergebnis.md in R2.
 import { personenMaskieren } from "./datensparsam.ts";
 import { apiClient, firmaVonProfil } from "./api-budget.ts";
+import { kiSperrText } from "./ki-fehler.ts";
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
 import ANLEITUNG from "../../alarm/steckbrief-anleitung.txt";
@@ -89,7 +90,9 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
           "aktueller. Lass den Fußtext des bisherigen Steckbriefs weg."
         : "";
       const kunde = (profile as Record<string, { beschreibung: string }>)[job.profil] ?? { beschreibung: job.kunde || "Keine Firmenbeschreibung hinterlegt." };
-      const message = await this.client(job.profil).beta.messages
+      let message;
+      try {
+        message = await this.client(job.profil).beta.messages
         .stream({
           model: MODEL,
           betas: ["server-side-fallback-2026-07-01"],
@@ -103,6 +106,12 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
           }],
         })
         .finalMessage();
+      } catch (e) {
+        // Cost brake: no retries, the customer gets the reason instead of an error page.
+        const sperre = kiSperrText(e);
+        if (sperre) return { text: "", kosten: 0, bekanntmachung: !!bekanntmachung, sperre };
+        throw e;
+      }
       const kosten = kostenVon(message.usage);
       if (message.stop_reason === "refusal") return { text: "", kosten, bekanntmachung: !!bekanntmachung };
       return { text: message.content.flatMap((b) => (b.type === "text" ? [b.text] : [])).join("\n").trim(), kosten, bekanntmachung: !!bekanntmachung };
@@ -123,7 +132,10 @@ export class Steckbrief extends WorkflowEntrypoint<Env, Job> {
         })
       : { anzahl: 0, kosten: 0 };
     await step.do("Ergebnis speichern", async () => {
-      await this.speichern(dir, (ki.text || "# Kein Steckbrief\n\nDie KI hat diese Unterlagen abgelehnt.") + fuss);
+      const sperre = "sperre" in ki ? ki.sperre : "";
+      await this.speichern(dir, sperre
+        ? `# Steckbrief pausiert\n\n${sperre}\n\nDie Unterlagen wurden deshalb noch nicht ausgewertet. Bitte lade sie später erneut hoch. Mehr KI-Kontingent gibt es unter Konto → Einstellungen → Plan & Preise.\n`
+        : (ki.text || "# Kein Steckbrief\n\nDie KI hat diese Unterlagen abgelehnt.") + fuss);
       await this.env.DATEN.delete(`${dir}/text.md`);
     });
 

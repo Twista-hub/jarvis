@@ -41,6 +41,7 @@ import { sucheLaeuft, suchmeldung, zwischenstand, type Suchstand } from "./suchs
 import { abstand, ampel, fristenSeite, ics, icsKalender, OFFEN } from "./fristen.ts";
 import { bundeslandZeile, comunidadZeile, departementZeile, regioneZeile, suchgebietKarte, woiwodschaftZeile, type Suchpunkt } from "./karte.ts";
 import { ampelChip, usKasten, type UsDaten, type UsProfil } from "./ampel.ts";
+import { istSperre, KI_SPERRE } from "./ki-fehler.ts";
 import { appSprache, usSprache } from "./englisch.ts";
 import { usProfilLaden } from "./usprofil.ts";
 import { marktKasten, vergleichbare } from "./usaspending.ts";
@@ -215,14 +216,18 @@ async function suchstatus(request: Request, env: KontoEnv): Promise<Response> {
   return Response.json({ laeuft: sucheLaeuft(r.daten[0]), treffer: zwischenstand(r.daten[0])?.treffer ?? 0 }, { headers });
 }
 
-/** Probezeit-Schutz (migration 20261103200000): demo mode without website, or trial AI budget used up. */
-export function probeHinweis(k: { budget: number | null; verbraucht: number; monatlich?: boolean } | null): string {
-  if (!k || k.budget === null || k.budget === undefined) return "";
-  // Paid plan: monthly AI allowance (migration 20261106010000). Only a hint once it is used up.
-  if (k.monatlich) return Number(k.verbraucht) >= Number(k.budget) - 0.05 ? `<p class="hinweis">Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem 1. wieder mit KI. Mehr Kontingent: <a href="/konto/plan">Plan wechseln</a> oder Zusatzpaket.</p>` : "";
-  if (Number(k.budget) === 0) return `<p class="hinweis">🎬 <strong>Demo-Modus:</strong> Crewtender zeigt passende Ausschreibungen nach Stichworten, aber noch ohne KI-Bewertung und Steckbriefe. Die Probezeit mit KI startet, sobald ihr eure <a href="/konto/einrichtung">Firmenwebsite</a> angebt.</p>`;
-  if (Number(k.verbraucht) >= Number(k.budget) - 0.05) return `<p class="hinweis">Das KI-Kontingent der Probezeit ist aufgebraucht. Treffer nach Stichworten gibt es weiter; für KI-Bewertungen und Steckbriefe schreibt uns gern.</p>`;
-  return "";
+/** Probezeit-Schutz (migration 20261103200000) and cost brake (20261106010000): tells the firm when its AI is paused
+ * and why (demo, trial used up, plan allowance used up, shared free pot empty, Crewtender's daily or monthly limit). */
+export function probeHinweis(k: { budget: number | null; verbraucht: number; monatlich?: boolean; sperre?: string | null } | null): string {
+  if (!k) return "";
+  const plan = ` <a href="/konto/plan">${k.monatlich ? "Plan wechseln" : "Pläne ansehen"}</a>`;
+  const sperre = istSperre(k.sperre) ? k.sperre : null;
+  if (sperre === "demo" || (!sperre && !k.monatlich && k.budget !== null && k.budget !== undefined && Number(k.budget) === 0))
+    return `<p class="hinweis">🎬 <strong>Demo-Modus:</strong> Crewtender zeigt passende Ausschreibungen nach Stichworten, aber noch ohne KI-Bewertung und Steckbriefe. Die Probezeit mit KI startet, sobald ihr eure <a href="/konto/einrichtung">Firmenwebsite</a> angebt.</p>`;
+  if (sperre) return `<p class="hinweis">${KI_SPERRE[sperre]}${["probe", "plan", "topf"].includes(sperre) ? plan : ""}</p>`;
+  // Older answers without "sperre": derive it from budget and use.
+  if (k.budget === null || k.budget === undefined || Number(k.verbraucht) < Number(k.budget) - 0.05) return "";
+  return `<p class="hinweis">${KI_SPERRE[k.monatlich ? "plan" : "probe"]}${plan}</p>`;
 }
 
 async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unterseite = "", dateiProfil: (firma: string) => { beschreibung: string } | undefined = () => undefined): Promise<Response> {
@@ -329,7 +334,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
     ungelesen(s, env, m.firma_id, heute),
     m.rolle !== "mitarbeiter" ? db<{ id: string }[]>(s, env, `personal_abwesenheiten?firma_id=eq.${m.firma_id}&kurzfristig=is.true&von=lte.${heute}&bis=gte.${heute}&select=id&limit=200`).then((r) => r.ok ? r.daten.length : 0) : Promise.resolve(0),
     m.rolle !== "leser" ? chatUngelesen(s, env, m.firma_id) : Promise.resolve(0),
-    ["inhaber", "admin"].includes(m.rolle) ? db<{ budget: number | null; verbraucht: number } | null>(s, env, "rpc/ki_kontingent", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }).then((r) => (r.ok ? r.daten : null)) : Promise.resolve(null),
+    ["inhaber", "admin"].includes(m.rolle) ? db<{ budget: number | null; verbraucht: number; monatlich?: boolean; sperre?: string | null } | null>(s, env, "rpc/ki_kontingent", { method: "POST", body: JSON.stringify({ f: m.firma_id }) }).then((r) => (r.ok ? r.daten : null)) : Promise.resolve(null),
   ]) : [0, 0, 0, null];
   probe = probeHinweis(kontingent);
   const zugaenge = mitglieder.ok ? mitglieder.daten.filter((x) => x.aktiv !== false).length : 0;

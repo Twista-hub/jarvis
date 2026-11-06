@@ -497,5 +497,11 @@
  "Bitte einen Plan wählen.": "Veuillez choisir un plan.",
  "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "Le quota d'IA de votre plan est épuisé pour ce mois. Les résultats par mots-clés continuent ; l'IA revient le #. Plus de quota :",
  "Plan wechseln": "Changer de plan",
- "oder Zusatzpaket.": "ou pack supplémentaire."
+ "oder Zusatzpaket.": "ou pack supplémentaire.",
+ "Das KI-Kontingent der Probezeit ist aufgebraucht. Treffer nach Stichworten gibt es weiter; mit einem Plan geht es sofort mit KI weiter.": "Le quota d'IA de la période d'essai est épuisé. Les résultats par mots-clés continuent ; avec un plan, l'IA reprend immédiatement.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent gibt es mit einem größeren Plan.": "Le quota d'IA de votre plan est épuisé pour ce mois. Les résultats par mots-clés continuent ; l'IA revient le #. Un plan plus grand offre plus de quota.",
+ "Das KI-Kontingent für Gratis-Konten ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI; mit einem Plan sofort.": "Le quota d'IA des comptes gratuits est épuisé pour ce mois. Les résultats par mots-clés continuent ; l'IA revient le #, ou immédiatement avec un plan.",
+ "Die KI von Crewtender ist für diesen Monat ausgelastet. Treffer nach Stichworten gibt es weiter; wir sind informiert und schalten so schnell wie möglich wieder frei.": "L'IA de Crewtender est saturée pour ce mois. Les résultats par mots-clés continuent ; nous sommes informés et la rétablissons au plus vite.",
+ "Die KI von Crewtender ist für heute ausgelastet. Treffer nach Stichworten gibt es weiter, ab morgen wieder mit KI.": "L'IA de Crewtender est saturée pour aujourd'hui. Les résultats par mots-clés continuent ; l'IA revient demain.",
+ "Pläne ansehen": "Voir les plans"
 }

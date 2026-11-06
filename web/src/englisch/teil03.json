@@ -497,5 +497,11 @@
  "Bitte einen Plan wählen.": "Please choose a plan.",
  "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "Your plan's AI allowance is used up for this month. Keyword matches continue; AI is back on the #st. More allowance:",
  "Plan wechseln": "Change plan",
- "oder Zusatzpaket.": "or add-on pack."
+ "oder Zusatzpaket.": "or add-on pack.",
+ "Das KI-Kontingent der Probezeit ist aufgebraucht. Treffer nach Stichworten gibt es weiter; mit einem Plan geht es sofort mit KI weiter.": "The trial's AI allowance is used up. Keyword matches continue; with a plan, AI continues right away.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent gibt es mit einem größeren Plan.": "Your plan's AI allowance is used up for this month. Keyword matches continue; AI is back on the #st. A larger plan gives more allowance.",
+ "Das KI-Kontingent für Gratis-Konten ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI; mit einem Plan sofort.": "The AI allowance for free accounts is used up for this month. Keyword matches continue; AI is back on the #st, or right away with a plan.",
+ "Die KI von Crewtender ist für diesen Monat ausgelastet. Treffer nach Stichworten gibt es weiter; wir sind informiert und schalten so schnell wie möglich wieder frei.": "Crewtender's AI is at capacity for this month. Keyword matches continue; we have been notified and will restore it as soon as possible.",
+ "Die KI von Crewtender ist für heute ausgelastet. Treffer nach Stichworten gibt es weiter, ab morgen wieder mit KI.": "Crewtender's AI is at capacity for today. Keyword matches continue; AI is back tomorrow.",
+ "Pläne ansehen": "View plans"
 }
