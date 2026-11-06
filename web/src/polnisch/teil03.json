@@ -497,5 +497,11 @@
  "Bitte einen Plan wählen.": "Wybierz plan.",
  "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "Limit AI w Twoim planie na ten miesiąc został wykorzystany. Wyniki według słów kluczowych są nadal dostępne, AI wraca #. dnia miesiąca. Większy limit:",
  "Plan wechseln": "Zmień plan",
- "oder Zusatzpaket.": "lub pakiet dodatkowy."
+ "oder Zusatzpaket.": "lub pakiet dodatkowy.",
+ "Das KI-Kontingent der Probezeit ist aufgebraucht. Treffer nach Stichworten gibt es weiter; mit einem Plan geht es sofort mit KI weiter.": "Limit AI okresu próbnego został wyczerpany. Wyniki według słów kluczowych są nadal dostępne; z planem AI działa od razu.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent gibt es mit einem größeren Plan.": "Limit AI Twojego planu na ten miesiąc został wyczerpany. Wyniki według słów kluczowych są nadal dostępne; AI wraca #. dnia miesiąca. Większy plan daje większy limit.",
+ "Das KI-Kontingent für Gratis-Konten ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI; mit einem Plan sofort.": "Limit AI dla kont bezpłatnych na ten miesiąc został wyczerpany. Wyniki według słów kluczowych są nadal dostępne; AI wraca #. dnia miesiąca lub od razu z planem.",
+ "Die KI von Crewtender ist für diesen Monat ausgelastet. Treffer nach Stichworten gibt es weiter; wir sind informiert und schalten so schnell wie möglich wieder frei.": "AI Crewtender osiągnęła limit na ten miesiąc. Wyniki według słów kluczowych są nadal dostępne; wiemy o tym i przywrócimy ją jak najszybciej.",
+ "Die KI von Crewtender ist für heute ausgelastet. Treffer nach Stichworten gibt es weiter, ab morgen wieder mit KI.": "AI Crewtender osiągnęła limit na dziś. Wyniki według słów kluczowych są nadal dostępne; AI wraca jutro.",
+ "Pläne ansehen": "Zobacz plany"
 }

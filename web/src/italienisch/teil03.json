@@ -497,5 +497,11 @@
  "Bitte einen Plan wählen.": "Scegli un piano.",
  "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "La quota di IA del tuo piano è esaurita per questo mese. I risultati per parole chiave continuano; l'IA torna il giorno #. Più quota:",
  "Plan wechseln": "Cambia piano",
- "oder Zusatzpaket.": "o pacchetto aggiuntivo."
+ "oder Zusatzpaket.": "o pacchetto aggiuntivo.",
+ "Das KI-Kontingent der Probezeit ist aufgebraucht. Treffer nach Stichworten gibt es weiter; mit einem Plan geht es sofort mit KI weiter.": "La quota IA del periodo di prova è esaurita. I risultati per parole chiave continuano; con un piano l'IA riparte subito.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent gibt es mit einem größeren Plan.": "La quota IA del vostro piano è esaurita per questo mese. I risultati per parole chiave continuano; l'IA torna il #. Un piano più grande offre più quota.",
+ "Das KI-Kontingent für Gratis-Konten ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI; mit einem Plan sofort.": "La quota IA per gli account gratuiti è esaurita per questo mese. I risultati per parole chiave continuano; l'IA torna il #, o subito con un piano.",
+ "Die KI von Crewtender ist für diesen Monat ausgelastet. Treffer nach Stichworten gibt es weiter; wir sind informiert und schalten so schnell wie möglich wieder frei.": "L'IA di Crewtender è al limite per questo mese. I risultati per parole chiave continuano; siamo informati e la ripristineremo il prima possibile.",
+ "Die KI von Crewtender ist für heute ausgelastet. Treffer nach Stichworten gibt es weiter, ab morgen wieder mit KI.": "L'IA di Crewtender è al limite per oggi. I risultati per parole chiave continuano; l'IA torna domani.",
+ "Pläne ansehen": "Vedi piani"
 }

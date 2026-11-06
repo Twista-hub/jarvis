@@ -45,3 +45,34 @@ test("KI-Kostenbremse: Hinweis erst, wenn das Monatskontingent des Plans aufgebr
   assert.match(probeHinweis({ budget: 0, verbraucht: 0 }), /Demo-Modus/);
   assert.equal(probeHinweis({ budget: null, verbraucht: 3 }), "", "ohne Grenze kein Hinweis");
 });
+
+import Anthropic from "@anthropic-ai/sdk";
+import { KI_SPERRE, KiBudgetFehler, kiFehlerart, kiFehlermeldung, kiSperrText } from "../src/ki-fehler.ts";
+import { belegeSeite } from "../src/belege.ts";
+test("KI-Kostenbremse: Hinweis nennt den Grund (Gratis-Topf, Tages-/Monatsgrenze, Plan, Probezeit)", () => {
+  assert.match(probeHinweis({ budget: 5.5, verbraucht: 1, sperre: "topf" }), /Gratis-Konten[\s\S]*\/konto\/plan/);
+  assert.match(probeHinweis({ budget: 25, verbraucht: 3, monatlich: true, sperre: "tag" }), /für heute ausgelastet/);
+  assert.doesNotMatch(probeHinweis({ budget: 25, verbraucht: 3, monatlich: true, sperre: "tag" }), /konto\/plan/, "Tagesgrenze ist nicht Sache des Kunden");
+  assert.match(probeHinweis({ budget: null, verbraucht: 3, sperre: "monat" }), /für diesen Monat ausgelastet/, "auch Firmen ohne Grenze erfahren es");
+  assert.match(probeHinweis({ budget: 25, verbraucht: 25, monatlich: true, sperre: "plan" }), /Plans[\s\S]*Plan wechseln/);
+  assert.match(probeHinweis({ budget: 5.5, verbraucht: 5.5, sperre: "probe" }), /Probezeit[\s\S]*Pläne ansehen/);
+  assert.match(probeHinweis({ budget: 0, verbraucht: 0, sperre: "demo" }), /Demo-Modus/);
+  assert.equal(probeHinweis({ budget: 5.5, verbraucht: 1, sperre: null }), "");
+  assert.equal(probeHinweis({ budget: 5.5, verbraucht: 1, sperre: "unsinn" }), "", "unbekannter Grund wird ignoriert");
+});
+
+test("KI-Kostenbremse: Fehlermeldung mit Grund kommt durch den SDK-Fehler hindurch", () => {
+  const e = new Anthropic.APIConnectionError({ cause: new KiBudgetFehler("topf") });
+  assert.equal(kiFehlerart(e), "budget");
+  assert.equal(kiSperrText(e), KI_SPERRE.topf);
+  assert.match(kiFehlermeldung(e), /Gratis-Konten.*Angaben bleiben erhalten/);
+  assert.match(new KiBudgetFehler(null).message, /^KI-Budget: /);
+  assert.equal(kiSperrText(new Error("Connection error")), null);
+  assert.match(kiFehlermeldung(new Error("KI-Budget")), /Demo-Modus/, "gespeicherter Fehler ohne Grund: bisheriger Text");
+});
+
+test("Belege: Ist die KI pausiert, steht der Grund statt 'nicht lesbar'", () => {
+  const h = belegeSeite([], { monat: "2026-11", heute: "2026-11-06", kiAn: true, vorschlag: { g: null, dateiId: "x", mime: "image/png", sperre: KI_SPERRE.tag } });
+  assert.match(h, /für heute ausgelastet/);
+  assert.doesNotMatch(h, /konnte nicht gelesen werden/);
+});
