@@ -47,6 +47,7 @@ const P: Record<string, string> = {
   hochladen: '<path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M4.5 15v3.5A1.5 1.5 0 0 0 6 20h12a1.5 1.5 0 0 0 1.5-1.5V15"/>',
   bild: '<rect x="3.5" y="5" width="17" height="14" rx="2"/><circle cx="9" cy="10" r="1.6"/><path d="m4 17.5 5-4.5 4 3.5 3-2.5 4 3.5"/>',
   pokal: '<path d="M8 4h8v5a4 4 0 0 1-8 0zM8 6H5a3 3 0 0 0 3 4M16 6h3a3 3 0 0 1-3 4M12 13v4M8.5 20.5h7M9.5 17h5v3.5h-5z"/>',
+  kreditkarte: '<rect x="3" y="5.5" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
   pfeil: '<path d="m9 5 7 7-7 7"/>',
   haus: '<path d="M4 11 12 4l8 7v8.5a1 1 0 0 1-1 1h-4.5V15h-5v5.5H5a1 1 0 0 1-1-1z"/>',
   glocke: '<path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/>',
@@ -63,7 +64,7 @@ const EMOJI: Record<string, string> = {
   "🏢": "gebaeude", "🔗": "kette", "🛡️": "schild", "🛡": "schild", "🏛️": "saeulen", "🏛": "saeulen", "🧭": "kompass", "🚐": "transporter", "🔐": "schloss",
   "🏠": "haus", "⚙️": "zahnrad", "⚙": "zahnrad", "📣": "megafon", "🗂️": "ordner", "🗂": "ordner", "📁": "ordner", "👤": "person", "✉️": "brief", "✉": "brief",
   "🚨": "warnung", "⚠️": "warnung", "⚠": "warnung", "🔄": "kreislauf", "💡": "idee", "📐": "lineal", "🎨": "palette", "📤": "hochladen", "🚗": "transporter",
-  "🖼️": "bild", "🖼": "bild", "🏅": "stern", "🏆": "pokal",
+  "🖼️": "bild", "💳": "kreditkarte", "🖼": "bild", "🏅": "stern", "🏆": "pokal",
 };
 
 export function symbol(name: string, groesse = 24): string {

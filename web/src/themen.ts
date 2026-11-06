@@ -24,7 +24,8 @@ export const THEMEN_CSS = `
     --aktiv: #5fd0f0; --symbol-bg: transparent; --symbol: #0e7490; --unschaerfe: none; --rund: 6px; }
 
   /* Shared surfaces */
-  body { background: var(--flaeche, var(--bg)); background-attachment: fixed; -webkit-font-smoothing: antialiased; }
+  html { min-height: 100%; background: var(--bg); }
+  body { min-height: 100vh; background: var(--flaeche, var(--bg)); -webkit-font-smoothing: antialiased; }
   input, select, textarea { background: var(--feld, var(--bg)); }
   form, .konto-kachel, .treffer-karte, .laedt, .hilfe-inhalt, .reiter, .profil-icon, .konto-zurueck a, .oeffentlich-login, details.kalk-gruppe, .standort-zeile, table {
     backdrop-filter: var(--unschaerfe, none); -webkit-backdrop-filter: var(--unschaerfe, none); }
@@ -88,6 +89,19 @@ export const THEMEN_CSS = `
   .chip-symbol { display: inline-flex; vertical-align: -3px; margin-right: 5px; }
   .zeilen-symbol { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 11px; background: var(--symbol-bg); color: var(--symbol); }
   :root[data-theme="technik"] .zeilen-symbol { width: 24px; background: none; }
+
+  /* Plans and prices */
+  .plan-raster { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin: 12px 0 16px; }
+  .plan-karte { position: relative; display: flex; flex-direction: column; gap: 4px; padding: 18px 16px; border: 1px solid var(--line); border-radius: var(--rund, 18px); background: var(--card);
+    box-shadow: var(--karte-schatten); backdrop-filter: var(--unschaerfe, none); -webkit-backdrop-filter: var(--unschaerfe, none); }
+  .plan-karte h3 { margin: 0; font-size: 1.25rem; } .plan-fuer { margin: 0; color: var(--muted); font-size: 14px; }
+  .plan-preis { margin: 8px 0 0; } .plan-preis strong { font-size: 2.1rem; letter-spacing: -.03em; } .plan-preis span { color: var(--muted); font-weight: 600; }
+  .plan-karte ul { margin: 8px 0 4px; padding-left: 20px; font-size: 14.5px; } .plan-karte li { margin: 3px 0; }
+  .plan-empfohlen { border: 2px solid var(--aktiv); } .plan-band { position: absolute; top: -11px; right: 14px; padding: 3px 10px; border-radius: 999px; background: var(--knopf); color: #fff; font-size: 12px; font-weight: 700; }
+  .plan-aktuell { outline: 2px solid #127a50; } .plan-dein { margin: 6px 0 0; color: #127a50; }
+  .plan-bestellen { margin-top: 8px; padding: 0; border: 0; background: none; box-shadow: none; gap: 8px; } .plan-bestellen fieldset { padding: 8px 10px; font-size: 14px; }
+  .plan-hinweise { color: var(--muted); font-size: 14px; padding-left: 20px; }
+  :root[data-theme="technik"] .plan-preis strong { font-family: ui-monospace, "SF Mono", "Roboto Mono", Menlo, Consolas, monospace; }
 
   /* Tiles: line icon in a soft square */
   .konto-symbol { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--symbol-bg); color: var(--symbol); font-size: 0; }

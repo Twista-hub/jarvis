@@ -1,22 +1,25 @@
-// NOT ACTIVE YET (Benjamin, 30.10.2026: plans come last, when the app is finished). Not linked or routed.
-// Plans, shown like on other portals: everyone starts in Free and can upgrade on /konto/plan.
-// Prices and what each plan includes are still to be decided by Benjamin; edit them here only. The structure follows
-// the proposal docs/abos.md; "vorschlag" is not shown anywhere and nothing is enforced until Benjamin's OK.
-// Until online payment (Stripe) is set up, "Upgrade" opens a prepared e-mail to WP Digital Ranger.
+// Plans and prices (Benjamin, 06.11.2026: 59 / 149 / 399 € a month, yearly payment = 10 months, payment by invoice).
+// Public price page /preise and the plan choice /konto/plan (preise.ts). The limits below are NOT enforced yet; the
+// operator sets the plan on /konto/betreiber after the order and writes the invoice there.
 import { escape } from "./seite.ts";
 
-export type Plan = { id: string; name: string; preis: string; fuer: string; punkte: string[]; vorschlag?: string };
+export type Plan = { id: string; name: string; monat: number; fuer: string; punkte: string[] };
 /** Limits per plan from the proposal docs/abos.md and docs/ki-kosten-plaene.md (03.11.2026). NOT enforced yet: switched on only
  * after Benjamin's OK. ki_euro_monat: AI allowance per firm and month (fair use); above it ratings go on, Steckbriefe from
  * documents only with an extra pack. */
 export type Grenzen = { suchprofile: number | null; laender: number | null; nutzer: number | null; einsatzkraefte: number | null; steckbriefe_monat: number | null; ki_euro_monat: number | null; arbeitsoberflaeche: boolean; taeglich: boolean };
 
 export const PLAENE: Plan[] = [
-  { id: "kostenlos", name: "Free", preis: "0 €", fuer: "Zum Ausprobieren", punkte: ["Ausschreibungen passend zu deiner Firma (1 Suchprofil, 1 Land)", "Kurzüberblick zu jeder Ausschreibung", "Wöchentliche Zusammenfassung"] },
-  { id: "basis", name: "Basis", preis: "Preis folgt", vorschlag: "59 € / Monat", fuer: "Für kleine Firmen", punkte: ["Alles aus Free", "Tägliche Nachricht per Mail und Handy", "3 Suchprofile, 3 Nutzer", "5 Steckbriefe aus Unterlagen pro Monat, Kalkulation"] },
-  { id: "pro", name: "Pro", preis: "Preis folgt", vorschlag: "149 € / Monat", fuer: "Für Reinigung, Sicherheit, Handwerk und Zeitarbeit", punkte: ["Alles aus Basis", "Angebote vorbereiten und freigeben", "Personal, Einsatzplanung, Zeiterfassung, Abrechnung", "5 Büro-Nutzer, 25 Einsatzkräfte, alle Länder, 30 Steckbriefe"] },
-  { id: "business", name: "Business", preis: "Preis folgt", vorschlag: "399 € / Monat", fuer: "Für Firmen mit vielen Standorten", punkte: ["Alles aus Pro", "Standorte unbegrenzt", "15 Büro-Nutzer, 100 Einsatzkräfte, 100 Steckbriefe", "Bevorzugter Support"] },
+  { id: "kostenlos", name: "Free", monat: 0, fuer: "Zum Ausprobieren", punkte: ["Ausschreibungen passend zu deiner Firma (1 Suchprofil, 1 Land)", "Kurzüberblick zu jeder Ausschreibung", "Wöchentliche Zusammenfassung"] },
+  { id: "basis", name: "Basis", monat: 59, fuer: "Für kleine Firmen", punkte: ["Alles aus Free", "Tägliche Nachricht per Mail und Handy", "3 Suchprofile, 3 Nutzer", "5 Steckbriefe aus Unterlagen pro Monat, Kalkulation"] },
+  { id: "pro", name: "Pro", monat: 149, fuer: "Für Dienstleister mit eigenem Personal", punkte: ["Alles aus Basis", "Angebote vorbereiten und freigeben", "Personal, Einsatzplanung, Zeiterfassung, Abrechnung", "5 Büro-Nutzer, 25 Einsatzkräfte, alle Länder, 30 Steckbriefe"] },
+  { id: "business", name: "Business", monat: 399, fuer: "Für Firmen mit vielen Standorten", punkte: ["Alles aus Pro", "Standorte unbegrenzt", "15 Büro-Nutzer, 100 Einsatzkräfte, 100 Steckbriefe", "Bevorzugter Support"] },
 ];
+/** Yearly payment: 12 months for the price of 10 (Benjamin, 06.11.2026). */
+export const jahrespreis = (monat: number) => monat * 10;
+export const ZUSATZ = { einsatzkraftPro: 3.5, einsatzkraftBusiness: 3, einsatzkraftAb501: 2.5, steckbriefPaket: { anzahl: 10, preis: 15 } } as const;
+const euro = (x: number) => `${x.toLocaleString("de-DE", { minimumFractionDigits: x % 1 ? 2 : 0, maximumFractionDigits: 2 })} €`;
+export const preisText = (p: Plan, jaehrlich = false) => p.monat === 0 ? "0 €" : jaehrlich ? `${euro(jahrespreis(p.monat))} / Jahr` : `${euro(p.monat)} / Monat`;
 
 export const GRENZEN: Record<string, Grenzen> = {
   kostenlos: { suchprofile: 1, laender: 1, nutzer: 1, einsatzkraefte: 0, steckbriefe_monat: 0, ki_euro_monat: 1, arbeitsoberflaeche: false, taeglich: false },
@@ -49,15 +52,27 @@ export function planName(id: string): string {
   return PLAENE.find((p) => p.id === id)?.name ?? (id === "test" ? "Test (voller Zugang)" : id);
 }
 
-export function planSeite(aktuell: string, firma: string, darfAendern: boolean, kontakt: string): string {
-  const karten = PLAENE.map((p) => {
-    const istAktuell = p.id === aktuell;
-    const knopf = istAktuell
-      ? `<p><strong>✓ Dein aktueller Plan</strong></p>`
-      : p.id === "kostenlos" || !darfAendern
-        ? ""
-        : `<p><a class="knopf" href="mailto:${kontakt}?subject=${encodeURIComponent(`Crewtender: Upgrade auf ${p.name}`)}&body=${encodeURIComponent(`Hallo,\n\nwir möchten für ${firma} auf den Plan ${p.name} wechseln.\n\nViele Grüße`)}">Upgrade auf ${escape(p.name)}</a></p>`;
-    return `<article class="treffer-karte${istAktuell ? " plan-aktuell" : ""}"><h3>${escape(p.name)}</h3><p><strong>${escape(p.preis)}</strong> · ${escape(p.fuer)}</p><ul>${p.punkte.map((x) => `<li>${escape(x)}</li>`).join("")}</ul>${knopf}</article>`;
-  }).join("");
-  return `<h2>Dein Plan: ${escape(planName(aktuell))}</h2>${karten}${darfAendern ? "" : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;
+/** Plan cards for the price page and the plan choice. With `wahl`, every paid plan gets an order form (payment by invoice). */
+export function planKarten(o: { aktuell?: string; wahl?: boolean; firma?: string } = {}): string {
+  return `<div class="plan-raster">${PLAENE.map((p) => {
+    const istAktuell = p.id === o.aktuell;
+    const bestellen = o.wahl && p.monat > 0 && !istAktuell
+      ? `<form method="post" action="/konto/plan" class="plan-bestellen"><input type="hidden" name="plan" value="${p.id}"><fieldset><legend>Zahlweise</legend><label class="zeile"><input type="radio" name="zahlweise" value="monat" checked>${preisText(p)}, monatlich kündbar</label><label class="zeile"><input type="radio" name="zahlweise" value="jahr">${preisText(p, true)}, 2 Monate geschenkt</label></fieldset><button>${escape(p.name)} bestellen</button></form>`
+      : "";
+    return `<article class="plan-karte${p.id === "pro" ? " plan-empfohlen" : ""}${istAktuell ? " plan-aktuell" : ""}">${p.id === "pro" ? `<span class="plan-band">Beliebt</span>` : ""}<h3>${escape(p.name)}</h3><p class="plan-fuer">${escape(p.fuer)}</p>
+<p class="plan-preis"><strong>${p.monat ? escape(`${p.monat} €`) : "0 €"}</strong><span>${p.monat ? " / Monat" : ""}</span></p>${p.monat ? `<p class="klein">oder ${escape(preisText(p, true))} (2 Monate geschenkt)</p>` : `<p class="klein">Für immer kostenlos</p>`}
+<ul>${p.punkte.map((x) => `<li>${escape(x)}</li>`).join("")}</ul>${istAktuell ? `<p class="plan-dein"><strong>✓ Dein aktueller Plan</strong></p>` : ""}${bestellen}</article>`;
+  }).join("")}</div>`;
+}
+
+export const PREIS_HINWEISE = `<ul class="plan-hinweise">
+<li>Alle Preise netto. Als Kleinunternehmer nach § 19 UStG berechnet WP Digital Ranger derzeit keine Umsatzsteuer.</li>
+<li>Weitere Einsatzkräfte: ${euro(ZUSATZ.einsatzkraftPro)} (Pro) bzw. ${euro(ZUSATZ.einsatzkraftBusiness)} (Business, ab der 501. ${euro(ZUSATZ.einsatzkraftAb501)}) pro Monat.</li>
+<li>Zusatzpaket: ${ZUSATZ.steckbriefPaket.anzahl} Steckbriefe aus Unterlagen für ${euro(ZUSATZ.steckbriefPaket.preis)}.</li>
+<li>Bezahlung per Rechnung und Überweisung, zahlbar in 14 Tagen. Monatlich: zum Monatsende kündbar. Jährlich: 12 Monate zum Preis von 10.</li>
+</ul>`;
+
+/** In-app plan page: current plan, cards with order form for owners and admins. */
+export function planSeite(aktuell: string, firma: string, darfAendern: boolean, hinweis = ""): string {
+  return `${hinweis ? `<p class="hinweis" role="status">${escape(hinweis)}</p>` : ""}<p>Dein Plan: <strong>${escape(planName(aktuell))}</strong></p>${planKarten({ aktuell, wahl: darfAendern, firma })}${PREIS_HINWEISE}${darfAendern ? `<p class="klein">Nach der Bestellung schalten wir den Plan frei und schicken die Rechnung per E-Mail.</p>` : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;
 }
