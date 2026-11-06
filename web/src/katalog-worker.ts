@@ -1,10 +1,21 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
+import { eformsKarte, fristenEinsetzen, type EformsFristen } from "./katalog-daten.ts";
 import { nachholLimit, releaseBloecke, normalisiereBlock, wiederholen, bestehendeBekanntmachungen, exportTage } from "./katalog-plan.ts";
 
 type Env = DbEnv & { AKTIV: string; SAMMLER: Workflow };
 const UA = "Crewtender-Katalog/1.0 (public procurement index)";
 import { katalogDb, type DbEnv } from "./katalog-db.ts";
+/** Daily eForms export (same CC0 source), bounded like the OCDS export; returns the deadlines per notice. */
+async function eformsLaden(tag: string): Promise<Map<string, EformsFristen>> {
+  const response = await fetch(`https://oeffentlichevergabe.de/api/notice-exports?pubDay=${tag}&format=eforms.zip`, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(90000) });
+  if (!response.ok) throw new Error(`eForms-Export HTTP ${response.status}`);
+  if (Number(response.headers.get("content-length")) > 24_000_000) throw new Error("eForms-Export zu groß");
+  const reader = response.body!.getReader(); let total = 0; const chunks: Uint8Array[] = [];
+  try { while (true) { const { done, value } = await reader.read(); if (done) break; total += value.length; if (total > 24_000_000) throw new Error("eForms-Export zu groß"); chunks.push(value); } } finally { await reader.cancel(); }
+  const zip = new Uint8Array(total); let offset = 0; for (const c of chunks) { zip.set(c, offset); offset += c.length; }
+  return eformsKarte(zip);
+}
 export class KatalogSammler extends WorkflowEntrypoint<Env> {
   async run(_event: WorkflowEvent<unknown>, step: WorkflowStep) {
     const limit = nachholLimit(_event.payload);
@@ -59,7 +70,12 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
               let expanded = 0;
               const files = unzipSync(zip, { filter: (file) => { expanded += file.originalSize; if (expanded > 24_000_000) throw new Error("Entpackgrenze erreicht"); return file.name.endsWith(".json"); } });
               const zuGross: string[] = [];
-              for (const teil of releaseBloecke(Object.values(files))) {
+              // Deadlines come from the eForms export of the same day (the OCDS export has none). If it cannot be read the
+              // day is still imported without deadlines; the workflow "Katalog-Fristen" fills them in later.
+              let fristen = new Map<string, EformsFristen>();
+              try { fristen = await eformsLaden(tag); } catch (e) { console.error(`eForms ${tag}: ${e instanceof Error ? e.message : e}`); }
+              for (const roh of releaseBloecke(Object.values(files))) {
+                  const teil = roh.map((rel: any) => fristenEinsetzen(rel, fristen));
                   const ids = teil.map((rel: any) => `bks:${rel.ocid || rel.id}`);
                   const bisher = await bestehendeBekanntmachungen(sql, ids);
                   const bestehend = new Map(bisher.map((r) => [String(r.id), { roh: r.roh, quell_datum: r.quell_datum }]));
