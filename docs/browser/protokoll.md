@@ -19,6 +19,15 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 06.11.2026 – Browser-Chat: Anthropic-Guthaben
+Nur gelesen. Nichts gekauft, kein Limit geändert, nichts verknüpft.
+- **Organisation:** „Twista's Individual Org“ (API-Plan für Einzelpersonen). Das ist die **einzige** Organisation im Console-Konto. Dort liegen die Schlüssel „jarvis-alarm“ (Arbeitsbereich Jarvis, erstellt 29.10., bisher 16,23 $) und „Streik app“ (1,07 $). Achtung: Das Console-Konto läuft über die RestockHero-Mailadresse. Eine eigene Jarvis-Organisation gibt es nicht.
+- **Credit balance:** -0,09 $ (offener Betrag, die API ist gesperrt, bis Guthaben da ist). Gekauft waren 5,95 $ (01.10.), 11,90 $ (03.10.) und 23,80 $ (30.10.).
+- **Promotional credits:** keine.
+- **Monthly spend limit:** Organisation 40 $ (18,93 $ verbraucht, 47 %), Arbeitsbereich Jarvis 30 $ (17,86 $, 60 %). Zurücksetzung am 01.12.2026.
+- **Verknüpfung mit Max:** In claude.ai (Max, verlängert sich am 01.12.2026) gibt es unter Einstellungen → Abrechnung noch **keinen** Bereich zum Verknüpfen einer Organisation oder für API-Guthaben. Nicht erledigt, ab 07./08.11. erneut prüfen.
+- Hinweis: Die Console heißt jetzt platform.claude.com, die Abrechnung liegt unter /settings/billing und die Limits unter /settings/spend-limits.
+
 ### 06.11.2026 – Crewtender Facebook: 2 Posts neu eingeplant
 - Beim Social-Media-Check war auf der Facebook-Seite nichts mehr geplant. Auf Benjamins OK („Ja, neu einplanen“) neu angelegt:
   - 07.11.2026, 18:00: post3-registerkarten.png, Text „From tender to team. One app. …“
