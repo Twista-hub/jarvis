@@ -99,6 +99,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103310000_betreiber_rechnungen.sql
 \ir ../migrations/20261103320000_arbeitstage.sql
 \ir ../migrations/20261105010000_katalog_suche_schneller.sql
+\ir ../migrations/20261106010000_ki_planbudget.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -755,6 +756,28 @@ delete from public.firmen where id = :'zweite';
 select pruefe(jarvis_katalog.ki_reservieren_fuer(6, 'test', :'firma') is null, 'Mehr als das Probe-Kontingent geht nicht');
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.01, 'test', :'firma') is not null, 'KI-Buchung mit Firma');
 select pruefe((select count(*) = 1 from jarvis_katalog.ki_kosten where firma_id = :'firma'), 'KI-Buchung ist der Firma zugeordnet');
+-- KI-Kostenbremse nach Plan: Monatskontingent für bezahlte Pläne, gemeinsamer Topf für Gratis-Firmen.
+select current_setting('test.uid', true) as alt_uid \gset
+select set_config('test.uid', '', false);
+insert into public.firmen (name, paket, ki_budget_usd) values ('Zahlt Basis', 'basis', 0) returning id as zahlt \gset
+select pruefe(jarvis_katalog.ki_reservieren_fuer(2, 'test', :'zahlt') is not null, 'Basis: KI trotz Demo-Wert, weil der Plan zählt');
+insert into jarvis_katalog.ki_kosten (zweck, reserviert, verbraucht, firma_id) values ('test', 0, 7.5, :'zahlt'); -- verbraucht zählt fürs Kontingent, reserviert 0 lässt die Tagesgrenze in Ruhe
+select pruefe(jarvis_katalog.ki_reservieren_fuer(0.6, 'test', :'zahlt') is null, 'Basis: über 10 $ im Monat keine KI mehr');
+select pruefe(jarvis_katalog.ki_reservieren_fuer(0.4, 'test', :'zahlt') is not null, 'Basis: bis 10 $ im Monat erlaubt');
+update jarvis_katalog.ki_kosten set zeit = now() - interval '40 days' where firma_id = :'zahlt';
+select pruefe(jarvis_katalog.ki_reservieren_fuer(2, 'test', :'zahlt') is not null, 'Im neuen Monat wieder Kontingent');
+update public.firmen set paket = 'business' where id = :'zahlt';
+select pruefe((select jarvis_katalog.ki_planbudget(paket) = 60 from public.firmen where id = :'zahlt'), 'Business mit eigenem Planwert, 60 $');
+insert into public.firmen (name, ki_budget_usd) values ('Gratis A', 5.50) returning id as gratis_a \gset
+insert into public.firmen (name, ki_budget_usd) values ('Gratis B', 5.50) returning id as gratis_b \gset
+insert into jarvis_katalog.ki_kosten (zweck, reserviert, verbraucht, firma_id) values ('test', 0, 4.8, :'gratis_a');
+select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'gratis_b') is null, 'Gratis-Topf (5 $ im Monat, alle Gratis-Firmen zusammen) ist leer');
+select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'zahlt') is not null, 'Zahlende Firma bekommt trotzdem KI');
+update public.firmen set ki_budget_usd = null where id = :'gratis_b';
+select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'gratis_b') is not null, 'Vom Betreiber ohne Grenze: nicht im Gratis-Topf');
+delete from jarvis_katalog.ki_kosten where firma_id in (:'zahlt', :'gratis_a', :'gratis_b');
+delete from public.firmen where id in (:'zahlt', :'gratis_a', :'gratis_b');
+select set_config('test.uid', :'alt_uid', false);
 update public.mitglieder set rolle = 'admin' where user_id = '00000000-0000-0000-0000-00000000000b';
 set role authenticated;
 select pruefe((select kosten >= 0.01 and anfragen = 1 from public.ki_kosten_firma(:'firma') where zweck = 'test'), 'Admin sieht die KI-Kosten der eigenen Firma');

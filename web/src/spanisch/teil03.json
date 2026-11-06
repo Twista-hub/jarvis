@@ -494,5 +494,8 @@
  "Den Plan ändert ein Inhaber oder Admin der Firma.": "El plan lo cambia un propietario o administrador de la empresa.",
  "Dein Plan, Wechsel per Rechnung": "Tu plan, cambio por factura",
  "Preise ansehen →": "Ver precios →",
- "Bitte einen Plan wählen.": "Elige un plan."
+ "Bitte einen Plan wählen.": "Elige un plan.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "El cupo de IA de tu plan está agotado este mes. Los resultados por palabras clave siguen; la IA vuelve el día #. Más cupo:",
+ "Plan wechseln": "Cambiar de plan",
+ "oder Zusatzpaket.": "o paquete adicional."
 }

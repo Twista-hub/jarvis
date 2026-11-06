@@ -494,5 +494,8 @@
  "Den Plan ändert ein Inhaber oder Admin der Firma.": "An owner or admin of the company changes the plan.",
  "Dein Plan, Wechsel per Rechnung": "Your plan, change by invoice",
  "Preise ansehen →": "See pricing →",
- "Bitte einen Plan wählen.": "Please choose a plan."
+ "Bitte einen Plan wählen.": "Please choose a plan.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "Your plan's AI allowance is used up for this month. Keyword matches continue; AI is back on the #st. More allowance:",
+ "Plan wechseln": "Change plan",
+ "oder Zusatzpaket.": "or add-on pack."
 }

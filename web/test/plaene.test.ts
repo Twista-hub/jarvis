@@ -37,3 +37,11 @@ test("Preise: 59/149/399 €, Jahr = 10 Monate, Bestellung per Rechnung", () => 
   assert.match(m.text, /Betrag: 1490 € pro Jahr/);
   assert.match(m.text, /konto\/betreiber\/rechnungen/);
 });
+
+import { probeHinweis } from "../src/konto.ts";
+test("KI-Kostenbremse: Hinweis erst, wenn das Monatskontingent des Plans aufgebraucht ist", () => {
+  assert.equal(probeHinweis({ budget: 25, verbraucht: 10, monatlich: true }), "");
+  assert.match(probeHinweis({ budget: 25, verbraucht: 25, monatlich: true }), /für diesen Monat aufgebraucht[\s\S]*\/konto\/plan/);
+  assert.match(probeHinweis({ budget: 0, verbraucht: 0 }), /Demo-Modus/);
+  assert.equal(probeHinweis({ budget: null, verbraucht: 3 }), "", "ohne Grenze kein Hinweis");
+});

@@ -216,8 +216,10 @@ async function suchstatus(request: Request, env: KontoEnv): Promise<Response> {
 }
 
 /** Probezeit-Schutz (migration 20261103200000): demo mode without website, or trial AI budget used up. */
-export function probeHinweis(k: { budget: number | null; verbraucht: number } | null): string {
+export function probeHinweis(k: { budget: number | null; verbraucht: number; monatlich?: boolean } | null): string {
   if (!k || k.budget === null || k.budget === undefined) return "";
+  // Paid plan: monthly AI allowance (migration 20261106010000). Only a hint once it is used up.
+  if (k.monatlich) return Number(k.verbraucht) >= Number(k.budget) - 0.05 ? `<p class="hinweis">Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem 1. wieder mit KI. Mehr Kontingent: <a href="/konto/plan">Plan wechseln</a> oder Zusatzpaket.</p>` : "";
   if (Number(k.budget) === 0) return `<p class="hinweis">🎬 <strong>Demo-Modus:</strong> Crewtender zeigt passende Ausschreibungen nach Stichworten, aber noch ohne KI-Bewertung und Steckbriefe. Die Probezeit mit KI startet, sobald ihr eure <a href="/konto/einrichtung">Firmenwebsite</a> angebt.</p>`;
   if (Number(k.verbraucht) >= Number(k.budget) - 0.05) return `<p class="hinweis">Das KI-Kontingent der Probezeit ist aufgebraucht. Treffer nach Stichworten gibt es weiter; für KI-Bewertungen und Steckbriefe schreibt uns gern.</p>`;
   return "";
