@@ -1,0 +1,33 @@
+# Neutral sample Steckbriefe for the public demo (alarm/demo_steckbriefe.py). Costs real API money: about 0.04–0.08 $
+# each, hard cap KI_LIMIT_DOLLAR. Only public notices, no customer data. Start by hand.
+name: Demo-Steckbriefe
+on:
+  workflow_dispatch:
+    inputs:
+      anzahl:
+        description: "Anzahl neuer Beispiel-Steckbriefe (1–20)"
+        default: "15"
+      grenze:
+        description: "Kostengrenze in $"
+        default: "2"
+permissions:
+  contents: read
+concurrency:
+  group: demo-steckbriefe
+jobs:
+  schreiben:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q anthropic "psycopg[binary]" cryptography
+      - name: Schreiben
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          KI_LIMIT_DOLLAR: ${{ inputs.grenze }}
+          ANZAHL: ${{ inputs.anzahl }}
+        run: cd alarm && python demo_steckbriefe.py "$ANZAHL"

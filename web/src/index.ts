@@ -227,7 +227,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     if (lg) return lg;
     const sam = samAnleitungSeite(request, ADRESSE, (h) => html(h));
     if (sam) return sam;
-    const dm = await demo(request, MUSTER.replace(/^>.*\n/m, ""));
+    const dm = await demo(request, MUSTER.replace(/^>.*\n/m, ""), env);
     if (dm) return dm;
     const am = await angebote(request, env);
     if (am) return am;
