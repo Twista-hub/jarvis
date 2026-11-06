@@ -100,6 +100,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261103320000_arbeitstage.sql
 \ir ../migrations/20261105010000_katalog_suche_schneller.sql
 \ir ../migrations/20261106010000_ki_planbudget.sql
+\ir ../migrations/20261106020000_demo_katalog.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -411,6 +412,32 @@ set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000a');
 select pruefe((select count(*)=1 from public.katalog_suche(:'firma','','','','offen')),'Bestandssuche schließt abgelaufene Fristen aus');
 select pruefe((select count(*)=0 from public.katalog_suche(:'selbst','','','','offen')),'Katalogsuche verlangt Mitgliedschaft der angegebenen Firma');
+-- Öffentliche Demo: anonyme Suche in den öffentlichen Bekanntmachungen, nie Kundendaten.
+reset role;
+insert into jarvis_intern.demo_steckbriefe (katalog_id, titel, markdown) values ('bks:test', 'Elektriker für die Verwaltung', repeat('Neutraler Steckbrief. ', 20));
+set role anon;
+select pruefe((select count(*) = 1 from public.demo_suche('', '', 'offen')), 'Demo: ohne Anmeldung die offenen Bekanntmachungen');
+select pruefe((select count(*) = 2 from public.demo_suche('', '', 'alle')), 'Demo: auf Wunsch auch abgelaufene');
+select pruefe((select count(*) = 1 and bool_and(steckbrief) from public.demo_suche('Elektriker', '', 'offen')), 'Demo: Stichwortsuche mit Kennzeichen Beispiel-Steckbrief');
+select pruefe((select count(*) = 0 from public.demo_suche('Elektriker', 'Hamburg', 'offen')), 'Demo: Ortsfilter');
+select pruefe((select public.demo_eintrag('bks:test')->>'steckbrief' like 'Neutraler%' and public.demo_eintrag('bks:test')->>'titel' = 'Elektriker für die Verwaltung'), 'Demo: Eintrag mit Beispiel-Steckbrief');
+select pruefe(public.demo_eintrag('gibt-es-nicht') is null, 'Demo: unbekannter Eintrag');
+select pruefe((select count(*) = 1 from public.demo_steckbriefe()) and public.demo_steckbrief('bks:test') is not null, 'Demo: Liste der Beispiel-Steckbriefe');
+do $$ begin
+  perform 1 from public.vergabekatalog;
+  raise exception 'FEHLER: anon liest den Katalog direkt';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  perform 1 from jarvis_intern.demo_steckbriefe;
+  raise exception 'FEHLER: anon liest die Steckbrief-Tabelle direkt';
+exception when insufficient_privilege then null; end $$;
+do $$ begin
+  perform 1 from jarvis_katalog.bewertungen;
+  raise exception 'FEHLER: anon liest Bewertungen';
+exception when insufficient_privilege then null; end $$;
+reset role;
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000a');
 select public.katalog_uebernehmen(:'firma','bks:test',null) as katalog_vorgang \gset
 select pruefe((select katalog_id='bks:test' from public.vorgaenge where id=:'katalog_vorgang'),'Katalogtreffer wird ohne doppelte Ausschreibung übernommen');
 select pruefe(public.katalog_uebernehmen(:'firma','bks:test',null)=:'katalog_vorgang','Wiederholte Übernahme bleibt idempotent');
