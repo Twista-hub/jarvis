@@ -25,7 +25,7 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
   - 10.11.2026, 18:00: post2-auftragswert.png („📑 Around 500 new public tenders every morning. …“)
 - Beide stehen unter Content → „Geplant“. Werbung jeweils abgelehnt („Vielleicht später“).
 - **Profil-Link:** stimmt, im Profil steht crewtender.eu.
-- **Achtung, Facebook doppelt:** Unter „Geplant“ steht jeder Facebook-Post **zweimal** (07.11. und 10.11., je 18:00). Wahrscheinlich hat der Planer heute Morgen nichts angezeigt, und die Posts wurden neu angelegt, obwohl die alten noch da waren. Je einen davon löschen, das klärt Benjamin.
+- **Achtung, Facebook doppelt:** Unter „Geplant“ steht jeder Facebook-Post **zweimal** (07.11. und 10.11., je 18:00). Wahrscheinlich hat der Planer heute Morgen nichts angezeigt, und die Posts wurden neu angelegt, obwohl die alten noch da waren. Auf Benjamins OK („Ja, je einen löschen“) wurde je ein Duplikat gelöscht. Jetzt ist jeder Post genau einmal geplant: Facebook 07.11. und 10.11., Instagram 07.11. und 10.11., je 18:00 Uhr.
 
 ### 06.11.2026 – Browser-Chat: Anthropic-Guthaben
 Nur gelesen. Nichts gekauft, kein Limit geändert, nichts verknüpft.
