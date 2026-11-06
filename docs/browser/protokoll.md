@@ -7,8 +7,8 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 |---|---|---|---|
 | Domain crewtender.eu | Namecheap → Cloudflare | gekauft 03.11.2026 (Benjamin), Cloudflare aktiv | |
 | E-Mail hello@crewtender.eu | Cloudflare Email Routing → kontakt@wpdigitalranger.com | aktiv 03.11.2026 | |
-| Instagram | @crew_tender (Unternehmenskonto, Kategorie Software; Anmeldung mit kontakt@wpdigitalranger.com, laut Benjamin 03.11.) | angelegt 03.11.2026 (Benjamin), eingerichtet | https://www.instagram.com/crew_tender/ |
-| Facebook-Seite | Crewtender (Kategorie Software) | angelegt 03.11.2026 unter Benjamins persönlichem Profil | https://www.facebook.com/profile.php?id=61596423171638 |
+| Instagram | @crew_tender (Unternehmenskonto, Kategorie Software; Anmeldung mit kontakt@wpdigitalranger.com, laut Benjamin 03.11.) | angelegt 03.11.2026 (Benjamin), eingerichtet, mit Facebook-Seite Crewtender verbunden (06.11.2026) | https://www.instagram.com/crew_tender/ |
+| Facebook-Seite | Crewtender (Kategorie Software) | angelegt 03.11.2026 unter Benjamins persönlichem Profil, mit Instagram @crew_tender verbunden (06.11.2026) | https://www.facebook.com/profile.php?id=61596423171638 |
 | LinkedIn-Seite | – | gesperrt bis frühestens 04.11.2026 (neues Konto, LinkedIn verlangt 1 Tag Wartezeit) | |
 | Bluesky | @crewtender.eu (Anmeldung kontakt@wpdigitalranger.com) | angelegt 03.11.2026 (Benjamin), eingerichtet, Domain-Handle verifiziert, E-Mail bestätigt | https://bsky.app/profile/crewtender.eu |
 | Mastodon | @crewtender@mastodon.social (Anmeldung kontakt@wpdigitalranger.com) | angelegt 03.11.2026 (Benjamin), eingerichtet | https://mastodon.social/@crewtender |
@@ -18,6 +18,11 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 - hello@crewtender.eu ist nur die **öffentliche** Kontaktadresse in Profilen und auf der Website (leitet an kontakt@ weiter).
 
 ## Einträge
+
+### 06.11.2026 – Browser-Chat: Instagram mit Facebook verbunden
+- Weg 1: Facebook als Seite Crewtender → Einstellungen → Verknüpfte Konten → Instagram → „Konto verknüpfen“ → „Verknüpfen“. Bei „Zugriff auf Instagram-Nachrichten im Postfach gestatten“ blieb der Schalter an → „Weiter“.
+- Ergebnis: **verbunden.** Unter „Connected Instagram“ steht crewtender @crew_tender. Eine Anmeldung bei Instagram war nicht nötig, Instagram war schon als @crew_tender angemeldet.
+- RestockHero-Seite, @restockhero, Make und Buffer nicht angefasst. Nichts gepostet, nichts bezahlt, keine Werbung.
 
 ### 04.11.2026 – Browser-Chat: Search Console Demopin, Prüfung gestartet
 - Vorher live geprüft (Googlebot): /event/9113 und /event/886 haben jetzt eigene Titel mit Datum („– Oct 26, 2026, Upper Marlboro“ bzw. „– Oct 6, 2026“) und eigene Canonicals. Eine unbekannte URL liefert 404.
