@@ -47,6 +47,8 @@ class EformsTest(unittest.TestCase):
     def test_release_id_is_the_notice_ocid_the_procedure(self):
         self.assertEqual(eforms_ids(ROH | {"id": NOTICE}), (NOTICE, VERFAHREN))
         self.assertEqual(eforms_ids({"ocid": "ohne-uuid"}), (None, None))
+        self.assertEqual(eforms_ids({"id": "25999052", "ocid": "ocds-mnwr74-25999052"}), ("25999052", "25999052"), "vereinfachte Bekanntmachung mit Nummer")
+        self.assertEqual(eforms_ids({"ocid": "ocds-mnwr74-123"}), (None, None), "zu kurze Nummer ist keine Kennung")
 
     def test_publication_day_in_german_time(self):
         # The catalog stores 2026-11-02T00:00+01:00 as UTC; the export day is the German date.

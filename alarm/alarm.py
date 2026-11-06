@@ -162,10 +162,16 @@ def eforms_ids(rel: dict) -> tuple[str | None, str | None]:
     """(notice id, procedure id). In the German export the release id is the notice id (BT-701, the file name
     <id>-<version>.json) and the OCID ends with the procedure id (BT-04, cbc:ContractFolderID). The notice API
     only knows the notice id; the procedure id matches only the first notice of some procedures."""
-    def uuid(v):
-        m = re.search(UUID, str(v or "").lower())
-        return m.group(0) if m else None
-    return uuid(rel.get("id")), uuid(rel.get("ocid"))
+    # About 2 % of the German notices (simplified below-threshold forms) carry a plain number instead of a UUID, e.g.
+    # release id "25999052" and OCID "ocds-mnwr74-25999052"; the notice API and the daily export know them by that number.
+    def kennung(v):
+        text = str(v or "").lower()
+        m = re.search(UUID, text)
+        if m:
+            return m.group(0)
+        m = re.search(r"(?:^|-)(\d{6,12})$", text)
+        return m.group(1) if m else None
+    return kennung(rel.get("id")), kennung(rel.get("ocid"))
 
 
 def eforms_tage(rel: dict) -> list[str]:
@@ -202,7 +208,7 @@ def eforms_aus_export(dateien: list[tuple[str, str, bytes]], notice_id: str | No
     """The notice itself (file name), else the newest notice of the same procedure published that day."""
     if notice_id:
         for name, _, xml in dateien:
-            if name.startswith(notice_id):
+            if name.startswith(f"{notice_id}-") or name == f"{notice_id}.xml":
                 return xml
     passend = [xml for name, folder, xml in dateien if verfahren and folder == verfahren]
     return passend[-1] if passend else None
