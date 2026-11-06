@@ -46,13 +46,18 @@ def auswahl(anzahl: int) -> list[tuple]:
     with verbinden() as c:
         c.execute("set transaction read only")
         vorhanden = {r[0] for r in c.execute("select katalog_id from jarvis_intern.demo_steckbriefe").fetchall()}
+        offen = c.execute("""select count(*), count(*) filter (where frist > now() + interval '14 days'), count(*) filter (where frist is null)
+                             from public.vergabekatalog where quelle = 'bks' and status in ('offen', 'unbekannt')""").fetchone()
+        print(f"Offene Bekanntmachungen (bks): {offen[0]}, davon Frist > 14 Tage: {offen[1]}, ohne Frist: {offen[2]}")
         for label, muster in GEWERKE:
             if len(faelle) >= anzahl:
                 break
+            # Prefer notices that stay open a while (the demo shows them longer); otherwise any open one.
             row = c.execute("""select id, roh, titel, auftraggeber, ort, frist, link from public.vergabekatalog
-                               where quelle = 'bks' and status in ('offen', 'unbekannt') and frist > now() + interval '14 days'
-                                 and titel ~* %s and not (id = any(%s))
-                               order by quell_datum desc limit 1""", (muster, list(vorhanden | gesehen))).fetchone()
+                               where quelle = 'bks' and status in ('offen', 'unbekannt') and (frist is null or frist > now() + interval '3 days')
+                                 and titel ~* %s and id <> all(%s::text[])
+                               order by (frist > now() + interval '14 days') desc nulls last, quell_datum desc limit 1""",
+                            (muster, list(vorhanden | gesehen))).fetchone()
             if not row:
                 print(f"Keine passende offene Bekanntmachung für {label}")
                 continue
