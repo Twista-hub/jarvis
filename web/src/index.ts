@@ -1,5 +1,6 @@
 // Crewtender upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import { textSymbole } from "./symbole.ts";
+import { preise } from "./preise.ts";
 import { START_BESCHREIBUNG, START_JSONLD, ogErgaenzen, seoKopf } from "./seo.ts";
 import kunden from "../kunden.json";
 import { BRANCHEN_VORLAGEN, euro, FELDER, losStunden, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
@@ -313,6 +314,8 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     }
     const hc = hilfecenter(request, (t, i) => seite(t, i));
     if (hc) return hc;
+    const preisAntwort = await preise(request, env);
+    if (preisAntwort) return preisAntwort;
     const kf = await kontakt(request, env, (t, i) => seite(t, i));
     if (kf) return kf;
     if (url.pathname === "/hochladen" && request.method === "POST") return hochladen(request, env);

@@ -98,7 +98,7 @@ export function nutzungsbedingungenEn(): string {
 <li>Access credentials are personal. The customer invites only people who work for it and removes them when they leave.</li>
 </ul>
 <h2>5. Prices</h2>
-<p>We agree prices and the package separately with each firm. During a preview or trial period Crewtender is free of charge; a trial period ends automatically without a paid package starting. For trials the volume of AI evaluations may be limited. Prices are exclusive of VAT, where applicable.</p>
+<p>The prices on crewtender.eu/preise at the time of the order apply, unless otherwise agreed. With monthly payment we charge the monthly price at the start of each month; with yearly payment we charge the yearly price (12 months for the price of 10) in advance. Invoices are payable within 14 days by bank transfer. Additional services (additional field workers, fact sheet packs) are charged according to the price page. During a preview or trial, Crewtender is free of charge; a trial ends automatically without a paid plan starting. For trials, the scope of AI evaluations may be limited. As long as we are a small business under § 19 UStG we charge no VAT; after that, prices are plus statutory VAT. We announce price changes by email at least six weeks in advance; the customer may terminate with effect from the date they take effect.</p>
 <h2>6. Availability</h2>
 <p>We strive for trouble-free operation but do not owe any particular level of availability. Maintenance and faults at service providers may lead to interruptions.</p>
 <h2>7. Liability</h2>
@@ -106,7 +106,7 @@ export function nutzungsbedingungenEn(): string {
 <h2>8. Data protection</h2>
 <p>Insofar as we process personal data on behalf of the customer, the <a href="/avv">data processing agreement</a> applies. More in the <a href="/datenschutz">privacy policy</a>.</p>
 <h2>9. Term and termination</h2>
-<p>Either party may terminate at any time with effect from the end of the month, unless otherwise agreed. Until the end, the customer can download its data (e.g. archive of all invoices and receipts, hours, payroll list). After the end we delete the firm's data within 30 days; it disappears from the encrypted backups after one year at the latest.</p>
+<p>Monthly plans may be terminated by either party at any time with effect from the end of the month. Yearly plans run for 12 months and renew for a further 12 months unless terminated at least one month before expiry; on early termination we refund amounts already paid only if the customer terminates for good cause. Free use may be ended by either party at any time. Termination by email to kontakt@wpdigitalranger.com is sufficient. Until the end, the customer can download its data (e.g. archive of all invoices and receipts, hours, payroll list). After the end we delete the firm's data within 30 days; it disappears from the encrypted backups after one year at the latest.</p>
 <h2>10. Final provisions</h2>
 <p>German law applies. The place of jurisdiction is, to the extent permitted, our registered office. We announce changes to these terms by email. Changes that do not put the customer in a worse position or only concern new functions are deemed accepted if the customer does not object within 4 weeks; we point out this consequence in the notice. Changes to prices or main services require the customer's consent; without consent, either party may terminate with effect from the end of the month.</p>`;
 }
