@@ -15,6 +15,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Klickprüfung 05.11.2026:** 3 Firmen, je 259–300 Seiten, 0 Probleme, 0 Fehler. Katalogsuche (Markt & Chancen) war einmal 8,5 s langsam → Migration `20261105010000_katalog_suche_schneller.sql` (Rolle einmal prüfen, Teilindizes), live.
 - **Preise live (06.11.2026):** /preise öffentlich, /konto/plan mit Bestellung per Mail an kontakt@ (Plan setzen auf /konto/betreiber, Rechnung über Kundenrechnungen). Free 0, Basis 59, Pro 149, Business 399 €/Monat, jährlich 10 Monatspreise. Nutzungsbedingungen §5/§9 angepasst (Stand 06.11.). Plangrenzen noch NICHT durchgesetzt.
 - **KI-Kostenbremse live (06.11.2026):** Migration `20261106010000_ki_planbudget.sql`. Bezahlte Pläne haben ein KI-Monatskontingent pro Firma (Basis 10 $, Pro 25 $, Business 60 $). Gratis-Firmen (Demo/Probe) teilen sich zusätzlich 5 $ im Monat; ist der Topf leer, kommt einmal im Monat eine Handy-Meldung an Benjamin, zahlende Kunden laufen weiter. Firmen ohne Grenze (Betreiber-Seite) bleiben ohne Grenze. `jarvis_katalog.ki_sperrgrund(firma, betrag)` nennt den Grund (demo, probe, plan, topf, anfrage, monat, tag); Kunden sehen ihn als Hinweis in der Übersicht (Inhaber/Admin), im Steckbrief („Steckbrief pausiert“), bei der Firmenprüfung und beim Beleg-Lesen, in 6 Sprachen. Das globale Limit (20 $/Monat) bleibt; anheben, sobald zahlende Kunden da sind.
+- **Öffentliche Demo ausgebaut (06.11.2026, live):** https://crewtender.eu/demo ohne Anmeldung: neue Übersicht, Fristen, Darstellung, „Echte Ausschreibungen“ (Suche in den öffentlichen Bekanntmachungen über `public.demo_suche`/`demo_eintrag`, ohne KI, ohne Kundendaten, Migration `20261106020000_demo_katalog.sql`) und 15 neutrale Beispiel-Steckbriefe (`jarvis_intern.demo_steckbriefe`, Ablauf „Demo-Steckbriefe“, `alarm/demo_steckbriefe.py`, einmalig 1,53 $). Neue Steckbriefe: Ablauf von Hand starten (Anzahl, Kostengrenze).
+- **Aussehen wechseln:** Farbpalette-Knopf oben rechts auf jeder Seite (Hell → Dunkel → Technisch); unter Mehr steht „Darstellung“ jetzt ganz oben.
+- **Offen (Befund 06.11.):** Alle ~34.700 Bundes-Bekanntmachungen (bks) im Katalog haben keine Frist (OCDS ohne tenderPeriod, Frist steht in eForms). Dadurch zählen abgelaufene als offen. Als eigene Aufgabe vorgeschlagen.
 - **Instagram ↔ Facebook verbunden** (Benjamin, 06.11.2026).
 - **Mails:** kontakt@ leitet Kopien an restockhero.contact@gmail.com (Label „Crewtender“), Claude liest sie dort. LinkedIn-Seite angelegt (Benjamin).
 - **Browser-Chat:** Auftrag LinkedIn-Unternehmensseite ab 04.11. liegt in `docs/auftraege/crewtender-linkedin.md`.
@@ -97,6 +100,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+
+### 06.11.2026 – Claude Code (Demo für alle, Aussehen-Knopf)
+- Demo mit echter Suche und Beispiel-Steckbriefen live; Rechte-Test prüft, dass anon nur über die Demo-Funktionen liest (keine Bewertungen, keine Tabellen direkt). Farbpalette-Knopf in der Kopfzeile. 392 Web-Tests grün, Live-Prüfung grün.
 
 ### 06.11.2026 – Claude Code (KI-Kostenbremse mit Hinweisen)
 - Benjamin: „Schalte die Kostenbremse live, aber mit Hinweisen, wenn etwas aufgebraucht ist.“ Umgesetzt und live (Datenbank-Lauf grün, „Applying migration 20261106010000_ki_planbudget.sql“; Upload-Seite ausgerollt). Code: `web/src/ki-fehler.ts` (`KI_SPERRE`, `KiBudgetFehler`, `kiSperrText`), `api-budget.ts` (fragt bei Ablehnung den Grund ab), `konto.ts` (`probeHinweis`), `workflow.ts`, `belege.ts`. Tests: Rechte-Test und 390 Web-Tests grün.
