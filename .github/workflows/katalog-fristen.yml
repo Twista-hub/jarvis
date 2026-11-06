@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       modus:
-        description: "probe (nur zählen) oder schreiben"
+        description: "probe (nur zählen), schreiben oder stand (nur Datenbankgröße)"
         default: "probe"
 permissions:
   contents: read
@@ -25,4 +25,4 @@ jobs:
         env:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           MODUS: ${{ inputs.modus }}
-        run: cd alarm && python katalog_fristen.py $([ "$MODUS" = schreiben ] || echo --probe)
+        run: cd alarm && python katalog_fristen.py $(case "$MODUS" in schreiben) ;; stand) echo --stand ;; *) echo --probe ;; esac)
