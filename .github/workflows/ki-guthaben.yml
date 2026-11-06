@@ -1,0 +1,28 @@
+# Read only: one tiny request (Haiku, 1 output token, well under 0.01 cent) to see whether the API key has credit.
+name: KI-Guthaben prüfen
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pruefen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q anthropic
+      - name: Prüfen
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          python - <<'PY'
+          import anthropic
+          try:
+              m = anthropic.Anthropic(max_retries=0).messages.create(model="claude-haiku-5-5", max_tokens=1, messages=[{"role": "user", "content": "ok"}])
+              print("GUTHABEN OK: Anfrage angenommen", m.usage)
+          except anthropic.APIStatusError as e:
+              text = str(getattr(e, "message", e))
+              print("GUTHABEN LEER" if "credit balance" in text else "LIMIT" if "usage limit" in text else "FEHLER", e.status_code, text[:300])
+          PY
