@@ -69,7 +69,7 @@ ${team.length ? `<label class="zeile"><input type="checkbox" name="firmen_mit">A
 
 export type BetreiberFirma = { id: string; name: string; erstellt: string; website: string; paket: string; ki_budget_usd: number | null; ki_verbraucht: number; mitglieder: number; inhaber: string | null; letzte_anmeldung: string | null };
 
-export const PAKETE = ["kostenlos", "test", "basis", "pro", "erfolg"];
+export const PAKETE = ["kostenlos", "test", "basis", "pro", "business"];
 /** AI limit choices on the operator page: "" = no limit (null), otherwise USD. */
 export const KI_STUFEN: [string, string][] = [["", "ohne Grenze"], ["5.5", "Probe 5,50 $"], ["20", "20 $"], ["0", "Demo, keine KI"]];
 

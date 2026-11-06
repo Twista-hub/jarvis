@@ -494,5 +494,8 @@
  "Den Plan ändert ein Inhaber oder Admin der Firma.": "Il piano lo modifica un titolare o un amministratore dell'impresa.",
  "Dein Plan, Wechsel per Rechnung": "Il tuo piano, cambio con fattura",
  "Preise ansehen →": "Vedi i prezzi →",
- "Bitte einen Plan wählen.": "Scegli un piano."
+ "Bitte einen Plan wählen.": "Scegli un piano.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "La quota di IA del tuo piano è esaurita per questo mese. I risultati per parole chiave continuano; l'IA torna il giorno #. Più quota:",
+ "Plan wechseln": "Cambia piano",
+ "oder Zusatzpaket.": "o pacchetto aggiuntivo."
 }

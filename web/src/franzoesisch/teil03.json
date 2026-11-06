@@ -494,5 +494,8 @@
  "Den Plan ändert ein Inhaber oder Admin der Firma.": "Un propriétaire ou un administrateur de l'entreprise modifie le plan.",
  "Dein Plan, Wechsel per Rechnung": "Votre plan, changement sur facture",
  "Preise ansehen →": "Voir les tarifs →",
- "Bitte einen Plan wählen.": "Veuillez choisir un plan."
+ "Bitte einen Plan wählen.": "Veuillez choisir un plan.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "Le quota d'IA de votre plan est épuisé pour ce mois. Les résultats par mots-clés continuent ; l'IA revient le #. Plus de quota :",
+ "Plan wechseln": "Changer de plan",
+ "oder Zusatzpaket.": "ou pack supplémentaire."
 }

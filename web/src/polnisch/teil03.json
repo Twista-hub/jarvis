@@ -494,5 +494,8 @@
  "Den Plan ändert ein Inhaber oder Admin der Firma.": "Plan zmienia właściciel lub administrator firmy.",
  "Dein Plan, Wechsel per Rechnung": "Twój plan, zmiana na fakturę",
  "Preise ansehen →": "Zobacz cennik →",
- "Bitte einen Plan wählen.": "Wybierz plan."
+ "Bitte einen Plan wählen.": "Wybierz plan.",
+ "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI. Mehr Kontingent:": "Limit AI w Twoim planie na ten miesiąc został wykorzystany. Wyniki według słów kluczowych są nadal dostępne, AI wraca #. dnia miesiąca. Większy limit:",
+ "Plan wechseln": "Zmień plan",
+ "oder Zusatzpaket.": "lub pakiet dodatkowy."
 }
