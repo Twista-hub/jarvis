@@ -104,6 +104,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 06.11.2026 – Claude Code (Anthropic-Guthaben)
+- API-Guthaben leer (−0,09 $), seit ca. 10:25 keine KI. Console hat nur eine Organisation „Twista's Individual Org“ (Schlüssel jarvis-alarm und „Streik app“/Demopin). **Benjamin 06.11.: so lassen, Demopin verbraucht kaum etwas.** Max-API-Guthaben (Max 5x: 100 $/Monat, Max 20x: 200 $) wird in claude.ai → Einstellungen → Abrechnung → API credits mit dieser Organisation verknüpft, sobald die Option erscheint (am 06.11. noch nicht da). Ablauf „KI-Guthaben prüfen“ (`ki-guthaben.yml`) testet mit einer winzigen Anfrage.
+
 ### 06.11.2026 – Claude Code (RestockHero-PR, Alarm-eForms)
 - RestockHero: Kein PR angelegt – dieselbe Minuten-Sparänderung an checks.yml ist inzwischen auf main (andere Sitzung); Branch main-zn4fkv ist damit überholt.
 - Alarm: Bekanntmachungen mit Nummer statt UUID laden jetzt die volle eForms-Fassung (Test mit echtem Export 04.11.).
