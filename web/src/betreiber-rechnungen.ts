@@ -61,7 +61,7 @@ ${ohneNummer ? `<p class="hinweis">Ohne Steuernummer darf noch keine Rechnung ra
 <label>Kunde<select name="firma" required><option value="">Bitte wählen</option>${firmenOpt}</select></label>
 <label>Leistungszeitraum<input name="zeitraum" required maxlength="100" value="${escape(vormonat(o.heute))}"></label>
 ${zeilen}
-<label>Deine Steuernummer<input name="steuernummer" maxlength="30" value="${escape(o.steuernummer)}" placeholder="z. B. 202/123/45678"></label>
+<label>Deine Steuernummer${FIRMA.ustId ? ` (freiwillig, die USt-IdNr. ${escape(FIRMA.ustId)} steht schon auf jeder Rechnung)` : ""}<input name="steuernummer" maxlength="30" value="${escape(o.steuernummer)}" placeholder="z. B. 202/123/45678"></label>
 <label>Zahlungshinweis (z. B. mit IBAN)<textarea name="hinweis" maxlength="500" rows="2">${escape(o.zahlungshinweis)}</textarea></label>
 <p class="klein">${FIRMA.kleinunternehmer ? `Auf der Rechnung steht: „${escape(KU_HINWEIS)}“ ` : ""}Die Nummer vergibt Crewtender fortlaufend (CT-Jahr-0001). Ausgestellte Rechnungen lassen sich nicht ändern oder löschen, nur stornieren. Nur Kunden in Deutschland, bis eine USt-IdNr. da ist.</p>
 <button>Rechnung ausstellen</button></form>
@@ -78,7 +78,7 @@ ${r.storniert_durch ? `<p class="hinweis nicht-drucken">Diese Rechnung ist storn
 <p class="klein">${escape([a.name, a.firma].filter(Boolean).join(", "))} · ${escape(a.strasse ?? "")} · ${escape(a.ort ?? "")}</p>
 <p>${escape(e.firma ?? "")}<br>${escape(e.strasse ?? "")}<br>${escape([e.plz, e.ort].filter(Boolean).join(" "))}${e.land && e.land !== "DE" ? `<br>${escape(e.land)}` : ""}</p>
 <h2>${storno ? "Stornorechnung" : "Rechnung"} ${escape(r.nummer)}</h2>
-<p>Rechnungsdatum: ${datumDe(r.datum)}<br>Leistungszeitraum: ${escape(r.leistungszeitraum)}<br>${a.steuernummer ? `Steuernummer: ${escape(a.steuernummer)}` : ""}${a.ust_id ? `<br>USt-IdNr.: ${escape(a.ust_id)}` : ""}</p>
+<p>Rechnungsdatum: ${datumDe(r.datum)}<br>Leistungszeitraum: ${escape(r.leistungszeitraum)}<br>${[a.steuernummer ? `Steuernummer: ${escape(a.steuernummer)}` : "", a.ust_id ? `USt-IdNr.: ${escape(a.ust_id)}` : ""].filter(Boolean).join("<br>")}</p>
 <table style="width:100%;border-collapse:collapse"><thead><tr><th>Pos.</th><th>Leistung</th><th style="text-align:right;white-space:nowrap">Menge</th><th style="text-align:right;white-space:nowrap">Einzelpreis</th><th style="text-align:right;white-space:nowrap">Gesamt</th></tr></thead><tbody>${zeilen}</tbody>
 <tfoot><tr><th colspan="4">Gesamtbetrag</th><th style="text-align:right;white-space:nowrap">${geld(r.summe)}</th></tr></tfoot></table>
 ${a.kleinunternehmer ? `<p>${escape(KU_HINWEIS)}</p>` : ""}
