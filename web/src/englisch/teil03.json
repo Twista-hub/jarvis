@@ -503,5 +503,22 @@
  "Das KI-Kontingent für Gratis-Konten ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem #. wieder mit KI; mit einem Plan sofort.": "The AI allowance for free accounts is used up for this month. Keyword matches continue; AI is back on the #st, or right away with a plan.",
  "Die KI von Crewtender ist für diesen Monat ausgelastet. Treffer nach Stichworten gibt es weiter; wir sind informiert und schalten so schnell wie möglich wieder frei.": "Crewtender's AI is at capacity for this month. Keyword matches continue; we have been notified and will restore it as soon as possible.",
  "Die KI von Crewtender ist für heute ausgelastet. Treffer nach Stichworten gibt es weiter, ab morgen wieder mit KI.": "Crewtender's AI is at capacity for today. Keyword matches continue; AI is back tomorrow.",
- "Pläne ansehen": "View plans"
+ "Pläne ansehen": "View plans",
+ "📢 Echte öffentliche Ausschreibung": "📢 Real public tender",
+ "aus amtlicher Quelle. Crewtender findet jeden Morgen die passenden Ausschreibungen für deine Firma.": "from an official source. Every morning Crewtender finds the tenders that fit your company.",
+ "Kostenlos registrieren": "Sign up for free",
+ "🌐 Echte Ausschreibungen": "🌐 Real tenders",
+ "Echte Ausschreibungen": "Real tenders",
+ "Zur Bekanntmachung beim Auftraggeber ↗": "Open the official notice ↗",
+ "Beispiel-Steckbrief": "Sample fact sheet",
+ "Neutral, nur aus der öffentlichen Bekanntmachung geschrieben, ohne Bezug zu einer Firma. Nach der Anmeldung bekommst du Steckbriefe mit Bewertung für deine Firma – und aus hochgeladenen Vergabeunterlagen mit Losen, Mengen und Stunden.": "Neutral, written only from the public notice, without reference to a company. After signing up you get fact sheets with a rating for your company – and from uploaded tender documents with lots, quantities and hours.",
+ "Beschreibung (aus der Bekanntmachung)": "Description (from the notice)",
+ "Lose": "Lots",
+ "Zu dieser Ausschreibung gibt es in der Demo keinen Steckbrief. Nach der Anmeldung schreibt Crewtender Steckbriefe zu deinen besten Treffern.": "There is no fact sheet for this tender in the demo. After signing up, Crewtender writes fact sheets for your best matches.",
+ "Beispiel-Steckbriefe ansehen": "View sample fact sheets",
+ "Passt das zu deiner Firma?": "Does it fit your company?",
+ "Nach der Anmeldung bewertet die KI jede neue Ausschreibung für deine Firma (#–# Punkte mit Begründung) und schreibt Steckbriefe zu den besten Treffern.": "After signing up, the AI rates every new tender for your company (#–# points with a reason) and writes fact sheets for the best matches.",
+ "← Zur Suche": "← Back to search",
+ "⏱️ Stundenzettel": "⏱️ Timesheets",
+ "🧾 Leistungsnachweis": "🧾 Proof of service"
 }
