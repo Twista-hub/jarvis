@@ -9,7 +9,7 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anzeigen, postfach, dkim, webfrei]
+        options: [anzeigen, postfach, dkim, webfrei, dmarc]
         default: anzeigen
       domain:
         description: "Domain (Standard wpdigitalranger.com; crewtender.eu für die App-Adresse)"
@@ -77,6 +77,15 @@ jobs:
           body=$(jq -nc --arg v "$(tr -d ' \n' <<<"$WERT")" '{type:"TXT", name:"default._domainkey", ttl:1,
             content: ([range(0; ($v|length); 250) as $i | "\"" + $v[$i:$i+250] + "\""] | join(" "))}')
           api -X POST "$CF/zones/$ZONE/dns_records" -d "$body" | jq -c '{success, errors}'
+      - name: DMARC eintragen (nur wenn noch keiner da ist)
+        if: env.ZONE != '' && inputs.aktion == 'dmarc'
+        run: |
+          api() { curl -sS -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" "$@"; }
+          if api "$CF/zones/$ZONE/dns_records?type=TXT&name=_dmarc.$DOMAIN" | jq -e '.result | length > 0' >/dev/null; then
+            echo "DMARC schon vorhanden, nichts geändert."
+          else
+            api -X POST "$CF/zones/$ZONE/dns_records" -d '{"type":"TXT","name":"_dmarc","content":"\"v=DMARC1; p=none\"","ttl":1}' | jq -c '{success, errors}'
+          fi
       - name: Ergebnis von außen (Google DNS)
         run: |
           for q in "$DOMAIN MX" "$DOMAIN TXT" "default._domainkey.$DOMAIN TXT" "_dmarc.$DOMAIN TXT"; do
