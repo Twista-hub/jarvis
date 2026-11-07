@@ -3,7 +3,7 @@
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { ABSENDER, senden, type Mail } from "./mail.ts";
-import { PLAENE, PREIS_HINWEISE, jahrespreis, planKarten, planName, planSeite, preisText } from "./plaene.ts";
+import { PLAENE, PLAN_HINWEISE, PREIS_HINWEISE, bestellHinweis, jahrespreis, planKarten, planName, planSeite, wechselHinweis } from "./plaene.ts";
 import { aboWechseln, bezahlSitzung, portalSitzung, stripeLive, stripeSichtbar, type StripeEnv } from "./stripe.ts";
 import { escape, seite } from "./seite.ts";
 import { seoKopf } from "./seo.ts";
@@ -47,38 +47,40 @@ export async function preise(request: Request, env: KontoEnv & StripeEnv & { SMT
   const firma = fi.ok ? fi.daten[0] : undefined;
   const betreiber = !!env.STRIPE_SECRET_KEY && !stripeLive(env) ? await db<boolean>(f.s, env, "rpc/ist_betreiber", { method: "POST", body: "{}" }).then((r) => r.ok && r.daten === true) : false;
   const mitStripe = darf && stripeSichtbar(env, betreiber);
-  const zurueck = (text: string) => weiterleiten(`/konto/plan?hinweis=${encodeURIComponent(text)}`, f.s.cookies);
+  const zurueck = (code: string) => weiterleiten(`/konto/plan?hinweis=${encodeURIComponent(code)}`, f.s.cookies);
   if (request.method === "POST") {
     if (!darf) return weiterleiten("/konto/plan", f.s.cookies);
     const form = await request.formData();
     const weg = String(form.get("weg") ?? "rechnung");
     if (weg === "portal" && mitStripe && firma?.stripe_kunde) {
-      try { return Response.redirect(await portalSitzung(env, firma.stripe_kunde, `${url.origin}/konto/plan`), 303); } catch { return zurueck("Die Abo-Verwaltung ist gerade nicht erreichbar. Bitte später noch einmal."); }
+      try { return Response.redirect(await portalSitzung(env, firma.stripe_kunde, `${url.origin}/konto/plan`), 303); } catch { return zurueck("portal"); }
     }
     const plan = String(form.get("plan") ?? ""), zahlweise = form.get("zahlweise") === "jahr" ? "jahr" : "monat";
     const p = PLAENE.find((x) => x.id === plan && x.monat > 0);
-    if (!p) return zurueck("Bitte einen Plan wählen.");
+    if (!p) return zurueck("plan");
     if (weg === "stripe" && mitStripe) {
       try {
         const aktiv = firma?.stripe_abo && ["active", "trialing", "past_due"].includes(firma.abo_status ?? "");
         if (aktiv) {
           await aboWechseln(env, firma!.stripe_abo!, plan, zahlweise);
-          return zurueck(`Gewechselt zu „${p.name}“. Der Unterschied wird anteilig verrechnet; der Plan ist in wenigen Sekunden frei.`);
+          return weiterleiten(`/konto/plan?gewechselt=${encodeURIComponent(p.id)}`, f.s.cookies);
         }
         return Response.redirect(await bezahlSitzung(env, { firma: f.m.firma_id, email: f.s.email, plan, zahlweise, kunde: firma?.stripe_kunde, basis: url.origin }), 303);
       } catch (e) {
         console.warn(`Stripe: ${e instanceof Error ? e.message : e}`);
-        return zurueck("Die Bezahlseite ist gerade nicht erreichbar. Bitte später noch einmal oder per Rechnung bestellen.");
+        return zurueck("bezahlseite");
       }
     }
     let ok = true;
     try { await senden(env, bestellMail({ firma: firma?.name ?? "", email: f.s.email, plan, zahlweise, firmaId: f.m.firma_id })); } catch { ok = false; }
-    const text = ok ? `Danke! Deine Bestellung „${p.name}“ (${preisText(p, zahlweise === "jahr")}) ist bei uns. Wir schalten den Plan frei und schicken die Rechnung an ${f.s.email}.` : "Die Bestellung konnte nicht gesendet werden. Bitte schreib uns an kontakt@wpdigitalranger.com.";
-    return weiterleiten(`/konto/plan?hinweis=${encodeURIComponent(text)}`, f.s.cookies);
+    return ok ? weiterleiten(`/konto/plan?bestellt=${encodeURIComponent(p.id)}&zahlweise=${zahlweise}`, f.s.cookies) : zurueck("fehler");
   }
   const hinweis = url.searchParams.get("bezahlt") ? "Danke! Die Zahlung ist durch. Der Plan wird in wenigen Sekunden freigeschaltet; die Rechnung kommt per E-Mail."
-    : url.searchParams.get("abgebrochen") ? "Zahlung abgebrochen. Es wurde nichts berechnet." : url.searchParams.get("hinweis") ?? "";
+    : url.searchParams.get("abgebrochen") ? "Zahlung abgebrochen. Es wurde nichts berechnet." : PLAN_HINWEISE[url.searchParams.get("hinweis") ?? ""] ?? "";
+  const bestellt = PLAENE.find((x) => x.monat > 0 && x.id === url.searchParams.get("bestellt"));
+  const gewechselt = PLAENE.find((x) => x.monat > 0 && x.id === url.searchParams.get("gewechselt"));
+  const hinweisHtml = bestellt ? bestellHinweis(bestellt, url.searchParams.get("zahlweise") === "jahr", f.s.email) : gewechselt ? wechselHinweis(gewechselt) : undefined;
   const abo = firma ? { status: firma.abo_status, bis: firma.abo_bis, kuendigt: !!firma.abo_kuendigt, zahlweise: firma.abo_zahlweise, kunde: !!firma.stripe_kunde } : null;
-  return html(seite("Plan & Preise", planSeite(firma?.paket ?? "kostenlos", firma?.name ?? "", darf, hinweis, { stripe: mitStripe, abo, test: !stripeLive(env) }), 0, "einstellungen"), 200, f.s.cookies);
+  return html(seite("Plan & Preise", planSeite(firma?.paket ?? "kostenlos", firma?.name ?? "", darf, hinweis, { stripe: mitStripe, abo, test: !stripeLive(env), hinweisHtml }), 0, "einstellungen"), 200, f.s.cookies);
 }
 
