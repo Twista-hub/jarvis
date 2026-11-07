@@ -104,6 +104,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 07.11.2026 – Claude Code (Alarm ohne Guthaben, Budget)
+- **Benjamin 07.11.: Im November kein Geld für Käufe** (kein KI-Guthaben aufladen, kein Postfach, keine bezahlten Dienste). KI läuft erst wieder mit dem kostenlosen Max-Guthaben (verknüpfen ab 07.11. abends).
+- Alarm brach bei leerem KI-Guthaben ab → behoben (`alarm/ki.py`: `_gesperrt`, Lauf geht mit Stichwort-Treffern weiter, Test `alarm/test_ki_guthaben.py`); Lauf 07.11. neu gestartet: PerLease 3, WP Digital Ranger 1, Malerbetrieb 1 neue Treffer.
+- DMARC für crewtender.eu (`_dmarc` TXT `v=DMARC1; p=none`): später, Benjamin trägt es in Cloudflare ein (Token darf dort keine DNS-Einträge anlegen). hello@crewtender.eu bleibt reine Weiterleitung; Antworten von kontakt@wpdigitalranger.com.
+
 ### 06.11.2026 – Claude Code (Anthropic-Guthaben)
 - API-Guthaben leer (−0,09 $), seit ca. 10:25 keine KI. Console hat nur eine Organisation „Twista's Individual Org“ (Schlüssel jarvis-alarm und „Streik app“/Demopin). **Benjamin 06.11.: so lassen, Demopin verbraucht kaum etwas.** Max-API-Guthaben (Max 5x: 100 $/Monat, Max 20x: 200 $) wird in claude.ai → Einstellungen → Abrechnung → API credits mit dieser Organisation verknüpft, sobald die Option erscheint (am 06.11. noch nicht da). Ablauf „KI-Guthaben prüfen“ (`ki-guthaben.yml`) testet mit einer winzigen Anfrage.
 
