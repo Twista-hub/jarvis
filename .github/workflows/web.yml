@@ -38,6 +38,7 @@ jobs:
       ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
       SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
       ACTIONS_TOKEN: ${{ secrets.ACTIONS_TOKEN }}
+      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
       URL: https://crewtender.eu
     steps:
@@ -97,6 +98,7 @@ jobs:
           if [ -n "$SMTP_PASSWORD" ]; then printf '%s' "$SMTP_PASSWORD" | npx wrangler secret put SMTP_PASSWORD; fi
           # GitHub token (Actions: write on this repo): starts the first hit list right after the setup assistant.
           if [ -n "$ACTIONS_TOKEN" ]; then printf '%s' "$ACTIONS_TOKEN" | npx wrangler secret put ACTIONS_TOKEN; fi
+          if [ -n "$STRIPE_SECRET_KEY" ]; then printf '%s' "$STRIPE_SECRET_KEY" | npx wrangler secret put STRIPE_SECRET_KEY; fi
           # A fresh test code on every deploy; only its hash goes to the worker.
           code=$(openssl rand -hex 12)
           echo "::add-mask::$code"

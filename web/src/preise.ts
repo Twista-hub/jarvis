@@ -4,6 +4,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { ABSENDER, senden, type Mail } from "./mail.ts";
 import { PLAENE, PREIS_HINWEISE, jahrespreis, planKarten, planName, planSeite, preisText } from "./plaene.ts";
+import { aboWechseln, bezahlSitzung, portalSitzung, stripeLive, stripeSichtbar, type StripeEnv } from "./stripe.ts";
 import { escape, seite } from "./seite.ts";
 import { seoKopf } from "./seo.ts";
 
@@ -29,7 +30,8 @@ export function bestellMail(o: { firma: string; email: string; plan: string; zah
   };
 }
 
-export async function preise(request: Request, env: KontoEnv & { SMTP_PASSWORD?: string }): Promise<Response | null> {
+type Firma = { name: string; paket: string; stripe_kunde: string | null; stripe_abo: string | null; abo_status: string | null; abo_bis: string | null; abo_kuendigt: boolean; abo_zahlweise: string | null };
+export async function preise(request: Request, env: KontoEnv & StripeEnv & { SMTP_PASSWORD?: string }): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname === "/preise" && request.method === "GET") {
     const r = html(seite("Preise", preisSeiteInhalt()).replace("</title>", `</title>${seoKopf({ beschreibung: PREISE_BESCHREIBUNG, url: "https://crewtender.eu/preise" })}<link rel="canonical" href="https://crewtender.eu/preise">`));
@@ -41,19 +43,42 @@ export async function preise(request: Request, env: KontoEnv & { SMTP_PASSWORD?:
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
   const darf = ["inhaber", "admin"].includes(f.m.rolle);
-  const fi = await db<{ name: string; paket: string }[]>(f.s, env, `firmen?id=eq.${f.m.firma_id}&select=name,paket`);
+  const fi = await db<Firma[]>(f.s, env, `firmen?id=eq.${f.m.firma_id}&select=name,paket,stripe_kunde,stripe_abo,abo_status,abo_bis,abo_kuendigt,abo_zahlweise`);
   const firma = fi.ok ? fi.daten[0] : undefined;
+  const betreiber = !!env.STRIPE_SECRET_KEY && !stripeLive(env) ? await db<boolean>(f.s, env, "rpc/ist_betreiber", { method: "POST", body: "{}" }).then((r) => r.ok && r.daten === true) : false;
+  const mitStripe = darf && stripeSichtbar(env, betreiber);
+  const zurueck = (text: string) => weiterleiten(`/konto/plan?hinweis=${encodeURIComponent(text)}`, f.s.cookies);
   if (request.method === "POST") {
     if (!darf) return weiterleiten("/konto/plan", f.s.cookies);
     const form = await request.formData();
+    const weg = String(form.get("weg") ?? "rechnung");
+    if (weg === "portal" && mitStripe && firma?.stripe_kunde) {
+      try { return Response.redirect(await portalSitzung(env, firma.stripe_kunde, `${url.origin}/konto/plan`), 303); } catch { return zurueck("Die Abo-Verwaltung ist gerade nicht erreichbar. Bitte später noch einmal."); }
+    }
     const plan = String(form.get("plan") ?? ""), zahlweise = form.get("zahlweise") === "jahr" ? "jahr" : "monat";
     const p = PLAENE.find((x) => x.id === plan && x.monat > 0);
-    if (!p) return weiterleiten(`/konto/plan?hinweis=${encodeURIComponent("Bitte einen Plan wählen.")}`, f.s.cookies);
+    if (!p) return zurueck("Bitte einen Plan wählen.");
+    if (weg === "stripe" && mitStripe) {
+      try {
+        const aktiv = firma?.stripe_abo && ["active", "trialing", "past_due"].includes(firma.abo_status ?? "");
+        if (aktiv) {
+          await aboWechseln(env, firma!.stripe_abo!, plan, zahlweise);
+          return zurueck(`Gewechselt zu „${p.name}“. Der Unterschied wird anteilig verrechnet; der Plan ist in wenigen Sekunden frei.`);
+        }
+        return Response.redirect(await bezahlSitzung(env, { firma: f.m.firma_id, email: f.s.email, plan, zahlweise, kunde: firma?.stripe_kunde, basis: url.origin }), 303);
+      } catch (e) {
+        console.warn(`Stripe: ${e instanceof Error ? e.message : e}`);
+        return zurueck("Die Bezahlseite ist gerade nicht erreichbar. Bitte später noch einmal oder per Rechnung bestellen.");
+      }
+    }
     let ok = true;
     try { await senden(env, bestellMail({ firma: firma?.name ?? "", email: f.s.email, plan, zahlweise, firmaId: f.m.firma_id })); } catch { ok = false; }
     const text = ok ? `Danke! Deine Bestellung „${p.name}“ (${preisText(p, zahlweise === "jahr")}) ist bei uns. Wir schalten den Plan frei und schicken die Rechnung an ${f.s.email}.` : "Die Bestellung konnte nicht gesendet werden. Bitte schreib uns an kontakt@wpdigitalranger.com.";
     return weiterleiten(`/konto/plan?hinweis=${encodeURIComponent(text)}`, f.s.cookies);
   }
-  return html(seite("Plan & Preise", planSeite(firma?.paket ?? "kostenlos", firma?.name ?? "", darf, url.searchParams.get("hinweis") ?? ""), 0, "einstellungen"), 200, f.s.cookies);
+  const hinweis = url.searchParams.get("bezahlt") ? "Danke! Die Zahlung ist durch. Der Plan wird in wenigen Sekunden freigeschaltet; die Rechnung kommt per E-Mail."
+    : url.searchParams.get("abgebrochen") ? "Zahlung abgebrochen. Es wurde nichts berechnet." : url.searchParams.get("hinweis") ?? "";
+  const abo = firma ? { status: firma.abo_status, bis: firma.abo_bis, kuendigt: !!firma.abo_kuendigt, zahlweise: firma.abo_zahlweise, kunde: !!firma.stripe_kunde } : null;
+  return html(seite("Plan & Preise", planSeite(firma?.paket ?? "kostenlos", firma?.name ?? "", darf, hinweis, { stripe: mitStripe, abo, test: !stripeLive(env) }), 0, "einstellungen"), 200, f.s.cookies);
 }
 

@@ -53,11 +53,16 @@ export function planName(id: string): string {
 }
 
 /** Plan cards for the price page and the plan choice. With `wahl`, every paid plan gets an order form (payment by invoice). */
-export function planKarten(o: { aktuell?: string; wahl?: boolean; firma?: string } = {}): string {
+export function planKarten(o: { aktuell?: string; wahl?: boolean; firma?: string; stripe?: boolean; abo?: boolean } = {}): string {
   return `<div class="plan-raster">${PLAENE.map((p) => {
     const istAktuell = p.id === o.aktuell;
+    // With Stripe: pay right away (card, direct debit, Apple/Google Pay) or still order by invoice. An existing Stripe
+    // subscription is switched to the new plan instead of starting a second one.
+    const knoepfe = o.stripe
+      ? `<button name="weg" value="stripe">${o.abo ? `Zu ${escape(p.name)} wechseln` : `${escape(p.name)} jetzt bezahlen`}</button>${o.abo ? "" : `<button name="weg" value="rechnung" class="zweit">Per Rechnung bestellen</button>`}`
+      : `<button>${escape(p.name)} bestellen</button>`;
     const bestellen = o.wahl && p.monat > 0 && !istAktuell
-      ? `<form method="post" action="/konto/plan" class="plan-bestellen"><input type="hidden" name="plan" value="${p.id}"><fieldset><legend>Zahlweise</legend><label class="zeile"><input type="radio" name="zahlweise" value="monat" checked>${preisText(p)}, monatlich kündbar</label><label class="zeile"><input type="radio" name="zahlweise" value="jahr">${preisText(p, true)}, 2 Monate geschenkt</label></fieldset><button>${escape(p.name)} bestellen</button></form>`
+      ? `<form method="post" action="/konto/plan" class="plan-bestellen"><input type="hidden" name="plan" value="${p.id}"><fieldset><legend>Zahlweise</legend><label class="zeile"><input type="radio" name="zahlweise" value="monat" checked>${preisText(p)}, monatlich kündbar</label><label class="zeile"><input type="radio" name="zahlweise" value="jahr">${preisText(p, true)}, 2 Monate geschenkt</label></fieldset>${knoepfe}</form>`
       : "";
     return `<article class="plan-karte${p.id === "pro" ? " plan-empfohlen" : ""}${istAktuell ? " plan-aktuell" : ""}">${p.id === "pro" ? `<span class="plan-band">Beliebt</span>` : ""}<h3>${escape(p.name)}</h3><p class="plan-fuer">${escape(p.fuer)}</p>
 <p class="plan-preis"><strong>${p.monat ? escape(`${p.monat} €`) : "0 €"}</strong><span>${p.monat ? " / Monat" : ""}</span></p>${p.monat ? `<p class="klein">oder ${escape(preisText(p, true))} (2 Monate geschenkt)</p>` : `<p class="klein">Für immer kostenlos</p>`}
@@ -71,8 +76,18 @@ export const PREIS_HINWEISE = `<ul class="plan-hinweise">
 <li>Zusatzpaket: ${ZUSATZ.steckbriefPaket.anzahl} Steckbriefe aus Unterlagen für ${euro(ZUSATZ.steckbriefPaket.preis)}.</li>
 <li>Bezahlung per Rechnung und Überweisung, zahlbar in 14 Tagen. Monatlich: zum Monatsende kündbar. Jährlich: 12 Monate zum Preis von 10.</li>
 </ul>`;
+const STRIPE_HINWEIS = `<li>Bezahlen per Karte, SEPA-Lastschrift, Apple Pay oder Google Pay über Stripe: Der Plan ist sofort frei, die Rechnung kommt per E-Mail. Kündigen, Zahlungsart ändern und Rechnungen laden unter „Abo verwalten“. Oder per Rechnung und Überweisung.</li>`;
+/** Price notes; with Stripe the payment line names the automatic payment as well. */
+export const preisHinweise = (stripe = false) => (stripe ? PREIS_HINWEISE.replace(/<li>Bezahlung per Rechnung[^<]*<\/li>/, `${STRIPE_HINWEIS}<li>Monatlich: zum Monatsende kündbar. Jährlich: 12 Monate zum Preis von 10.</li>`) : PREIS_HINWEISE);
+export type AboStand = { status: string | null; bis: string | null; kuendigt: boolean; zahlweise: string | null; kunde: boolean };
 
 /** In-app plan page: current plan, cards with order form for owners and admins. */
-export function planSeite(aktuell: string, firma: string, darfAendern: boolean, hinweis = ""): string {
-  return `${hinweis ? `<p class="hinweis" role="status">${escape(hinweis)}</p>` : ""}<p>Dein Plan: <strong>${escape(planName(aktuell))}</strong></p>${planKarten({ aktuell, wahl: darfAendern, firma })}${PREIS_HINWEISE}${darfAendern ? `<p class="klein">Nach der Bestellung schalten wir den Plan frei und schicken die Rechnung per E-Mail.</p>` : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;
+export function planSeite(aktuell: string, firma: string, darfAendern: boolean, hinweis = "", o: { stripe?: boolean; abo?: AboStand | null; test?: boolean } = {}): string {
+  const a = o.abo;
+  const datum = (x: string | null) => (x ? new Date(x).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" }) : "");
+  const aktiv = !!a?.status && ["active", "trialing", "past_due"].includes(a.status);
+  const aboZeile = a?.status ? `<p class="klein">${aktiv ? (a.kuendigt ? `Gekündigt, läuft bis ${datum(a.bis)}. Danach Free.` : `Abo aktiv, ${a.zahlweise === "jahr" ? "jährlich" : "monatlich"}${a.bis ? `, nächste Abbuchung am ${datum(a.bis)}` : ""}.`) : a.status === "canceled" ? "Abo beendet." : `Abo-Status: ${escape(a.status)}.`}${a.status === "past_due" ? " ⚠️ Die letzte Zahlung ist fehlgeschlagen. Bitte unter „Abo verwalten“ die Zahlungsart prüfen." : ""}</p>` : "";
+  const verwalten = darfAendern && o.stripe && a?.kunde ? `<form method="post" action="/konto/plan"><input type="hidden" name="weg" value="portal"><button class="zweit">Abo verwalten (kündigen, Zahlungsart, Rechnungen)</button></form>` : "";
+  const test = o.test && o.stripe ? `<p class="hinweis">🧪 Stripe-Testmodus: nur du siehst die Bezahl-Knöpfe. Testkarte 4242 4242 4242 4242, beliebiges Datum in der Zukunft, beliebige Prüfziffer.</p>` : "";
+  return `${hinweis ? `<p class="hinweis" role="status">${escape(hinweis)}</p>` : ""}${test}<p>Dein Plan: <strong>${escape(planName(aktuell))}</strong></p>${aboZeile}${verwalten}${planKarten({ aktuell, wahl: darfAendern, firma, stripe: o.stripe, abo: aktiv && !!a?.kunde })}${preisHinweise(o.stripe)}${darfAendern ? `<p class="klein">${o.stripe ? "Mit Karte oder Lastschrift ist der Plan sofort frei. Per Rechnung schalten wir ihn nach der Bestellung frei und schicken die Rechnung per E-Mail." : "Nach der Bestellung schalten wir den Plan frei und schicken die Rechnung per E-Mail."}</p>` : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;
 }
