@@ -104,6 +104,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 07.11.2026 abends – Claude Code (Zusatzkäufe live getestet)
+- Testmodus, Beispielfirma (c3401eb9): Testabo über „Stripe einrichten“ (`testabo_plan=pro`) auf Pro umgestellt (Kündigung aufgehoben), 3 weitere Einsatzkräfte im Abo (`testabo_kraefte=3`) und ein Steckbrief-Paket über eine echte Stripe-Bezahlseite mit Testkarte bezahlt (`testpaket_firma`, Playwright). Datenbank danach: paket pro, zusatz_einsatzkraefte 3, steckbrief_guthaben 10. Die Knöpfe der Plan-Seite selbst nur per Unit-Test (keine Anmeldung als Benjamin).
+- **Offen (Benjamin schaut am 08.11. auf /konto/plan):** danach aufräumen: „Stripe einrichten“ mit `testabos_beenden=ja`, dann „Datenbank“ Aktion `beispielfirma_test`. Solange läuft das Testabo (verlängert sich sonst am 07.12., nur Testgeld).
+- Anthropic-API-Guthaben aus dem Max-Abo: bei Benjamin am 07.11. abends noch nicht sichtbar; am 08.11. erneut prüfen (claude.ai → Einstellungen → Abrechnung).
+
 ### 07.11.2026 – Claude Code (Plan-Grenzen durchgesetzt)
 - Migration `20261107020000_plan_grenzen.sql`: `jarvis_intern.plan_von(f)` (wirksamer Plan: `probe` während der Probezeit, `erfolg` → business), `plan_grenze(plan, art)` (eine Quelle für alle Grenzen), `public.plan_stand(f)` (Plan, Probe, Grenzen, Verbrauch), Tabelle `steckbrief_nutzung` + `public.steckbrief_buchen(f, vorgang)`, Trigger auf `mitglieder` (Büro-Nutzer: Free 1, Basis 3, Pro 5, Business 15; Einsatzkräfte mit Zugang: 0/0/25/100; Leser frei) und `bereiche` (Standorte 1/1/5/∞), `suchprofil_zusatz` nach Plan (weitere Suchprofile 0/2/3/3; nach Herabstufung nur noch weniger). Neue Spalte `firmen.probe_bis`: jede neue kostenlose Firma 30 Tage Pro (höchstens 10 Steckbriefe), geschützt wie `paket`. Beispielfirma (c3401eb9) zurück auf `test`.
 - Web (`plangrenzen.ts`): Pro-Bereiche (Personal, Schichten, Zeiterfassung, Abrechnung, Angebote/Freigaben, Organisation, /konto/ich) und Firmenunterlagen (ab Basis) bleiben lesbar mit Hinweis-Kasten; Speichern (POST) zeigt die Upgrade-Seite. Hinweise beim Einladen (zählt offene Einladungen), Einsatzkräfte-Links, Standort anlegen, Rechte ändern, Suchprofile, Länder (Free 1, Basis 2), Upload (Steckbrief-Kontingent). Plan-Seite zeigt Probezeit und Verbrauch. Alles in 6 Sprachen.
