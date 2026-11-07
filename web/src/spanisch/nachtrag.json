@@ -322,5 +322,19 @@
  "Ausschreibungen finden, Angebote schreiben, Team planen. Starte mit 30 Tagen Pro gratis und wechsle, wenn es passt.": "Encuentra licitaciones, redacta ofertas, planifica tu equipo. Empieza con 30 días de Pro gratis y cambia cuando te convenga.",
  "30 Tage Pro gratis testen": "Prueba Pro gratis 30 días",
  "Nein. Die 30 Tage Pro laufen ohne Kreditkarte und enden von selbst; danach geht es mit Free weiter. Erst für einen bezahlten Plan brauchst du eine Zahlungsart.": "No. Los 30 días de Pro funcionan sin tarjeta y terminan solos; después sigues con Free. Solo necesitas un medio de pago para un plan de pago.",
- "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 días con todas las funciones Pro, después Free"
+ "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 días con todas las funciones Pro, después Free",
+ "Zusatz": "Extras",
+ "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat": "Trabajadores adicionales con acceso propio, # € al mes cada uno",
+ "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat (ab der #. Einsatzkraft # €)": "Trabajadores adicionales con acceso propio, # € al mes cada uno (a partir del trabajador n.º #: # €)",
+ "Anzahl ändern": "Cambiar número",
+ "Steckbrief-Paket: # Steckbriefe aus Unterlagen für # €, einmalig, verfallen nicht. Sie werden genutzt, wenn das Monatskontingent aufgebraucht ist.": "Paquete de fichas: # fichas a partir de documentos por # €, pago único, no caducan. Se usan cuando se agota el cupo mensual.",
+ "Guthaben: # Steckbriefe": "Saldo: # fichas",
+ "Paket kaufen": "Comprar paquete",
+ "Paket per Rechnung bestellen": "Pedir paquete con factura",
+ "Die Zahl der weiteren Einsatzkräfte ist geändert. Der Unterschied wird anteilig verrechnet; das neue Kontingent gilt in wenigen Sekunden.": "Se ha cambiado el número de trabajadores adicionales. La diferencia se cobra de forma proporcional; el nuevo cupo se aplica en unos segundos.",
+ "Danke! Deine Zusatz-Bestellung ist bei uns. Wir schalten sie frei und schicken die Rechnung per E-Mail.": "¡Gracias! Hemos recibido tu pedido de extras. Lo activamos y te enviamos la factura por correo electrónico.",
+ "Weitere Einsatzkräfte gibt es in Pro und Business, Steckbrief-Pakete ab Basis. Wähle zuerst einen Plan.": "Los trabajadores adicionales están en Pro y Business, los paquetes de fichas desde Basis. Elige primero un plan.",
+ "Bitte eine Zahl zwischen 0 und 2000 angeben.": "Introduce un número entre 0 y 2000.",
+ "Die # Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem Steckbrief-Paket oder einem größeren Plan (Plan-Seite).": "Las # fichas a partir de documentos de este mes se han agotado. Se reanuda el mes que viene, o de inmediato con un paquete de fichas o un plan mayor (página del plan).",
+ "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "¡Gracias! El paquete de fichas está pagado. Las fichas estarán disponibles en unos segundos; la factura llega por correo electrónico."
 }

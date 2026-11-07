@@ -322,5 +322,19 @@
  "Ausschreibungen finden, Angebote schreiben, Team planen. Starte mit 30 Tagen Pro gratis und wechsle, wenn es passt.": "Find tenders, write bids, plan your team. Start with 30 days of Pro for free and switch when it fits.",
  "30 Tage Pro gratis testen": "Try Pro free for 30 days",
  "Nein. Die 30 Tage Pro laufen ohne Kreditkarte und enden von selbst; danach geht es mit Free weiter. Erst für einen bezahlten Plan brauchst du eine Zahlungsart.": "No. The 30 days of Pro run without a credit card and end by themselves; after that you continue on Free. You only need a payment method for a paid plan.",
- "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 days of all Pro features, then Free"
+ "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 days of all Pro features, then Free",
+ "Zusatz": "Add-ons",
+ "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat": "Further field workers with their own login, €# per month each",
+ "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat (ab der #. Einsatzkraft # €)": "Further field workers with their own login, €# per month each (from field worker no. #: €#)",
+ "Anzahl ändern": "Change number",
+ "Steckbrief-Paket: # Steckbriefe aus Unterlagen für # €, einmalig, verfallen nicht. Sie werden genutzt, wenn das Monatskontingent aufgebraucht ist.": "Fact sheet pack: # fact sheets from documents for €#, one-off, they do not expire. They are used once the monthly allowance is used up.",
+ "Guthaben: # Steckbriefe": "Credit: # fact sheets",
+ "Paket kaufen": "Buy pack",
+ "Paket per Rechnung bestellen": "Order pack by invoice",
+ "Die Zahl der weiteren Einsatzkräfte ist geändert. Der Unterschied wird anteilig verrechnet; das neue Kontingent gilt in wenigen Sekunden.": "The number of further field workers has been changed. The difference is charged pro rata; the new allowance applies in a few seconds.",
+ "Danke! Deine Zusatz-Bestellung ist bei uns. Wir schalten sie frei und schicken die Rechnung per E-Mail.": "Thank you! We have received your add-on order. We will activate it and send the invoice by email.",
+ "Weitere Einsatzkräfte gibt es in Pro und Business, Steckbrief-Pakete ab Basis. Wähle zuerst einen Plan.": "Further field workers are available in Pro and Business, fact sheet packs from Basis. Please choose a plan first.",
+ "Bitte eine Zahl zwischen 0 und 2000 angeben.": "Please enter a number between 0 and 2000.",
+ "Die # Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem Steckbrief-Paket oder einem größeren Plan (Plan-Seite).": "The # fact sheets from documents for this month are used up. It continues next month, or right away with a fact sheet pack or a bigger plan (plan page).",
+ "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "Thank you! The fact sheet pack is paid. The fact sheets will be available in a few seconds; the invoice comes by email."
 }

@@ -60,6 +60,28 @@ jobs:
                   api("prices", {"product": produkt, "currency": "eur", "unit_amount": betrag, "recurring[interval]": intervall, "lookup_key": k,
                                  "tax_behavior": "unspecified", "nickname": f"{name} {'monatlich' if intervall == 'month' else 'jährlich'}"})
                   print(f"{name}: Preis {k} angelegt ({betrag / 100:.0f} € je {'Monat' if intervall == 'month' else 'Jahr'})")
+          # Add-ons (07.11.2026): field workers per month on the subscription (yearly = 12 months, same interval as the plan),
+          # Business from the 501st field worker (= 401st add-on) cheaper; Steckbrief pack one-off.
+          def produkt_fuer(merkmal, name, text):
+              p = api("products/search?" + urllib.parse.urlencode({"query": f"metadata['crewtender_zusatz']:'{merkmal}'"}))["data"]
+              return p[0]["id"] if p else api("products", {"name": name, "metadata[crewtender_zusatz]": merkmal, "description": text})["id"]
+          ZUSATZ = {
+              "crewtender_kraft_pro_monat": {"recurring[interval]": "month", "unit_amount": 350},
+              "crewtender_kraft_pro_jahr": {"recurring[interval]": "year", "unit_amount": 4200},
+              "crewtender_kraft_business_monat": {"recurring[interval]": "month", "billing_scheme": "tiered", "tiers_mode": "graduated",
+                  "tiers[0][up_to]": 400, "tiers[0][unit_amount]": 300, "tiers[1][up_to]": "inf", "tiers[1][unit_amount]": 250},
+              "crewtender_kraft_business_jahr": {"recurring[interval]": "year", "billing_scheme": "tiered", "tiers_mode": "graduated",
+                  "tiers[0][up_to]": 400, "tiers[0][unit_amount]": 3600, "tiers[1][up_to]": "inf", "tiers[1][unit_amount]": 3000},
+              "crewtender_steckbriefe_10": {"unit_amount": 1500},
+          }
+          da = {p["lookup_key"] for p in api("prices?" + urllib.parse.urlencode([("lookup_keys[]", k) for k in ZUSATZ] + [("active", "true")]))["data"]}
+          for k, werte in ZUSATZ.items():
+              if k in da:
+                  print(f"Zusatz {k}: vorhanden"); continue
+              produkt = produkt_fuer("steckbriefe", "Crewtender Steckbrief-Paket (10 Steckbriefe)", "10 Steckbriefe aus Unterlagen, einmalig, verfallen nicht.") if "steckbriefe" in k \
+                  else produkt_fuer("einsatzkraft", "Crewtender weitere Einsatzkraft", "Weitere Einsatzkraft mit eigenem Zugang, über das Kontingent des Plans hinaus.")
+              api("prices", {"product": produkt, "currency": "eur", "lookup_key": k, "tax_behavior": "unspecified", "nickname": k, **werte})
+              print(f"Zusatz {k}: angelegt")
           URL = "https://crewtender.eu/stripe/webhook"
           EREIGNISSE = ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]
           vorhanden = [w for w in api("webhook_endpoints?limit=100")["data"] if w["url"] == URL]

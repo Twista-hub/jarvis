@@ -89,6 +89,10 @@ export const PLAN_HINWEISE: Record<string, string> = {
   plan: "Bitte einen Plan wählen.",
   bezahlseite: "Die Bezahlseite ist gerade nicht erreichbar. Bitte später noch einmal oder per Rechnung bestellen.",
   fehler: "Die Bestellung konnte nicht gesendet werden. Bitte schreib uns an kontakt@wpdigitalranger.com.",
+  kraefte_ok: "Die Zahl der weiteren Einsatzkräfte ist geändert. Der Unterschied wird anteilig verrechnet; das neue Kontingent gilt in wenigen Sekunden.",
+  zusatz_bestellt: "Danke! Deine Zusatz-Bestellung ist bei uns. Wir schalten sie frei und schicken die Rechnung per E-Mail.",
+  zusatz_plan: "Weitere Einsatzkräfte gibt es in Pro und Business, Steckbrief-Pakete ab Basis. Wähle zuerst einen Plan.",
+  zusatz_anzahl: "Bitte eine Zahl zwischen 0 und 2000 angeben.",
 };
 /** Order confirmation (by invoice). Plan, price and email sit in their own elements, so the fixed sentences translate. */
 export const bestellHinweis = (p: Plan, jaehrlich: boolean, email: string) =>
@@ -112,12 +116,26 @@ export function nutzungTeil(p: PlanStand | null | undefined): string {
   return `${probe}${liste ? `<ul class="plan-nutzung klein">${liste}</ul>` : ""}`;
 }
 
-export function planSeite(aktuell: string, firma: string, darfAendern: boolean, hinweis = "", o: { stripe?: boolean; abo?: AboStand | null; test?: boolean; hinweisHtml?: string; stand?: PlanStand | null } = {}): string {
+/** Add-ons on the plan page: further field workers (Pro, Business) and Steckbrief packs (from Basis). */
+export function zusatzTeil(p: PlanStand | null | undefined, online: { paket: boolean; kraefte: boolean }): string {
+  if (!p || !["basis", "pro", "business"].includes(p.plan)) return "";
+  const kraefte = p.zusatz?.einsatzkraefte ?? 0, guthaben = p.zusatz?.steckbrief_guthaben ?? 0;
+  const preis = p.plan === "business" ? `${euro(ZUSATZ.einsatzkraftBusiness)} pro Monat (ab der 501. Einsatzkraft ${euro(ZUSATZ.einsatzkraftAb501)})` : `${euro(ZUSATZ.einsatzkraftPro)} pro Monat`;
+  const kraftForm = p.plan === "basis" ? "" : `<form method="post" action="/konto/plan" class="zusatz-form"><input type="hidden" name="weg" value="kraefte">
+<label>Weitere Einsatzkräfte mit eigenem Zugang, je ${preis}<input type="number" name="anzahl" min="0" max="2000" step="1" value="${kraefte}"></label>
+<button class="zweit">${online.kraefte ? "Anzahl ändern" : "Per Rechnung bestellen"}</button></form>`;
+  const paketForm = `<form method="post" action="/konto/plan" class="zusatz-form"><input type="hidden" name="weg" value="paket">
+<p>Steckbrief-Paket: ${ZUSATZ.steckbriefPaket.anzahl} Steckbriefe aus Unterlagen für ${euro(ZUSATZ.steckbriefPaket.preis)}, einmalig, verfallen nicht. Sie werden genutzt, wenn das Monatskontingent aufgebraucht ist.</p>
+${guthaben ? `<p class="klein">Guthaben: ${guthaben} Steckbriefe</p>` : ""}<button class="zweit">${online.paket ? "Paket kaufen" : "Paket per Rechnung bestellen"}</button></form>`;
+  return `<section class="plan-zusatz"><h2>Zusatz</h2>${kraftForm}${paketForm}</section>`;
+}
+
+export function planSeite(aktuell: string, firma: string, darfAendern: boolean, hinweis = "", o: { stripe?: boolean; abo?: AboStand | null; test?: boolean; hinweisHtml?: string; stand?: PlanStand | null; zusatzOnline?: { paket: boolean; kraefte: boolean } } = {}): string {
   const a = o.abo;
   const datum = (x: string | null) => (x ? new Date(x).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" }) : "");
   const aktiv = !!a?.status && ["active", "trialing", "past_due"].includes(a.status);
   const aboZeile = a?.status ? `<p class="klein">${aktiv ? (a.kuendigt ? `Gekündigt, läuft bis ${datum(a.bis)}. Danach Free.` : `Abo aktiv, ${a.zahlweise === "jahr" ? "jährlich" : "monatlich"}${a.bis ? `, nächste Abbuchung am ${datum(a.bis)}` : ""}.`) : a.status === "canceled" ? "Abo beendet." : `Abo-Status: ${escape(a.status)}.`}${a.status === "past_due" ? " <strong>⚠️ Die letzte Zahlung ist fehlgeschlagen. Bitte unter „Abo verwalten“ die Zahlungsart prüfen.</strong>" : ""}</p>` : "";
   const verwalten = darfAendern && o.stripe && a?.kunde ? `<form method="post" action="/konto/plan"><input type="hidden" name="weg" value="portal"><button class="zweit">Abo verwalten (kündigen, Zahlungsart, Rechnungen)</button></form>` : "";
   const test = o.test && o.stripe ? `<p class="hinweis">🧪 Stripe-Testmodus: nur du siehst die Bezahl-Knöpfe. Testkarte 4242 4242 4242 4242, beliebiges Datum in der Zukunft, beliebige Prüfziffer.</p>` : "";
-  return `${hinweis || o.hinweisHtml ? `<p class="hinweis" role="status">${o.hinweisHtml ?? escape(hinweis)}</p>` : ""}${test}<p>Dein Plan: <strong>${escape(planName(aktuell))}</strong></p>${aboZeile}${nutzungTeil(o.stand)}${verwalten}${planKarten({ aktuell, wahl: darfAendern, firma, stripe: o.stripe, abo: aktiv && !!a?.kunde })}${preisHinweise(o.stripe)}${darfAendern ? `<p class="klein">${o.stripe ? "Mit Karte oder Lastschrift ist der Plan sofort frei. Per Rechnung schalten wir ihn nach der Bestellung frei und schicken die Rechnung per E-Mail." : "Nach der Bestellung schalten wir den Plan frei und schicken die Rechnung per E-Mail."}</p>` : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;
+  return `${hinweis || o.hinweisHtml ? `<p class="hinweis" role="status">${o.hinweisHtml ?? escape(hinweis)}</p>` : ""}${test}<p>Dein Plan: <strong>${escape(planName(aktuell))}</strong></p>${aboZeile}${nutzungTeil(o.stand)}${darfAendern ? zusatzTeil(o.stand, o.zusatzOnline ?? { paket: false, kraefte: false }) : ""}${verwalten}${planKarten({ aktuell, wahl: darfAendern, firma, stripe: o.stripe, abo: aktiv && !!a?.kunde })}${preisHinweise(o.stripe)}${darfAendern ? `<p class="klein">${o.stripe ? "Mit Karte oder Lastschrift ist der Plan sofort frei. Per Rechnung schalten wir ihn nach der Bestellung frei und schicken die Rechnung per E-Mail." : "Nach der Bestellung schalten wir den Plan frei und schicken die Rechnung per E-Mail."}</p>` : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;
 }
