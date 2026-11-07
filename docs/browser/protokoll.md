@@ -19,6 +19,15 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 07.11.2026 – Browser-Chat: Stripe live freigeschaltet
+- Auf Benjamins OK freigeschaltet. Persönliche Daten, Bank, Zwei-Faktor und das Absenden („Zustimmen und absenden“) hat Benjamin selbst gemacht. Stripe hat das Live-Konto „Crewtender“ geöffnet.
+- **Gewählt:** Einzelunternehmen, Kategorie „Software as a Service“, Zahlungsbeschreibung CREWTENDER.EU, Radar Lite (gratis).
+- **Abgewählt:** Stripe Tax (wegen § 19 UStG nicht nötig), Managed Payments (+3,5 %), Radar Standard/Plus/Pro, Climate-Beitrag. Die Support-Telefonnummer wird nicht auf Belegen angezeigt.
+- **Billing-Einstellungen** aus der Sandbox ins Live-Konto kopiert. Das Live-Kundenportal hat die gleichen Einstellungen wie das Test-Portal.
+- **Öffentliche Angaben** (gelten auch für den Testmodus): Name Crewtender, Website https://crewtender.eu, Support-E-Mail kontakt@wpdigitalranger.com, Datenschutz https://crewtender.eu/datenschutz, Nutzungsbedingungen https://crewtender.eu/nutzungsbedingungen. Damit sind auch die Rechtslinks im Kundenportal gesetzt. „Rechtsgültiger Firmenname“ ist leer (kein Handelsregister).
+- **Zahlungsmethoden live:** Karten und Apple Pay an, Google Pay eingeschaltet. Für SEPA-Lastschrift will Stripe live noch Ausweis und Selfie (Stripe Identity), das macht Benjamin.
+- Es gibt **keinen Live-Secret-Key** in GitHub. Im Repo liegt nur `STRIPE_SECRET_KEY` (Test). Ein Live-Key kommt erst, wenn der Crewtender-Chat ihn braucht.
+
 ### 07.11.2026 – Browser-Chat: Stripe (Test)
 - **Kontoname:** Crewtender (umbenannt von „Neues Unternehmen“). Login kontakt@wpdigitalranger.com, E-Mail bestätigt, einziges Konto unter dem Login. Alles in der Sandbox / im Testmodus, Livebetrieb nicht freigeschaltet.
 - **3.1 Öffentliche Angaben:** nicht möglich. Stripe verlangt dafür vorher „Produkte aktivieren“ (Livebetrieb).
