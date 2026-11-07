@@ -19,6 +19,17 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### 07.11.2026 – Browser-Chat: Stripe (Test)
+- **Kontoname:** Crewtender (umbenannt von „Neues Unternehmen“). Login kontakt@wpdigitalranger.com, E-Mail bestätigt, einziges Konto unter dem Login. Alles in der Sandbox / im Testmodus, Livebetrieb nicht freigeschaltet.
+- **3.1 Öffentliche Angaben:** nicht möglich. Stripe verlangt dafür vorher „Produkte aktivieren“ (Livebetrieb).
+- **3.2 Branding:** erledigt. Symbol profil.png, Markenfarbe #1f6feb.
+- **3.3 Rechnungen:** erledigt. Fußzeile mit § 19 UStG, Anschrift und USt-IdNr. gespeichert. Rechnungs-PDFs in E-Mails waren schon an.
+- **3.4 Kunden-E-Mails:** erledigt. „Erfolgreiche Zahlungen“ und „Rückerstattungen“ an.
+- **3.5 Fehlgeschlagene Zahlungen:** erledigt. Smart Retries an (8 Versuche in 2 Wochen), SEPA mit automatischer Wiederholung. Nach dem letzten Fehlversuch wird das Abo gekündigt. E-Mails bei fehlgeschlagener Karten- und Lastschriftzahlung an.
+- **3.6 Zahlungsmethoden:** erledigt. Karten, SEPA-Lastschrift, Apple Pay und Google Pay an. Stripe hatte von sich aus weitere an (u. a. Klarna, Amazon Pay, Link, Bancontact, EPS). Die habe ich nicht angefasst.
+- **3.7 Kundenportal:** aktiv, mit Test-Link. Erlaubt sind Zahlungsmethode, Rechnungsadresse, Rechnungen und Kündigung zum Periodenende. Planwechsel ist aus. Die Links zu Nutzungsbedingungen und Datenschutz kommen aus den öffentlichen Angaben und fehlen deshalb noch (siehe 3.1).
+- **Schlüssel:** ja. Benjamin hat `STRIPE_SECRET_KEY` als Repository-Secret eingetragen (07.11., 13:59 UTC). Den Wert hat der Browser-Chat nicht gesehen.
+
 ### 06.11.2026 – Browser-Chat: Instagram-Posts eingeplant
 - **Weg:** eigene Instagram-Posts. Bei geplanten Facebook-Posts ist das Feld „Posten in“ gesperrt, Instagram lässt sich dort nicht anhaken. Neu angelegt in der Business Suite (Portfolio crewtender), Ziel nur @crew_tender, Texte aus dem Auftrag (mit „link in bio“ und Hashtags):
   - 07.11.2026, 18:00: post3-registerkarten.png („From tender to team. One app. …“)
