@@ -64,7 +64,7 @@ export async function bezahlSitzung(env: StripeEnv, o: { firma: string; email: s
 
 type AboPosten = { id: string; quantity?: number; price?: { lookup_key?: string | null } };
 const aboLaden = (env: StripeEnv, abo: string, abruf?: typeof fetch) =>
-  stripe<{ items: { data: AboPosten[] } }>(env, `subscriptions/${encodeURIComponent(abo)}`, undefined, abruf);
+  stripe<{ items: { data: AboPosten[] }; cancel_at?: number | null; cancel_at_period_end?: boolean }>(env, `subscriptions/${encodeURIComponent(abo)}`, undefined, abruf);
 const istKraft = (p: AboPosten) => /^crewtender_kraft_/.test(p.price?.lookup_key ?? "");
 
 /** Plan change of an existing subscription (prorated). Booked field workers move to the new plan's price, or end when
@@ -77,8 +77,9 @@ export async function aboWechseln(env: StripeEnv, abo: string, plan: string, zah
   const kraftPreis = kraefte.length && MIT_KRAEFTEN.includes(plan) ? await preisId(env, plan, zahlweise, abruf, kraftSchluessel(plan, zahlweise)) : "";
   await stripe(env, `subscriptions/${encodeURIComponent(abo)}`, {
     items: [{ id: planPosten.id, price: preis }, ...kraefte.map((k) => (kraftPreis ? { id: k.id, price: kraftPreis } : { id: k.id, deleted: true }))],
-    // Choosing a plan continues the subscription, also after a cancellation in the portal (cancel_at "" = unset).
-    proration_behavior: "create_prorations", cancel_at_period_end: false, cancel_at: "", metadata: { plan, zahlweise },
+    // Choosing a plan continues the subscription, also after a cancellation in the portal. Stripe takes only one of the
+    // two fields: cancel_at_period_end (older way) or cancel_at ("" = unset, the portal's way since 2025).
+    proration_behavior: "create_prorations", ...(sub.cancel_at_period_end ? { cancel_at_period_end: false } : sub.cancel_at ? { cancel_at: "" } : {}), metadata: { plan, zahlweise },
   }, abruf);
 }
 

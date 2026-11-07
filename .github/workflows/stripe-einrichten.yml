@@ -11,6 +11,9 @@ on:
       abgleich:
         description: "Nur Abo-Abgleich: laufende Abos anzeigen und neu an den Webhook schicken (ja/nein)"
         default: "nein"
+      testabos_beenden:
+        description: "Nur im Testmodus: alle laufenden Test-Abos sofort beenden (ja/nein)"
+        default: "nein"
 permissions:
   contents: read
 concurrency:
@@ -27,7 +30,7 @@ jobs:
       - run: npm ci --silent
         working-directory: web
       - name: Pläne, Preise, Webhook
-        if: inputs.abgleich != 'ja'
+        if: inputs.abgleich != 'ja' && inputs.testabos_beenden != 'ja'
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -115,4 +118,23 @@ jobs:
               print(s["id"], s["status"], "firma", (s.get("metadata") or {}).get("firma", "-")[:8], "cancel_at", s.get("cancel_at"), "cancel_at_period_end", s.get("cancel_at_period_end"))
               if s["status"] in ("active", "trialing", "past_due"):
                   api(f"subscriptions/{s['id']}", {"metadata[abgleich]": str(int(time.time()))}); print("  -> neu an den Webhook geschickt")
+          PY
+      - name: Test-Abos beenden
+        if: inputs.testabos_beenden == 'ja'
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          # Only with a test key: ends every running test subscription at once (Stripe sends customer.subscription.deleted,
+          # the webhook sets the firm to Free). Never touches live subscriptions.
+          case "$STRIPE_SECRET_KEY" in sk_test_*) ;; *) echo "::error::Nur im Testmodus erlaubt"; exit 1;; esac
+          python3 - <<'PY'
+          import json, os, urllib.request
+          KEY = os.environ["STRIPE_SECRET_KEY"]
+          def api(pfad, methode="GET"):
+              req = urllib.request.Request(f"https://api.stripe.com/v1/{pfad}", method=methode, headers={"Authorization": f"Bearer {KEY}"})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return json.load(r)
+          for s in api("subscriptions?status=all&limit=100")["data"]:
+              if s["status"] in ("active", "trialing", "past_due", "unpaid", "incomplete"):
+                  api(f"subscriptions/{s['id']}", "DELETE"); print("beendet:", s["id"], "firma", (s.get("metadata") or {}).get("firma", "-")[:8])
           PY

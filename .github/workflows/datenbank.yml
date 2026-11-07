@@ -11,7 +11,7 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose, abos]
+        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose, abos, beispielfirma_test]
         default: anzeigen
       bestaetigung:
         description: "Zum Einspielen hier EINSPIELEN eintippen"
@@ -127,6 +127,10 @@ jobs:
           psql "$DB_URL" -X -c "select left(id::text, 8) as firma, paket, stripe_kunde is not null as kunde, stripe_abo, abo_status, abo_bis, abo_zahlweise, abo_kuendigt from public.firmen where stripe_kunde is not null or stripe_abo is not null"
           psql "$DB_URL" -X -c "select zeit, typ, left(firma_id::text, 8) as firma from jarvis_intern.stripe_ereignisse order by zeit desc limit 20"
           psql "$DB_URL" -X -c "select name, paket, probe_bis::date, jarvis_intern.plan_von(id) as plan_wirksam from public.firmen order by erstellt"
+      - name: Beispielfirma zurück auf test (nach einem Stripe-Testkauf)
+        if: inputs.aktion == 'beispielfirma_test'
+        run: |
+          psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "update public.firmen set paket = 'test', zusatz_einsatzkraefte = 0 where id = 'c3401eb9-aa97-47a9-887d-2287c07363ff' returning name, paket"
       - name: Migrationen
         if: inputs.aktion != 'anmeldungen'
         run: |

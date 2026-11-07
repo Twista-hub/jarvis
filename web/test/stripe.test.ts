@@ -126,6 +126,7 @@ test("Zusatzkäufe: Einsatzkräfte im Abo, Steckbrief-Paket, Planwechsel", async
     aufrufe.push({ url, body: decodeURIComponent(String(init?.body ?? "")) });
     if (url.includes("/prices?")) return Response.json({ data: [{ id: `price_${/lookup_keys\[\]=([a-z_0-9]+)/.exec(decodeURIComponent(url))?.[1]}` }] });
     if (url.endsWith("/checkout/sessions")) return Response.json({ url: "https://checkout.stripe.com/c/pay/paket" });
+    if (url.includes("/subscriptions/sub_gekuendigt") && !init?.body) return Response.json({ ...kraftSub("active", 3), cancel_at: 1_800_000_000 });
     if (url.includes("/subscriptions/") && !init?.body) return Response.json(kraftSub("active", 3));
     return Response.json({});
   }) as typeof fetch;
@@ -137,8 +138,10 @@ test("Zusatzkäufe: Einsatzkräfte im Abo, Steckbrief-Paket, Planwechsel", async
   await assert.rejects(kraefteSetzen(env, "sub_1", 5, "basis", "monat", abruf), /Pro und Business/);
   await aboWechseln(env, "sub_1", "basis", "monat", abruf);
   const wechsel = aufrufe.at(-1)!.body;
-  assert.ok(wechsel.includes("cancel_at_period_end=false") && /(^|&)cancel_at=(&|$)/.test(wechsel), "Planwahl hebt eine Kündigung auf");
+  assert.ok(!wechsel.includes("cancel_at"), "ohne Kündigung kein Kündigungsfeld");
   assert.ok(wechsel.includes("items[0][id]=si_plan") && wechsel.includes("items[0][price]=price_crewtender_basis_monat") && wechsel.includes("items[1][deleted]=true"), "Basis: Einsatzkräfte enden");
+  await aboWechseln(env, "sub_gekuendigt", "pro", "monat", abruf);
+  assert.ok(/(^|&)cancel_at=(&|$)/.test(aufrufe.at(-1)!.body) && !aufrufe.at(-1)!.body.includes("cancel_at_period_end"), "Planwahl hebt die Portal-Kündigung auf");
   await aboWechseln(env, "sub_1", "business", "jahr", abruf);
   assert.ok(aufrufe.at(-1)!.body.includes("items[1][price]=price_crewtender_kraft_business_jahr"), "Business jährlich: Kräfte-Preis wechselt mit");
   assert.equal(await paketKaufen(env, { firma: FIRMA, email: "chef@firma.test", basis: "https://crewtender.eu" }, abruf), "https://checkout.stripe.com/c/pay/paket");
