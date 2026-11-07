@@ -53,7 +53,24 @@ def _zaehlen(usage, model: str = MODEL, faktor: float = 1.0) -> None:
     _cache[1] += usage.cache_creation_input_tokens or 0
 
 
+# Prepaid credit at the provider used up (HTTP 400 "credit balance is too low", 06./07.11.2026): no further AI requests
+# in this run; the alarm keeps going with keyword hits instead of aborting.
+_gesperrt = [False]
+
+
+def guthaben_leer(e: Exception) -> bool:
+    return isinstance(e, anthropic.APIStatusError) and "credit balance is too low" in str(e)
+
+
+def _sperren(e: Exception) -> None:
+    if not _gesperrt[0]:
+        print("KI-Guthaben beim Anbieter leer: keine KI-Anfragen mehr in diesem Lauf, Treffer nur nach Stichworten.")
+    _gesperrt[0] = True
+
+
 def _bremse() -> bool:
+    if _gesperrt[0]:
+        return True
     if _kosten[0] >= LIMIT:
         print(f"KI-Limit {LIMIT} $ erreicht, keine weiteren Anfragen.")
         return True
@@ -97,16 +114,25 @@ def _reservieren(kwargs):
 
 
 def _create(model: str = MODEL_BEWERTEN, **kwargs):
+    if _gesperrt[0]:
+        return None
     reservierung = _reservieren(kwargs)
     if not reservierung:
         return None
     vorher = kosten()
-    if model == MODEL_VORFILTER:
-        # Haiku has no server-side fallback; a decline simply sends the batch on to Sonnet.
-        response = client.messages.create(model=model, **kwargs)
-    else:
-        # fallbacks="default": a safety decline is retried server-side on Anthropic's recommended model.
-        response = client.beta.messages.create(model=model, betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
+    try:
+        if model == MODEL_VORFILTER:
+            # Haiku has no server-side fallback; a decline simply sends the batch on to Sonnet.
+            response = client.messages.create(model=model, **kwargs)
+        else:
+            # fallbacks="default": a safety decline is retried server-side on Anthropic's recommended model.
+            response = client.beta.messages.create(model=model, betas=["server-side-fallback-2026-07-01"], fallbacks="default", **kwargs)
+    except anthropic.APIStatusError as e:
+        if not guthaben_leer(e):
+            raise
+        katalog.abschliessen(reservierung, 0, model, None)
+        _sperren(e)
+        return None
     _zaehlen(response.usage, model)
     katalog.abschliessen(reservierung, kosten() - vorher, getattr(response, "model", None) or model, getattr(response, "_request_id", None))
     return response
@@ -190,6 +216,8 @@ def _batch(model: str, beschreibung: str, pakete: list[list[dict]], sprache: str
             text = next((x.text for x in m.content if x.type == "text"), "")
             ergebnis[int(r.custom_id[1:])] = {x["nr"]: x for x in json.loads(text)["bewertungen"]}
     except Exception as e:  # noqa: BLE001 – the direct path still works
+        if guthaben_leer(e):
+            _sperren(e)
         print(f"Batch nicht möglich ({type(e).__name__}), direkte Bewertung.")
         katalog.abschliessen(reservierung, kosten() - vorher)
         return None
@@ -280,16 +308,23 @@ def steckbrief(beschreibung: str, kopf: str, dokumente: str, sprache: str = "de"
     if not reservierung:
         return ""
     vorher = kosten()
-    with client.beta.messages.stream(
-        model=MODEL,
-        betas=["server-side-fallback-2026-07-01"],
-        fallbacks="default",
-        max_tokens=32000,
-        output_config={"effort": "medium"},
-        system=system,
-        messages=[{"role": "user", "content": f"Kunde:\n{beschreibung}\n\nAusschreibung:\n{kopf}\n\nVergabeunterlagen:\n{dokumente}"}],
-    ) as stream:
-        message = stream.get_final_message()
+    try:
+        with client.beta.messages.stream(
+            model=MODEL,
+            betas=["server-side-fallback-2026-07-01"],
+            fallbacks="default",
+            max_tokens=32000,
+            output_config={"effort": "medium"},
+            system=system,
+            messages=[{"role": "user", "content": f"Kunde:\n{beschreibung}\n\nAusschreibung:\n{kopf}\n\nVergabeunterlagen:\n{dokumente}"}],
+        ) as stream:
+            message = stream.get_final_message()
+    except anthropic.APIStatusError as e:
+        if not guthaben_leer(e):
+            raise
+        katalog.abschliessen(reservierung, 0, MODEL, None)
+        _sperren(e)
+        return ""
     _zaehlen(message.usage)
     katalog.abschliessen(reservierung, kosten() - vorher, getattr(message, "model", None) or MODEL,
                          getattr(message, "_request_id", None) or getattr(stream, "request_id", None))
