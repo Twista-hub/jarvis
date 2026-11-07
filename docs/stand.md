@@ -110,7 +110,8 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Alarm: `profile_db.nach_plan` kürzt Länder und weitere Suchprofile nach Plan; `mail.py`: Free bekommt montags eine Wochenmail, keine Handy-Nachrichten (auch kein Sofort- und Fristtag-Push).
 - Tests: Rechte-Test (Probe, Free, Basis, Herabstufung, test), `web/test/plangrenzen.test.ts`, `alarm/test_plan_grenzen.py`.
 - Probe-Erinnerungen (Migration `20261107030000_probe_erinnerungen.sql`, `alarm/mail.py` `probe_erinnerungen`): 7 und 2 Tage vor Probe-Ende eine Mail an Inhaber und Admins (Sprache der Firma, ab 8 Uhr Ortszeit, jede Stufe einmal, vermerkt in `jarvis_intern.probe_erinnerungen`); nur Firmen, die noch auf `kostenlos` stehen. Erste fällig: Malerbetrieb am 27.11., Testfirma am 29.11.
-- Offen: Zusatzkäufe (weitere Nutzer/Einsatzkräfte, Steckbrief-Paket), Startseite/Registrierung mit „30 Tage Pro gratis“ (Benjamins OK), Arbeitsoberflächen-Tabellen sind nur im Web gesperrt (nicht per RLS).
+- „30 Tage Pro gratis testen“ (Benjamins OK 07.11.): Startseite (Knöpfe, Häkchen), Länder-Startseiten in 8 Sprachen (`besucher.ts` Feld `probe`), Registrierung (Hinweis), Preisseite (Einleitung, Knopf, FAQ Kreditkarte), Beschreibung für Suchmaschinen.
+- Offen: Zusatzkäufe (weitere Nutzer/Einsatzkräfte, Steckbrief-Paket), Arbeitsoberflächen-Tabellen sind nur im Web gesperrt (nicht per RLS).
 
 ### 07.11.2026 – Claude Code (Stripe-Abos, Testmodus)
 - Automatische Abos über Stripe gebaut und live, **im Testmodus nur für den Betreiber sichtbar** (`web/src/stripe.ts`, `preise.ts`, `plaene.ts`; Migration `20261107010000_stripe_abos.sql`: Abo-Felder an `firmen`, geschützt wie `paket`; `jarvis_intern.stripe_ereignis` mit Doppel-Schutz). Ablauf „Stripe einrichten“ hat 6 Preise (Basis/Pro/Business je Monat/Jahr, lookup_key `crewtender_<plan>_<monat|jahr>`) und den Webhook https://crewtender.eu/stripe/webhook angelegt, Secrets im Worker. Kündigung/Zahlungsausfall → Plan zurück auf kostenlos.
