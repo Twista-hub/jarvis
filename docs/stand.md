@@ -104,7 +104,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
-### 07.11.2026 – Claude Code (Alarm ohne Guthaben, Budget)
+### 07.11.2026 – Claude Code (Stripe-Abos, Testmodus)
+- Automatische Abos über Stripe gebaut und live, **im Testmodus nur für den Betreiber sichtbar** (`web/src/stripe.ts`, `preise.ts`, `plaene.ts`; Migration `20261107010000_stripe_abos.sql`: Abo-Felder an `firmen`, geschützt wie `paket`; `jarvis_intern.stripe_ereignis` mit Doppel-Schutz). Ablauf „Stripe einrichten“ hat 6 Preise (Basis/Pro/Business je Monat/Jahr, lookup_key `crewtender_<plan>_<monat|jahr>`) und den Webhook https://crewtender.eu/stripe/webhook angelegt, Secrets im Worker. Kündigung/Zahlungsausfall → Plan zurück auf kostenlos.
+- Offen vor Livebetrieb: Testkauf durch Benjamin; Datenschutz (Stripe als Zahlungsdienst) und Nutzungsbedingungen (Karte/Lastschrift, Abbuchung zu Beginn des Zeitraums) in 6 Sprachen; Stripe-Livebetrieb freischalten (Benjamin: Firmendaten, Bank, Ausweis), Schlüssel `sk_live_` als `STRIPE_SECRET_KEY`, dann „Stripe einrichten“ erneut (Preise und Webhook im Livemodus).
 - Antwort LfF Bayern (04.11., Michael Erk, an kontakt@): Anfrage zur Nutzung der TV-L-Entgelttabellen „kann nicht entsprochen werden“, Verweis auf die TdL als Datenurheberin. TV-L-Tabellen bleiben draußen; TdL- und IG-Metall-Antwort offen (`docs/personalkatalog.md`). Neu im Postfach: ELSTER „W-IdNr. zum Abruf bereit“ (06.11.), Stripe-Konto angelegt (Bestätigungsmail 07.11.).
 - **Benjamin 07.11.: Im November kein Geld für Käufe** (kein KI-Guthaben aufladen, kein Postfach, keine bezahlten Dienste). KI läuft erst wieder mit dem kostenlosen Max-Guthaben (verknüpfen ab 07.11. abends).
 - Alarm brach bei leerem KI-Guthaben ab → behoben (`alarm/ki.py`: `_gesperrt`, Lauf geht mit Stichwort-Treffern weiter, Test `alarm/test_ki_guthaben.py`); Lauf 07.11. neu gestartet: PerLease 3, WP Digital Ranger 1, Malerbetrieb 1 neue Treffer.
