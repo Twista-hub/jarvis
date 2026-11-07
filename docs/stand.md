@@ -105,6 +105,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Protokoll
 
 ### 07.11.2026 – Claude Code (Alarm ohne Guthaben, Budget)
+- Antwort LfF Bayern (04.11., Michael Erk, an kontakt@): Anfrage zur Nutzung der TV-L-Entgelttabellen „kann nicht entsprochen werden“, Verweis auf die TdL als Datenurheberin. TV-L-Tabellen bleiben draußen; TdL- und IG-Metall-Antwort offen (`docs/personalkatalog.md`). Neu im Postfach: ELSTER „W-IdNr. zum Abruf bereit“ (06.11.), Stripe-Konto angelegt (Bestätigungsmail 07.11.).
 - **Benjamin 07.11.: Im November kein Geld für Käufe** (kein KI-Guthaben aufladen, kein Postfach, keine bezahlten Dienste). KI läuft erst wieder mit dem kostenlosen Max-Guthaben (verknüpfen ab 07.11. abends).
 - Alarm brach bei leerem KI-Guthaben ab → behoben (`alarm/ki.py`: `_gesperrt`, Lauf geht mit Stichwort-Treffern weiter, Test `alarm/test_ki_guthaben.py`); Lauf 07.11. neu gestartet: PerLease 3, WP Digital Ranger 1, Malerbetrieb 1 neue Treffer.
 - DMARC für crewtender.eu (`_dmarc` TXT `v=DMARC1; p=none`): später, Benjamin trägt es in Cloudflare ein (Token darf dort keine DNS-Einträge anlegen). hello@crewtender.eu bleibt reine Weiterleitung; Antworten von kontakt@wpdigitalranger.com.
