@@ -322,5 +322,19 @@
  "Ausschreibungen finden, Angebote schreiben, Team planen. Starte mit 30 Tagen Pro gratis und wechsle, wenn es passt.": "Trouver des appels d'offres, rédiger des offres, planifier votre équipe. Commencez avec 30 jours de Pro offerts et changez quand cela vous convient.",
  "30 Tage Pro gratis testen": "Essayer Pro gratuitement pendant 30 jours",
  "Nein. Die 30 Tage Pro laufen ohne Kreditkarte und enden von selbst; danach geht es mit Free weiter. Erst für einen bezahlten Plan brauchst du eine Zahlungsart.": "Non. Les 30 jours de Pro fonctionnent sans carte bancaire et se terminent d'eux-mêmes ; ensuite vous continuez avec Free. Un moyen de paiement n'est nécessaire que pour un plan payant.",
- "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 jours de toutes les fonctions Pro, puis Free"
+ "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 jours de toutes les fonctions Pro, puis Free",
+ "Zusatz": "Options",
+ "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat": "Intervenants supplémentaires avec leur propre accès, # € par mois chacun",
+ "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat (ab der #. Einsatzkraft # €)": "Intervenants supplémentaires avec leur propre accès, # € par mois chacun (à partir du #e intervenant # €)",
+ "Anzahl ändern": "Modifier le nombre",
+ "Steckbrief-Paket: # Steckbriefe aus Unterlagen für # €, einmalig, verfallen nicht. Sie werden genutzt, wenn das Monatskontingent aufgebraucht ist.": "Pack de fiches : # fiches synthèse à partir de documents pour # €, paiement unique, sans expiration. Elles sont utilisées une fois le quota mensuel épuisé.",
+ "Guthaben: # Steckbriefe": "Crédit : # fiches",
+ "Paket kaufen": "Acheter le pack",
+ "Paket per Rechnung bestellen": "Commander le pack sur facture",
+ "Die Zahl der weiteren Einsatzkräfte ist geändert. Der Unterschied wird anteilig verrechnet; das neue Kontingent gilt in wenigen Sekunden.": "Le nombre d'intervenants supplémentaires a été modifié. La différence est facturée au prorata ; le nouveau quota s'applique dans quelques secondes.",
+ "Danke! Deine Zusatz-Bestellung ist bei uns. Wir schalten sie frei und schicken die Rechnung per E-Mail.": "Merci ! Nous avons bien reçu votre commande d'option. Nous l'activons et envoyons la facture par e-mail.",
+ "Weitere Einsatzkräfte gibt es in Pro und Business, Steckbrief-Pakete ab Basis. Wähle zuerst einen Plan.": "Les intervenants supplémentaires sont disponibles en Pro et Business, les packs de fiches à partir de Basis. Choisissez d'abord un plan.",
+ "Bitte eine Zahl zwischen 0 und 2000 angeben.": "Veuillez indiquer un nombre entre 0 et 2000.",
+ "Die # Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem Steckbrief-Paket oder einem größeren Plan (Plan-Seite).": "Les # fiches synthèse à partir de documents de ce mois sont épuisées. Cela reprend le mois prochain, ou tout de suite avec un pack de fiches ou un plan plus grand (page du plan).",
+ "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "Merci ! Le pack de fiches est payé. Les fiches sont disponibles dans quelques secondes ; la facture arrive par e-mail."
 }

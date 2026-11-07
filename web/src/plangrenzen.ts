@@ -12,6 +12,7 @@ export type PlanStand = {
   paket: string;
   probe_bis: string | null;
   grenzen: Partial<Record<PlanArt, number | null>>;
+  zusatz?: { einsatzkraefte: number; steckbrief_guthaben: number };
   genutzt: { buero: number; buero_offen: number; einsatzkraefte: number; einsatzkraefte_offen: number; standorte: number; steckbriefe: number };
 };
 
@@ -80,7 +81,7 @@ export function steckbriefMeldung(grund: string, p: PlanStand | null): string {
   const g = grenzeVon(p, "steckbriefe");
   return p?.plan === "probe"
     ? `In der Probezeit sind ${g ?? 10} Steckbriefe aus Unterlagen enthalten, die sind aufgebraucht. Mit einem Plan geht es sofort weiter.`
-    : `Die ${g ?? 0} Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem größeren Plan.`;
+    : `Die ${g ?? 0} Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem Steckbrief-Paket oder einem größeren Plan (Plan-Seite).`;
 }
 
 /** Books a Steckbrief from documents; null = may start, otherwise the message for the user. */

@@ -322,5 +322,19 @@
  "Ausschreibungen finden, Angebote schreiben, Team planen. Starte mit 30 Tagen Pro gratis und wechsle, wenn es passt.": "Znajduj przetargi, pisz oferty, planuj zespół. Zacznij od 30 dni Pro za darmo i zmień plan, kiedy zechcesz.",
  "30 Tage Pro gratis testen": "Wypróbuj Pro za darmo przez 30 dni",
  "Nein. Die 30 Tage Pro laufen ohne Kreditkarte und enden von selbst; danach geht es mit Free weiter. Erst für einen bezahlten Plan brauchst du eine Zahlungsart.": "Nie. 30 dni Pro działa bez karty kredytowej i kończy się samo; potem korzystasz dalej z Free. Metoda płatności jest potrzebna dopiero przy płatnym planie.",
- "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 dni wszystkich funkcji Pro, potem Free"
+ "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 dni wszystkich funkcji Pro, potem Free",
+ "Zusatz": "Dodatki",
+ "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat": "Kolejni pracownicy z własnym dostępem, # € miesięcznie za osobę",
+ "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat (ab der #. Einsatzkraft # €)": "Kolejni pracownicy z własnym dostępem, # € miesięcznie za osobę (od #. pracownika # €)",
+ "Anzahl ändern": "Zmień liczbę",
+ "Steckbrief-Paket: # Steckbriefe aus Unterlagen für # €, einmalig, verfallen nicht. Sie werden genutzt, wenn das Monatskontingent aufgebraucht ist.": "Pakiet kart: # kart przetargu z dokumentów za # €, jednorazowo, nie wygasają. Są używane po wyczerpaniu miesięcznego limitu.",
+ "Guthaben: # Steckbriefe": "Saldo: # kart",
+ "Paket kaufen": "Kup pakiet",
+ "Paket per Rechnung bestellen": "Zamów pakiet z fakturą",
+ "Die Zahl der weiteren Einsatzkräfte ist geändert. Der Unterschied wird anteilig verrechnet; das neue Kontingent gilt in wenigen Sekunden.": "Liczba kolejnych pracowników została zmieniona. Różnica zostanie rozliczona proporcjonalnie; nowy limit obowiązuje za kilka sekund.",
+ "Danke! Deine Zusatz-Bestellung ist bei uns. Wir schalten sie frei und schicken die Rechnung per E-Mail.": "Dziękujemy! Otrzymaliśmy Twoje zamówienie dodatku. Aktywujemy je i wyślemy fakturę e-mailem.",
+ "Weitere Einsatzkräfte gibt es in Pro und Business, Steckbrief-Pakete ab Basis. Wähle zuerst einen Plan.": "Kolejni pracownicy są dostępni w Pro i Business, pakiety kart od Basis. Najpierw wybierz plan.",
+ "Bitte eine Zahl zwischen 0 und 2000 angeben.": "Podaj liczbę od 0 do 2000.",
+ "Die # Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem Steckbrief-Paket oder einem größeren Plan (Plan-Seite).": "# kart przetargu z dokumentów w tym miesiącu zostało wykorzystanych. W przyszłym miesiącu można dalej, albo od razu z pakietem kart lub większym planem (strona planu).",
+ "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "Dziękujemy! Pakiet kart jest opłacony. Karty będą dostępne za kilka sekund; faktura przyjdzie e-mailem."
 }

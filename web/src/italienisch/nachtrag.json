@@ -322,5 +322,19 @@
   "Ausschreibungen finden, Angebote schreiben, Team planen. Starte mit 30 Tagen Pro gratis und wechsle, wenn es passt.": "Trova gare, scrivi offerte, pianifica il tuo team. Inizia con 30 giorni di Pro gratis e cambia quando vuoi.",
   "30 Tage Pro gratis testen": "Prova Pro gratis per 30 giorni",
   "Nein. Die 30 Tage Pro laufen ohne Kreditkarte und enden von selbst; danach geht es mit Free weiter. Erst für einen bezahlten Plan brauchst du eine Zahlungsart.": "No. I 30 giorni di Pro funzionano senza carta di credito e terminano da soli; poi continui con Free. Un metodo di pagamento serve solo per un piano a pagamento.",
-  "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 giorni con tutte le funzioni Pro, poi Free"
+  "✓ 30 Tage alle Pro-Funktionen, danach Free": "✓ 30 giorni con tutte le funzioni Pro, poi Free",
+  "Zusatz": "Extra",
+  "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat": "Addetti aggiuntivi con accesso proprio, # € al mese ciascuno",
+  "Weitere Einsatzkräfte mit eigenem Zugang, je # € pro Monat (ab der #. Einsatzkraft # €)": "Addetti aggiuntivi con accesso proprio, # € al mese ciascuno (dal #° addetto # €)",
+  "Anzahl ändern": "Modifica numero",
+  "Steckbrief-Paket: # Steckbriefe aus Unterlagen für # €, einmalig, verfallen nicht. Sie werden genutzt, wenn das Monatskontingent aufgebraucht ist.": "Pacchetto schede: # schede da documenti per # €, una tantum, non scadono. Si usano quando il contingente mensile è esaurito.",
+  "Guthaben: # Steckbriefe": "Credito: # schede",
+  "Paket kaufen": "Acquista pacchetto",
+  "Paket per Rechnung bestellen": "Ordina pacchetto con fattura",
+  "Die Zahl der weiteren Einsatzkräfte ist geändert. Der Unterschied wird anteilig verrechnet; das neue Kontingent gilt in wenigen Sekunden.": "Il numero di addetti aggiuntivi è stato modificato. La differenza viene addebitata pro rata; il nuovo contingente vale tra pochi secondi.",
+  "Danke! Deine Zusatz-Bestellung ist bei uns. Wir schalten sie frei und schicken die Rechnung per E-Mail.": "Grazie! Abbiamo ricevuto il tuo ordine di extra. Lo attiviamo e inviamo la fattura via e-mail.",
+  "Weitere Einsatzkräfte gibt es in Pro und Business, Steckbrief-Pakete ab Basis. Wähle zuerst einen Plan.": "Gli addetti aggiuntivi sono disponibili in Pro e Business, i pacchetti di schede da Basis. Scegli prima un piano.",
+  "Bitte eine Zahl zwischen 0 und 2000 angeben.": "Inserisci un numero tra 0 e 2000.",
+  "Die # Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem Steckbrief-Paket oder einem größeren Plan (Plan-Seite).": "Le # schede da documenti di questo mese sono esaurite. Si riprende il mese prossimo, oppure subito con un pacchetto di schede o un piano più grande (pagina del piano).",
+  "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "Grazie! Il pacchetto di schede è pagato. Le schede saranno disponibili tra pochi secondi; la fattura arriva via e-mail."
 }

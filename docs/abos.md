@@ -3,8 +3,8 @@
 > **Stand 07.11.2026:** Preise live (06.11.), Stripe im Testmodus (07.11.), **Grenzen durchgesetzt seit 07.11.2026**
 > (SQL `jarvis_intern.plan_grenze` in Migration `20261107020000_plan_grenzen.sql`, Web `web/src/plangrenzen.ts`, Alarm
 > `alarm/profile_db.py` `nach_plan`, Mail `alarm/mail.py` `woechentlich_faellig`). Probe: 30 Tage Pro für jede neue Firma
-> (`firmen.probe_bis`). Noch nicht umgesetzt: Zusatz-Nutzer/-Einsatzkräfte/Steckbrief-Pakete zum Kaufen, Kalkulation
-> „nur ansehen“ in Free, Erinnerungen an Tag 23/28 der Probe, Free-Erstlauf nur 30 Tage, KI-Pause nach 30 Tagen ohne Anmeldung.
+> (`firmen.probe_bis`). Zusatzkäufe seit 07.11.2026 (weitere Einsatzkräfte, Steckbrief-Pakete; weitere Büro-Nutzer nicht, kein Preis festgelegt). Noch nicht umgesetzt: Kalkulation
+> „nur ansehen“ in Free, Free-Erstlauf nur 30 Tage, KI-Pause nach 30 Tagen ohne Anmeldung.
 
 ## 1. Kurzfassung
 

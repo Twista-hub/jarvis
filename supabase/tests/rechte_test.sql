@@ -106,6 +106,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261107010000_stripe_abos.sql
 \ir ../migrations/20261107020000_plan_grenzen.sql
 \ir ../migrations/20261107030000_probe_erinnerungen.sql
+\ir ../migrations/20261107040000_zusatzkaeufe.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1886,6 +1887,50 @@ set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000aa01');
 insert into public.bereiche (firma_id, name, art) values (:'gfirma', 'Köln', 'standort'), (:'gfirma', 'Bonn', 'standort');
 select pruefe(public.steckbrief_buchen(:'gfirma') is null and public.plan_stand(:'gfirma')->'grenzen'->>'standorte' is null, 'Plan test: unbegrenzt');
+reset role;
+
+-- Zusatzkäufe (07.11.2026): weitere Einsatzkräfte nur in Pro/Business, Steckbrief-Pakete nach dem Monatskontingent.
+reset role;
+select set_config('test.uid', '', false);
+update public.firmen set paket = 'pro', zusatz_einsatzkraefte = 2 where id = :'gfirma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+select pruefe((public.plan_stand(:'gfirma')->'grenzen'->>'einsatzkraefte')::int = 27, 'Pro + 2 Einsatzkräfte = 27');
+do $$ begin update public.firmen set zusatz_einsatzkraefte = 500 where id = current_setting('test.gfirma')::uuid; raise exception 'FEHLER: Kunde bucht Einsatzkräfte selbst'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+do $$ begin update public.firmen set steckbrief_guthaben = 500 where id = current_setting('test.gfirma')::uuid; raise exception 'FEHLER: Kunde schreibt sich Steckbriefe gut'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+do $$ begin perform public.betreiber_zusatz(current_setting('test.gfirma')::uuid, 99, 99); raise exception 'FEHLER: Kunde nutzt Betreiber-Zusatz'; exception when insufficient_privilege then null; end $$;
+reset role;
+select set_config('test.uid', '', false);
+delete from public.steckbrief_nutzung where firma_id = :'gfirma';
+insert into public.steckbrief_nutzung (firma_id) select :'gfirma' from generate_series(1, 30);
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+select pruefe(public.steckbrief_buchen(:'gfirma') = 'grenze', 'Pro: 31. Steckbrief ohne Paket gesperrt');
+reset role;
+select set_config('test.uid', '', false);
+select pruefe(jarvis_intern.stripe_ereignis('evt_paket0000001', 'checkout.session.completed', :'gfirma', null, null, null, null, null, null, null, steckbriefe_plus => 2), 'Stripe: Steckbrief-Paket gutgeschrieben');
+select pruefe(not jarvis_intern.stripe_ereignis('evt_paket0000001', 'checkout.session.completed', :'gfirma', null, null, null, null, null, null, null, steckbriefe_plus => 2), 'Stripe: Paket nur einmal');
+select pruefe(jarvis_intern.stripe_ereignis('evt_kraefte00001', 'customer.subscription.updated', :'gfirma', 'pro', null, null, 'active', null, 'monat', false, kraefte => 5), 'Stripe: Einsatzkräfte gebucht');
+select pruefe((select steckbrief_guthaben = 2 and zusatz_einsatzkraefte = 5 and paket = 'pro' from public.firmen where id = :'gfirma'), 'Guthaben 2, 5 Einsatzkräfte');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+select pruefe(public.steckbrief_buchen(:'gfirma') is null and public.steckbrief_buchen(:'gfirma') is null, 'Paket: 2 weitere Steckbriefe');
+select pruefe(public.steckbrief_buchen(:'gfirma') = 'grenze', 'Paket aufgebraucht');
+select pruefe((public.plan_stand(:'gfirma')->'genutzt'->>'steckbriefe')::int = 30 and (public.plan_stand(:'gfirma')->'zusatz'->>'steckbrief_guthaben')::int = 0, 'Paket-Steckbriefe zählen nicht ins Monatskontingent');
+reset role;
+select set_config('test.uid', '', false);
+update public.firmen set paket = 'basis' where id = :'gfirma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+select pruefe((public.plan_stand(:'gfirma')->'grenzen'->>'einsatzkraefte')::int = 0, 'Basis: gebuchte Einsatzkräfte zählen nicht');
+reset role;
+select set_config('test.uid', '', false);
+insert into auth.users (id, email) values ('00000000-0000-0000-0000-00000000aab1', 'betrieb@zusatz.test');
+insert into jarvis_intern.betreiber (email) values ('betrieb@zusatz.test');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aab1');
+select public.betreiber_zusatz(:'gfirma', 7, 10);
+select pruefe((select zusatz_einsatzkraefte = 7 and steckbrief_guthaben = 10 and probe_bis is not null from public.betreiber_firmen() where id = :'gfirma'), 'Betreiber bucht Zusatz per Rechnung und sieht ihn');
 reset role;
 
 \echo ALLE TESTS OK

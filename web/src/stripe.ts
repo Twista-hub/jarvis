@@ -12,6 +12,11 @@ export const stripeLive = (env: StripeEnv) => !!env.STRIPE_SECRET_KEY?.startsWit
 /** Stripe buttons: always in live mode, in test mode only for the operator. */
 export const stripeSichtbar = (env: StripeEnv, betreiber: boolean) => !!env.STRIPE_SECRET_KEY && (stripeLive(env) || betreiber);
 export const preisSchluessel = (plan: string, zahlweise: Zahlweise) => `crewtender_${plan}_${zahlweise}`;
+/** Add-ons (07.11.2026): further field workers on the subscription (Pro and Business), Steckbrief pack one-off. */
+export const kraftSchluessel = (plan: string, zahlweise: Zahlweise) => `crewtender_kraft_${plan}_${zahlweise}`;
+export const PAKET_SCHLUESSEL = "crewtender_steckbriefe_10";
+export const PAKET_ANZAHL = 10;
+export const MIT_KRAEFTEN = ["pro", "business"];
 
 /** application/x-www-form-urlencoded with Stripe's bracket notation for nested objects and arrays. */
 export function formular(daten: Record<string, unknown>, praefix = ""): string {
@@ -38,8 +43,8 @@ async function stripe<T>(env: StripeEnv, pfad: string, daten?: Record<string, un
   return json;
 }
 
-async function preisId(env: StripeEnv, plan: string, zahlweise: Zahlweise, abruf?: typeof fetch): Promise<string> {
-  const r = await stripe<{ data: { id: string }[] }>(env, `prices?active=true&lookup_keys[]=${encodeURIComponent(preisSchluessel(plan, zahlweise))}`, undefined, abruf);
+async function preisId(env: StripeEnv, plan: string, zahlweise: Zahlweise, abruf?: typeof fetch, schluessel = preisSchluessel(plan, zahlweise)): Promise<string> {
+  const r = await stripe<{ data: { id: string }[] }>(env, `prices?active=true&lookup_keys[]=${encodeURIComponent(schluessel)}`, undefined, abruf);
   if (!r.data[0]) throw new Error("Preis bei Stripe nicht gefunden");
   return r.data[0].id;
 }
@@ -57,14 +62,48 @@ export async function bezahlSitzung(env: StripeEnv, o: { firma: string; email: s
   return s.url;
 }
 
-/** Plan change of an existing subscription (prorated). The webhook then sets the new plan. */
+type AboPosten = { id: string; quantity?: number; price?: { lookup_key?: string | null } };
+const aboLaden = (env: StripeEnv, abo: string, abruf?: typeof fetch) =>
+  stripe<{ items: { data: AboPosten[] } }>(env, `subscriptions/${encodeURIComponent(abo)}`, undefined, abruf);
+const istKraft = (p: AboPosten) => /^crewtender_kraft_/.test(p.price?.lookup_key ?? "");
+
+/** Plan change of an existing subscription (prorated). Booked field workers move to the new plan's price, or end when
+ *  the new plan has none (Basis). The webhook then sets the new plan. */
 export async function aboWechseln(env: StripeEnv, abo: string, plan: string, zahlweise: Zahlweise, abruf?: typeof fetch): Promise<void> {
   const preis = await preisId(env, plan, zahlweise, abruf);
-  const sub = await stripe<{ items: { data: { id: string }[] } }>(env, `subscriptions/${encodeURIComponent(abo)}`, undefined, abruf);
+  const sub = await aboLaden(env, abo, abruf);
+  const planPosten = sub.items.data.find((p) => ausSchluessel(p.price?.lookup_key)) ?? sub.items.data[0];
+  const kraefte = sub.items.data.filter(istKraft);
+  const kraftPreis = kraefte.length && MIT_KRAEFTEN.includes(plan) ? await preisId(env, plan, zahlweise, abruf, kraftSchluessel(plan, zahlweise)) : "";
   await stripe(env, `subscriptions/${encodeURIComponent(abo)}`, {
-    items: [{ id: sub.items.data[0].id, price: preis }], proration_behavior: "create_prorations", cancel_at_period_end: false,
-    metadata: { plan, zahlweise },
+    items: [{ id: planPosten.id, price: preis }, ...kraefte.map((k) => (kraftPreis ? { id: k.id, price: kraftPreis } : { id: k.id, deleted: true }))],
+    proration_behavior: "create_prorations", cancel_at_period_end: false, metadata: { plan, zahlweise },
   }, abruf);
+}
+
+/** Sets the number of further field workers on the subscription (0 removes them; prorated). */
+export async function kraefteSetzen(env: StripeEnv, abo: string, anzahl: number, plan: string, zahlweise: Zahlweise, abruf?: typeof fetch): Promise<void> {
+  if (!MIT_KRAEFTEN.includes(plan)) throw new Error("Weitere Einsatzkräfte gibt es in Pro und Business");
+  const sub = await aboLaden(env, abo, abruf);
+  const da = sub.items.data.find(istKraft);
+  if (!anzahl && !da) return;
+  const preis = await preisId(env, plan, zahlweise, abruf, kraftSchluessel(plan, zahlweise));
+  const posten = !anzahl ? { id: da!.id, deleted: true } : da ? { id: da.id, price: preis, quantity: anzahl } : { price: preis, quantity: anzahl };
+  await stripe(env, `subscriptions/${encodeURIComponent(abo)}`, { items: [posten], proration_behavior: "create_prorations" }, abruf);
+}
+
+/** Checkout for a Steckbrief pack (one-off payment with invoice). The webhook adds the credit. */
+export async function paketKaufen(env: StripeEnv, o: { firma: string; email: string; kunde?: string | null; basis: string }, abruf?: typeof fetch): Promise<string> {
+  const preis = await preisId(env, "", "monat", abruf, PAKET_SCHLUESSEL);
+  const meta = { firma: o.firma, art: "steckbriefe", anzahl: PAKET_ANZAHL };
+  const s = await stripe<{ url: string }>(env, "checkout/sessions", {
+    mode: "payment", line_items: [{ price: preis, quantity: 1 }], client_reference_id: o.firma, metadata: meta,
+    invoice_creation: { enabled: true, invoice_data: { metadata: meta } },
+    ...(o.kunde ? { customer: o.kunde, customer_update: { address: "auto", name: "auto" } } : { customer_email: o.email, customer_creation: "always" }),
+    billing_address_collection: "required", tax_id_collection: { enabled: true }, locale: "auto",
+    success_url: `${o.basis}/konto/plan?paket=1`, cancel_url: `${o.basis}/konto/plan?abgebrochen=1`,
+  }, abruf);
+  return s.url;
 }
 
 /** Customer portal: cancel, change card or bank account, download invoices. */
@@ -84,7 +123,7 @@ export async function signaturGueltig(body: string, kopf: string, geheim: string
   return signaturen.some((s) => s.length === soll.length && [...s].reduce((d, c, i) => d | (c.charCodeAt(0) ^ soll.charCodeAt(i)), 0) === 0);
 }
 
-export type AboAenderung = { ereignis: string; typ: string; firma: string | null; paket: string | null; kunde: string | null; abo: string | null; status: string | null; bis: string | null; zahlweise: Zahlweise | null; kuendigt: boolean | null };
+export type AboAenderung = { ereignis: string; typ: string; firma: string | null; paket: string | null; kunde: string | null; abo: string | null; status: string | null; bis: string | null; zahlweise: Zahlweise | null; kuendigt: boolean | null; kraefte?: number | null; steckbriefe?: number | null };
 const AKTIV = new Set(["active", "trialing", "past_due"]);
 const ausSchluessel = (k?: string | null): { plan: string; zahlweise: Zahlweise } | null => {
   const m = k?.match(/^crewtender_(basis|pro|business)_(monat|jahr)$/);
@@ -96,19 +135,28 @@ const uuid = (x: unknown) => (typeof x === "string" && /^[0-9a-f-]{36}$/.test(x)
 /** What a Stripe event means for the firm; null for events Crewtender ignores. */
 export function aboAenderung(e: { id: string; type: string; data: { object: any } }): AboAenderung | null {
   const o = e.data?.object ?? {};
+  // Steckbrief pack paid (one-off checkout): only the credit changes.
+  if (e.type === "checkout.session.completed" && o.mode === "payment" && o.metadata?.art === "steckbriefe" && o.payment_status === "paid") {
+    const anzahl = Math.min(1000, Math.max(0, Math.floor(Number(o.metadata?.anzahl) || 0)));
+    return { ereignis: e.id, typ: e.type, firma: uuid(o.client_reference_id ?? o.metadata?.firma), paket: null, kunde: o.customer ?? null, abo: null,
+      status: null, bis: null, zahlweise: null, kuendigt: null, kraefte: null, steckbriefe: anzahl };
+  }
   if (e.type === "checkout.session.completed" && o.mode === "subscription") {
     const plan = BEZAHLPLAENE.includes(o.metadata?.plan) ? o.metadata.plan : null;
     return { ereignis: e.id, typ: e.type, firma: uuid(o.client_reference_id ?? o.metadata?.firma), paket: plan, kunde: o.customer ?? null, abo: o.subscription ?? null,
       status: "active", bis: null, zahlweise: o.metadata?.zahlweise === "jahr" ? "jahr" : o.metadata?.zahlweise === "monat" ? "monat" : null, kuendigt: false };
   }
   if (["customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"].includes(e.type)) {
-    const item = o.items?.data?.[0];
+    const posten: AboPosten[] = o.items?.data ?? [];
+    const item: any = posten.find((p) => ausSchluessel(p.price?.lookup_key)) ?? posten[0];
     const k = ausSchluessel(item?.price?.lookup_key);
+    const kraefte = posten.filter(istKraft).reduce((n, p) => n + Math.max(0, Number(p.quantity) || 0), 0);
     const status = e.type === "customer.subscription.deleted" ? "canceled" : String(o.status ?? "");
     const aktiv = AKTIV.has(status);
     return { ereignis: e.id, typ: e.type, firma: uuid(o.metadata?.firma), paket: aktiv ? (k?.plan ?? null) : "kostenlos", kunde: o.customer ?? null, abo: o.id ?? null,
       // The customer portal (API 2025+) cancels with cancel_at = period end instead of cancel_at_period_end.
-      status, bis: zeit(o.cancel_at) ?? zeit(item?.current_period_end ?? o.current_period_end), zahlweise: k?.zahlweise ?? null, kuendigt: !!o.cancel_at_period_end || !!zeit(o.cancel_at) };
+      status, bis: zeit(o.cancel_at) ?? zeit(item?.current_period_end ?? o.current_period_end), zahlweise: k?.zahlweise ?? null, kuendigt: !!o.cancel_at_period_end || !!zeit(o.cancel_at),
+      kraefte: aktiv ? kraefte : 0, steckbriefe: null };
   }
   return null;
 }
@@ -121,6 +169,6 @@ export async function stripeWebhook(request: Request, env: StripeEnv): Promise<R
   try { e = JSON.parse(body); } catch { return new Response("kein JSON", { status: 400 }); }
   const a = aboAenderung(e as never);
   if (!a) return Response.json({ ok: true, ignoriert: e.type });
-  await katalogDb(env, (sql) => sql`select jarvis_intern.stripe_ereignis(${a.ereignis}, ${a.typ}, ${a.firma}::uuid, ${a.paket}, ${a.kunde}, ${a.abo}, ${a.status}, ${a.bis}::timestamptz, ${a.zahlweise}, ${a.kuendigt})`);
+  await katalogDb(env, (sql) => sql`select jarvis_intern.stripe_ereignis(${a.ereignis}, ${a.typ}, ${a.firma}::uuid, ${a.paket}, ${a.kunde}, ${a.abo}, ${a.status}, ${a.bis}::timestamptz, ${a.zahlweise}, ${a.kuendigt}, ${a.kraefte ?? null}::int, ${a.steckbriefe ?? null}::int)`);
   return Response.json({ ok: true });
 }

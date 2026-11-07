@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { aboAenderung, bezahlSitzung, formular, portalSitzung, signaturGueltig, stripeSichtbar } from "../src/stripe.ts";
+import { aboAenderung, aboWechseln, bezahlSitzung, formular, kraefteSetzen, paketKaufen, portalSitzung, signaturGueltig, stripeSichtbar } from "../src/stripe.ts";
+import { zusatzTeil } from "../src/plaene.ts";
 import { PLAENE, bestellHinweis, planSeite, wechselHinweis } from "../src/plaene.ts";
 import { uebersetzen } from "../src/englisch.ts";
 
@@ -107,4 +108,49 @@ test("Bestellbestätigung per Rechnung und Planwechsel sind übersetzt", () => {
   for (const t of ["Plan modifié :", "La différence est facturée au prorata"]) assert.ok(fr.includes(t), t);
   assert.ok(uebersetzen(bestellHinweis(pro, false, "a@b.example"), "pl").includes("149 € / miesiąc"));
   assert.ok(!bestellHinweis(basis, false, "<x>@y").includes("<x>"), "E-Mail wird maskiert");
+});
+
+test("Zusatzkäufe: Einsatzkräfte im Abo, Steckbrief-Paket, Planwechsel", async () => {
+  const kraftSub = (status: string, menge: number) => ({ id: "sub_1", status, customer: "cus_1", metadata: { firma: FIRMA }, items: { data: [
+    { id: "si_plan", price: { lookup_key: "crewtender_pro_monat" }, current_period_end: 1_800_000_000 },
+    { id: "si_kraft", quantity: menge, price: { lookup_key: "crewtender_kraft_pro_monat" } }] } });
+  const a = aboAenderung({ id: "evt_k", type: "customer.subscription.updated", data: { object: kraftSub("active", 12) } })!;
+  assert.deepEqual([a.paket, a.kraefte], ["pro", 12], "Plan aus dem richtigen Posten, Kräfte gezählt");
+  assert.equal(aboAenderung({ id: "evt_k2", type: "customer.subscription.deleted", data: { object: kraftSub("canceled", 12) } })!.kraefte, 0);
+  const paket = aboAenderung({ id: "evt_p", type: "checkout.session.completed", data: { object: { mode: "payment", payment_status: "paid", client_reference_id: FIRMA, customer: "cus_1", metadata: { art: "steckbriefe", anzahl: "10" } } } })!;
+  assert.deepEqual([paket.steckbriefe, paket.paket, paket.kraefte, paket.firma], [10, null, null, FIRMA]);
+  assert.equal(aboAenderung({ id: "evt_p2", type: "checkout.session.completed", data: { object: { mode: "payment", payment_status: "unpaid", metadata: { art: "steckbriefe", anzahl: "10" } } } }), null, "unbezahlt: nichts");
+
+  const aufrufe: { url: string; body: string }[] = [];
+  const abruf = (async (url: string, init?: RequestInit) => {
+    aufrufe.push({ url, body: decodeURIComponent(String(init?.body ?? "")) });
+    if (url.includes("/prices?")) return Response.json({ data: [{ id: `price_${/lookup_keys\[\]=([a-z_0-9]+)/.exec(decodeURIComponent(url))?.[1]}` }] });
+    if (url.endsWith("/checkout/sessions")) return Response.json({ url: "https://checkout.stripe.com/c/pay/paket" });
+    if (url.includes("/subscriptions/") && !init?.body) return Response.json(kraftSub("active", 3));
+    return Response.json({});
+  }) as typeof fetch;
+  const env = { STRIPE_SECRET_KEY: "sk_test_x" };
+  await kraefteSetzen(env, "sub_1", 20, "pro", "monat", abruf);
+  assert.ok(aufrufe.at(-1)!.body.includes("items[0][id]=si_kraft") && aufrufe.at(-1)!.body.includes("items[0][quantity]=20"), "Menge geändert");
+  await kraefteSetzen(env, "sub_1", 0, "pro", "monat", abruf);
+  assert.ok(aufrufe.at(-1)!.body.includes("items[0][deleted]=true"), "0 entfernt den Posten");
+  await assert.rejects(kraefteSetzen(env, "sub_1", 5, "basis", "monat", abruf), /Pro und Business/);
+  await aboWechseln(env, "sub_1", "basis", "monat", abruf);
+  const wechsel = aufrufe.at(-1)!.body;
+  assert.ok(wechsel.includes("items[0][id]=si_plan") && wechsel.includes("items[0][price]=price_crewtender_basis_monat") && wechsel.includes("items[1][deleted]=true"), "Basis: Einsatzkräfte enden");
+  await aboWechseln(env, "sub_1", "business", "jahr", abruf);
+  assert.ok(aufrufe.at(-1)!.body.includes("items[1][price]=price_crewtender_kraft_business_jahr"), "Business jährlich: Kräfte-Preis wechselt mit");
+  assert.equal(await paketKaufen(env, { firma: FIRMA, email: "chef@firma.test", basis: "https://crewtender.eu" }, abruf), "https://checkout.stripe.com/c/pay/paket");
+  const kauf = aufrufe.at(-1)!.body;
+  for (const teil of ["mode=payment", "line_items[0][price]=price_crewtender_steckbriefe_10", "metadata[art]=steckbriefe", "metadata[anzahl]=10", "invoice_creation[enabled]=true", "success_url=https://crewtender.eu/konto/plan?paket=1"]) assert.ok(kauf.includes(teil), teil);
+});
+
+test("Plan-Seite: Zusatz nur ab Basis, Einsatzkräfte nur ab Pro", () => {
+  const stand = (plan: string) => ({ plan, paket: plan, probe_bis: null, grenzen: {}, zusatz: { einsatzkraefte: 4, steckbrief_guthaben: 3 }, genutzt: { buero: 1, buero_offen: 0, einsatzkraefte: 0, einsatzkraefte_offen: 0, standorte: 1, steckbriefe: 0 } });
+  assert.equal(zusatzTeil(stand("kostenlos"), { paket: true, kraefte: true }), "");
+  assert.equal(zusatzTeil(stand("probe"), { paket: true, kraefte: true }), "");
+  const basis = zusatzTeil(stand("basis"), { paket: true, kraefte: false });
+  assert.ok(!basis.includes('value="kraefte"') && basis.includes("Paket kaufen") && basis.includes("Guthaben: 3 Steckbriefe"));
+  const business = zusatzTeil(stand("business"), { paket: false, kraefte: false });
+  assert.ok(business.includes('value="4"') && business.includes("je 3 € pro Monat (ab der 501. Einsatzkraft 2,50 €)") && business.includes("Per Rechnung bestellen"));
 });

@@ -67,7 +67,7 @@ ${team.length ? `<label class="zeile"><input type="checkbox" name="firmen_mit">A
 <p class="klein">Löscht den Zugang sofort und endgültig, dazu Firmen, in denen er allein ist, mit allen Daten und Dateien (Unterlagen, Fotos, Belege, Unterschriften, Bewerbungen, Nachweise). Nicht rückgängig zu machen.</p></form>`;
 }
 
-export type BetreiberFirma = { id: string; name: string; erstellt: string; website: string; paket: string; ki_budget_usd: number | null; ki_verbraucht: number; mitglieder: number; inhaber: string | null; letzte_anmeldung: string | null };
+export type BetreiberFirma = { id: string; name: string; erstellt: string; website: string; paket: string; ki_budget_usd: number | null; ki_verbraucht: number; mitglieder: number; inhaber: string | null; letzte_anmeldung: string | null; probe_bis?: string | null; zusatz_einsatzkraefte?: number; steckbrief_guthaben?: number };
 
 export const PAKETE = ["kostenlos", "test", "basis", "pro", "business"];
 /** AI limit choices on the operator page: "" = no limit (null), otherwise USD. */
@@ -100,7 +100,7 @@ export function firmenListe(firmen: BetreiberFirma[]): string {
     const paketOpt = PAKETE.map((p) => `<option${p === f.paket ? " selected" : ""}>${p}</option>`).join("");
     return `<li id="firma-${escape(f.id)}"><div><strong>${escape(f.name)}</strong><span class="klein">${escape(f.inhaber ?? "kein Inhaber")} · ${f.mitglieder} ${f.mitglieder === 1 ? "Mitglied" : "Mitglieder"} · seit ${tag(f.erstellt)} · zuletzt angemeldet ${tag(f.letzte_anmeldung)}${f.website ? ` · ${escape(f.website)}` : ""}</span><span class="klein">Plan ${escape(f.paket)} · KI ${escape(kiStand(budget, Number(f.ki_verbraucht ?? 0)))}</span>
 <form method="post" action="/konto/betreiber" class="zeile-form"><input type="hidden" name="aktion" value="firma"><input type="hidden" name="firma" value="${escape(f.id)}"><input type="hidden" name="ki_alt" value="${budget === null ? "" : budget}"><input type="hidden" name="paket_alt" value="${escape(f.paket)}">
-<label>KI-Grenze<select name="ki">${kiOpt}</select></label><label>Plan<select name="paket">${paketOpt}</select></label><button>Speichern</button></form><a class="klein" href="/konto/betreiber/rechnungen?firma=${escape(f.id)}">🧾 Rechnung schreiben</a></div></li>`;
+<label>KI-Grenze<select name="ki">${kiOpt}</select></label><label>Plan<select name="paket">${paketOpt}</select></label><input type="hidden" name="kraefte_alt" value="${f.zusatz_einsatzkraefte ?? 0}"><label>Weitere Einsatzkräfte<input type="number" name="kraefte" min="0" max="5000" value="${f.zusatz_einsatzkraefte ?? 0}"></label><label>Steckbriefe gutschreiben (Guthaben ${f.steckbrief_guthaben ?? 0})<input type="number" name="guthaben_plus" min="-1000" max="1000" value="0"></label><button>Speichern</button></form>${f.probe_bis && f.paket === "kostenlos" ? `<span class="klein">Probezeit bis ${tag(f.probe_bis)}</span>` : ""}<a class="klein" href="/konto/betreiber/rechnungen?firma=${escape(f.id)}">🧾 Rechnung schreiben</a></div></li>`;
   }).join("")}</ul>`;
 }
 
@@ -128,7 +128,13 @@ export async function betreiber(request: Request, env: KontoEnv): Promise<Respon
         const r = await db(s, env, "rpc/betreiber_paket", { method: "POST", body: JSON.stringify({ f: firma, neu: paket }) });
         if (!r.ok) fehler.push("Plan");
       }
-      const hinweis = fehler.length ? `${fehler.join(" und ")} nicht gespeichert.` : ki === kiAlt && paket === paketAlt ? "Nichts geändert." : "Gespeichert.";
+      const kraefte = Math.floor(Number(form.get("kraefte") ?? 0)), kraefteAlt = Math.floor(Number(form.get("kraefte_alt") ?? 0)), plus = Math.floor(Number(form.get("guthaben_plus") ?? 0));
+      const zusatzNeu = Number.isFinite(kraefte) && Number.isFinite(plus) && (kraefte !== kraefteAlt || plus !== 0);
+      if (zusatzNeu) {
+        const r = await db(s, env, "rpc/betreiber_zusatz", { method: "POST", body: JSON.stringify({ f: firma, kraefte, guthaben_plus: plus }) });
+        if (!r.ok) fehler.push("Zusatz");
+      }
+      const hinweis = fehler.length ? `${fehler.join(" und ")} nicht gespeichert.` : ki === kiAlt && paket === paketAlt && !zusatzNeu ? "Nichts geändert." : "Gespeichert.";
       return weiterleiten(`/konto/betreiber?hinweis=${encodeURIComponent(hinweis)}#firma-${firma}`, s.cookies);
     }
     const mail = String(form.get("mail") ?? "").trim().toLowerCase();
