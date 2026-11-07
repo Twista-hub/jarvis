@@ -11,7 +11,7 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose]
+        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose, abos]
         default: anzeigen
       bestaetigung:
         description: "Zum Einspielen hier EINSPIELEN eintippen"
@@ -121,6 +121,11 @@ jobs:
             end if;
           end $$;
           SQL
+      - name: Stripe-Abos anzeigen (nur lesend)
+        if: inputs.aktion == 'abos'
+        run: |
+          psql "$DB_URL" -X -c "select left(id::text, 8) as firma, paket, stripe_kunde is not null as kunde, stripe_abo, abo_status, abo_bis, abo_zahlweise, abo_kuendigt from public.firmen where stripe_kunde is not null or stripe_abo is not null"
+          psql "$DB_URL" -X -c "select zeit, typ, left(firma_id::text, 8) as firma from jarvis_intern.stripe_ereignisse order by zeit desc limit 20"
       - name: Migrationen
         if: inputs.aktion != 'anmeldungen'
         run: |
