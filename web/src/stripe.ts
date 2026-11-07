@@ -77,7 +77,8 @@ export async function aboWechseln(env: StripeEnv, abo: string, plan: string, zah
   const kraftPreis = kraefte.length && MIT_KRAEFTEN.includes(plan) ? await preisId(env, plan, zahlweise, abruf, kraftSchluessel(plan, zahlweise)) : "";
   await stripe(env, `subscriptions/${encodeURIComponent(abo)}`, {
     items: [{ id: planPosten.id, price: preis }, ...kraefte.map((k) => (kraftPreis ? { id: k.id, price: kraftPreis } : { id: k.id, deleted: true }))],
-    proration_behavior: "create_prorations", cancel_at_period_end: false, metadata: { plan, zahlweise },
+    // Choosing a plan continues the subscription, also after a cancellation in the portal (cancel_at "" = unset).
+    proration_behavior: "create_prorations", cancel_at_period_end: false, cancel_at: "", metadata: { plan, zahlweise },
   }, abruf);
 }
 

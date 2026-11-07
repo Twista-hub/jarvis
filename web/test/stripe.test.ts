@@ -137,6 +137,7 @@ test("Zusatzkäufe: Einsatzkräfte im Abo, Steckbrief-Paket, Planwechsel", async
   await assert.rejects(kraefteSetzen(env, "sub_1", 5, "basis", "monat", abruf), /Pro und Business/);
   await aboWechseln(env, "sub_1", "basis", "monat", abruf);
   const wechsel = aufrufe.at(-1)!.body;
+  assert.ok(wechsel.includes("cancel_at_period_end=false") && /(^|&)cancel_at=(&|$)/.test(wechsel), "Planwahl hebt eine Kündigung auf");
   assert.ok(wechsel.includes("items[0][id]=si_plan") && wechsel.includes("items[0][price]=price_crewtender_basis_monat") && wechsel.includes("items[1][deleted]=true"), "Basis: Einsatzkräfte enden");
   await aboWechseln(env, "sub_1", "business", "jahr", abruf);
   assert.ok(aufrufe.at(-1)!.body.includes("items[1][price]=price_crewtender_kraft_business_jahr"), "Business jährlich: Kräfte-Preis wechselt mit");
