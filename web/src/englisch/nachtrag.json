@@ -287,5 +287,12 @@
  "Abo-Status: unpaid.": "Subscription status: unpaid.",
  "Abo-Status: incomplete.": "Subscription status: incomplete.",
  "Abo-Status: incomplete_expired.": "Subscription status: expired.",
- "Abo-Status: paused.": "Subscription status: paused."
+ "Abo-Status: paused.": "Subscription status: paused.",
+ "Danke! Deine Bestellung ist bei uns:": "Thank you! We have received your order:",
+ "Wir schalten den Plan frei und schicken die Rechnung an": "We will activate the plan and send the invoice to",
+ "Plan gewechselt:": "Plan changed:",
+ "Der Unterschied wird anteilig verrechnet; der Plan ist in wenigen Sekunden frei.": "The difference is charged pro rata; the plan will be active in a few seconds.",
+ "Die Bestellung konnte nicht gesendet werden. Bitte schreib uns an kontakt@wpdigitalranger.com.": "The order could not be sent. Please write to us at kontakt@wpdigitalranger.com.",
+ "# € / Monat": "€# / month",
+ "# € / Jahr": "€# / year"
 }

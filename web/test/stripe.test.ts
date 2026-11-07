@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { aboAenderung, bezahlSitzung, formular, portalSitzung, signaturGueltig, stripeSichtbar } from "../src/stripe.ts";
-import { planSeite } from "../src/plaene.ts";
+import { PLAENE, bestellHinweis, planSeite, wechselHinweis } from "../src/plaene.ts";
 import { uebersetzen } from "../src/englisch.ts";
 
 const FIRMA = "7548b874-b2ff-42a4-b05d-8971d447e4a9";
@@ -95,4 +95,16 @@ test("Plan-Seite mit Stripe ist übersetzt", () => {
   for (const t of ["Pay for Pro now", "Order by invoice", "Manage subscription (cancel, payment method, invoices)", "Subscription active, monthly, next payment on 7.12.2026.", "Cancelled, runs until 7.12.2026. Then Free.", "The last payment failed", "Payment cancelled. Nothing was charged.", "Switch to Business"]) assert.ok(en.includes(t), t);
   for (const de of ["jetzt bezahlen", "Abo verwalten", "Abbuchung", "Gekündigt", "Per Rechnung bestellen"]) assert.ok(!en.includes(de), de);
   for (const s of ["fr", "pl", "es", "it"] as const) assert.ok(!uebersetzen(seiten, s).includes("jetzt bezahlen"), s);
+});
+
+test("Bestellbestätigung per Rechnung und Planwechsel sind übersetzt", () => {
+  const basis = PLAENE.find((p) => p.id === "basis")!, pro = PLAENE.find((p) => p.id === "pro")!;
+  const de = planSeite("kostenlos", "M", true, "", { hinweisHtml: bestellHinweis(basis, true, "chef@firma.example") });
+  assert.match(de, /Danke! Deine Bestellung ist bei uns: <strong>Basis<\/strong> \(<span>590 € \/ Jahr<\/span>\)/);
+  const en = uebersetzen(de, "en");
+  for (const t of ["Thank you! We have received your order:", "€590 / year", "We will activate the plan and send the invoice to", "chef@firma.example"]) assert.ok(en.includes(t), t);
+  const fr = uebersetzen(planSeite("pro", "M", true, "", { hinweisHtml: wechselHinweis(pro) }), "fr");
+  for (const t of ["Plan modifié :", "La différence est facturée au prorata"]) assert.ok(fr.includes(t), t);
+  assert.ok(uebersetzen(bestellHinweis(pro, false, "a@b.example"), "pl").includes("149 € / miesiąc"));
+  assert.ok(!bestellHinweis(basis, false, "<x>@y").includes("<x>"), "E-Mail wird maskiert");
 });
