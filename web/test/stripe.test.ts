@@ -75,3 +75,9 @@ test("Plan-Seite: mit Stripe sofort bezahlen oder per Rechnung, Abo verwalten, T
   assert.match(planSeite("pro", "M", true, "", { stripe: true, abo: { status: "past_due", bis: null, kuendigt: false, zahlweise: "monat", kunde: true } }), /Zahlung ist fehlgeschlagen/);
   assert.match(planSeite("pro", "M", true, "", { stripe: true, abo: { status: "active", bis: "2026-12-07T10:00:00Z", kuendigt: true, zahlweise: "jahr", kunde: true } }), /Gekündigt, läuft bis 7\.12\.2026/);
 });
+
+import { CSP } from "../src/app.ts";
+test("Sicherheitsregeln: Formulare dürfen nur zu uns und zu Stripe weiterleiten", () => {
+  const fa = CSP.split(";").map((x) => x.trim()).find((x) => x.startsWith("form-action"))!;
+  assert.equal(fa, "form-action 'self' https://checkout.stripe.com https://billing.stripe.com");
+});
