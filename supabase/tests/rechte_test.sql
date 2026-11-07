@@ -105,6 +105,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261106040000_katalog_roh_schlank.sql
 \ir ../migrations/20261107010000_stripe_abos.sql
 \ir ../migrations/20261107020000_plan_grenzen.sql
+\ir ../migrations/20261107030000_probe_erinnerungen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values

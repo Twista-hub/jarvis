@@ -402,6 +402,96 @@ def nachricht(an: str, firma: str, neu: list, fristen: list, nachweise: list = (
     return m
 
 
+# Trial reminders (migration 20261107030000): 7 days and 2 days before the 30 days of Pro run out (day 23 and 28).
+PT = {
+    "de": {"b23": "Deine Crewtender-Probezeit endet am {d}", "b28": "Noch 2 Tage: Deine Crewtender-Probezeit endet am {d}",
+           "hallo": "Hallo,", "ende": "die 30 Tage Pro für {f} laufen am {d} aus. Danach wechselt Crewtender von selbst auf Free, ohne Kosten und ohne Kündigung.",
+           "bleibt": "Das bleibt in Free: passende Ausschreibungen (1 Suchprofil, 1 Land), der Kurzüberblick zu jeder Ausschreibung und eine Zusammenfassung pro Woche. Es wird nichts gelöscht; Personal, Schichten, Stunden und Rechnungen bleiben lesbar.",
+           "fehlt": "Das fehlt dann: die tägliche Nachricht per Mail und Handy, Steckbriefe aus Unterlagen, Personal, Einsatzplanung, Zeiterfassung, Abrechnung und Angebote.",
+           "knopf": "Plan wählen", "preise": "Pläne und Preise", "fragen": "Fragen? Einfach auf diese Mail antworten."},
+    "en": {"b23": "Your Crewtender trial ends on {d}", "b28": "2 days left: your Crewtender trial ends on {d}",
+           "hallo": "Hello,", "ende": "the 30 days of Pro for {f} end on {d}. After that Crewtender switches to Free by itself, at no cost and without cancelling.",
+           "bleibt": "What stays in Free: matching tenders (1 search profile, 1 country), the short overview of every tender and a weekly summary. Nothing is deleted; staff, shifts, hours and invoices stay readable.",
+           "fehlt": "What you lose: the daily message by email and phone, fact sheets from documents, staff, scheduling, time recording, billing and offers.",
+           "knopf": "Choose a plan", "preise": "Plans and prices", "fragen": "Questions? Just reply to this email."},
+    "fr": {"b23": "Votre essai Crewtender se termine le {d}", "b28": "Plus que 2 jours : votre essai Crewtender se termine le {d}",
+           "hallo": "Bonjour,", "ende": "les 30 jours de Pro pour {f} se terminent le {d}. Ensuite, Crewtender passe automatiquement à Free, sans frais et sans résiliation.",
+           "bleibt": "Ce qui reste en Free : les appels d'offres pertinents (1 profil de recherche, 1 pays), l'aperçu de chaque appel d'offres et un récapitulatif par semaine. Rien n'est supprimé ; personnel, plannings, heures et factures restent consultables.",
+           "fehlt": "Ce qui manque ensuite : le message quotidien par e-mail et sur le téléphone, les fiches synthèse à partir de documents, le personnel, la planification, la saisie des temps, la facturation et les offres.",
+           "knopf": "Choisir un plan", "preise": "Plans et tarifs", "fragen": "Des questions ? Répondez simplement à cet e-mail."},
+    "pl": {"b23": "Twój okres próbny Crewtender kończy się {d}", "b28": "Zostały 2 dni: Twój okres próbny Crewtender kończy się {d}",
+           "hallo": "Dzień dobry,", "ende": "30 dni planu Pro dla {f} kończy się {d}. Potem Crewtender sam przejdzie na Free, bez kosztów i bez wypowiedzenia.",
+           "bleibt": "W Free zostaje: pasujące przetargi (1 profil wyszukiwania, 1 kraj), krótki przegląd każdego przetargu i podsumowanie raz w tygodniu. Nic nie zostanie usunięte; personel, grafiki, godziny i faktury można dalej przeglądać.",
+           "fehlt": "Czego zabraknie: codziennej wiadomości e-mailem i na telefon, kart przetargu z dokumentów, personelu, planowania, ewidencji czasu, rozliczeń i ofert.",
+           "knopf": "Wybierz plan", "preise": "Plany i ceny", "fragen": "Pytania? Po prostu odpowiedz na tego e-maila."},
+    "es": {"b23": "Tu prueba de Crewtender termina el {d}", "b28": "Quedan 2 días: tu prueba de Crewtender termina el {d}",
+           "hallo": "Hola:", "ende": "los 30 días de Pro para {f} terminan el {d}. Después, Crewtender pasa solo a Free, sin coste y sin cancelar nada.",
+           "bleibt": "Lo que sigue en Free: licitaciones adecuadas (1 perfil de búsqueda, 1 país), el resumen de cada licitación y un resumen semanal. No se borra nada; personal, turnos, horas y facturas siguen siendo legibles.",
+           "fehlt": "Lo que deja de estar: el mensaje diario por correo y en el móvil, las fichas a partir de documentos, personal, planificación, registro de horas, facturación y ofertas.",
+           "knopf": "Elegir un plan", "preise": "Planes y precios", "fragen": "¿Preguntas? Responde a este correo."},
+    "it": {"b23": "La tua prova di Crewtender termina il {d}", "b28": "Mancano 2 giorni: la tua prova di Crewtender termina il {d}",
+           "hallo": "Buongiorno,", "ende": "i 30 giorni di Pro per {f} terminano il {d}. Dopo, Crewtender passa da solo a Free, senza costi e senza disdetta.",
+           "bleibt": "Cosa resta in Free: le gare adatte (1 profilo di ricerca, 1 paese), la sintesi di ogni gara e un riepilogo settimanale. Non viene eliminato nulla; personale, turni, ore e fatture restano consultabili.",
+           "fehlt": "Cosa manca poi: il messaggio quotidiano via e-mail e sul telefono, le schede da documenti, personale, pianificazione, rilevazione presenze, fatturazione e offerte.",
+           "knopf": "Scegli un piano", "preise": "Piani e prezzi", "fragen": "Domande? Rispondi semplicemente a questa e-mail."},
+}
+
+
+def probe_stufe(bis: datetime, jetzt: datetime) -> str | None:
+    """Which reminder is due: 'tag23' from 7 days before the end, 'tag28' from 2 days before; None outside."""
+    rest = bis - jetzt
+    if rest <= timedelta(0) or rest > timedelta(days=7):
+        return None
+    return "tag28" if rest <= timedelta(days=2) else "tag23"
+
+
+def probe_mail(an: str, firma: str, bis: datetime, stufe: str, sprache: str = "de", zone: ZoneInfo = BERLIN) -> EmailMessage:
+    t, tt = PT.get(sprache, PT["en"]), T.get(sprache, T["en"])
+    d = bis.astimezone(zone).strftime(tt["tag"])
+    absaetze = [t["hallo"], t["ende"].format(f=firma, d=d), t["bleibt"], t["fehlt"]]
+    m = EmailMessage()
+    m["From"] = formataddr(ABSENDER)
+    m["To"] = an
+    m["Subject"] = t["b23" if stufe == "tag23" else "b28"].format(d=d)
+    m["Message-ID"] = make_msgid(domain="wpdigitalranger.com")
+    m.set_content("\n\n".join(absaetze) + f"\n\n{t['knopf']}: {APP}/konto/plan\n{t['preise']}: {APP}/preise\n\n{t['fragen']}\n\nCrewtender · WP Digital Ranger · {APP}/impressum\n")
+    m.add_alternative(f"""<div style="font-family:system-ui,sans-serif;max-width:640px">{''.join(f'<p>{html.escape(a)}</p>' for a in absaetze)}
+<p><a href="{APP}/konto/plan" style="display:inline-block;padding:10px 16px;background:#1d4ed8;color:#fff;border-radius:8px;text-decoration:none">{t['knopf']}</a> &nbsp; <a href="{APP}/preise">{t['preise']}</a></p>
+<p>{html.escape(t['fragen'])}</p>
+<p style="color:#666;font-size:13px">Crewtender · WP Digital Ranger · <a href="{APP}/impressum">{tt['impressum']}</a></p></div>""", subtype="html")
+    return m
+
+
+def probe_erinnerungen(con, smtp, jetzt: datetime | None = None) -> int:
+    """Sends due trial reminders to owners and admins (each stage once per firm, from 8 o'clock local time)."""
+    try:
+        firmen = con.execute("""select f.id::text, f.name, f.probe_bis from public.firmen f
+            where f.paket = 'kostenlos' and f.probe_bis > now() and f.probe_bis < now() + interval '7 days'""").fetchall()
+    except Exception as e:  # noqa: BLE001 - before the migration: no reminders, the rest runs
+        print(f"Probe-Erinnerungen übersprungen: {e}", file=sys.stderr)
+        return 0
+    gesendet = 0
+    for firma_id, name, bis in firmen:
+        sprache, zone = firma_sprache(con, firma_id)
+        jetzt_ort = (jetzt or datetime.now(zone)).astimezone(zone)
+        stufe = probe_stufe(bis, jetzt_ort)
+        if not stufe or jetzt_ort.hour < 8:
+            continue
+        try:
+            # Claim first: better one reminder too few than the same one twice.
+            if not con.execute("""insert into jarvis_intern.probe_erinnerungen (firma_id, stufe) values (%s, %s)
+                    on conflict do nothing returning firma_id""", (firma_id, stufe)).fetchone():
+                continue
+        except Exception as e:  # noqa: BLE001
+            print(f"Probe-Erinnerung nicht vermerkt: {e}", file=sys.stderr)
+            return gesendet
+        for (email,) in con.execute("""select u.email from public.mitglieder m join auth.users u on u.id = m.user_id
+                where m.firma_id = %s and m.aktiv and m.rolle in ('inhaber', 'admin') and coalesce(u.email, '') <> ''""", (firma_id,)).fetchall():
+            smtp.send_message(probe_mail(email, name, bis, stufe, sprache, zone))
+            gesendet += 1
+    return gesendet
+
+
 def main() -> None:
     args = sys.argv[1:]
     test = args[1] if args[:1] == ["--test"] and len(args) > 1 else None
@@ -437,6 +527,7 @@ def main() -> None:
                 for dokument_id, _name, _gueltig_bis, tage in nachweise:
                     con.execute("insert into public.nachweis_erinnerungen (firma_id,dokument_id,user_id,tage) values (%s,%s,%s,%s) on conflict do nothing", (firma_id, dokument_id, user_id, tage))
         if not (test or sofort):
+            mails += probe_erinnerungen(con, smtp)
             pushs += warteschlange(con, schl)
             # Deadline-day message at 7, or at the end of the person's quiet hours when 7 falls into them (I2).
             for firma_id, user_id, von, bis in con.execute("""select b.firma_id::text, b.user_id::text, b.ruhe_von, b.ruhe_bis from public.benachrichtigungen b
