@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { aboAenderung, bezahlSitzung, formular, portalSitzung, signaturGueltig, stripeSichtbar } from "../src/stripe.ts";
 import { planSeite } from "../src/plaene.ts";
+import { uebersetzen } from "../src/englisch.ts";
 
 const FIRMA = "7548b874-b2ff-42a4-b05d-8971d447e4a9";
 
@@ -83,4 +84,15 @@ import { CSP } from "../src/app.ts";
 test("Sicherheitsregeln: Formulare dürfen nur zu uns und zu Stripe weiterleiten", () => {
   const fa = CSP.split(";").map((x) => x.trim()).find((x) => x.startsWith("form-action"))!;
   assert.equal(fa, "form-action 'self' https://checkout.stripe.com https://billing.stripe.com");
+});
+
+test("Plan-Seite mit Stripe ist übersetzt", () => {
+  const abo = (x: object) => ({ status: "active", bis: "2026-12-07T10:00:00Z", kuendigt: false, zahlweise: "monat", kunde: true, ...x });
+  const seiten = [planSeite("kostenlos", "M", true, "Zahlung abgebrochen. Es wurde nichts berechnet.", { stripe: true, test: true }),
+    planSeite("basis", "M", true, "", { stripe: true, abo: abo({}) }), planSeite("basis", "M", true, "", { stripe: true, abo: abo({ kuendigt: true, zahlweise: "jahr" }) }),
+    planSeite("pro", "M", true, "", { stripe: true, abo: abo({ status: "past_due", bis: null }) })].join("");
+  const en = uebersetzen(seiten, "en");
+  for (const t of ["Pay for Pro now", "Order by invoice", "Manage subscription (cancel, payment method, invoices)", "Subscription active, monthly, next payment on 7.12.2026.", "Cancelled, runs until 7.12.2026. Then Free.", "The last payment failed", "Payment cancelled. Nothing was charged.", "Switch to Business"]) assert.ok(en.includes(t), t);
+  for (const de of ["jetzt bezahlen", "Abo verwalten", "Abbuchung", "Gekündigt", "Per Rechnung bestellen"]) assert.ok(!en.includes(de), de);
+  for (const s of ["fr", "pl", "es", "it"] as const) assert.ok(!uebersetzen(seiten, s).includes("jetzt bezahlen"), s);
 });
