@@ -17,6 +17,12 @@ on:
       testabo_plan:
         description: "Nur im Testmodus: laufende Test-Abos auf diesen Plan umstellen (basis/pro/business, leer = nichts)"
         default: ""
+      testabo_kraefte:
+        description: "Nur im Testmodus: Zahl der weiteren Einsatzkräfte im Test-Abo setzen (leer = nichts)"
+        default: ""
+      testpaket_firma:
+        description: "Nur im Testmodus: Bezahlseite für ein Steckbrief-Paket dieser Firma (UUID) anlegen (leer = nichts)"
+        default: ""
 permissions:
   contents: read
 concurrency:
@@ -33,7 +39,7 @@ jobs:
       - run: npm ci --silent
         working-directory: web
       - name: Pläne, Preise, Webhook
-        if: inputs.abgleich != 'ja' && inputs.testabos_beenden != 'ja' && inputs.testabo_plan == ''
+        if: inputs.abgleich != 'ja' && inputs.testabos_beenden != 'ja' && inputs.testabo_plan == '' && inputs.testabo_kraefte == '' && inputs.testpaket_firma == ''
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -172,4 +178,47 @@ jobs:
                   daten["cancel_at"] = ""
               neu = api(f"subscriptions/{s['id']}", daten)
               print("umgestellt:", s["id"], "->", PLAN, "| cancel_at:", neu.get("cancel_at"), "| status:", neu.get("status"))
+          PY
+      - name: Zusatz testen
+        if: inputs.testabo_kraefte != '' || inputs.testpaket_firma != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          KRAEFTE: ${{ inputs.testabo_kraefte }}
+          FIRMA: ${{ inputs.testpaket_firma }}
+        run: |
+          # Only with a test key: the same Stripe calls as "Anzahl ändern" (kraefteSetzen) and "Paket kaufen" (paketKaufen).
+          case "$STRIPE_SECRET_KEY" in sk_test_*) ;; *) echo "::error::Nur im Testmodus erlaubt"; exit 1;; esac
+          python3 - <<'PY'
+          import json, os, re, urllib.error, urllib.parse, urllib.request
+          KEY = os.environ["STRIPE_SECRET_KEY"]
+          def api(pfad, daten=None):
+              req = urllib.request.Request(f"https://api.stripe.com/v1/{pfad}", data=urllib.parse.urlencode(daten).encode() if daten is not None else None,
+                                           headers={"Authorization": f"Bearer {KEY}"})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      return json.load(r)
+              except urllib.error.HTTPError as e:
+                  print("Stripe-Fehler:", e.code, e.read().decode()[:600]); raise SystemExit(1)
+          preis = lambda k: api("prices?" + urllib.parse.urlencode([("lookup_keys[]", k), ("active", "true")]))["data"][0]["id"]
+          if os.environ["KRAEFTE"]:
+              n = int(os.environ["KRAEFTE"])
+              for s in api("subscriptions?status=active&limit=100")["data"]:
+                  plan = next((m for p in s["items"]["data"] if (m := re.fullmatch(r"crewtender_(basis|pro|business)_(monat|jahr)", p["price"].get("lookup_key") or ""))), None)
+                  if not plan or plan[1] == "basis":
+                      print("übersprungen (kein Pro/Business):", s["id"]); continue
+                  da = next((p for p in s["items"]["data"] if (p["price"].get("lookup_key") or "").startswith("crewtender_kraft_")), None)
+                  posten = {"items[0][deleted]": "true", "items[0][id]": da["id"]} if not n and da else \
+                           {"items[0][id]": da["id"], "items[0][quantity]": n} if da else \
+                           {"items[0][price]": preis(f"crewtender_kraft_{plan[1]}_{plan[2]}"), "items[0][quantity]": n}
+                  neu = api(f"subscriptions/{s['id']}", {**posten, "proration_behavior": "create_prorations"})
+                  print("Einsatzkräfte gesetzt:", s["id"], [(p["price"].get("lookup_key"), p.get("quantity")) for p in neu["items"]["data"]])
+          if os.environ["FIRMA"]:
+              f = os.environ["FIRMA"]
+              assert re.fullmatch(r"[0-9a-f-]{36}", f)
+              kunde = next((s["customer"] for s in api("subscriptions?status=all&limit=100")["data"] if (s.get("metadata") or {}).get("firma") == f), None)
+              sitzung = api("checkout/sessions", {"mode": "payment", "line_items[0][price]": preis("crewtender_steckbriefe_10"), "line_items[0][quantity]": 1,
+                  "client_reference_id": f, "metadata[firma]": f, "metadata[art]": "steckbriefe", "metadata[anzahl]": 10, "invoice_creation[enabled]": "true",
+                  **({"customer": kunde} if kunde else {"customer_email": "test@crewtender.invalid"}), "locale": "de",
+                  "success_url": "https://crewtender.eu/konto/plan?paket=1", "cancel_url": "https://crewtender.eu/konto/plan?abgebrochen=1"})
+              print("TESTPAKET_URL", sitzung["url"])
           PY
