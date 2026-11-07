@@ -56,7 +56,7 @@ export function registrierFormular(w: Registrierung, fehler = "", weiter = "/kon
   const eingeladen = weiter.startsWith("/einladung");
   const feld = (name: keyof Registrierung, label: string, extra: string) =>
     `<label>${label} <input name="${name}" value="${escape(w[name] ?? "")}" ${extra}></label>`;
-  return `<p>${eingeladen ? "Lege dein Konto an, danach nimmst du die Einladung an." : "Lege das Konto für deine Firma an. Du bist danach Inhaber und kannst Mitarbeiter einladen."}</p>
+  return `<p>${eingeladen ? "Lege dein Konto an, danach nimmst du die Einladung an." : "Lege das Konto für deine Firma an. Du bist danach Inhaber und kannst Mitarbeiter einladen."}</p>${eingeladen ? "" : `<p class="hinweis">🎁 30 Tage alle Pro-Funktionen gratis, ohne Kreditkarte. Danach geht es mit Free weiter, ohne Kündigung.</p>`}
 <form method="post" action="/registrieren">
   ${fehler ? `<p class="fehler" role="alert">${escape(fehler)}</p>` : ""}
   <fieldset><legend>Du</legend>

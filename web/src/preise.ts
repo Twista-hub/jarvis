@@ -12,11 +12,11 @@ import { planStand } from "./plangrenzen.ts";
 export const PREISE_BESCHREIBUNG = "Crewtender Preise: Free 0 €, Basis 59 €, Pro 149 €, Business 399 € im Monat. Jährlich 2 Monate geschenkt, Bezahlung per Rechnung, monatlich kündbar.";
 
 export function preisSeiteInhalt(): string {
-  return `<p class="klein">Ausschreibungen finden, Angebote schreiben, Team planen. Starte kostenlos und wechsle, wenn es passt.</p>
+  return `<p class="klein">Ausschreibungen finden, Angebote schreiben, Team planen. Starte mit 30 Tagen Pro gratis und wechsle, wenn es passt.</p>
 ${planKarten()}${PREIS_HINWEISE}
-<p class="knopf-zeile"><a class="knopf" href="/registrieren">Kostenlos testen</a><a class="knopf zweit" href="/demo">Demo ansehen</a></p>
+<p class="knopf-zeile"><a class="knopf" href="/registrieren">30 Tage Pro gratis testen</a><a class="knopf zweit" href="/demo">Demo ansehen</a></p>
 <h2>Häufige Fragen</h2>
-<details><summary>Brauche ich eine Kreditkarte?</summary><p>Nein. Du startest kostenlos. Für einen bezahlten Plan bekommst du eine Rechnung und zahlst per Überweisung.</p></details>
+<details><summary>Brauche ich eine Kreditkarte?</summary><p>Nein. Die 30 Tage Pro laufen ohne Kreditkarte und enden von selbst; danach geht es mit Free weiter. Erst für einen bezahlten Plan brauchst du eine Zahlungsart.</p></details>
 <details><summary>Wie kündige ich?</summary><p>Monatliche Pläne zum Monatsende, ein kurzes Schreiben an kontakt@wpdigitalranger.com reicht. Jahrespläne laufen 12 Monate.</p></details>
 <details><summary>Was passiert mit meinen Daten, wenn ich kündige?</summary><p>Bis zum Ende kannst du alles herunterladen. Danach löschen wir die Daten der Firma innerhalb von 30 Tagen.</p></details>`;
 }
