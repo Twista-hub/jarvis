@@ -103,6 +103,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261106020000_demo_katalog.sql
 \ir ../migrations/20261106030000_social_posts.sql
 \ir ../migrations/20261106040000_katalog_roh_schlank.sql
+\ir ../migrations/20261107010000_stripe_abos.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1584,6 +1585,8 @@ do $$ begin perform public.betreiber_ki_budget(current_setting('test.wegfirma'):
 do $$ begin perform public.betreiber_paket(current_setting('test.wegfirma')::uuid, 'pro'); raise exception 'FEHLER: Kunde setzt eigenen Plan'; exception when insufficient_privilege then null; end $$;
 do $$ begin update public.firmen set ki_budget_usd = 100 where id = current_setting('test.wegfirma')::uuid; raise exception 'FEHLER: Kunde ändert KI-Limit direkt'; exception when insufficient_privilege then null; end $$;
 do $$ begin update public.firmen set paket = 'pro' where id = current_setting('test.wegfirma')::uuid; raise exception 'FEHLER: Kunde ändert Plan direkt'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+do $$ begin update public.firmen set stripe_abo = 'sub_selbstgemacht1' where id = current_setting('test.wegfirma')::uuid; raise exception 'FEHLER: Kunde ändert Abo-Felder direkt'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+do $$ begin perform jarvis_intern.stripe_ereignis('evt_kunde123456', 'x', current_setting('test.wegfirma')::uuid, 'pro', null, null, 'active', null, null, null); raise exception 'FEHLER: Kunde ruft Stripe-Funktion auf'; exception when insufficient_privilege then null; end $$;
 select test_als('00000000-0000-0000-0000-0000000000b1');
 select pruefe(public.ist_betreiber(), 'Betreiber erkannt');
 select pruefe((select count(*) = 2 from public.betreiber_konto_suchen('KUNDE@weg.test')), 'Betreiber findet beide Firmen des Kunden');
@@ -1598,6 +1601,18 @@ do $$ begin perform public.betreiber_ki_budget(gen_random_uuid(), 0); raise exce
 select public.betreiber_paket(:'wegfirma', 'pro');
 select pruefe((select paket = 'pro' from public.betreiber_firmen() where id = :'wegfirma'), 'Betreiber setzt Plan');
 do $$ begin perform public.betreiber_paket(current_setting('test.wegfirma')::uuid, 'gold'); raise exception 'FEHLER: unbekannter Plan'; exception when others then if sqlerrm not like '%UNGUELTIG%' then raise; end if; end $$;
+-- Stripe-Webhook (ohne Nutzersitzung): Abo aktiv → Plan, doppelte Meldung wird ignoriert, Kündigung → kostenlos.
+reset role;
+select set_config('test.uid', '', false);
+select pruefe(jarvis_intern.stripe_ereignis('evt_test0000001', 'checkout.session.completed', :'wegfirma', 'basis', 'cus_test000001', 'sub_test000001', 'active', '2026-12-07', 'monat', false), 'Stripe: Abo angelegt');
+select pruefe((select paket = 'basis' and stripe_kunde = 'cus_test000001' and stripe_abo = 'sub_test000001' and abo_status = 'active' and abo_zahlweise = 'monat' from public.firmen where id = :'wegfirma'), 'Stripe: Plan und Abo gespeichert');
+select pruefe(not jarvis_intern.stripe_ereignis('evt_test0000001', 'checkout.session.completed', :'wegfirma', 'business', null, null, null, null, null, null), 'Stripe: gleiche Meldung nur einmal');
+select pruefe((select paket = 'basis' from public.firmen where id = :'wegfirma'), 'Stripe: doppelte Meldung ändert nichts');
+select pruefe(jarvis_intern.stripe_ereignis('evt_test0000002', 'customer.subscription.deleted', :'wegfirma', 'kostenlos', null, null, 'canceled', null, null, false), 'Stripe: Kündigung');
+select pruefe((select paket = 'kostenlos' and stripe_abo is null and stripe_kunde = 'cus_test000001' and abo_status = 'canceled' from public.firmen where id = :'wegfirma'), 'Stripe: nach Kündigung kostenlos, Kunde bleibt');
+select pruefe(jarvis_intern.stripe_ereignis('evt_test0000003', 'x', gen_random_uuid(), 'pro', null, null, 'active', null, null, null), 'Stripe: unbekannte Firma wird nur vermerkt');
+select test_als('00000000-0000-0000-0000-0000000000b1');
+set role authenticated;
 -- Operator invoices to customers: tax number required, gapless numbers, frozen, cancellation instead of change.
 do $$ begin perform public.betreiber_rechnung_anlegen(current_setting('test.wegfirma')::uuid, '[{"text":"Pro","menge":1,"preis":149}]', 'November 2026', '{"steuernummer":""}'); raise exception 'FEHLER: Rechnung ohne Steuernummer'; exception when others then if sqlerrm not like '%STEUERNUMMER_FEHLT%' then raise; end if; end $$;
 do $$ begin perform public.betreiber_rechnung_anlegen(current_setting('test.wegfirma')::uuid, '[{"text":"Pro","menge":1,"preis":149}]', 'November 2026', '{"steuernummer":"202/123/45678"}'); raise exception 'FEHLER: Rechnung ohne Anschrift'; exception when others then if sqlerrm not like '%ANSCHRIFT_FEHLT%' then raise; end if; end $$;

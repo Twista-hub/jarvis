@@ -1,0 +1,72 @@
+# Creates (once, idempotent) the Crewtender plans at Stripe – products with monthly and yearly prices under the lookup keys
+# crewtender_<plan>_<monat|jahr> – and the webhook https://crewtender.eu/stripe/webhook. The webhook secret goes straight
+# into the app worker (wrangler secret), it is never printed. Uses the repository secret STRIPE_SECRET_KEY (test or live).
+name: Stripe einrichten
+on:
+  workflow_dispatch:
+    inputs:
+      webhook_neu:
+        description: "Webhook neu anlegen (nötig, wenn das Secret im Worker fehlt): ja/nein"
+        default: "nein"
+permissions:
+  contents: read
+concurrency:
+  group: stripe-einrichten
+jobs:
+  einrichten:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci --silent
+        working-directory: web
+      - name: Pläne, Preise, Webhook
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WEBHOOK_NEU: ${{ inputs.webhook_neu }}
+        run: |
+          test -n "$STRIPE_SECRET_KEY" || { echo "::error::Secret STRIPE_SECRET_KEY fehlt"; exit 1; }
+          case "$STRIPE_SECRET_KEY" in sk_test_*) echo "Modus: TEST";; sk_live_*) echo "Modus: LIVE";; *) echo "::error::Unbekannter Schlüssel"; exit 1;; esac
+          python3 - <<'PY'
+          import json, os, subprocess, urllib.parse, urllib.request
+          KEY = os.environ["STRIPE_SECRET_KEY"]
+          def api(pfad, daten=None, methode=None):
+              body = urllib.parse.urlencode(daten, doseq=True).encode() if daten is not None else None
+              req = urllib.request.Request(f"https://api.stripe.com/v1/{pfad}", data=body, method=methode or ("POST" if body is not None else "GET"),
+                                           headers={"Authorization": f"Bearer {KEY}"})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return json.load(r)
+          PLAENE = [("basis", "Crewtender Basis", 5900), ("pro", "Crewtender Pro", 14900), ("business", "Crewtender Business", 39900)]
+          for plan, name, monat in PLAENE:
+              schluessel = {f"crewtender_{plan}_monat": ("month", monat), f"crewtender_{plan}_jahr": ("year", monat * 10)}
+              da = {p["lookup_key"] for p in api("prices?" + urllib.parse.urlencode([("lookup_keys[]", k) for k in schluessel] + [("active", "true")]))["data"]}
+              fehlen = [k for k in schluessel if k not in da]
+              if not fehlen:
+                  print(f"{name}: Preise vorhanden"); continue
+              produkte = api("products/search?" + urllib.parse.urlencode({"query": f"metadata['crewtender_plan']:'{plan}'"}))["data"]
+              produkt = produkte[0]["id"] if produkte else api("products", {"name": name, "metadata[crewtender_plan]": plan,
+                  "description": "Ausschreibungen finden, Angebote schreiben, Team planen. Kleinunternehmer nach § 19 UStG, keine Umsatzsteuer."})["id"]
+              for k in fehlen:
+                  intervall, betrag = schluessel[k]
+                  api("prices", {"product": produkt, "currency": "eur", "unit_amount": betrag, "recurring[interval]": intervall, "lookup_key": k,
+                                 "tax_behavior": "unspecified", "nickname": f"{name} {'monatlich' if intervall == 'month' else 'jährlich'}"})
+                  print(f"{name}: Preis {k} angelegt ({betrag / 100:.0f} € je {'Monat' if intervall == 'month' else 'Jahr'})")
+          URL = "https://crewtender.eu/stripe/webhook"
+          EREIGNISSE = ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]
+          vorhanden = [w for w in api("webhook_endpoints?limit=100")["data"] if w["url"] == URL]
+          if vorhanden and os.environ.get("WEBHOOK_NEU") != "ja":
+              print("Webhook vorhanden (Secret liegt schon im Worker; mit webhook_neu=ja neu anlegen)")
+          else:
+              for w in vorhanden:
+                  api(f"webhook_endpoints/{w['id']}", methode="DELETE"); print("alter Webhook gelöscht")
+              w = api("webhook_endpoints", [("url", URL), ("description", "Crewtender: Plan der Firma setzen")] + [("enabled_events[]", e) for e in EREIGNISSE])
+              subprocess.run(["npx", "wrangler", "secret", "put", "STRIPE_WEBHOOK_SECRET"], input=w["secret"].encode(), cwd="web", check=True, stdout=subprocess.DEVNULL)
+              print("Webhook angelegt, Secret im Worker gesetzt")
+          subprocess.run(["npx", "wrangler", "secret", "put", "STRIPE_SECRET_KEY"], input=KEY.encode(), cwd="web", check=True, stdout=subprocess.DEVNULL)
+          print("STRIPE_SECRET_KEY im Worker gesetzt")
+          PY

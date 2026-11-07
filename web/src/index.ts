@@ -1,5 +1,6 @@
 // Crewtender upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import { textSymbole } from "./symbole.ts";
+import { stripeWebhook } from "./stripe.ts";
 import { preise } from "./preise.ts";
 import { START_BESCHREIBUNG, START_JSONLD, ogErgaenzen, seoKopf } from "./seo.ts";
 import kunden from "../kunden.json";
@@ -99,6 +100,8 @@ import { datenbankPruefen as hyperdrivePruefen } from "./db-check.ts";
 export { Steckbrief } from "./workflow";
 
 export interface Env extends KontoEnv {
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
   WARTEN?: (p: Promise<unknown>) => void; // ctx.waitUntil, set per request in fetch()
   DATEN: R2Bucket;
   AI: Ai;
@@ -314,6 +317,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
     }
     const hc = hilfecenter(request, (t, i) => seite(t, i));
     if (hc) return hc;
+    if (url.pathname === "/stripe/webhook" && request.method === "POST") return stripeWebhook(request, env);
     const preisAntwort = await preise(request, env);
     if (preisAntwort) return preisAntwort;
     const kf = await kontakt(request, env, (t, i) => seite(t, i));
