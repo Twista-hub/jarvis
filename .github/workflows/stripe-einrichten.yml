@@ -14,6 +14,9 @@ on:
       testabos_beenden:
         description: "Nur im Testmodus: alle laufenden Test-Abos sofort beenden (ja/nein)"
         default: "nein"
+      testabo_plan:
+        description: "Nur im Testmodus: laufende Test-Abos auf diesen Plan umstellen (basis/pro/business, leer = nichts)"
+        default: ""
 permissions:
   contents: read
 concurrency:
@@ -30,7 +33,7 @@ jobs:
       - run: npm ci --silent
         working-directory: web
       - name: Pläne, Preise, Webhook
-        if: inputs.abgleich != 'ja' && inputs.testabos_beenden != 'ja'
+        if: inputs.abgleich != 'ja' && inputs.testabos_beenden != 'ja' && inputs.testabo_plan == ''
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -137,4 +140,36 @@ jobs:
           for s in api("subscriptions?status=all&limit=100")["data"]:
               if s["status"] in ("active", "trialing", "past_due", "unpaid", "incomplete"):
                   api(f"subscriptions/{s['id']}", "DELETE"); print("beendet:", s["id"], "firma", (s.get("metadata") or {}).get("firma", "-")[:8])
+          PY
+      - name: Test-Abos umstellen
+        if: inputs.testabo_plan != ''
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          PLAN: ${{ inputs.testabo_plan }}
+        run: |
+          # Only with a test key: switches running test subscriptions to another plan (monthly) like "Zu … wechseln" in the
+          # app (aboWechseln) and prints Stripe's answer, so a refusal is visible.
+          case "$STRIPE_SECRET_KEY" in sk_test_*) ;; *) echo "::error::Nur im Testmodus erlaubt"; exit 1;; esac
+          case "$PLAN" in basis|pro|business) ;; *) echo "::error::Plan basis, pro oder business"; exit 1;; esac
+          python3 - <<'PY'
+          import json, os, re, urllib.error, urllib.parse, urllib.request
+          KEY, PLAN = os.environ["STRIPE_SECRET_KEY"], os.environ["PLAN"]
+          def api(pfad, daten=None):
+              req = urllib.request.Request(f"https://api.stripe.com/v1/{pfad}", data=urllib.parse.urlencode(daten).encode() if daten is not None else None,
+                                           headers={"Authorization": f"Bearer {KEY}"})
+              try:
+                  with urllib.request.urlopen(req, timeout=30) as r:
+                      return json.load(r)
+              except urllib.error.HTTPError as e:
+                  print("Stripe-Fehler:", e.code, e.read().decode()[:600]); raise SystemExit(1)
+          preis = api("prices?" + urllib.parse.urlencode([("lookup_keys[]", f"crewtender_{PLAN}_monat"), ("active", "true")]))["data"][0]["id"]
+          for s in api("subscriptions?status=active&limit=100")["data"]:
+              posten = next((p for p in s["items"]["data"] if re.fullmatch(r"crewtender_(basis|pro|business)_(monat|jahr)", p["price"].get("lookup_key") or "")), s["items"]["data"][0])
+              daten = {"items[0][id]": posten["id"], "items[0][price]": preis, "proration_behavior": "create_prorations", "metadata[plan]": PLAN, "metadata[zahlweise]": "monat"}
+              if s.get("cancel_at_period_end"):
+                  daten["cancel_at_period_end"] = "false"
+              elif s.get("cancel_at"):
+                  daten["cancel_at"] = ""
+              neu = api(f"subscriptions/{s['id']}", daten)
+              print("umgestellt:", s["id"], "->", PLAN, "| cancel_at:", neu.get("cancel_at"), "| status:", neu.get("status"))
           PY
