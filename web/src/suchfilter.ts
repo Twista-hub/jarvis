@@ -3,6 +3,7 @@
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape } from "./seite.ts";
+import { grenzMeldung } from "./plangrenzen.ts";
 
 /** H3: a further search profile (e.g. one per business area), stored in einstellungen.zusatzprofile. */
 export type Zusatzprofil = { id: string; name: string; woerter: string[]; ausschluss: string[]; bereich_id?: string | null; min_punkte?: number; beschreibung?: string };
@@ -126,5 +127,5 @@ async function zusatzSpeichern(request: Request, env: KontoEnv): Promise<Respons
     text = `Suchprofil „${z.name}“ gespeichert. Es gilt ab dem nächsten Suchlauf.`;
   }
   const r = await db(f.s, env, "rpc/suchprofil_zusatz", { method: "POST", body: JSON.stringify({ f: f.m.firma_id, profile: liste }) });
-  return zurueck(r.ok ? text : "Das Suchprofil konnte nicht gespeichert werden.");
+  return zurueck(r.ok ? text : grenzMeldung(r.fehler) ?? "Das Suchprofil konnte nicht gespeichert werden.");
 }

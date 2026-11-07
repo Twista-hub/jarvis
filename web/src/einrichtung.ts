@@ -21,6 +21,7 @@ import { vorschauBox, vorschauZaehlen } from "./vorschau.ts";
 import { escape, hilfe, seite as allgemeineSeite } from "./seite.ts";
 import { startLaender } from "./besucher.ts";
 import { appSprache } from "./englisch.ts";
+import { grenzeVon, planStand } from "./plangrenzen.ts";
 import { AUSSERHALB, LAENDER, NACHBARN, WEITERE, laenderBereinigen } from "./laender.ts";
 import { departementAuswahl, departementsBereinigen, standardDepartements } from "./departements.ts";
 import { woiwodschaftAuswahl, woiwodschaftenBereinigen } from "./woiwodschaften.ts";
@@ -485,6 +486,11 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
   if (!hatProfiltext(v)) {
     return html(seite("Suchprofil", profilFormular(firma, v, "Bitte eine Beschreibung oder genügend Website-Informationen und mindestens eine Leistung angeben.", website || alteWebsite)), 400);
   }
+  // Plan limit for countries (plangrenzen.ts): Free 1, Basis 2, from Pro all.
+  const maxLaender = grenzeVon(await planStand(s, env, firma), "laender");
+  if (typeof maxLaender === "number" && laenderBereinigen(v.laender).length > maxLaender) {
+    return html(seite("Suchprofil", profilFormular(firma, v, maxLaender === 1 ? "Dein Plan enthält 1 Land. Bitte nur ein Land ankreuzen oder den Plan erweitern." : `Dein Plan enthält ${maxLaender} Länder. Bitte weniger Länder ankreuzen oder den Plan erweitern.`, website || alteWebsite)), 400);
+  }
   // Reuse existing branches throughout the organisation tree, including below regions.
   const vorhanden = await db<Bereich[]>(s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id`);
   if (!vorhanden.ok) return html(seite("Suchprofil", profilFormular(firma, v, "Die Firmenstandorte konnten nicht geladen werden. Deine Recherche ist hier erhalten; bitte erneut speichern.", website)), 503);
@@ -500,6 +506,8 @@ async function speichern(s: Sitzung, env: EinrichtungEnv, firma: string, name: s
     if (neu.ok && neu.daten[0]) {
       o.bereich_id = neu.daten[0].id;
       bereiche.push(neu.daten[0]);
+    } else if (!neu.ok && /Plan-Grenze/.test(neu.fehler)) {
+      continue; // more locations than the plan has: still searched around, just not created as a location of the firm
     } else return html(seite("Suchprofil", profilFormular(firma, v, `Der Standort „${o.name}“ konnte noch nicht übernommen werden. Deine Recherche ist hier erhalten; bitte erneut speichern.`, website)), 503);
   }
   const zeile = {

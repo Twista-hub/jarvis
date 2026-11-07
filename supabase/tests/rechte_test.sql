@@ -104,6 +104,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261106030000_social_posts.sql
 \ir ../migrations/20261106040000_katalog_roh_schlank.sql
 \ir ../migrations/20261107010000_stripe_abos.sql
+\ir ../migrations/20261107020000_plan_grenzen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1808,6 +1809,82 @@ do $$ begin
   perform jarvis_intern.loeschfristen();
   raise exception 'FEHLER: Nutzer darf Löschfristen auslösen';
 exception when insufficient_privilege then null; end $$;
+reset role;
+
+-- Plan-Grenzen (07.11.2026): Probe, Free, Basis, test; nichts wird gelöscht, nur Neues gebremst.
+reset role;
+insert into auth.users (id, email) values
+  ('00000000-0000-0000-0000-00000000aa01', 'plan@grenze.test'), ('00000000-0000-0000-0000-00000000aa02', 'zwei@grenze.test'),
+  ('00000000-0000-0000-0000-00000000aa03', 'drei@grenze.test');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+select public.firma_anlegen('Grenze GmbH') as gfirma \gset
+select set_config('test.gfirma', :'gfirma', false);
+select pruefe((select probe_bis > now() + interval '29 days' from public.firmen where id = :'gfirma'), 'Neue Firma: 30 Tage Probe');
+select pruefe(public.plan_stand(:'gfirma')->>'plan' = 'probe' and (public.plan_stand(:'gfirma')->'grenzen'->>'steckbriefe')::int = 10, 'Probe: Pro-Umfang, 10 Steckbriefe');
+do $$ begin update public.firmen set probe_bis = now() + interval '1 year' where id = current_setting('test.gfirma')::uuid; raise exception 'FEHLER: Kunde verlängert Probe'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+reset role;
+select set_config('test.uid', '', false);
+update public.firmen set probe_bis = now() - interval '1 day' where id = :'gfirma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+select pruefe(public.plan_stand(:'gfirma')->>'plan' = 'kostenlos', 'Nach der Probe: Free');
+select pruefe(public.steckbrief_buchen(:'gfirma') = 'plan', 'Free: keine Steckbriefe aus Unterlagen');
+insert into public.bereiche (firma_id, name, art) values (:'gfirma', 'Aachen', 'standort');
+do $$ begin insert into public.bereiche (firma_id, name, art) values (current_setting('test.gfirma')::uuid, 'Köln', 'standort'); raise exception 'FEHLER: Free legt 2. Standort an'; exception when others then if sqlerrm not like 'Plan-Grenze%' then raise; end if; end $$;
+insert into public.bereiche (firma_id, name, art) values (:'gfirma', 'Lager', 'team');
+select pruefe(true, 'Teams zählen nicht als Standort');
+insert into public.einladungen (firma_id, email, rolle, bereich_ids, token_hash) values
+  (:'gfirma', 'zwei@grenze.test', 'bearbeiter', '{}', encode(sha256(convert_to('grenze2', 'UTF8')), 'hex')),
+  (:'gfirma', 'drei@grenze.test', 'leser', '{}', encode(sha256(convert_to('grenze3', 'UTF8')), 'hex'));
+select test_als('00000000-0000-0000-0000-00000000aa02');
+do $$ begin perform public.einladung_annehmen('grenze2'); raise exception 'FEHLER: Free bekommt 2. Büro-Nutzer'; exception when others then if sqlerrm not like 'Plan-Grenze%' then raise; end if; end $$;
+select test_als('00000000-0000-0000-0000-00000000aa03');
+select pruefe(public.einladung_annehmen('grenze3') = :'gfirma', 'Leser sind in jedem Plan frei');
+reset role;
+select set_config('test.uid', '', false);
+update public.firmen set paket = 'basis' where id = :'gfirma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa02');
+select pruefe(public.einladung_annehmen('grenze2') = :'gfirma', 'Basis: 2. Büro-Nutzer');
+select test_als('00000000-0000-0000-0000-00000000aa01');
+do $$ begin update public.mitglieder set rolle = 'mitarbeiter' where firma_id = current_setting('test.gfirma')::uuid and user_id = '00000000-0000-0000-0000-00000000aa03'; raise exception 'FEHLER: Basis bekommt Einsatzkraft mit Zugang'; exception when others then if sqlerrm not like 'Plan-Grenze%' then raise; end if; end $$;
+insert into public.vorgaenge (firma_id, titel) values (:'gfirma', 'Schule') returning id as gvorgang \gset
+select pruefe((select bool_and(public.steckbrief_buchen(:'gfirma') is null) from generate_series(1, 5)), 'Basis: 5 Steckbriefe im Monat');
+select pruefe(public.steckbrief_buchen(:'gfirma') = 'grenze', 'Basis: 6. Steckbrief gesperrt');
+select pruefe((public.plan_stand(:'gfirma')->'genutzt'->>'steckbriefe')::int = 5 and (public.plan_stand(:'gfirma')->'genutzt'->>'buero')::int = 2, 'Plan-Stand zählt Steckbriefe und Büro-Nutzer');
+reset role;
+delete from public.steckbrief_nutzung where firma_id = :'gfirma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+select pruefe(public.steckbrief_buchen(:'gfirma', :'gvorgang') is null and public.steckbrief_buchen(:'gfirma', :'gvorgang') is null, 'Nachgereichte Unterlagen');
+select pruefe((select count(*) = 1 from public.steckbrief_nutzung where firma_id = :'gfirma'), 'Nachgereichte Unterlagen zählen nicht doppelt');
+select test_als('00000000-0000-0000-0000-00000000aa03');
+do $$ begin perform public.steckbrief_buchen(current_setting('test.gfirma')::uuid); raise exception 'FEHLER: Leser bucht Steckbrief'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select test_als('00000000-0000-0000-0000-0000000000c');
+do $$ begin perform public.plan_stand(current_setting('test.gfirma')::uuid); raise exception 'FEHLER: Fremder liest Plan-Stand'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+insert into public.suchprofile (firma_id, name) values (:'gfirma', 'Haupt');
+select public.suchprofil_zusatz(:'gfirma', '[{"name":"a"},{"name":"b"}]');
+select pruefe(true, 'Basis: 2 weitere Suchprofile');
+do $$ begin perform public.suchprofil_zusatz(current_setting('test.gfirma')::uuid, '[{"name":"a"},{"name":"b"},{"name":"c"}]'); raise exception 'FEHLER: Basis bekommt 4. Suchprofil'; exception when others then if sqlerrm not like 'Plan-Grenze%' then raise; end if; end $$;
+reset role;
+select set_config('test.uid', '', false);
+update public.firmen set paket = 'kostenlos' where id = :'gfirma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+select public.suchprofil_zusatz(:'gfirma', '[{"name":"a2"},{"name":"b"}]');
+select public.suchprofil_zusatz(:'gfirma', '[{"name":"a2"}]');
+select pruefe((select jsonb_array_length(einstellungen->'zusatzprofile') = 1 from public.suchprofile where firma_id = :'gfirma'), 'Nach Herabstufung: vorhandene Suchprofile bleiben änderbar und löschbar');
+do $$ begin perform public.suchprofil_zusatz(current_setting('test.gfirma')::uuid, '[{"name":"a"},{"name":"b"}]'); raise exception 'FEHLER: Free fügt Suchprofil wieder hinzu'; exception when others then if sqlerrm not like 'Plan-Grenze%' then raise; end if; end $$;
+select pruefe((select count(*) = 3 from public.mitglieder where firma_id = :'gfirma' and aktiv), 'Herabstufung entfernt niemanden');
+reset role;
+select set_config('test.uid', '', false);
+update public.firmen set paket = 'test' where id = :'gfirma';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+insert into public.bereiche (firma_id, name, art) values (:'gfirma', 'Köln', 'standort'), (:'gfirma', 'Bonn', 'standort');
+select pruefe(public.steckbrief_buchen(:'gfirma') is null and public.plan_stand(:'gfirma')->'grenzen'->>'standorte' is null, 'Plan test: unbegrenzt');
 reset role;
 
 \echo ALLE TESTS OK

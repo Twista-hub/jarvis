@@ -5,6 +5,7 @@
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
+import { grenzMeldung, planStand, platzFuer } from "./plangrenzen.ts";
 import { sha256hex, zufallsToken } from "./kundenlink.ts";
 import { qrSvg } from "./qr.ts";
 
@@ -71,6 +72,12 @@ export async function kraefteEinladen(request: Request, env: KontoEnv): Promise<
   const ids = new Set(form.getAll("p").map(String));
   const gewaehlt = kraefte.filter((x) => ids.has(x.id) && !x.user_id && x.status !== "nicht").slice(0, 200);
   if (!gewaehlt.length) return weiterleiten(`/konto/kraefte-einladen?hinweis=${encodeURIComponent("Bitte mindestens eine Person ankreuzen.")}`, f.s.cookies);
+  // Plan limit: renewed links replace the open ones of the same people, so only new people count.
+  const p = await planStand(f.s, env, firma);
+  const offenSchon = new Set((e.ok ? e.daten : []).map((x) => x.personal_id));
+  if (!platzFuer(p, "einsatzkraefte", gewaehlt.filter((x) => !offenSchon.has(x.id)).length)) {
+    return weiterleiten(`/konto/kraefte-einladen?hinweis=${encodeURIComponent(grenzMeldung("Plan-Grenze: Einsatzkräfte") ?? "")}`, f.s.cookies);
+  }
   await db(f.s, env, `einladungen?firma_id=eq.${firma}&angenommen=is.null&personal_id=in.(${gewaehlt.map((x) => x.id).join(",")})`, { method: "DELETE" });
   const tokens = gewaehlt.map(() => zufallsToken());
   const zeilen = await Promise.all(gewaehlt.map(async (x, i) => ({

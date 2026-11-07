@@ -328,6 +328,31 @@ def sprache(e: dict) -> str:
     return eigene.pop() if len(eigene) == 1 and None not in eigene else "en"
 
 
+# Plan limits of the search (mirror of SQL jarvis_intern.plan_grenze, migration 20261107020000): number of countries and
+# further search profiles. Plans not listed (pro, probe, business, test) search all chosen countries and up to 3 extras.
+PLAN_LAENDER = {"kostenlos": 1, "basis": 2}
+PLAN_ZUSATZ = {"kostenlos": 0, "basis": 2}
+
+
+def nach_plan(e: dict, plan: str | None) -> dict:
+    """Search settings cut to the firm's plan (after a downgrade nothing is deleted, the search just uses less)."""
+    if not plan or plan not in PLAN_LAENDER:
+        return e
+    laender = [l for l in e.get("laender") or ["DEU"] if isinstance(l, str) and len(l) == 3] or ["DEU"]
+    return dict(e, laender=laender[:PLAN_LAENDER[plan]], zusatzprofile=list(e.get("zusatzprofile") or [])[:PLAN_ZUSATZ[plan]])
+
+
+def plaene(con) -> dict:
+    """Effective plan per firm; empty while the plan function is not there yet."""
+    try:
+        if not con.execute("select to_regprocedure('jarvis_intern.plan_von(uuid)')").fetchone()[0]:
+            return {}
+        return dict(con.execute("select id::text, jarvis_intern.plan_von(id) from public.firmen").fetchall())
+    except Exception as e:  # noqa: BLE001 - without plans the search runs as before
+        print(f"Pläne nicht geladen: {e}", file=sys.stderr)
+        return {}
+
+
 def laden() -> dict:
     profile = json.loads((ROOT / "profile.json").read_text(encoding="utf-8"))
     if not os.environ.get("SUPABASE_DB_PASSWORD"):
@@ -337,6 +362,7 @@ def laden() -> dict:
             rows = con.execute(
                 """select s.firma_id::text, f.name, s.beschreibung, s.einstellungen, f.plz from public.suchprofile s
                    join public.firmen f on f.id = s.firma_id where s.aktiv and s.bereich_id is null""").fetchall()
+            plan_je_firma = plaene(con)
     except Exception as e:  # noqa: BLE001 - the alarm still runs with the hand-made profiles
         print(f"Suchprofile aus der App nicht geladen: {e}", file=sys.stderr)
         return profile
@@ -345,6 +371,7 @@ def laden() -> dict:
         # this firm (alarm.yml input "firma") searches for them.
         if not (e or {}).get("leistungen") or ((e or {}).get("demo") is True and os.environ.get("FIRMA") != firma_id):
             continue
+        e = nach_plan(e or {}, plan_je_firma.get(firma_id))
         key = next((k for k, p in profile.items() if p.get("firma_id") == firma_id and not p.get("zusatz")), f"firma-{firma_id}")
         profile[key] = aus_db(firma_id, name, beschreibung, e, plz)
         profile.update(zusatz_profile(key, firma_id, name, beschreibung, e, plz))

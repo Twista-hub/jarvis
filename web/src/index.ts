@@ -13,6 +13,7 @@ import { darfAuftrag } from "./auftragsrechte";
 import { aktiveFirma, firmenunterlagen } from "./firmenunterlagen";
 import { archiv, firmendaten } from "./archiv.ts";
 import { NUR_DEUTSCHLAND, landDerFirmaCode, nurDeutschlandSeite } from "./laenderfunktionen.ts";
+import { darf, planBanner, planBereich, planSperre, planStand, steckbriefBuchen } from "./plangrenzen.ts";
 import { referenzen } from "./referenzen";
 import { protokoll } from "./protokoll";
 import { personalImport } from "./personalimport";
@@ -192,7 +193,27 @@ function darstellen(request: Request, r: Response): Response {
   } }), { status: r.status, statusText: r.statusText, headers: h });
 }
 
+/** Plan gate (plangrenzen.ts): pages of the Pro workspace (and company documents from Basis) stay readable with a hint
+ *  box when the plan does not include them; changes (POST) get the upgrade page. */
 async function verarbeiten(request: Request, env: Env): Promise<Response> {
+  const pfad = new URL(request.url).pathname;
+  const bereich = pfad.startsWith("/konto/") ? planBereich(pfad) : null;
+  if (!bereich) return verarbeitenRoh(request, env);
+  const fp = await aktiveFirma(request, env);
+  const p = fp ? await planStand(fp.s, env, fp.m.firma_id) : null;
+  if (!fp || !p || darf(p, bereich)) return verarbeitenRoh(request, env);
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    const r = html(seite("Plan", planSperre(bereich, p.plan), 0, "team"), 403);
+    for (const c of fp.s.cookies ?? []) r.headers.append("set-cookie", c);
+    return r;
+  }
+  const r = await verarbeitenRoh(request, env);
+  if (r.status !== 200 || !(r.headers.get("content-type") ?? "").startsWith("text/html")) return r;
+  const text = await r.text();
+  return new Response(text.replace("<main>", `<main>${planBanner(bereich, p.plan)}`), { status: r.status, headers: r.headers });
+}
+
+async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/__intern/db-check" && request.method === "POST") return datenbankPruefen(request, env);
     const sw = sprachWechsel(request);
@@ -216,6 +237,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
       if (ID.test(vorgang)) return unterlagenAmVorgang(vorgang, request, env, form);
       return unterlagenOhneTreffer(request, env, {
       pruefen: (dateien) => pruefenUndZaehlen(dateien, env),
+      buchen: (s, firma) => steckbriefBuchen(s, env, firma, null),
       starten: (dateien, kontext) => {
         const profil = Object.entries(profile as Record<string, { firma_id?: string; name: string }>).find(([, p]) => p.firma_id === kontext.firma);
         return starten(env, dateien, { profil: profil?.[0] ?? `firma-${kontext.firma}`, kunde: profil?.[1].name ?? "", titel: kontext.titel, vorgang: kontext.vorgang, ...kiSprache(request) });
@@ -362,6 +384,8 @@ async function unterlagenAmVorgang(id: string, request: Request, env: Env, form?
   const dateien = auswahl(form ?? (await request.formData()));
   const fehler = await pruefenUndZaehlen(dateien, env);
   if (fehler) return zurueck(fehler[0]);
+  const gebucht = await steckbriefBuchen(z.s, env, z.v.firma_id, id);
+  if (gebucht) return zurueck(gebucht);
   const eintrag = Object.entries(profile as Record<string, { firma_id?: string; name: string }>).find(([, p]) => p.firma_id === z.v.firma_id);
   // Files sent later are added to the earlier ones, so the Steckbrief covers everything.
   const vorher = (await jsonAus<{ auftrag: string }>(env, `auftraege/vorgaenge/${id}.json`))?.auftrag;
