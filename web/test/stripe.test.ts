@@ -35,6 +35,9 @@ test("Stripe: Ereignisse → Plan der Firma", () => {
   assert.deepEqual([wechsel.paket, wechsel.zahlweise, wechsel.bis, wechsel.kuendigt], ["business", "monat", new Date(1_800_000_000_000).toISOString(), false]);
   assert.equal(aboAenderung({ id: "evt_c", type: "customer.subscription.updated", data: { object: sub("past_due") } })!.paket, "business", "Zahlung fehlgeschlagen: Plan bleibt während der Wiederholungen");
   assert.equal(aboAenderung({ id: "evt_d", type: "customer.subscription.updated", data: { object: sub("active", { cancel_at_period_end: true }) } })!.kuendigt, true);
+  const portal = aboAenderung({ id: "evt_p", type: "customer.subscription.updated", data: { object: sub("active", { cancel_at: 1_790_000_000, cancel_at_period_end: false }) } })!;
+  assert.deepEqual([portal.kuendigt, portal.bis, portal.paket], [true, new Date(1_790_000_000_000).toISOString(), "business"]);
+  assert.equal(aboAenderung({ id: "evt_r", type: "customer.subscription.updated", data: { object: sub("active", { cancel_at: null }) } })!.kuendigt, false);
   const ende = aboAenderung({ id: "evt_e", type: "customer.subscription.deleted", data: { object: sub("canceled") } })!;
   assert.deepEqual([ende.paket, ende.status], ["kostenlos", "canceled"]);
   assert.equal(aboAenderung({ id: "evt_f", type: "customer.subscription.updated", data: { object: sub("unpaid") } })!.paket, "kostenlos");

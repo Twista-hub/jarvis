@@ -107,7 +107,8 @@ export function aboAenderung(e: { id: string; type: string; data: { object: any 
     const status = e.type === "customer.subscription.deleted" ? "canceled" : String(o.status ?? "");
     const aktiv = AKTIV.has(status);
     return { ereignis: e.id, typ: e.type, firma: uuid(o.metadata?.firma), paket: aktiv ? (k?.plan ?? null) : "kostenlos", kunde: o.customer ?? null, abo: o.id ?? null,
-      status, bis: zeit(item?.current_period_end ?? o.current_period_end), zahlweise: k?.zahlweise ?? null, kuendigt: !!o.cancel_at_period_end };
+      // The customer portal (API 2025+) cancels with cancel_at = period end instead of cancel_at_period_end.
+      status, bis: zeit(o.cancel_at) ?? zeit(item?.current_period_end ?? o.current_period_end), zahlweise: k?.zahlweise ?? null, kuendigt: !!o.cancel_at_period_end || !!zeit(o.cancel_at) };
   }
   return null;
 }
