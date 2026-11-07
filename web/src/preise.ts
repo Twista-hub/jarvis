@@ -7,6 +7,7 @@ import { PLAENE, PLAN_HINWEISE, PREIS_HINWEISE, bestellHinweis, jahrespreis, pla
 import { aboWechseln, bezahlSitzung, portalSitzung, stripeLive, stripeSichtbar, type StripeEnv } from "./stripe.ts";
 import { escape, seite } from "./seite.ts";
 import { seoKopf } from "./seo.ts";
+import { planStand } from "./plangrenzen.ts";
 
 export const PREISE_BESCHREIBUNG = "Crewtender Preise: Free 0 €, Basis 59 €, Pro 149 €, Business 399 € im Monat. Jährlich 2 Monate geschenkt, Bezahlung per Rechnung, monatlich kündbar.";
 
@@ -81,6 +82,6 @@ export async function preise(request: Request, env: KontoEnv & StripeEnv & { SMT
   const gewechselt = PLAENE.find((x) => x.monat > 0 && x.id === url.searchParams.get("gewechselt"));
   const hinweisHtml = bestellt ? bestellHinweis(bestellt, url.searchParams.get("zahlweise") === "jahr", f.s.email) : gewechselt ? wechselHinweis(gewechselt) : undefined;
   const abo = firma ? { status: firma.abo_status, bis: firma.abo_bis, kuendigt: !!firma.abo_kuendigt, zahlweise: firma.abo_zahlweise, kunde: !!firma.stripe_kunde } : null;
-  return html(seite("Plan & Preise", planSeite(firma?.paket ?? "kostenlos", firma?.name ?? "", darf, hinweis, { stripe: mitStripe, abo, test: !stripeLive(env), hinweisHtml }), 0, "einstellungen"), 200, f.s.cookies);
+  return html(seite("Plan & Preise", planSeite(firma?.paket ?? "kostenlos", firma?.name ?? "", darf, hinweis, { stripe: mitStripe, abo, test: !stripeLive(env), hinweisHtml, stand: await planStand(f.s, env, f.m.firma_id) }), 0, "einstellungen"), 200, f.s.cookies);
 }
 

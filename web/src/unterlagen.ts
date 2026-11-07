@@ -1,7 +1,9 @@
-import { db, sitzung, type KontoEnv } from "./konto.ts";
+import { db, sitzung, type KontoEnv, type Sitzung } from "./konto.ts";
 
 type UploadDienste = {
   pruefen: (dateien: File[]) => Promise<[string, number] | null>;
+  /** Books one Steckbrief of the plan (plangrenzen.ts); a text means it may not start. */
+  buchen?: (s: Sitzung, firma: string) => Promise<string | null>;
   starten: (dateien: File[], kontext: { firma: string; vorgang: string; titel: string }) => Promise<{ id: string; erstellt: string }>;
 };
 
@@ -21,6 +23,8 @@ export async function unterlagenOhneTreffer(request: Request, env: KontoEnv & { 
   if (!titel) return zurueck("Bitte wähle eine Ausschreibung aus der Liste oder gib den Titel einer neuen ein.");
   const fehler = await dienste.pruefen(dateien);
   if (fehler) return zurueck(fehler[0]);
+  const gebucht = dienste.buchen ? await dienste.buchen(s, firma) : null;
+  if (gebucht) return zurueck(gebucht);
   // The new tender is checked by the same row permissions as the normal tender list.
   const v = await db<{ id: string }[]>(s, env, "vorgaenge?select=id", { method: "POST", headers: { prefer: "return=representation" }, body: JSON.stringify({ firma_id: firma, bereich_id: bereich || null, titel, status: "pruefen" }) });
   if (!v.ok || !v.daten[0]) return zurueck("Die Ausschreibung konnte nicht angelegt werden. Bitte prüfe deine Bereichsrechte.");

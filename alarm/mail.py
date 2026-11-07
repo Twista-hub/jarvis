@@ -106,6 +106,26 @@ def firma_sprache(con, firma_id: str) -> tuple[str, ZoneInfo]:
     return _firmen[firma_id]
 
 
+_plaene: dict = {}
+
+
+def plan_der_firma(con, firma_id: str) -> str | None:
+    """Effective plan (SQL jarvis_intern.plan_von); None while the function does not exist yet."""
+    if firma_id not in _plaene:
+        try:
+            _plaene[firma_id] = con.execute("select jarvis_intern.plan_von(%s)", (firma_id,)).fetchone()[0]
+        except Exception:  # noqa: BLE001 - without plans everyone keeps the daily message
+            _plaene[firma_id] = None
+    return _plaene[firma_id]
+
+
+def woechentlich_faellig(plan: str | None, letzte, jetzt: datetime) -> bool:
+    """Free plan: one summary a week on Monday (docs/abos.md); every other plan daily."""
+    if plan != "kostenlos":
+        return True
+    return jetzt.weekday() == 0 and (letzte is None or letzte < jetzt - timedelta(days=6))
+
+
 def ortsstunde(zone: ZoneInfo) -> int:
     return datetime.now(zone).hour
 
@@ -126,7 +146,8 @@ def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tupl
         return con.execute(basis + "b.firma_id = %s", (sofort,)).fetchall()
     # The chosen hour counts in the firm's time zone (US firms: Eastern time); the run is hourly, so compare per firm.
     zeilen = con.execute(basis.replace("b.fristen\n", "b.fristen, b.stunde\n") + "(b.letzte_mail is null or b.letzte_mail < now() - interval '20 hours')").fetchall()
-    return [z[:7] for z in zeilen if z[7] == (stunde if firma_sprache(con, z[0])[1] == BERLIN else ortsstunde(firma_sprache(con, z[0])[1]))]
+    return [z[:7] for z in zeilen if z[7] == (stunde if firma_sprache(con, z[0])[1] == BERLIN else ortsstunde(firma_sprache(con, z[0])[1]))
+            and woechentlich_faellig(plan_der_firma(con, z[0]), z[4], datetime.now(firma_sprache(con, z[0])[1]))]
 
 
 def vertretung_heute(con, firma_id: str, user_id: str) -> tuple[bool, bool]:
@@ -257,7 +278,7 @@ def sofort_melden(con, firma_id: str, vorgang_ids: list[str]) -> int:
     """I1: phone message right away for new hits from the score each person chose, outside their quiet hours.
     Each person only hears about hits they may see (query with their rights); the daily message stays as it is.
     con must be in autocommit (see sofort_nach_speichern)."""
-    if not vorgang_ids:
+    if not vorgang_ids or plan_der_firma(con, firma_id) == "kostenlos":  # Free: no phone messages
         return 0
     stunde = datetime.now(BERLIN).hour
     leute = con.execute("""select b.user_id::text, b.sofort_ab, b.ruhe_von, b.ruhe_bis, f.name from public.benachrichtigungen b
@@ -404,6 +425,8 @@ def main() -> None:
             if not (neu or fristen or nachweise):
                 continue
             sprache, zone = firma_sprache(con, firma_id)
+            if plan_der_firma(con, firma_id) == "kostenlos" and not test:
+                kanal = "mail"  # Free: weekly summary by mail, phone messages from Basis
             if kanal in ("mail", "beides"):
                 smtp.send_message(nachricht(email, firma, neu, fristen, nachweise, sprache, zone))
                 mails += 1
@@ -424,6 +447,8 @@ def main() -> None:
                       and not exists(select 1 from public.vertretungen v where v.firma_id = b.firma_id and v.user_id = b.user_id
                                        and (now() at time zone 'Europe/Berlin')::date between v.von and v.bis)""").fetchall():
                 sprache, zone = firma_sprache(con, firma_id)
+                if plan_der_firma(con, firma_id) == "kostenlos":
+                    continue
                 if (stunde if zone == BERLIN else ortsstunde(zone)) == morgen_stunde(von, bis):
                     pushs += morgen_push(con, schl, user_id, firma_id, heute_faellig(con, firma_id, user_id), sprache, zone)
     print(f"{stunde} Uhr: {mails} Mails, {pushs} Handy-Benachrichtigungen")

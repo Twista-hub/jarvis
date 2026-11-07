@@ -1,11 +1,12 @@
 // Plans and prices (Benjamin, 06.11.2026: 59 / 149 / 399 € a month, yearly payment = 10 months, payment by invoice).
-// Public price page /preise and the plan choice /konto/plan (preise.ts). The limits below are NOT enforced yet; the
-// operator sets the plan on /konto/betreiber after the order and writes the invoice there.
+// Public price page /preise and the plan choice /konto/plan (preise.ts). The plan is set by Stripe or by the operator on
+// /konto/betreiber. The limits are enforced since 07.11.2026 (SQL jarvis_intern.plan_grenze, web plangrenzen.ts).
 import { escape } from "./seite.ts";
+import type { PlanStand } from "./plangrenzen.ts";
 
 export type Plan = { id: string; name: string; monat: number; fuer: string; punkte: string[] };
-/** Limits per plan from the proposal docs/abos.md and docs/ki-kosten-plaene.md (03.11.2026). NOT enforced yet: switched on only
- * after Benjamin's OK. ki_euro_monat: AI allowance per firm and month (fair use); above it ratings go on, Steckbriefe from
+/** Limits per plan from docs/abos.md and docs/ki-kosten-plaene.md (03.11.2026). Shown in the app; ENFORCED by the database
+ * function jarvis_intern.plan_grenze (migration 20261107020000) – keep both in step. ki_euro_monat: AI allowance per firm and month (fair use); above it ratings go on, Steckbriefe from
  * documents only with an extra pack. */
 export type Grenzen = { suchprofile: number | null; laender: number | null; nutzer: number | null; einsatzkraefte: number | null; steckbriefe_monat: number | null; ki_euro_monat: number | null; arbeitsoberflaeche: boolean; taeglich: boolean };
 
@@ -29,8 +30,8 @@ export const GRENZEN: Record<string, Grenzen> = {
   test: { suchprofile: null, laender: null, nutzer: null, einsatzkraefte: null, steckbriefe_monat: null, ki_euro_monat: null, arbeitsoberflaeche: true, taeglich: true },
 };
 
-/** Trial (Benjamin, 03.11.2026; NOT active): every new firm gets Pro for 30 days without a card, once per firm (website
- * domain or VAT id), at most 10 Steckbriefe from documents; reminders on day 23 and 28, then Free (nothing deleted).
+/** Trial (Benjamin, 03.11.2026; active since 07.11.2026 as firmen.probe_bis): every new firm gets Pro for 30 days without a
+ * card, at most 10 Steckbriefe from documents, then Free (nothing deleted). Still open: reminders on day 23 and 28.
  * Same for all firm sizes, no video setup. */
 export const PROBE = { plan: "pro", tage: 30, steckbriefe: 10, erinnerung_tage: [23, 28] } as const;
 
@@ -95,12 +96,28 @@ export const bestellHinweis = (p: Plan, jaehrlich: boolean, email: string) =>
 /** Plan switch of a running Stripe subscription. */
 export const wechselHinweis = (p: Plan) => `Plan gewechselt: <strong>${escape(p.name)}</strong>.<br>Der Unterschied wird anteilig verrechnet; der Plan ist in wenigen Sekunden frei.`;
 
-export function planSeite(aktuell: string, firma: string, darfAendern: boolean, hinweis = "", o: { stripe?: boolean; abo?: AboStand | null; test?: boolean; hinweisHtml?: string } = {}): string {
+/** Trial and usage against the plan's limits (only limited kinds are shown). */
+export function nutzungTeil(p: PlanStand | null | undefined): string {
+  if (!p) return "";
+  const datum = (x: string) => new Date(x).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" });
+  const zeile = (text: string, n: number, g: number | null | undefined) => (typeof g === "number" && g > 0 ? `<li>${text}: ${n} von ${g}</li>` : "");
+  const g = p.grenzen;
+  const liste = [
+    zeile("Büro-Nutzer", p.genutzt.buero, g.buero),
+    zeile("Einsatzkräfte mit Zugang", p.genutzt.einsatzkraefte, g.einsatzkraefte),
+    zeile("Standorte", p.genutzt.standorte, g.standorte),
+    zeile(p.plan === "probe" ? "Steckbriefe aus Unterlagen in der Probezeit" : "Steckbriefe aus Unterlagen diesen Monat", p.genutzt.steckbriefe, g.steckbriefe),
+  ].join("");
+  const probe = p.plan === "probe" && p.probe_bis ? `<p class="hinweis">🎁 Probezeit: alle Pro-Funktionen bis ${datum(p.probe_bis)}. Danach Free, es sei denn, du wählst einen Plan. Es wird nichts gelöscht.</p>` : "";
+  return `${probe}${liste ? `<ul class="plan-nutzung klein">${liste}</ul>` : ""}`;
+}
+
+export function planSeite(aktuell: string, firma: string, darfAendern: boolean, hinweis = "", o: { stripe?: boolean; abo?: AboStand | null; test?: boolean; hinweisHtml?: string; stand?: PlanStand | null } = {}): string {
   const a = o.abo;
   const datum = (x: string | null) => (x ? new Date(x).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" }) : "");
   const aktiv = !!a?.status && ["active", "trialing", "past_due"].includes(a.status);
   const aboZeile = a?.status ? `<p class="klein">${aktiv ? (a.kuendigt ? `Gekündigt, läuft bis ${datum(a.bis)}. Danach Free.` : `Abo aktiv, ${a.zahlweise === "jahr" ? "jährlich" : "monatlich"}${a.bis ? `, nächste Abbuchung am ${datum(a.bis)}` : ""}.`) : a.status === "canceled" ? "Abo beendet." : `Abo-Status: ${escape(a.status)}.`}${a.status === "past_due" ? " <strong>⚠️ Die letzte Zahlung ist fehlgeschlagen. Bitte unter „Abo verwalten“ die Zahlungsart prüfen.</strong>" : ""}</p>` : "";
   const verwalten = darfAendern && o.stripe && a?.kunde ? `<form method="post" action="/konto/plan"><input type="hidden" name="weg" value="portal"><button class="zweit">Abo verwalten (kündigen, Zahlungsart, Rechnungen)</button></form>` : "";
   const test = o.test && o.stripe ? `<p class="hinweis">🧪 Stripe-Testmodus: nur du siehst die Bezahl-Knöpfe. Testkarte 4242 4242 4242 4242, beliebiges Datum in der Zukunft, beliebige Prüfziffer.</p>` : "";
-  return `${hinweis || o.hinweisHtml ? `<p class="hinweis" role="status">${o.hinweisHtml ?? escape(hinweis)}</p>` : ""}${test}<p>Dein Plan: <strong>${escape(planName(aktuell))}</strong></p>${aboZeile}${verwalten}${planKarten({ aktuell, wahl: darfAendern, firma, stripe: o.stripe, abo: aktiv && !!a?.kunde })}${preisHinweise(o.stripe)}${darfAendern ? `<p class="klein">${o.stripe ? "Mit Karte oder Lastschrift ist der Plan sofort frei. Per Rechnung schalten wir ihn nach der Bestellung frei und schicken die Rechnung per E-Mail." : "Nach der Bestellung schalten wir den Plan frei und schicken die Rechnung per E-Mail."}</p>` : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;
+  return `${hinweis || o.hinweisHtml ? `<p class="hinweis" role="status">${o.hinweisHtml ?? escape(hinweis)}</p>` : ""}${test}<p>Dein Plan: <strong>${escape(planName(aktuell))}</strong></p>${aboZeile}${nutzungTeil(o.stand)}${verwalten}${planKarten({ aktuell, wahl: darfAendern, firma, stripe: o.stripe, abo: aktiv && !!a?.kunde })}${preisHinweise(o.stripe)}${darfAendern ? `<p class="klein">${o.stripe ? "Mit Karte oder Lastschrift ist der Plan sofort frei. Per Rechnung schalten wir ihn nach der Bestellung frei und schicken die Rechnung per E-Mail." : "Nach der Bestellung schalten wir den Plan frei und schicken die Rechnung per E-Mail."}</p>` : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;
 }

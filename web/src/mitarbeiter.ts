@@ -1,5 +1,6 @@
 import { db, sitzung, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
 import { escape } from "./seite.ts";
+import { grenzMeldung } from "./plangrenzen.ts";
 import { FUNKTIONEN, ZUGRIFFE } from "./rechte.ts";
 import { bereichPfad } from "./bereiche.ts";
 import { html } from "./konto.ts";
@@ -44,7 +45,7 @@ export async function mitarbeiterVerwalten(request: Request, env: KontoEnv): Pro
     if (!["sperren", "aktiv"].includes(status)) return weiterleiten(`/konto/team?firma=${firma}&hinweis=Ungültige%20Auswahl.`, s.cookies);
     const r = await db<{ user_id: string }[]>(s, env, `mitglieder?firma_id=eq.${firma}&user_id=eq.${person}&select=user_id`, { method: "PATCH", headers: { prefer: "return=representation" }, body: JSON.stringify({ aktiv: status === "aktiv" }) });
     const erfolgreich = r.ok && r.daten.length === 1;
-    return weiterleiten(`/konto/team?firma=${firma}&hinweis=${encodeURIComponent(erfolgreich ? (status === "aktiv" ? "Zugang wieder aktiviert." : "Zugang für diese Firma gesperrt.") : "Der Zugang konnte nicht geändert werden. Prüfe die Rolle und ob mindestens ein Inhaber aktiv bleibt.")}`, s.cookies);
+    return weiterleiten(`/konto/team?firma=${firma}&hinweis=${encodeURIComponent(erfolgreich ? (status === "aktiv" ? "Zugang wieder aktiviert." : "Zugang für diese Firma gesperrt.") : (!r.ok && grenzMeldung(r.fehler)) || "Der Zugang konnte nicht geändert werden. Prüfe die Rolle und ob mindestens ein Inhaber aktiv bleibt.")}`, s.cookies);
   }
   const rolle = String(f.get("rolle") ?? "");
   const bereiche = f.getAll("bereiche").map(String);
@@ -57,5 +58,5 @@ export async function mitarbeiterVerwalten(request: Request, env: KontoEnv): Pro
     return html(seite("Rechte prüfen", bestaetigung({ action: "/konto/mitarbeiter", form: f, titel: "die Rechte änderst", zeilen: [["Name", String(f.get("name") ?? "") || "–"], ["Funktion", String(f.get("funktion") ?? "")]], rolle, bereich: bereichText, finanzen: f.has("finanzen"), zurueck: "/konto/team#app-zugaenge", knopf: "✅ Ja, so speichern" }), 0, "team"), 200, s.cookies);
   }
   const r = await db(s, env, "rpc/mitglied_aktualisieren", { method: "POST", body: JSON.stringify({ f: firma, u: person, n: String(f.get("name") ?? "").trim().slice(0, 200), funktion_neu: String(f.get("funktion") ?? "Mitarbeiter/in").trim().slice(0, 100) || "Mitarbeiter/in", rolle_neu: rolle, finanzen_neu: f.has("finanzen"), alle: f.has("alle"), bereiche }) });
-  return weiterleiten(`/konto/team?firma=${firma}&hinweis=${encodeURIComponent(r.ok ? "Funktion und Rechte gespeichert." : "Die Rechte konnten nicht geändert werden. Nur Administratoren dürfen das; der letzte Inhaber muss erhalten bleiben.")}`, s.cookies);
+  return weiterleiten(`/konto/team?firma=${firma}&hinweis=${encodeURIComponent(r.ok ? "Funktion und Rechte gespeichert." : grenzMeldung(r.fehler) ?? "Die Rechte konnten nicht geändert werden. Nur Administratoren dürfen das; der letzte Inhaber muss erhalten bleiben.")}`, s.cookies);
 }

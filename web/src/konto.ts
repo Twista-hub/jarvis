@@ -21,6 +21,7 @@ import { fristBalken, leitstand, punkteBalken, uebersichtKopf, uebersichtTitel }
 import { aktiv as aktivAm, vertretungHinweis, vertretungenLaden } from "./vertretung.ts";
 import { reichtTeil } from "./kapazitaet.ts";
 import { escape, hilfe, markdown, seite } from "./seite.ts";
+import { grenzMeldung, planStand, platzFuer } from "./plangrenzen.ts";
 import { nachweiseMarkieren } from "./nachweise.ts";
 import { anmeldeFormular, anmeldung } from "./anmeldung.ts";
 import { abwesenheitenLaden, avatar, einsaetzeLaden, kontaktBlock, einsatzTeil, personalTeil, qualifikationenBlock, standortKacheln, standortleitungBlock, STATUS as PERSONAL_STATUS, tarifvertraegeBlock, tarifvertraegeLaden, type Kraft } from "./personal.ts";
@@ -677,7 +678,7 @@ async function bereichAnlegen(s: Sitzung, form: FormData, _r: Request, env: Kont
     method: "POST",
     body: JSON.stringify({ firma_id: String(form.get("firma") ?? ""), name: String(form.get("name") ?? "").trim(), art: ARTEN[art] ? art : "standort", parent_id: parent || null }),
   });
-  return weiterleiten(`/konto/team?hinweis=${encodeURIComponent(r.ok ? "Bereich angelegt." : "Der Bereich konnte nicht angelegt werden.")}`);
+  return weiterleiten(`/konto/team?hinweis=${encodeURIComponent(r.ok ? "Bereich angelegt." : grenzMeldung(r.fehler) ?? "Der Bereich konnte nicht angelegt werden.")}`);
 }
 
 async function einladen(s: Sitzung, form: FormData, request: Request, env: KontoEnv): Promise<Response> {
@@ -688,6 +689,14 @@ async function einladen(s: Sitzung, form: FormData, request: Request, env: Konto
   if (!["admin", "bearbeiter", "standortleitung", "leser", "mitarbeiter"].includes(rolle)) return weiterleiten(`/konto/team?hinweis=${encodeURIComponent("Bitte den Zugriff bewusst auswählen.")}#einladen`);
   if (bereichWahl !== "firma" && !/^[0-9a-f-]{36}$/i.test(bereichWahl)) return weiterleiten(`/konto/team?hinweis=${encodeURIComponent("Bitte den Bereich bewusst auswählen (ein Standort oder ganze Firma).")}#einladen`);
   form.set("bereich", bereichWahl === "firma" ? "" : bereichWahl);
+  // Plan limit (plangrenzen.ts): office users and field workers with a login, open invitations included; readers are free.
+  if (rolle !== "leser") {
+    const p = await planStand(s, env, String(form.get("firma") ?? ""));
+    const art = rolle === "mitarbeiter" ? "einsatzkraefte" : "buero";
+    if (!platzFuer(p, art, /^[0-9a-f-]{36}$/.test(String(form.get("ersetzt") ?? "")) ? 0 : 1)) {
+      return weiterleiten(`/konto/team?hinweis=${encodeURIComponent(grenzMeldung(`Plan-Grenze: ${art === "buero" ? "Büro" : "Einsatz"}`) ?? "")}#einladen`);
+    }
+  }
   if (form.get("bestaetigt") !== "1") {
     const bn = bereichWahl === "firma" ? null : await db<{ name: string }[]>(s, env, `bereiche?id=eq.${bereichWahl}&select=name`);
     const anzeige = new FormData(); for (const [k, v] of form.entries()) anzeige.append(k, k === "bereich" ? bereichWahl : v);
@@ -759,7 +768,9 @@ async function einladungZeigen(url: URL, request: Request, env: KontoEnv): Promi
 async function einladungAnnehmen(s: Sitzung, form: FormData, _r: Request, env: KontoEnv): Promise<Response> {
   const r = await db<string>(s, env, "rpc/einladung_annehmen", { method: "POST", body: JSON.stringify({ token: String(form.get("token") ?? "") }) });
   if (r.ok) return weiterleiten(`/konto?hinweis=${encodeURIComponent("Willkommen! Du bist jetzt dabei.")}`);
-  const grund = /andere E-Mail/.test(r.fehler) ? "Die Einladung gilt für eine andere E-Mail-Adresse. Melde dich mit der eingeladenen Adresse an." : "Die Einladung ist ungültig oder abgelaufen.";
+  const grund = /andere E-Mail/.test(r.fehler) ? "Die Einladung gilt für eine andere E-Mail-Adresse. Melde dich mit der eingeladenen Adresse an."
+    : /Plan-Grenze/.test(r.fehler) ? "Im Plan dieser Firma ist gerade kein Platz für einen weiteren Zugang. Bitte sag der Firma Bescheid; sie kann den Plan erweitern und dich dann noch einmal einladen."
+    : "Die Einladung ist ungültig oder abgelaufen.";
   return html(seite("Einladung", `<p class="fehler">${grund}</p><p><a href="/konto">Zur Übersicht</a></p>`), 400);
 }
 
