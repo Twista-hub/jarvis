@@ -134,6 +134,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108250000_auftraggeber_oeffentlich.sql
 \ir ../migrations/20261108260000_auftraggeber_nach_name.sql
 \ir ../migrations/20261108270000_auftraggeber_zahlen.sql
+\ir ../migrations/20261108280000_auftraggeber_schluessel.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2167,6 +2168,15 @@ select pruefe((public.auftraggeber_oeffentlich('stadt-koeln')->'frueher'->0->>'z
 select pruefe(public.auftraggeber_oeffentlich('gibt-es-nicht') is null and public.auftraggeber_oeffentlich('buyer-seo') is null, 'Unbekannter Auftraggeber: nichts');
 select pruefe(public.sitemap_auftraggeber_json() @> '[["stadt-koeln"]]' and public.sitemap_auftraggeber_json() @> '[["gemeinde-anderswo"]]', 'Auftraggeber in der Sitemap');
 select pruefe(public.demo_eintrag('bks:seo1')->>'auftraggeber_seite' = 'stadt-koeln', 'Ausschreibung nennt die Auftraggeber-Seite');
+reset role;
+-- Eindeutige Auftraggeber-Kennung aus Name und PLZ (gleiche Quell-ID, verschiedene Behörden: getrennt).
+select pruefe((select auftraggeber_id from public.vergabekatalog where id = 'bks:seo4') = 'bks:gemeinde-anderswo'
+  and (select auftraggeber_id from public.vergabekatalog where id = 'bks:seo1') = 'bks:stadt-koeln', 'Auftraggeber-Kennung aus dem Namen statt aus der Quell-ID');
+select pruefe(jarvis_intern.ag_schluessel('Stadt Köln', '{"buyer":{"id":"ORG-1"},"parties":[{"id":"ORG-1","address":{"postalCode":"D-50667"}}]}', 'bks:x') = 'bks:stadt-koeln:50667'
+  and jarvis_intern.ag_schluessel('Auftraggeber nicht angegeben', '{}', 'bks:x') = 'bks:unbekannt:bks:x', 'Kennung mit PLZ; ohne Namen je Bekanntmachung');
+update public.vergabekatalog set auftraggeber_id = 'manipuliert' where id = 'bks:seo4';
+select pruefe((select auftraggeber_id from public.vergabekatalog where id = 'bks:seo4') = 'bks:gemeinde-anderswo', 'Kennung wird immer aus Name und PLZ berechnet');
+set role anon;
 reset role;
 
 \echo ALLE TESTS OK
