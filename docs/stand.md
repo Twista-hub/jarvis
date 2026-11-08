@@ -108,7 +108,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - Benjamin hat am 08.11. das API-Guthaben des Max-Plans (100 $/Monat, nächste Gutschrift 02.12.) mit „Twista's Individual Org“ verknüpft; „KI-Guthaben prüfen“ danach OK.
 - Migration `20261108010000_ki_monatsbudget_90.sql`: App-Monatsbudget 20 → 90 USD (Tagesgrenze 11 USD und Plan-Budgets unverändert).
 - „Durchspielen mit KI“ (Run 42463655864): 27/27 ok, 0,68 $ (Firmenrecherche 0,23 $, Steckbrief aus 3 PDFs 0,44 $, Belege/Nachweise je 0,0003 $). „Upload-Seite ausrollen“ mit Recherche-Prüfung im Live-Worker komplett grün.
-- Offen: Testkonto kontakt@wpdigitalranger.com mit „Crewtender Testfirma (E2E-Test)“ löschen – erst nach Benjamins OK (es ist seine Kontaktadresse).
+- Testkonto kontakt@wpdigitalranger.com mit „Crewtender Testfirma (E2E-Test)“ bleibt (Benjamin 08.11.: behalten, nicht löschen). Probezeit bis 06.12., danach Free.
 
 ### 07.11.2026 abends – Claude Code (Zusatzkäufe live getestet)
 - Testmodus, Beispielfirma (c3401eb9): Testabo über „Stripe einrichten“ (`testabo_plan=pro`) auf Pro umgestellt (Kündigung aufgehoben), 3 weitere Einsatzkräfte im Abo (`testabo_kraefte=3`) und ein Steckbrief-Paket über eine echte Stripe-Bezahlseite mit Testkarte bezahlt (`testpaket_firma`, Playwright). Datenbank danach: paket pro, zusatz_einsatzkraefte 3, steckbrief_guthaben 10. Die Knöpfe der Plan-Seite selbst nur per Unit-Test (keine Anmeldung als Benjamin).
