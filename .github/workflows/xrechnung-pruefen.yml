@@ -25,14 +25,30 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          asset() { curl -sS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$1/releases/latest" | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['tag_name'], file=sys.stderr); print(next(a['browser_download_url'] for a in d['assets'] if a['name'].endswith('.zip')))"; }
-          curl -sSL -o validator.zip "$(asset itplr-kosit/validator)"
-          curl -sSL -o konfig.zip "$(asset itplr-kosit/validator-configuration-xrechnung)"
-          mkdir -p validator konfig && unzip -q validator.zip -d validator && unzip -q konfig.zip -d konfig
-          ls validator konfig | head -30
+          # Lists the release files and picks the best package: a standalone jar, else a distribution zip, else any zip.
+          asset() { curl -fsS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$1/releases/latest" | python3 -c "
+          import json, sys
+          d = json.load(sys.stdin)
+          namen = [a['name'] for a in d['assets']]
+          print(d['tag_name'], namen, file=sys.stderr)
+          def rang(n):
+              n = n.lower()
+              return 0 if n.endswith('.jar') and 'standalone' in n else 1 if n.endswith('.zip') and ('dist' in n or 'standalone' in n or 'xrechnung' in n) else 2 if n.endswith('.zip') and 'source' not in n and 'javadoc' not in n else 9
+          beste = min(d['assets'], key=lambda a: rang(a['name']))
+          print(beste['browser_download_url'])"; }
+          holen() { u=$(asset "$1"); echo "$1 -> $u"; mkdir -p "$2"; case "$u" in
+            *.jar) curl -fsSL -o "$2/$(basename "$u")" "$u" ;;
+            *) curl -fsSL -o "$2.zip" "$u"; ls -la "$2.zip"; unzip -q -o "$2.zip" -d "$2" ;;
+          esac; }
+          holen itplr-kosit/validator validator
+          holen itplr-kosit/validator-configuration-xrechnung konfig
+          find validator -maxdepth 3 | head -30; find konfig -maxdepth 2 | head -20
       - name: Validieren
         run: |
           JAR=$(find validator -name "*standalone*.jar" | head -1)
+          # Otherwise any jar with a start class in its manifest.
+          [ -n "$JAR" ] || JAR=$(for j in $(find validator -name "*.jar"); do unzip -p "$j" META-INF/MANIFEST.MF 2>/dev/null | grep -q "^Main-Class" && echo "$j" && break; done)
+          echo "Validator: $JAR"
           SZ=$(find konfig -name scenarios.xml | head -1)
           mkdir -p bericht
           if [ -n "$JAR" ]; then
