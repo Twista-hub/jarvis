@@ -6,7 +6,7 @@ import { START_BESCHREIBUNG, START_JSONLD, ogErgaenzen, seoKopf } from "./seo.ts
 import kunden from "../kunden.json";
 import { BRANCHEN_VORLAGEN, euro, FELDER, losStunden, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
 import profile from "../../alarm/profile.json";
-import { CSP_OEFFENTLICH as CSP, statisch } from "./app";
+import { CSP as CSP_STRENG, CSP_OEFFENTLICH as CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
 import { angebote } from "./angebote";
 import { darfAuftrag } from "./auftragsrechte";
@@ -160,7 +160,7 @@ const worker = {
       await fehlerMelden(env, "app", `${request.method} ${alt.pathname.replace(/[0-9a-f-]{36}/g, ":id").slice(0, 80)} · ${fehlerText(e)}`);
       antwort = html(seite("Fehler", `<p>Da ist leider etwas schiefgegangen. Bitte versuche es gleich noch einmal.</p><p class="klein">Wir haben eine Nachricht bekommen und kümmern uns darum.</p><p><a href="/konto">Zur Übersicht</a></p>`), 500);
     }
-    const r = await herkunftWeitergeben(request, darstellen(request, antwort));
+    const r = await herkunftWeitergeben(request, oeffentlicheMessung(request, darstellen(request, antwort)));
     if (!new URL(request.url).pathname.startsWith("/auftrag/")) return r;
     const s = await sitzung(request,env);
     const headers = new Headers(r.headers);
@@ -173,6 +173,16 @@ export default worker;
 
 /** After rendering: display choice (cookie jv_darstellung, e.g. "dark-gross") onto <html>, office language (English
  *  dictionary, see englisch.ts) and the language switch in the footer. Non-HTML answers pass through untouched. */
+// Public HTML pages (whatever module built them) allow the Cloudflare Web Analytics beacon; the account area, login and
+// files keep the strict policy, so logged-in pages are not measured.
+const OHNE_MESSUNG = /^\/(konto|abmelden|anmelden|api|nachweis|portal|einladung|auftrag\/|partner\/u\/)/;
+function oeffentlicheMessung(request: Request, r: Response): Response {
+  if (!(r.headers.get("content-type") ?? "").startsWith("text/html") || OHNE_MESSUNG.test(new URL(request.url).pathname) || r.headers.get("content-security-policy") !== CSP_STRENG) return r;
+  const headers = new Headers(r.headers);
+  headers.set("content-security-policy", CSP);
+  return new Response(r.body, { status: r.status, statusText: r.statusText, headers });
+}
+
 function darstellen(request: Request, r: Response): Response {
   if (!(r.headers.get("content-type") ?? "").startsWith("text/html") || !r.body) return r;
   const wahl = /(?:^|;\s*)jv_darstellung=([a-z-]{1,20})/.exec(request.headers.get("cookie") ?? "")?.[1] ?? "";
