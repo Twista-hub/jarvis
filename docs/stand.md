@@ -157,7 +157,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ### 07.11.2026 abends – Claude Code (Zusatzkäufe live getestet)
 - Testmodus, Beispielfirma (c3401eb9): Testabo über „Stripe einrichten“ (`testabo_plan=pro`) auf Pro umgestellt (Kündigung aufgehoben), 3 weitere Einsatzkräfte im Abo (`testabo_kraefte=3`) und ein Steckbrief-Paket über eine echte Stripe-Bezahlseite mit Testkarte bezahlt (`testpaket_firma`, Playwright). Datenbank danach: paket pro, zusatz_einsatzkraefte 3, steckbrief_guthaben 10. Die Knöpfe der Plan-Seite selbst nur per Unit-Test (keine Anmeldung als Benjamin).
-- **Offen (Benjamin schaut am 08.11. auf /konto/plan):** danach aufräumen: „Stripe einrichten“ mit `testabos_beenden=ja`, dann „Datenbank“ Aktion `beispielfirma_test`. Solange läuft das Testabo (verlängert sich sonst am 07.12., nur Testgeld).
+- ~~Testabo aufräumen~~ (08.11.: „Stripe einrichten“ `testabos_beenden=ja` hat sub_…eg1W der Beispielfirma beendet; „Datenbank“ `beispielfirma_test` gestartet). Nächster Schritt Livebetrieb: Browser-Chat-Auftrag `docs/auftraege/crewtender-stripe-live.md`, danach Benjamin `sk_live_` als Repo-Secret `STRIPE_SECRET_KEY`, dann „Stripe einrichten“ (Live-Preise, Webhook, Worker-Secret).
 - Anthropic-API-Guthaben aus dem Max-Abo: bei Benjamin am 07.11. abends noch nicht sichtbar; am 08.11. erneut prüfen (claude.ai → Einstellungen → Abrechnung).
 
 ### 07.11.2026 – Claude Code (Plan-Grenzen durchgesetzt)
