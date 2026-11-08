@@ -1,7 +1,8 @@
 """Automatic posts for Crewtender on Bluesky and Mastodon (Benjamin 06.11.2026).
 
-Monday to Friday one post at about 09:00 Berlin, on both networks, in turn: a current public tender (title, place,
-deadline, estimated value, source), a number of the day, now and then a feature tip. English, link to crewtender.eu with
+Weekdays three posts (about 09:00, 13:00 and 17:00 Berlin), weekends one (about 11:00), on both networks. The morning
+post rotates: a current public tender (title, place, deadline, estimated value, source), a number of the day, now and then
+a feature tip; the other posts are tenders (since 08.11.2026; before only one post on weekdays). English, link to crewtender.eu with
 utm_source=bluesky|mastodon and utm_medium=social. Only real public notices (oeffentlichevergabe.de, CC0); no names of
 persons; no notice twice (jarvis_intern.social_posts); Bluesky at most 300 characters. Rather no post than an empty one.
 
@@ -9,7 +10,7 @@ Secrets (GitHub → Settings → Secrets and variables → Actions): BLUESKY_APP
 MASTODON_TOKEN (access token of @crewtender@mastodon.social, scope write:statuses). A network without its secret is skipped.
 
 CLI: python3 social.py probe   – show today's texts for every kind, post nothing, write nothing
-     python3 social.py posten  – post today's post (only 09–11 Berlin on weekdays, once per day and network)
+     python3 social.py posten  – post the post of the current slot (once per day, slot and network; nothing outside a slot)
 """
 import json
 import os
@@ -112,6 +113,20 @@ def art_heute(heute: date) -> str:
     return {1: "ausschreibung", 2: "zahl", 3: "ausschreibung", 4: "zahl"}.get(w, "tipp" if heute.isocalendar()[1] % 2 == 0 else "ausschreibung")
 
 
+def slot_jetzt(jetzt: datetime) -> int | None:
+    """Time slot of a Berlin time: weekdays 9–11 → 1, 13–15 → 2, 17–19 → 3; weekends 11–13 → 1. The windows are wide so
+    that one UTC start time per slot works in summer and winter time and a late GitHub start still counts."""
+    h = jetzt.hour
+    if jetzt.isoweekday() > 5:
+        return 1 if 11 <= h <= 13 else None
+    return 1 if 9 <= h <= 11 else 2 if 13 <= h <= 15 else 3 if 17 <= h <= 19 else None
+
+
+def art_fuer(heute: date, slot: int) -> str:
+    """The weekday morning post rotates (art_heute); every other slot posts a tender."""
+    return art_heute(heute) if slot == 1 and heute.isoweekday() <= 5 else "ausschreibung"
+
+
 def ausschreibung_waehlen(con) -> dict | None:
     praefixe = [p + "%" for _, ps in GEWERKE for p in ps]
     zeilen = con.execute("""
@@ -209,15 +224,20 @@ def main() -> None:
                 benutzt, _, t = texte(con, art, heute)
                 for kanal, text in t.items():
                     print(f"--- {art} → {benutzt}, {kanal}, {len(text)} Zeichen (Grenze {GRENZE[kanal]})\n{text}\n")
-            print(f"Heute ({heute:%A}) wäre dran: {art_heute(heute)}")
+            print(f"Heute ({heute:%A}): " + ", ".join(f"Termin {n} {art_fuer(heute, n)}" for n in ((1,) if heute.isoweekday() > 5 else (1, 2, 3))))
             return
-        if jetzt.isoweekday() > 5 or not 9 <= jetzt.hour <= 11:
+        slot = slot_jetzt(jetzt)
+        if slot is None:
             print(f"Kein Posttermin ({jetzt:%a %H:%M} Berlin).")
             return
-        art, t, txt = texte(con, art_heute(heute), heute)
+        offen = [k for k in GRENZE if not con.execute("select 1 from jarvis_intern.social_posts where tag = %s and kanal = %s and slot = %s", (heute, k, slot)).fetchone()]
+        if not offen:
+            print(f"Termin {slot} heute schon gepostet.")
+            return
+        art, t, txt = texte(con, art_fuer(heute, slot), heute)
         for kanal, text in txt.items():
-            if con.execute("select 1 from jarvis_intern.social_posts where tag = %s and kanal = %s", (heute, kanal)).fetchone():
-                print(f"{kanal}: heute schon gepostet.")
+            if kanal not in offen:
+                print(f"{kanal}: Termin {slot} heute schon gepostet.")
                 continue
             secret = {"bluesky": "BLUESKY_APP_PASSWORD", "mastodon": "MASTODON_TOKEN"}[kanal]
             if not os.environ.get(secret):
@@ -227,14 +247,14 @@ def main() -> None:
                 print(f"{kanal}: kein gültiger Text, übersprungen.")
                 continue
             try:
-                ziel = bluesky(text) if kanal == "bluesky" else mastodon(text, f"crewtender-{heute}")
+                ziel = bluesky(text) if kanal == "bluesky" else mastodon(text, f"crewtender-{heute}-{slot}")
             except Exception as e:  # noqa: BLE001
                 print(f"{kanal}: Posten fehlgeschlagen ({type(e).__name__}: {str(e)[:200]})")
                 continue
-            con.execute("insert into jarvis_intern.social_posts (tag, kanal, art, katalog_id, text, adresse) values (%s, %s, %s, %s, %s, %s)",
-                        (heute, kanal, art, t["id"] if t else None, text, ziel[:500]))
+            con.execute("insert into jarvis_intern.social_posts (tag, kanal, slot, art, katalog_id, text, adresse) values (%s, %s, %s, %s, %s, %s, %s)",
+                        (heute, kanal, slot, art, t["id"] if t else None, text, ziel[:500]))
             con.commit()
-            print(f"{kanal}: gepostet ({art}) {ziel}")
+            print(f"{kanal}: gepostet (Termin {slot}, {art}) {ziel}")
 
 
 if __name__ == "__main__":

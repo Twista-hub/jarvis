@@ -43,6 +43,19 @@ class SocialTest(unittest.TestCase):
         self.assertEqual([s.art_heute(date(2026, 11, d)) for d in (9, 10, 11, 12)], ["ausschreibung", "zahl", "ausschreibung", "zahl"])
         self.assertIn(s.art_heute(date(2026, 11, 13)), ("tipp", "ausschreibung"))
 
+    def test_termine(self):
+        from datetime import datetime
+        b = s.BERLIN
+        # Monday 10.11.2026 (winter time): 09:23, 13:23, 17:53 → slots 1–3; 12:00 and 21:00 no slot.
+        self.assertEqual([s.slot_jetzt(datetime(2026, 11, 10, h, m, tzinfo=b)) for h, m in ((9, 23), (13, 23), (17, 53), (12, 0), (21, 0))], [1, 2, 3, None, None])
+        # Summer time: the same UTC start is one hour later in Berlin and still inside the window.
+        self.assertEqual([s.slot_jetzt(datetime(2027, 6, 7, h, 53, tzinfo=b)) for h in (10, 14, 18)], [1, 2, 3])
+        # Weekend: one slot around 11–13 Berlin.
+        self.assertEqual([s.slot_jetzt(datetime(2026, 11, 14, h, 23, tzinfo=b)) for h in (9, 11, 12, 17)], [None, 1, 1, None])
+        # Morning post rotates on weekdays, the others are tenders; weekends tenders.
+        self.assertEqual([s.art_fuer(date(2026, 11, 10), n) for n in (1, 2, 3)], ["zahl", "ausschreibung", "ausschreibung"])
+        self.assertEqual(s.art_fuer(date(2026, 11, 14), 1), "ausschreibung")
+
     def test_bluesky_link_facette(self):
         text = "📢 Test äöü\nhttps://crewtender.eu/?utm_source=bluesky&utm_medium=social"
         f = s.facetten(text)[0]
