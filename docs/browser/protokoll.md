@@ -19,6 +19,23 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### Erledigt (08.11.2026) – Facebook und Instagram, Woche 46 (Auftrag `docs/auftraege/crewtender-woche-46.md`)
+Woche 46 in der Meta Business Suite geplant, alles um 18:00 Uhr, öffentlich, nichts beworben:
+- Di 10.11., Facebook: `0-di-auftragswert-korrigiert.png`. Gelöscht und neu geplant, weil Meta beim Bearbeiten das alte Bild behielt. Alte ID 4665561463724729, neue ID 1112797828401694.
+- Di 10.11., Instagram: `0-di-auftragswert-korrigiert.png`. Bearbeitet, Bild und Text ersetzt.
+- Mi 11.11., Facebook + Instagram: `1-mi-fristen.png`
+- Fr 13.11., Facebook + Instagram: `2-fr-zahl-der-woche.png`
+- Mo 16.11., Facebook + Instagram: `3-mo-ausschreibung-der-woche.png`
+
+Texte wie im Auftrag; Facebook mit Link (utm_source=facebook), Instagram „link in bio“ und Hashtags. Alle 8 Posts in der Liste „Geplant“ geprüft. Keine Passwörter, nichts Kostenpflichtiges, Bewerben jedes Mal abgelehnt.
+
+Erfahrungen für die nächsten Aufträge:
+- Die Business Suite öffnete zuerst mit der Demopin-Seite; vor jedem Schritt prüfen, dass oben „Crewtender“ gewählt ist (hier vor jeder Änderung umgestellt).
+- Ein Klick in die Tagesspalte des Planers legt einen neuen Entwurf an; bestehende Posts über Content → Geplante Beiträge öffnen.
+- Bild tauschen beim Bearbeiten greift bei Facebook nicht (Instagram schon): Facebook-Post löschen und neu planen.
+- Der Facebook-Editor verschluckt beim Laden der Link-Vorschau manchmal die letzten Zeichen; Text nach dem Tippen am Ende kontrollieren.
+- Instagram-Autovervollständigung ändert Hashtags (#handwerk → #handwerkliebe); nach dem Hashtag in einen freien Bereich klicken.
+
 ### 07.11.2026 – Browser-Chat: Stripe live freigeschaltet
 - Auf Benjamins OK freigeschaltet. Persönliche Daten, Bank, Zwei-Faktor und das Absenden („Zustimmen und absenden“) hat Benjamin selbst gemacht. Stripe hat das Live-Konto „Crewtender“ geöffnet.
 - **Gewählt:** Einzelunternehmen, Kategorie „Software as a Service“, Zahlungsbeschreibung CREWTENDER.EU, Radar Lite (gratis).
