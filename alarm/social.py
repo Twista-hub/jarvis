@@ -10,6 +10,7 @@ Secrets (GitHub → Settings → Secrets and variables → Actions): BLUESKY_APP
 MASTODON_TOKEN (access token of @crewtender@mastodon.social, scope write:statuses). A network without its secret is skipped.
 
 CLI: python3 social.py probe   – show today's texts for every kind, post nothing, write nothing
+     python3 social.py woche   – numbers of last week per trade and the best current tender as JSON (weekly FB/IG package)
      python3 social.py posten  – post the post of the current slot (once per day, slot and network; nothing outside a slot)
 """
 import json
@@ -228,6 +229,17 @@ def main() -> None:
     jetzt = datetime.now(BERLIN)
     heute = jetzt.date()
     with verbinden() as con:
+        if modus == "woche":  # data for the weekly Facebook/Instagram package (prints JSON, posts nothing)
+            bis = heute - timedelta(days=heute.isoweekday() - 1)  # Monday of this week (exclusive)
+            von = bis - timedelta(days=7)
+            zaehl = """select count(*) from public.vergabekatalog where quelle = 'bks' and frist is not null
+                       and (quell_datum at time zone 'Europe/Berlin')::date >= %s and (quell_datum at time zone 'Europe/Berlin')::date < %s"""
+            gesamt = con.execute(zaehl, (von, bis)).fetchone()[0]
+            je = {name: con.execute(zaehl + " and exists (select 1 from unnest(cpv) c where c like any(%s))", (von, bis, [p + "%" for p in ps])).fetchone()[0] for name, ps in GEWERKE}
+            t = ausschreibung_waehlen(con)
+            print("WOCHE " + json.dumps({"von": str(von), "bis": str(bis - timedelta(days=1)), "gesamt": gesamt, "gewerke": je,
+                                          "ausschreibung": {**t, "frist": str(t["frist"]), "url": adresse("/demo/katalog/" + urllib.parse.quote(t["id"], safe=""), "instagram")} if t else None}, ensure_ascii=False))
+            return
         if modus == "probe":
             for art in ("ausschreibung", "zahl", "tipp"):
                 benutzt, _, t = texte(con, art, heute)
