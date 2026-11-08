@@ -133,6 +133,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108240000_sitemap_json.sql
 \ir ../migrations/20261108250000_auftraggeber_oeffentlich.sql
 \ir ../migrations/20261108260000_auftraggeber_nach_name.sql
+\ir ../migrations/20261108270000_auftraggeber_zahlen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
