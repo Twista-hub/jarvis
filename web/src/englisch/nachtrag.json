@@ -528,5 +528,7 @@
  "Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).": "EU reverse charge only works for a business in another EU country with a VAT ID (not together with § 13b or private person).",
  "🇪🇺 Rechnungen mit Reverse Charge an Unternehmen in anderen EU-Ländern: Dafür ist zusätzlich die": "🇪🇺 Invoices with reverse charge to businesses in other EU countries: these also require the",
  "Zusammenfassende Meldung": "EC sales list",
- "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "to the Federal Central Tax Office (via ELSTER, by the #th of the following month or quarter), with the customer's VAT ID and amount. Proposal, please check with your tax adviser."
+ "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "to the Federal Central Tax Office (via ELSTER, by the #th of the following month or quarter), with the customer's VAT ID and amount. Proposal, please check with your tax adviser.",
+ "Leistungstext auf der Rechnung": "Service description on the invoice",
+ "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "e.g. maintenance cleaning, Hauptstraße site (month is added)"
 }

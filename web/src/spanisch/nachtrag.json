@@ -528,5 +528,7 @@
  "Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).": "La inversión del sujeto pasivo UE solo vale para una empresa de otro país de la UE con NIF-IVA (no junto con § 13b ni particular).",
  "🇪🇺 Rechnungen mit Reverse Charge an Unternehmen in anderen EU-Ländern: Dafür ist zusätzlich die": "🇪🇺 Facturas con inversión del sujeto pasivo a empresas de otros países de la UE: además hace falta la",
  "Zusammenfassende Meldung": "declaración recapitulativa",
- "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "ante la Oficina Central Federal de Impuestos (por ELSTER, hasta el día # del mes o trimestre siguiente), con el NIF-IVA del cliente y el importe. Propuesta, revísalo con tu asesoría fiscal."
+ "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "ante la Oficina Central Federal de Impuestos (por ELSTER, hasta el día # del mes o trimestre siguiente), con el NIF-IVA del cliente y el importe. Propuesta, revísalo con tu asesoría fiscal.",
+ "Leistungstext auf der Rechnung": "Descripción del servicio en la factura",
+ "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "p. ej. limpieza de mantenimiento, edificio Hauptstraße (se añade el mes)"
 }

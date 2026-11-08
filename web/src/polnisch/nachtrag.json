@@ -528,5 +528,7 @@
  "Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).": "Odwrotne obciążenie UE tylko dla firmy z innego kraju UE z NIP UE (nie razem z § 13b ani osobą prywatną).",
  "🇪🇺 Rechnungen mit Reverse Charge an Unternehmen in anderen EU-Ländern: Dafür ist zusätzlich die": "🇪🇺 Faktury z odwrotnym obciążeniem dla firm z innych krajów UE: wymagana jest dodatkowo",
  "Zusammenfassende Meldung": "informacja podsumowująca",
- "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "do Federalnego Centralnego Urzędu Skarbowego (przez ELSTER, do # dnia następnego miesiąca lub kwartału), z NIP UE klienta i kwotą. Propozycja, sprawdź z doradcą podatkowym."
+ "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "do Federalnego Centralnego Urzędu Skarbowego (przez ELSTER, do # dnia następnego miesiąca lub kwartału), z NIP UE klienta i kwotą. Propozycja, sprawdź z doradcą podatkowym.",
+ "Leistungstext auf der Rechnung": "Opis usługi na fakturze",
+ "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "np. sprzątanie bieżące, obiekt Hauptstraße (miesiąc zostanie dodany)"
 }

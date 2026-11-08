@@ -122,6 +122,8 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108130000_umsatz_extern.sql
 \ir ../migrations/20261108140000_belege_datev.sql
 \ir ../migrations/20261108150000_reverse_charge_eu.sql
+\ir ../migrations/20261108160000_leistungstext.sql
+\ir ../migrations/20261108170000_nachweise_ohne_kopie.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -960,6 +962,11 @@ select pruefe((select rechtsform = 'GmbH' from public.firmenprofil), 'Bearbeiter
 update public.personal set beschaeftigung = 'teilzeit', wochenstunden = 20, fuehrerschein = '{B,C1}', sprachen = '{Deutsch,Türkisch}', wohn_plz = '10115' where id = :'p_berlin';
 select pruefe((select beschaeftigung = 'teilzeit' and wohn_plz = '10115' from public.personal where id = :'p_berlin'), 'Personalakte mit neuen Feldern gepflegt');
 insert into public.personal_nachweise (firma_id, personal_id, bezeichnung, gueltig_bis) values (:'firma', :'p_berlin', 'Staplerschein', '2028-01-31');
+-- D2: no file copy of criminal records or health certificates (only the date of sight).
+do $$ begin
+  insert into public.personal_nachweise (firma_id, personal_id, bezeichnung, datei_name, datei_mime, datei_groesse) values (current_setting('test.firma')::uuid, (select id from public.personal where firma_id = current_setting('test.firma')::uuid limit 1), 'Erweitertes Führungszeugnis', 'fz.pdf', 'application/pdf', 1000);
+  raise exception 'FEHLER: Kopie eines Führungszeugnisses gespeichert';
+exception when check_violation then null; end $$;
 insert into public.unterweisung_teilnahmen (firma_id, unterweisung_id, personal_id, datum) values (:'firma', (select id from public.unterweisungen limit 1), :'p_berlin', '2026-10-15');
 select pruefe((select count(*) = 1 from public.personal_nachweise) and (select count(*) = 1 from public.unterweisung_teilnahmen), 'Nachweis und Unterweisung im eigenen Standort');
 -- A-M9: a briefing with recent attendance cannot be deleted (proof of instruction), only archived.
