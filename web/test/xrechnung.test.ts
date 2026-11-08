@@ -47,14 +47,17 @@ test("XRechnung: Länder, Empfangsadresse (BT-49), USt-IdNr. des Kunden (BT-48),
   assert.deepEqual(fehlendFuerXRechnung({ ...voll, ustid: "123456789" }, { ...wien, ustid: "12345" }), ["USt-IdNr. der Firma mit Ländercode (z. B. DE123456789)", "USt-IdNr. des Kunden mit Ländercode"]);
 });
 
-test("XRechnung: Stornorechnung als Gutschrift 381 mit Bezug und positiven Beträgen", () => {
+test("XRechnung: Stornorechnung als UBL-Gutschrift (CreditNote 381) mit Bezug und positiven Beträgen", () => {
   const storno: Rechnung = { ...r, nummer: "RE-2026-0008", art: "storno", bezug_nummer: "RE-2026-0007", netto: -1000, ust_betrag: -190,
     positionen: r.positionen.map((p) => ({ ...p, menge: -p.menge, betrag: -p.betrag })) };
   const xml = xrechnungXml(storno, k, { ...a, telefon: "1" });
-  assert.match(xml, /<cbc:InvoiceTypeCode>381<\/cbc:InvoiceTypeCode>/);
+  assert.match(xml, /<ubl:CreditNote xmlns:ubl="urn:oasis:names:specification:ubl:schema:xsd:CreditNote-2"/);
+  assert.match(xml, /<cbc:CreditNoteTypeCode>381<\/cbc:CreditNoteTypeCode>/);
+  assert.match(xml, /<\/ubl:CreditNote>\s*$/);
+  assert.doesNotMatch(xml, /Invoice(Line|TypeCode|dQuantity)/);
   assert.match(xml, /<cac:BillingReference><cac:InvoiceDocumentReference><cbc:ID>RE-2026-0007<\/cbc:ID>/);
   assert.match(xml, /<cbc:PayableAmount currencyID="EUR">1190\.00</);
-  assert.match(xml, /<cbc:InvoicedQuantity unitCode="HUR">40</);
+  assert.match(xml, /<cac:CreditNoteLine><cbc:ID>1<\/cbc:ID><cbc:CreditedQuantity unitCode="HUR">40</);
   assert.doesNotMatch(xml, />-\d/, "keine negativen Beträge");
   assert.doesNotMatch(xml, /DueDate/);
   assert.match(xrechnungXml(r, k, a), /<cbc:InvoiceTypeCode>380</);
