@@ -19,6 +19,13 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### Erledigt (08.11.2026) – Search Console: Sitemap der Ausschreibungen (Auftrag `docs/auftraege/crewtender-search-console-sitemap.md`)
+1. sitemap-ausschreibungen.xml eingereicht: „Erfolgreich“, gelesen 08.11.2026, 5.526 erkannte Seiten.
+2. sitemap.xml (eingereicht 04.11.): „Konnte nicht abgerufen werden“, 0 Seiten, nie gelesen. (Claude Code 08.11.: liefert heute auch für Googlebot 200, gültiges XML, application/xml – vermutlich ein Fehler vom 04.11., als HEAD-Anfragen noch 404 gaben; erneut einreichen.)
+3. Indexierung: noch keine Zahlen („Daten werden verarbeitet“).
+4. Leistung (03.–06.11.): 0 Klicks, 4 Impressionen, Position Ø 48; Suchanfragen „crewtender“ (Pos. 11), „sam.gov register“ (88), „sam registration“ (92).
+5. /ausschreibungen/gebaeudereinigung/nordrhein-westfalen: „URL ist Google nicht bekannt“, Indexierung beantragt.
+
 ### Erledigt (08.11.2026) – Software-Verzeichnisse (Auftrag `docs/auftraege/crewtender-verzeichnisse.md`)
 1. OMR Reviews: wartet auf Prüfung (Formular gesendet, Antwort per Mail an kontakt@wpdigitalranger.com).
 2. G2: eingetragen, Profil freigegeben („Profile Approved“), Link folgt per Mail. Ohne Admin-Zugang (G2 verlangt dafür eine Telefonnummer); Admin später auf dem Profil beantragen, erst dann Funktionen und Preise pflegbar.
