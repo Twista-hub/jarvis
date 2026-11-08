@@ -129,6 +129,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108200000_abwesenheit_gruende.sql
 \ir ../migrations/20261108210000_nachkalkulation_ausfall.sql
 \ir ../migrations/20261108220000_empfehlungsprogramm.sql
+\ir ../migrations/20261108230000_seo_seiten.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2124,5 +2125,24 @@ select public.betreiber_partner_setzen(:'partner_id', 'sperren');
 reset role;
 select jarvis_intern.zahlung_erfasst('evt_TEST000006', 'in_TEST000006', null, :'empf_firma', 5900, now());
 select pruefe((select count(*) = 2 from jarvis_intern.provisionen where partner_id = :'partner_id'), 'Gesperrter Partner bekommt keine neue Provision');
+
+-- Google-Seiten (08.11.2026): Bundesland aus dem NUTS-Code, Zahlen je Gewerk und Land aus dem Cache, Sitemap offener
+-- Bekanntmachungen; ohne Login nur über die Funktionen.
+reset role;
+select pruefe(jarvis_intern.nuts_land('Kreis Wesel · 47475 Kamp-Lintfort DEA1F') = 'A' and jarvis_intern.nuts_land('DEE0D · DEE0D') = 'E'
+  and jarvis_intern.nuts_land('Deggendorf') is null and jarvis_intern.nuts_land('D-02977 Hoyerswerda') is null, 'Bundesland aus dem NUTS-Code');
+insert into public.vergabekatalog(id,quelle,quelle_id,version,quell_datum,titel,link,auftraggeber,auftraggeber_id,status,frist,cpv,ort)
+values ('bks:seo1','bks','seo1','v1',now() - interval '2 days','Unterhaltsreinigung Schulen','https://example.test/seo1','Stadt Köln','buyer-seo','offen',now() + interval '20 days','{90911200}','50667 Köln DEA23'),
+       ('bks:seo2','bks','seo2','v1',now() - interval '3 days','Glasreinigung Rathaus','https://example.test/seo2','Stadt Fürth','buyer-seo2','offen',now() - interval '1 day','{90911300}','90762 Fürth DE253');
+insert into jarvis_intern.gewerk_cache (schluessel, praefixe) values ('90911,90919,90910', array['90911','90919','90910']) on conflict do nothing;
+select jarvis_intern.gewerk_aktualisieren();
+set role anon;
+select pruefe((public.gewerk_land_statistik(array['90911','90919','90910'], 'A')->>'offen')::int >= 1
+  and public.gewerk_land_statistik(array['90911','90919','90910'], 'A')->'beispiele' @> '[{"id": "bks:seo1"}]', 'NRW-Seite Gebäudereinigung mit offener Ausschreibung');
+select pruefe((public.gewerk_land_statistik(array['90911','90919','90910'], '2')->>'offen')::int = 0 and (public.gewerk_land_statistik(array['90911','90919','90910'], '2')->>'monat')::int >= 1, 'Bayern: abgelaufene zählt im Monat, nicht als offen');
+select pruefe((public.gewerk_land_statistik(array['90911'], 'C')->>'monat')::int = 0, 'Land ohne Ausschreibungen: leere Zahlen');
+select pruefe(exists (select 1 from public.sitemap_ausschreibungen() where id = 'bks:seo1') and not exists (select 1 from public.sitemap_ausschreibungen() where id = 'bks:seo2'), 'Sitemap nur mit offenen Ausschreibungen');
+do $$ begin perform 1 from jarvis_intern.gewerk_land_cache; raise exception 'FEHLER: Länder-Cache ohne Login lesbar'; exception when insufficient_privilege then null; end $$;
+reset role;
 
 \echo ALLE TESTS OK
