@@ -336,5 +336,6 @@
  "Weitere Einsatzkräfte gibt es in Pro und Business, Steckbrief-Pakete ab Basis. Wähle zuerst einen Plan.": "Los trabajadores adicionales están en Pro y Business, los paquetes de fichas desde Basis. Elige primero un plan.",
  "Bitte eine Zahl zwischen 0 und 2000 angeben.": "Introduce un número entre 0 y 2000.",
  "Die # Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem Steckbrief-Paket oder einem größeren Plan (Plan-Seite).": "Las # fichas a partir de documentos de este mes se han agotado. Se reanuda el mes que viene, o de inmediato con un paquete de fichas o un plan mayor (página del plan).",
- "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "¡Gracias! El paquete de fichas está pagado. Las fichas estarán disponibles en unos segundos; la factura llega por correo electrónico."
+ "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "¡Gracias! El paquete de fichas está pagado. Las fichas estarán disponibles en unos segundos; la factura llega por correo electrónico.",
+ "Die KI-Bewertung war pausiert, weil sich 30 Tage niemand angemeldet hatte. Mit dieser Anmeldung läuft sie ab dem nächsten Suchlauf wieder.": "La valoración con IA estaba en pausa porque nadie había iniciado sesión en 30 días. Con este inicio de sesión vuelve a funcionar desde la próxima búsqueda."
 }

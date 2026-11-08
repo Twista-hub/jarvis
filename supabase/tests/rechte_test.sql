@@ -109,6 +109,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261107040000_zusatzkaeufe.sql
 \ir ../migrations/20261108010000_ki_monatsbudget_90.sql
 \ir ../migrations/20261108030000_abo_meldungen.sql
+\ir ../migrations/20261108040000_ki_inaktiv.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1952,5 +1953,20 @@ update public.firmen set paket = 'test' where id = :'gfirma';
 update public.firmen set paket = 'pro' where id = :'gfirma';
 select pruefe(not exists (select 1 from public.push_warteschlange), 'Wechsel von/zu test wird nicht gemeldet');
 reset role;
+
+-- KI-Pause für Gratis-Firmen ohne Anmeldung seit 30 Tagen (08.11.2026).
+reset role;
+select set_config('test.uid', '', false);
+insert into public.firmen (name, paket, ki_budget_usd, erstellt) values ('Schläfer GmbH', 'kostenlos', 5.50, now() - interval '60 days') returning id as schlaefer \gset
+insert into auth.users (id, email, last_sign_in_at) values ('00000000-0000-0000-0000-00000000aac1', 'schlaf@inaktiv.test', now() - interval '45 days');
+insert into public.mitglieder (firma_id, user_id, rolle) values (:'schlaefer', '00000000-0000-0000-0000-00000000aac1', 'inhaber');
+select pruefe(jarvis_katalog.ki_firmensperre(:'schlaefer', 0.01) = 'inaktiv', 'Gratis-Firma ohne Anmeldung seit 45 Tagen: KI pausiert');
+update auth.users set last_sign_in_at = now() - interval '2 days' where id = '00000000-0000-0000-0000-00000000aac1';
+select pruefe(jarvis_katalog.ki_firmensperre(:'schlaefer', 0.01) is distinct from 'inaktiv', 'Nach der Anmeldung läuft die KI wieder');
+update auth.users set last_sign_in_at = now() - interval '45 days' where id = '00000000-0000-0000-0000-00000000aac1';
+update public.firmen set paket = 'basis' where id = :'schlaefer';
+select pruefe(jarvis_katalog.ki_firmensperre(:'schlaefer', 0.01) is null, 'Zahlende Firma wird nie pausiert');
+insert into public.firmen (name, paket, ki_budget_usd) values ('Neu GmbH', 'kostenlos', 5.50) returning id as neu_inaktiv \gset
+select pruefe(jarvis_katalog.ki_firmensperre(:'neu_inaktiv', 0.01) is distinct from 'inaktiv', 'Neue Firma ohne Anmeldung: noch keine Pause');
 
 \echo ALLE TESTS OK
