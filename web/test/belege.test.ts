@@ -29,7 +29,8 @@ test("Belege: CSV für die Steuerberatung", () => {
 
 test("Belege: Seite mit Upload, Summen und Escaping", () => {
   const html = belegeSeite(liste, { monat: "2026-11", heute: "2026-11-03" });
-  assert.match(html, /capture="environment"/);
+  assert.doesNotMatch(html, /capture=/, "kein Kamera-Zwang, sonst lässt sich am Handy kein PDF oder XML wählen");
+  assert.match(html, /accept="[^"]*\.xml/);
   assert.match(html, /Aral &#60;Tankstelle&#62;/);
   assert.match(html, /href="\/konto\/belege\.csv\?monat=2026-11"/);
   assert.match(html, /href="\/konto\/belege\/11111111-1111-1111-1111-111111111111"/);

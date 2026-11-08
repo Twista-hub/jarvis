@@ -11,14 +11,30 @@ import type { Rechnung } from "./rechnungen.ts";
 import { belegLesen, type Gelesen } from "./belegleser.ts";
 import type { KiEnv } from "./api-budget.ts";
 import { kiSperrText } from "./ki-fehler.ts";
+import { belegWerte, eRechnungLesen, istXml, type ERechnung } from "./erechnung.ts";
 
 export type Beleg = { id: string; datum: string; lieferant: string; kategorie: string; brutto: number | string; ust_satz: number | string; notiz: string; beleg_mime: string | null; storniert_am?: string | null; storno_grund?: string; brutto_7?: number | string | null; anlass?: string | null; teilnehmer?: string | null };
 /** Cancelled receipts stay visible but count for nothing (GoBD, Rechtsprüfung 03.11.2026 S5). */
 export const gueltig = (l: Beleg[]) => l.filter((b) => !b.storniert_am);
 export const KATEGORIEN: Record<string, string> = { material: "🔩 Material & Waren", fahrzeug: "🚐 Fahrzeug & Tanken", buero: "🖇️ Büro & Software", miete: "🏠 Miete & Nebenkosten", versicherung: "🛡️ Versicherung", telefon: "📞 Telefon & Internet", reise: "🚆 Reise & Übernachtung", bewirtung: "🍽️ Bewirtung (Geschäftsessen)", personal: "👷 Personal (Fremdleistung, Schulung)", sonstiges: "📦 Sonstiges" };
 const SAETZE = [19, 7, 0];
-const TYPEN = ["application/pdf", "image/png", "image/jpeg"];
-const passt = (b: Uint8Array, typ: string) => typ === "application/pdf" ? b[0] === 0x25 && b[1] === 0x50 : typ === "image/png" ? b[0] === 0x89 && b[1] === 0x50 : b[0] === 0xff && b[1] === 0xd8;
+const XML = "application/xml";
+const TYPEN = ["application/pdf", "image/png", "image/jpeg", XML];
+const passt = (b: Uint8Array, typ: string) => typ === "application/pdf" ? b[0] === 0x25 && b[1] === 0x50 : typ === "image/png" ? b[0] === 0x89 && b[1] === 0x50 : typ === XML ? istXml(b) : b[0] === 0xff && b[1] === 0xd8;
+/** Upload type, with XML recognised by type or file name (browsers send text/xml, application/xml or nothing). */
+export const dateiTyp = (b: { type: string; name?: string }) => /^(application|text)\/xml$/.test(b.type) || /\.xml$/i.test(b.name ?? "") ? XML : b.type;
+const AUSWAHL = "image/jpeg,image/png,application/pdf,.xml,application/xml,text/xml";
+/** Readable view of an e-invoice receipt (the XML stays the original; this is only a display). */
+export function eRechnungAnsicht(r: ERechnung, id: string): string {
+  const z = (n: number) => (Number.isFinite(n) ? `${n.toFixed(2).replace(".", ",")} ${escape(r.waehrung)}` : "–");
+  return `<h2><span>🧾 ${r.art === "gutschrift" ? "Gutschrift" : "E-Rechnung"}</span> <span>${escape(r.nummer)}</span></h2>
+<p><strong>${escape(r.lieferant)}</strong>${r.ustId ? `<br><span class="klein"><span>USt-IdNr.</span> <span>${escape(r.ustId)}</span></span>` : ""}<br><span class="klein">${r.datum ? `Rechnungsdatum: ${tag(r.datum)}` : "Rechnungsdatum fehlt"}</span><br><span class="klein">${r.format === "UBL" ? "Format: XRechnung/Peppol (UBL)" : "Format: XRechnung/ZUGFeRD (CII)"}</span></p>
+${r.posten.length ? `<table class="tabelle"><thead><tr><th>Position</th><th>Menge</th><th>Netto</th></tr></thead><tbody>${r.posten.map((p) => `<tr><td>${escape(p.name)}</td><td>${escape(p.menge)}</td><td>${z(p.netto)}</td></tr>`).join("")}</tbody></table>` : ""}
+<table class="tabelle"><thead><tr><th>USt-Satz</th><th>Netto</th><th>USt</th></tr></thead><tbody>${r.steuern.map((t) => `<tr><td>${t.satz} %</td><td>${z(t.netto)}</td><td>${z(t.steuer)}</td></tr>`).join("")}</tbody></table>
+<p class="gewerk-zahlen"><span><strong>${z(r.netto)}</strong> netto</span> <span><strong>${z(r.brutto)}</strong> brutto</span></p>
+<p><a class="knopf zweit" href="/konto/belege/${id}?roh=1" download>⬇️ Original-XML herunterladen</a></p>
+<p class="klein">Das Original ist die XML-Datei; diese Ansicht ist nur zum Lesen. Aufbewahrt wird die XML-Datei (GoBD).</p>`;
+}
 export const dateiSchluessel = (firma: string, id: string) => `belege/${firma}/${id}`;
 const rund = (n: number) => Math.round(n * 100) / 100;
 /** VAT contained in a gross amount (e.g. 119 € at 19 % → 19 €). */
@@ -82,7 +98,7 @@ ${Object.entries(LOHNARTEN).map(([k, t]) => `<label>Lohnart ${t}<input name="la_
 <p class="klein">Buchungsstapel im DATEV-Format mit den Rechnungen und Belegen dieses Monats, SKR ${d.e.skr}. Die Konten sind ein <strong>Vorschlag</strong> (Sammeldebitor 10000, Sammelkreditor 70000, Erlöse ${d.e.skr === "03" ? "8400" : "4400"}); buchen und prüfen macht das Steuerbüro. Lohndaten für LODAS gibt es unter <a href="/konto/stunden">Stundenzettel</a>. <strong>Zugang fürs Steuerbüro:</strong> unter <a href="/konto/team">Firma &amp; Team</a> als „Leser“ mit Finanzfreigabe einladen (kostenlos) – dann sieht es Rechnungen und Belege und lädt alles selbst herunter, ändern kann es nichts.</p>${form}`;
 }
 
-export type Vorschlag = { g: Gelesen | null; dateiId: string; mime: string; sperre?: string | null };
+export type Vorschlag = { g: Gelesen | null; dateiId: string; mime: string; sperre?: string | null; xml?: { nummer: string; brutto7: number | null; hinweise: string[] } };
 export function belegeSeite(liste: Beleg[], o: { monat: string; heute: string; nurLesen?: boolean; datev?: DatevTeil; vorschlag?: Vorschlag; kiAn?: boolean }): string {
   const v = o.vorschlag, g = v?.g;
   const wert = (x: string | number | undefined) => x === undefined || x === "" || x === 0 ? "" : escape(String(x));
@@ -91,15 +107,15 @@ export function belegeSeite(liste: Beleg[], o: { monat: string; heute: string; n
   return `<nav class="dispo-nav"><a class="knopf zweit" href="/konto/belege?monat=${vorMonat(o.monat)}" aria-label="Vormonat">‹</a><strong>${monatName(o.monat)}</strong><a class="knopf zweit" href="/konto/belege?monat=${naechsterMonat(o.monat)}" aria-label="Nächster Monat">›</a></nav>
 <p class="klein">Firmenbelege (Tanken, Material, Miete …) per Foto erfassen. Am Monatsende die Liste als CSV an die Steuerberatung geben. Kategorie und Steuersatz trägst du ein; Crewtender gibt keine Steuerberatung. Mitarbeiter-Auslagen laufen weiter über <a href="/konto/spesen">Spesen</a>.</p>
 ${o.nurLesen ? "" : `<details class="termin-neu"${liste.length && !v ? "" : " open"}><summary>📸 Beleg erfassen</summary>
-${o.kiAn && !v ? `<form method="post" action="/konto/belege" enctype="multipart/form-data" class="formular-zeile"><input type="hidden" name="aktion" value="lesen"><input type="hidden" name="monat" value="${o.monat}"><label>Foto oder PDF<input type="file" name="beleg" required accept="image/jpeg,image/png,application/pdf" capture="environment"></label><button>🤖 Auslesen lassen</button></form><p class="klein">Crewtender liest Datum, Lieferant, Betrag, Steuersatz und Kategorie vor, du prüfst und speicherst. Das Foto geht dafür an den KI-Dienst Claude (Anthropic, USA), der es nicht zum Training nutzt. Oder unten alles selbst eintragen.</p>` : ""}
-${v ? `<p class="${g?.sicher ? "hinweis ok" : "hinweis"}">${g ? g.sicher ? "🤖 Vorschlag aus dem Foto – bitte kurz prüfen." : "🤖 Teilweise lesbar – bitte die leeren oder falschen Felder ergänzen." : v.sperre ? `🤖 ${escape(v.sperre)} Bitte den Beleg selbst eintragen.` : "🤖 Das Foto konnte nicht gelesen werden – bitte selbst eintragen."}${g?.gemischt ? ` <span>Der Beleg hat mehrere Steuersätze: Bei 19 % und 7 % bitte 19 % wählen und den Bruttoanteil zu 7 % unter „davon zu 7 %“ eintragen.</span>` : ""}</p>` : ""}
+${!v ? `<form method="post" action="/konto/belege" enctype="multipart/form-data" class="formular-zeile"><input type="hidden" name="aktion" value="lesen"><input type="hidden" name="monat" value="${o.monat}"><label>${o.kiAn ? "Foto, PDF oder E-Rechnung (XML)" : "E-Rechnung (XML)"}<input type="file" name="beleg" required accept="${o.kiAn ? AUSWAHL : ".xml,application/xml,text/xml"}"></label><button>${o.kiAn ? "🤖 Auslesen lassen" : "🧾 E-Rechnung einlesen"}</button></form><p class="klein">${o.kiAn ? "Crewtender liest Datum, Lieferant, Betrag, Steuersatz und Kategorie vor, du prüfst und speicherst. Das Foto geht dafür an den KI-Dienst Claude (Anthropic, USA), der es nicht zum Training nutzt. " : ""}E-Rechnungen (XRechnung, ZUGFeRD, Factur-X als XML) liest Crewtender ohne KI direkt aus und bewahrt die XML-Datei als Beleg auf. Oder unten alles selbst eintragen.</p>` : ""}
+${v?.xml ? `<p class="${g?.sicher ? "hinweis ok" : "hinweis"}">🧾 E-Rechnung gelesen – bitte Kategorie wählen und kurz prüfen.${v.xml.hinweise.map((h) => ` <span>${escape(h)}</span>`).join("")}</p>` : v ? `<p class="${g?.sicher ? "hinweis ok" : "hinweis"}">${g ? g.sicher ? "🤖 Vorschlag aus dem Foto – bitte kurz prüfen." : "🤖 Teilweise lesbar – bitte die leeren oder falschen Felder ergänzen." : v.sperre ? `🤖 ${escape(v.sperre)} Bitte den Beleg selbst eintragen.` : "🤖 Das Foto konnte nicht gelesen werden – bitte selbst eintragen."}${g?.gemischt ? ` <span>Der Beleg hat mehrere Steuersätze: Bei 19 % und 7 % bitte 19 % wählen und den Bruttoanteil zu 7 % unter „davon zu 7 %“ eintragen.</span>` : ""}</p>` : ""}
 <form method="post" action="/konto/belege" enctype="multipart/form-data"><input type="hidden" name="monat" value="${o.monat}">${v ? `<input type="hidden" name="datei_id" value="${v.dateiId}"><input type="hidden" name="datei_mime" value="${escape(v.mime)}">` : ""}<div class="aueg-form">
 <label>Datum<input type="date" name="datum" required value="${g?.datum || o.heute}" max="${o.heute}"></label><label>Lieferant<input name="lieferant" maxlength="160" required placeholder="z. B. Aral, Würth" value="${wert(g?.lieferant)}"></label>
 <label>Betrag brutto (€)<input name="brutto" inputmode="decimal" required maxlength="12" placeholder="z. B. 59,90" value="${g?.brutto ? g.brutto.toFixed(2).replace(".", ",") : ""}"></label><label>USt-Satz<select name="ust_satz">${SAETZE.map((x) => `<option value="${x}"${g && g.ust_satz === x ? " selected" : ""}>${x} %</option>`).join("")}</select></label>
-<label>davon zu 7 % (bei gemischten Belegen)<input name="brutto_7" inputmode="decimal" maxlength="12" placeholder="nur bei 19 % und 7 % auf einem Beleg"></label><label>Kategorie<select name="kategorie">${Object.entries(KATEGORIEN).map(([k, t]) => `<option value="${k}"${g?.kategorie === k ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+<label>davon zu 7 % (bei gemischten Belegen)<input name="brutto_7" inputmode="decimal" maxlength="12" placeholder="nur bei 19 % und 7 % auf einem Beleg" value="${v?.xml?.brutto7 ? v.xml.brutto7.toFixed(2).replace(".", ",") : ""}"></label><label>Kategorie<select name="kategorie">${Object.entries(KATEGORIEN).map(([k, t]) => `<option value="${k}"${g?.kategorie === k ? " selected" : ""}>${t}</option>`).join("")}</select></label>
 <label class="beleg-bewirtung">Anlass der Bewirtung<input name="anlass" maxlength="300" placeholder="z. B. Angebotsbesprechung Objekt Hauptstraße"></label><label class="beleg-bewirtung">Teilnehmer (alle, auch Gastgeber)<input name="teilnehmer" maxlength="500" placeholder="z. B. A. Beispiel (Kunde GmbH), ich"></label>
-<p class="klein ganz beleg-bewirtung">🍽️ Bei „Bewirtung“ sind Anlass und Teilnehmer Pflichtfelder.</p><label class="ganz">Notiz<input name="notiz" maxlength="300"></label>
-${v ? `<p class="klein ganz">📎 Foto ist angehängt.</p>` : `<label class="ganz">Beleg (Foto oder PDF bis 5 MB)<input type="file" name="beleg" accept="image/jpeg,image/png,application/pdf" capture="environment"></label>`}</div><button>Speichern</button></form></details>`}
+<p class="klein ganz beleg-bewirtung">🍽️ Bei „Bewirtung“ sind Anlass und Teilnehmer Pflichtfelder.</p><label class="ganz">Notiz<input name="notiz" maxlength="300" value="${v?.xml?.nummer ? escape(`Rechnung ${v.xml.nummer}`.slice(0, 300)) : ""}"></label>
+${v ? `<p class="klein ganz">📎 ${v.mime === XML ? "E-Rechnung (XML) ist angehängt." : "Foto ist angehängt."}</p>` : `<label class="ganz">Beleg (Foto, PDF oder E-Rechnung bis 5 MB)<input type="file" name="beleg" accept="${AUSWAHL}"></label>`}</div><button>Speichern</button></form></details>`}
 ${liste.length ? `<p class="gewerk-zahlen"><span><strong>${euro(s.gesamt.brutto)}</strong> brutto</span> <span><strong>${euro(s.vorsteuer)}</strong> Vorsteuer laut Eingabe</span>${s.ohneBeleg ? ` <span><strong>${euro(s.ohneBeleg)}</strong> nicht als Vorsteuer gezählt (kein Beleg hochgeladen)</span>` : ""} <span><strong>${s.gesamt.anzahl}</strong> Belege</span></p>
 <p><a class="knopf" href="/konto/belege.csv?monat=${o.monat}" download>📤 CSV für die Steuerberatung</a></p>
 <ul class="kontakt-liste">${liste.map((b) => `<li><div><strong>${tag(b.datum)} · ${escape(b.lieferant)}</strong><span class="klein">${KATEGORIEN[b.kategorie] ?? escape(b.kategorie)} · ${Number(b.ust_satz)} % USt${b.notiz ? ` · ${escape(b.notiz)}` : ""} · ${b.beleg_mime ? `<a href="/konto/belege/${b.id}" target="_blank" rel="noopener">📎 Beleg</a>` : "⚠️ ohne Beleg"}</span>${anteil7(b) ? `<span class="klein">${euro(anteil7(b))} davon zu 7 % USt</span>` : ""}${b.kategorie === "bewirtung" ? `<span class="klein">🍽️ <em>Anlass:</em> ${escape(b.anlass ?? "")} · <em>Teilnehmer:</em> ${escape(b.teilnehmer ?? "")}</span>` : ""}${!b.storniert_am && Number(b.brutto) > KLEINBETRAG ? `<span class="klein">⚠️ Über 250 €: Die Rechnung braucht u. a. Name und Anschrift des Empfängers, Steuernummer oder USt-IdNr. des Lieferanten und eine Rechnungsnummer (§ 14 Abs. 4 UStG) – bitte prüfen.</span>` : ""}</div><span class="knopf-zeile">${b.storniert_am ? `<s>${euro(Number(b.brutto))}</s> <span class="klein">↩︎ storniert${b.storno_grund ? `: ${escape(b.storno_grund)}` : ""}</span>` : `<strong>${euro(Number(b.brutto))}</strong>${o.nurLesen ? "" : `<details class="storno"><summary class="knopf zweit" aria-label="Beleg stornieren">↩︎</summary><form method="post" action="/konto/belege"><input type="hidden" name="monat" value="${o.monat}"><input type="hidden" name="storno" value="${b.id}"><label>Grund<input name="grund" required minlength="3" maxlength="300" placeholder="z. B. doppelt erfasst"></label><button class="zweit">Beleg stornieren</button><p class="klein">Belege werden nicht gelöscht (GoBD): Der Beleg bleibt mit Grund sichtbar, zählt aber nicht mehr für Vorsteuer und DATEV.</p></form></details>`}`}</span></li>`).join("")}</ul>
@@ -125,6 +141,12 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
     const x = r.ok ? r.daten[0] : undefined;
     const obj = x?.beleg_mime ? await env.DATEN?.get(dateiSchluessel(firma, x.id)) : null;
     if (!x || !obj) return new Response("Nicht gefunden", { status: 404 });
+    if (x.beleg_mime === XML) {
+      const roh = await obj.text();
+      const e = url.searchParams.get("roh") ? null : eRechnungLesen(roh);
+      if (e) return antwort(eRechnungAnsicht(e, x.id));
+      return new Response(roh, { headers: kopf({ "content-type": "application/xml; charset=utf-8", "content-disposition": `attachment; filename="e-rechnung-${x.id.slice(0, 8)}.xml"`, "cache-control": "private, no-store", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; sandbox" }) });
+    }
     return new Response(obj.body, { headers: kopf({ "content-type": x.beleg_mime!, "content-disposition": "inline", "cache-control": "private, no-store", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" }) });
   }
   const laden = (monat: string) => db<Beleg[]>(f.s, env, `belege?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,datum,lieferant,kategorie,brutto,ust_satz,brutto_7,anlass,teilnehmer,notiz,beleg_mime,storniert_am,storno_grund&order=datum.desc,erstellt.desc&limit=5000`);
@@ -168,11 +190,21 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
     const kiAn = !!(env.ANTHROPIC_API_KEY && env.HYPERDRIVE);
     if (t("aktion", 10) === "lesen") {
       const b = form.get("beleg");
-      if (!b || typeof b === "string" || !b.size) return zurueck("Bitte ein Foto oder PDF auswählen.");
-      const bytes = new Uint8Array(await b.arrayBuffer());
-      if (b.size > 5 * 1024 * 1024 || !TYPEN.includes(b.type) || !passt(bytes, b.type)) return zurueck("Beleg bitte als Foto (JPG/PNG) oder PDF bis 5 MB.");
+      if (!b || typeof b === "string" || !b.size) return zurueck("Bitte ein Foto, PDF oder eine E-Rechnung auswählen.");
+      const bytes = new Uint8Array(await b.arrayBuffer()), typ = dateiTyp(b);
+      if (b.size > 5 * 1024 * 1024 || !TYPEN.includes(typ) || !passt(bytes, typ)) return zurueck("Beleg bitte als Foto (JPG/PNG), PDF oder E-Rechnung (XML) bis 5 MB.");
+      // S11: e-invoices are read without AI; the XML file itself is the receipt.
+      const e = typ === XML ? eRechnungLesen(new TextDecoder().decode(bytes)) : null;
+      if (typ === XML && !e) return zurueck("Die XML-Datei ist keine lesbare E-Rechnung (XRechnung, ZUGFeRD oder Factur-X).");
+      if (!e && !kiAn) return zurueck("Fotos und PDFs kann Crewtender gerade nicht auslesen. Bitte unten selbst eintragen.");
       const dateiId = crypto.randomUUID();
-      await env.DATEN?.put(dateiSchluessel(firma, dateiId), bytes, { httpMetadata: { contentType: b.type } });
+      await env.DATEN?.put(dateiSchluessel(firma, dateiId), bytes, { httpMetadata: { contentType: typ } });
+      if (e) {
+        const w = belegWerte(e);
+        const l = await laden(monat);
+        const g: Gelesen = { datum: w.datum, lieferant: w.lieferant, brutto: w.brutto, ust_satz: w.ust_satz, gemischt: false, kategorie: "", sicher: w.sicher };
+        return antwort(belegeSeite(l.ok ? l.daten : [], { monat, heute, kiAn, vorschlag: { g, dateiId, mime: XML, xml: { nummer: e.nummer.slice(0, 80), brutto7: w.brutto_7, hinweise: w.hinweise } } }));
+      }
       let sperre: string | null = null;
       const g = kiAn ? await belegLesen(env as KiEnv, bytes, b.type, firma, heute).catch((e) => { sperre = kiSperrText(e); return null; }) : null;
       const l = await laden(monat);
@@ -205,8 +237,10 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
     let mime: string | null = vorhanden ? dateiMime : null, bytes: Uint8Array | null = null;
     if (!vorhanden && b && typeof b !== "string" && b.size) {
       bytes = new Uint8Array(await b.arrayBuffer());
-      if (b.size > 5 * 1024 * 1024 || !TYPEN.includes(b.type) || !passt(bytes, b.type)) return zurueck("Beleg bitte als Foto (JPG/PNG) oder PDF bis 5 MB.");
-      mime = b.type;
+      const typ = dateiTyp(b);
+      if (b.size > 5 * 1024 * 1024 || !TYPEN.includes(typ) || !passt(bytes, typ)) return zurueck("Beleg bitte als Foto (JPG/PNG), PDF oder E-Rechnung (XML) bis 5 MB.");
+      if (typ === XML && !eRechnungLesen(new TextDecoder().decode(bytes))) return zurueck("Die XML-Datei ist keine lesbare E-Rechnung (XRechnung, ZUGFeRD oder Factur-X).");
+      mime = typ;
       await env.DATEN?.put(dateiSchluessel(firma, id), bytes, { httpMetadata: { contentType: mime } });
     }
     const r = await db(f.s, env, "belege", { method: "POST", body: JSON.stringify({ id, firma_id: firma, datum, lieferant, kategorie, brutto: rund(brutto), ust_satz: satz, brutto_7: brutto7, anlass: bewirtung ? anlass : null, teilnehmer: bewirtung ? teilnehmer : null, notiz: t("notiz", 300), beleg_mime: mime }) });
