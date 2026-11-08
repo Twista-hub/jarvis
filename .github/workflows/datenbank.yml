@@ -11,7 +11,7 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose, abos, beispielfirma_test]
+        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose, abos, beispielfirma_test, auftraggeber_diagnose]
         default: anzeigen
       bestaetigung:
         description: "Zum Einspielen hier EINSPIELEN eintippen"
@@ -133,8 +133,17 @@ jobs:
         if: inputs.aktion == 'beispielfirma_test'
         run: |
           psql "$DB_URL" -X -v ON_ERROR_STOP=1 -c "update public.firmen set paket = 'test', zusatz_einsatzkraefte = 0 where id = 'c3401eb9-aa97-47a9-887d-2287c07363ff' returning name, paket"
+      - name: Auftraggeber-Kennungen prüfen (nur lesend, öffentliche Bekanntmachungen)
+        if: inputs.aktion == 'auftraggeber_diagnose'
+        run: |
+          psql "$DB_URL" -X -c "select quelle, count(*) as zeilen, count(distinct auftraggeber_id) as ids, count(distinct lower(auftraggeber)) as namen from public.vergabekatalog group by 1 order by 2 desc"
+          psql "$DB_URL" -X -c "select left(auftraggeber_id, 20) as id, count(*) as zeilen, count(distinct lower(auftraggeber)) as namen, min(left(auftraggeber, 40)) as bsp from public.vergabekatalog where quelle = 'bks' group by auftraggeber_id order by 3 desc limit 10"
+          psql "$DB_URL" -X -c "select coalesce(b->'identifier'->>'scheme', '–') as scheme, left(coalesce(b->'identifier'->>'id', '–'), 40) as ident, count(*) as zeilen, count(distinct lower(v.auftraggeber)) as namen from public.vergabekatalog v, lateral (select coalesce((select p from jsonb_array_elements(case when jsonb_typeof(v.roh->'parties') = 'array' then v.roh->'parties' else '[]' end) p where p->>'id' = v.roh->'buyer'->>'id' limit 1), '{}'::jsonb) || coalesce(v.roh->'buyer', '{}'::jsonb) as b) x where v.quelle = 'bks' and v.quell_datum > now() - interval '60 days' group by 1, 2 order by 4 desc limit 15"
+          psql "$DB_URL" -X -c "select jsonb_object_keys(coalesce(v.roh->'buyer', '{}'::jsonb)) as buyer_feld, count(*) from public.vergabekatalog v where v.quelle = 'bks' and v.quell_datum > now() - interval '30 days' group by 1 order by 2 desc"
+          psql "$DB_URL" -X -c "select left(p->'identifier'::text, 200) as identifier, left(p->'additionalIdentifiers'::text, 200) as weitere from public.vergabekatalog v, jsonb_array_elements(v.roh->'parties') p where v.quelle = 'bks' and p->>'id' = v.roh->'buyer'->>'id' and v.quell_datum > now() - interval '3 days' limit 8"
+          psql "$DB_URL" -X -c "select count(*) as abos, count(distinct auftraggeber_id) from public.auftraggeber_abos"
       - name: Migrationen
-        if: inputs.aktion != 'anmeldungen'
+        if: inputs.aktion != 'anmeldungen' && inputs.aktion != 'auftraggeber_diagnose'
         run: |
           set -o pipefail
           # Output (also errors) through a filter that removes credentials from connection strings.
