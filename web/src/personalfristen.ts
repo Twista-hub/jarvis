@@ -66,7 +66,7 @@ export async function personalfristen(request: Request, env: KontoEnv): Promise<
     return zurueck(r.ok ? `Kontrolle für ${p.daten[0].vorname} eingetragen. Nächste in ${INTERVALL_MONATE} Monaten.` : "Speichern hat nicht geklappt. Hast du Rechte für den Standort dieser Person?");
   }
   const [p, k, m, fn] = await Promise.all([
-    db<FristPerson[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,status,fuehrerschein,firmenwagen,probezeit_bis,befristet_bis,aufenthalt_bis&order=vorname&limit=3000`),
+    db<FristPerson[]>(f.s, env, `rpc/personal_sicht?f=${firma}&select=id,vorname,nachname,status,fuehrerschein,firmenwagen,probezeit_bis,befristet_bis,aufenthalt_bis&order=vorname&limit=3000`),
     db<Kontrolle[]>(f.s, env, `fuehrerschein_kontrollen?firma_id=eq.${firma}&select=id,personal_id,datum,klassen,notiz,geprueft_von&order=datum.desc&limit=5000`),
     db<{ user_id: string; anzeigename: string | null }[]>(f.s, env, `mitglieder?firma_id=eq.${firma}&select=user_id,anzeigename`),
     db<{ name: string }[]>(f.s, env, `firmen?id=eq.${firma}&select=name`),

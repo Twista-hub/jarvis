@@ -104,6 +104,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 08.11.2026 abends – Claude Code (Personalakte für Leser, D1)
+- Leser (z. B. Steuerbüro) sehen bei der Personalakte keine Notiz, keinen Geburtstag und kein Aufenthaltstitel-Datum mehr: Spaltenrechte entzogen, Lesen nur über `rpc/personal_sicht` (leert die drei Felder für Leser; Büro und die Person selbst sehen sie). Migration `20261108120000_personal_sensibel.sql`. **Neue Spalten in `personal` brauchen ab jetzt `grant select (spalte) on public.personal to authenticated`.** Test im Web prüft, dass kein Code `personal` mit `select=*` oder den drei Spalten direkt liest.
+- Benjamin 08.11.: Steuerbüro und Anwalt erst, wenn die App Geld einbringt; bis dahin sinnvolle, vorsichtige Standardlösungen bauen statt auf ⚖️ zu warten.
+
 ### 08.11.2026 nachmittags – Claude Code (Spesen-Pauschalen, S19)
 - Spesen: neue Arten „🚗 Kilometergeld“ (0,30 €/km) und „🍽️ Verpflegungspauschale“ (14/28 €, Kürzung für gestellte Mahlzeiten, eine pro Tag) – Betrag rechnet die App, die Datenbank prüft ihn (Migration `20261108110000_spesen_pauschalen.sql`). Lohnliste (CSV/Excel) und LODAS mit drei getrennten Lohnarten; neue Lohnart-Felder „vma“ und „km“ in den DATEV-Einstellungen (Nummern vom Lohnbüro). „Verpflegung mit Beleg“ ist nicht mehr wählbar. Kamera-Zwang beim Spesen-Upload entfernt. Spesen-Bereich und Lohnarten in allen Sprachen übersetzt, Beispielfirma mit je einer Pauschale.
 

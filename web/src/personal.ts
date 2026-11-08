@@ -48,6 +48,9 @@ export type Einsatz = { id: string; personal_id: string; vorgang_id: string; sta
 const ID = /^[0-9a-f-]{36}$/;
 
 // G2: absences with a period. Neutral reasons only (no health data).
+/** Columns of public.personal everyone with access may read. Note, birthday and residence permit come only through
+ *  rpc/personal_sicht, which blanks them for readers (Rechtsprüfung D1, migration 20261108120000). */
+export const KRAFT_SPALTEN = "id,firma_id,bereich_id,vorname,nachname,berufe,qualifikationen,eg,telefon,email,status,erstellt,tarifvertrag_id,foto,eintritt,beschaeftigung,wochenstunden,fuehrerschein,sprachen,wohn_plz,user_id,probezeit_bis,befristet_bis,firmenwagen,austritt_am,personalnummer,arbeitstage";
 export type Abwesenheit = { id: string; personal_id: string; von: string; bis: string; grund: string; notiz: string; status?: string };
 export const GRUENDE: Record<string, [string, string]> = { urlaub: ["🌴", "Urlaub"], schulung: ["🎓", "Schulung"], abwesend: ["⏸️", "Nicht verfügbar"] };
 const tagMonat = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
@@ -265,8 +268,8 @@ export async function einsaetzeLaden(s: Parameters<typeof db>[0], env: KontoEnv,
 /** On a tender: the planned people with their status, and a dropdown to plan someone (matching and available first). */
 export async function einsatzTeil(s: Parameters<typeof db>[0], env: KontoEnv, v: { id: string; firma_id: string; titel: string }, darfAendern: boolean): Promise<string> {
   const [geplant, pool, abw] = await Promise.all([
-    db<(Einsatz & { personal: Kraft | null })[]>(s, env, `einsaetze?vorgang_id=eq.${v.id}&select=id,personal_id,vorgang_id,status,personal(*)&order=erstellt`),
-    db<Kraft[]>(s, env, `personal?firma_id=eq.${v.firma_id}&select=*&order=vorname`),
+    db<(Einsatz & { personal: Kraft | null })[]>(s, env, `einsaetze?vorgang_id=eq.${v.id}&select=id,personal_id,vorgang_id,status,personal(${KRAFT_SPALTEN})&order=erstellt`),
+    db<Kraft[]>(s, env, `personal?firma_id=eq.${v.firma_id}&select=${KRAFT_SPALTEN}&order=vorname`),
     abwesenheitenLaden(s, env, v.firma_id),
   ]);
   const liste = geplant.ok ? geplant.daten.filter((e) => e.personal) : [];
@@ -428,7 +431,7 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     }
     const [bereiche, liste, qualifikationen, mitglieder, zuordnungen, tarife] = await Promise.all([
       bereicheLaden(f.s, env, f.m.firma_id),
-      db<Kraft[]>(f.s, env, `personal?firma_id=eq.${f.m.firma_id}&bereich_id=${bid ? `eq.${bid}` : "is.null"}&select=*&order=status,vorname`),
+      db<Kraft[]>(f.s, env, `rpc/personal_sicht?f=${f.m.firma_id}&bereich_id=${bid ? `eq.${bid}` : "is.null"}&select=*&order=status,vorname`),
       qualifikationenLaden(f.s, env, f.m.firma_id, bid),
       db<AppMitglied[]>(f.s, env, `mitglieder?firma_id=eq.${f.m.firma_id}&aktiv=eq.true&select=user_id,rolle,anzeigename,funktion`),
       db<{ user_id: string; bereich_id: string }[]>(f.s, env, `mitglied_bereiche?firma_id=eq.${f.m.firma_id}&select=user_id,bereich_id`),
@@ -446,7 +449,7 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
   }
 
   const pid = einzeln![1];
-  const k = await db<Kraft[]>(f.s, env, `personal?id=eq.${pid}&select=*`);
+  const k = await db<Kraft[]>(f.s, env, `rpc/personal_sicht?f=${f.m.firma_id}&id=eq.${pid}&select=*`);
   const kraft = k.ok ? k.daten[0] : undefined;
   if (!kraft || kraft.firma_id !== f.m.firma_id) return antwort("Nicht gefunden", "<p>Diese Person gibt es nicht oder du hast keinen Zugriff.</p>", 404);
   // G3: photo, served only after the row check above (RLS decides who sees the worker).
