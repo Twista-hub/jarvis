@@ -7,9 +7,10 @@ import { escape, seite } from "./seite.ts";
 import { FR_PFADE } from "./gewerke-fr.ts";
 import { LAND_PFADE } from "./gewerke-land.ts";
 import { alternativen } from "./gewerke-sprachen.ts";
+import { BUNDESLAENDER } from "./nuts.ts";
 
 type Gewerk = { slug: string; name: string; h1: string; cpv: string[]; intro: string; vorteile: string[]; fragen: [string, string][] };
-export type Statistik = { monat: number; offen: number; beispiele: { titel: string; auftraggeber: string; ort: string; frist: string | null; link: string }[]; stand?: string };
+export type Statistik = { monat: number; offen: number; beispiele: { id?: string; titel: string; auftraggeber: string; ort: string; frist: string | null; link: string }[]; stand?: string };
 
 const ALLGEMEIN: [string, string][] = [
   ["Was kostet Crewtender?", "Die Registrierung ist kostenlos. Du siehst sofort passende Ausschreibungen für deine Firma und kannst alles in Ruhe ausprobieren."],
@@ -60,6 +61,9 @@ export const GEWERKE: Gewerk[] = [
 ];
 
 const zahl = (n: number) => n.toLocaleString("de-DE");
+/** Trade × federal state pages (seo-seiten.ts). */
+export const LAENDER_PFADE_DE = () => GEWERKE.flatMap((g) => BUNDESLAENDER.map((l) => `/ausschreibungen/${g.slug}/${l.slug}`));
+const laenderChips = (slug: string) => `<h2>Nach Bundesland</h2><nav class="ordner-chips gewerk-liste" aria-label="Bundesländer">${BUNDESLAENDER.map((l) => `<a href="/ausschreibungen/${slug}/${l.slug}">${escape(l.name)}</a>`).join("")}</nav>`;
 const datum = (d: string | null) => d ? new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Berlin" }) : "–";
 
 export function gewerkSeite(g: Gewerk, s: Statistik | null): string {
@@ -69,9 +73,10 @@ export function gewerkSeite(g: Gewerk, s: Statistik | null): string {
 <p>${escape(g.intro)}</p>
 ${s ? `<div class="gewerk-zahlen"><div><strong>${zahl(s.monat)}</strong><span>Ausschreibungen in den letzten 30 Tagen</span></div>${s.offen ? `<div><strong>${zahl(s.offen)}</strong><span>davon noch offen</span></div>` : ""}</div>` : ""}
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">Kostenlos passende Aufträge finden</a><a class="knopf zweit" href="/demo">🎬 Demo ansehen</a></div>
-${s?.beispiele.length ? `<h2>Aktuelle Ausschreibungen (Auswahl)</h2><ul class="kontakt-liste gewerk-beispiele">${s.beispiele.map((b) => `<li><div><strong>${escape(b.titel)}</strong><span class="klein">${escape([b.auftraggeber, b.ort].filter(Boolean).join(" · "))} ${b.frist ? ` · Frist ${datum(b.frist)}` : ""}</span></div></li>`).join("")}</ul><p class="klein">Quelle: amtliche Bekanntmachungen. In Crewtender bekommst du nur die Ausschreibungen, die zu deiner Firma und deinem Gebiet passen, mit Bewertung und Steckbrief.</p>` : ""}
+${s?.beispiele.length ? `<h2>Aktuelle Ausschreibungen (Auswahl)</h2><ul class="kontakt-liste gewerk-beispiele">${s.beispiele.map((b) => `<li><div>${b.id ? `<a href="/ausschreibung/${encodeURIComponent(b.id)}"><strong>${escape(b.titel)}</strong></a>` : `<strong>${escape(b.titel)}</strong>`}<span class="klein">${escape([b.auftraggeber, b.ort].filter(Boolean).join(" · "))} ${b.frist ? ` · Frist ${datum(b.frist)}` : ""}</span></div></li>`).join("")}</ul><p class="klein">Quelle: amtliche Bekanntmachungen. In Crewtender bekommst du nur die Ausschreibungen, die zu deiner Firma und deinem Gebiet passen, mit Bewertung und Steckbrief.</p>` : ""}
 <h2>So hilft Crewtender ${escape(g.name === "Elektro" ? "Elektrobetrieben" : `im Bereich ${g.name}`)}</h2>
 <ul>${g.vorteile.map((v) => `<li>${escape(v)}</li>`).join("")}<li>Jeden Morgen die neuen Treffer mit Punkten von 1 bis 10 und einem Satz, warum sie passen</li></ul>
+${laenderChips(g.slug)}
 <h2>Häufige Fragen</h2>
 ${fragen.map(([q, a]) => `<details><summary>${escape(q)}</summary><p>${escape(a)}</p></details>`).join("")}
 <h2>Weitere Gewerke</h2>
@@ -88,10 +93,10 @@ export function uebersichtGewerke(): string {
 const meta = (html: string, beschreibung: string, url: string, paar = "") => html.replace("</title>", `</title>\n<meta name="description" content="${escape(beschreibung)}">\n<link rel="canonical" href="${escape(url)}">${paar ? `\n${paar}` : ""}`);
 
 export function sitemap(adresse: string): string {
-  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...FR_PFADE, ...LAND_PFADE, "/demo", "/preise", "/us/sam-registration", "/datenschutz", "/impressum", "/kontakt", "/partner", "/partner/bedingungen", "/hilfe", ...ANLEITUNGEN.map((x) => `/hilfe/${x.slug}`)];
+  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...LAENDER_PFADE_DE(), ...FR_PFADE, ...LAND_PFADE, "/demo", "/preise", "/us/sam-registration", "/datenschutz", "/impressum", "/kontakt", "/partner", "/partner/bedingungen", "/hilfe", ...ANLEITUNGEN.map((x) => `/hilfe/${x.slug}`)];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pfade.map((p) => `<url><loc>${adresse}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
 }
-export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /portal/\nDisallow: /einladung\nDisallow: /auftrag/\nSitemap: ${adresse}/sitemap.xml\n`;
+export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /portal/\nDisallow: /einladung\nDisallow: /auftrag/\nSitemap: ${adresse}/sitemap.xml\nSitemap: ${adresse}/sitemap-ausschreibungen.xml\n`;
 
 type GewerkEnv = { SUPABASE_URL: string; SUPABASE_KEY: string; WARTEN?: (p: Promise<unknown>) => void };
 
@@ -111,7 +116,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   if (!m) return null;
   if (!g) return new Response(null, { status: 301, headers: { location: "/ausschreibungen" } });
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
-  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}?cache=4`);
+  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}?cache=5`);
   const alt = await cache?.match(schluessel).catch(() => undefined);
   if (alt) return alt;
   let s: Statistik | null = null;

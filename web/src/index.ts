@@ -73,6 +73,7 @@ import { kraefteEinladen } from "./kraefte.ts";
 import { betreiber } from "./loeschen.ts";
 import { betreiberRechnungen } from "./betreiber-rechnungen.ts";
 import { betreiberPartner, partnerOeffentlich } from "./partnerprogramm.ts";
+import { seoSeiten } from "./seo-seiten.ts";
 import { demo } from "./demo.ts";
 import { gewerke } from "./gewerke.ts";
 import { metiers } from "./gewerke-fr.ts";
@@ -245,6 +246,8 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
       },
       }, form);
     }
+    const seo = await seoSeiten(request, env, ADRESSE, (h) => html(h));
+    if (seo) return seo;
     const gw = await gewerke(request, env, ADRESSE, (h) => html(h));
     if (gw) return gw;
     const fr = await metiers(request, env, ADRESSE, (h) => html(h));
