@@ -121,3 +121,14 @@ test("Steuerbüro-Zugang: nur ansehen und herunterladen", async () => {
   assert.doesNotMatch(b, /<form|Beleg erfassen/);
   assert.match(b, /belege\.csv\?monat=2026-11/);
 });
+
+test("S18: Barbelege gegen Kasse, Arbeitskleidung, Auslandsrechnung mit § 13b-Schlüssel", () => {
+  const e: DatevEinstellung = { berater: "1234567", mandant: "42", skr: "03", wjBeginn: 1, kleinunternehmer: false };
+  const b = (id: string, x: Record<string, unknown>) => ({ id: id.padEnd(36, "0"), datum: "2026-11-03", lieferant: "L", kategorie: "material", brutto: 119, ust_satz: 19, notiz: "", beleg_mime: "image/png", ...x }) as never;
+  const [bar, kleidung, ausland] = buchungenAus([], [b("a", { zahlart: "bar" }), b("b", { kategorie: "arbeitskleidung" }), b("c", { kategorie: "buero", brutto: 50, ust_satz: 0, reverse_charge: true })], e);
+  assert.deepEqual([bar.konto, bar.gegenkonto, bar.bu], ["3000", "1000", "9"]);
+  assert.deepEqual([kleidung.konto, kleidung.gegenkonto], ["4980", "70000"]);
+  assert.deepEqual([ausland.konto, ausland.bu, ausland.cent], ["4930", "94", 5000]);
+  const [bar04] = buchungenAus([], [b("a", { zahlart: "bar" })], { ...e, skr: "04" });
+  assert.equal(bar04.gegenkonto, "1600");
+});
