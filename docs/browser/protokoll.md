@@ -19,6 +19,15 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### Erledigt (08.11.2026) – Stripe-Einstellungen Livebetrieb (Auftrag `docs/auftraege/crewtender-stripe-live.md`)
+Alles im Livebetrieb, Konto Crewtender (Stripe ist nur im Chrome-Hauptprofil angemeldet, nicht im Crewtender-Profil).
+1. Öffentliche Angaben: geändert, Support-E-Mail jetzt hello@crewtender.eu (vorher kontakt@wpdigitalranger.com). Name und Website waren richtig. Support-Telefon bleibt eingetragen (Pflichtfeld bei Stripe).
+2. Branding: war richtig (Crewtender-Icon, #1f6feb).
+3. Rechnungs-Fußzeile: live war leer (nur in der Sandbox gesetzt), jetzt eingetragen und nach Neuladen geprüft. Keine Steuersätze.
+4. Zahlungsbelege (Erfolgreiche Zahlungen, Rückerstattungen): waren an.
+5. Abo-Mails: neu an: bevorstehende Verlängerungen, ablaufende Karten, fehlgeschlagene Kartenzahlungen, fehlgeschlagene Lastschriften (kein Aufpreis). Schon richtig: Verlängerung 7 Tage vorher, fertiggestellte Rechnungen und Stornorechnungen senden. Nicht angefasst: Testzeitraum-Erinnerung, Änderungen bei Zahlungsmethoden, Smart Retries.
+Keine Schlüssel angesehen, nichts Kostenpflichtiges, keine Produkte/Preise/Webhooks geändert.
+
 ### Erledigt (08.11.2026) – Facebook und Instagram, Woche 46 (Auftrag `docs/auftraege/crewtender-woche-46.md`)
 Woche 46 in der Meta Business Suite geplant, alles um 18:00 Uhr, öffentlich, nichts beworben:
 - Di 10.11., Facebook: `0-di-auftragswert-korrigiert.png`. Gelöscht und neu geplant, weil Meta beim Bearbeiten das alte Bild behielt. Alte ID 4665561463724729, neue ID 1112797828401694.
