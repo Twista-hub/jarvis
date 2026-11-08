@@ -539,5 +539,6 @@
  "Arbeitsunfähigkeit (Tage)": "Baja laboral (días)",
  "Kind krank (Tage)": "Hijo enfermo (días)",
  "Unbezahlter Urlaub (Tage)": "Permiso no retribuido (días)",
- "Bewacherregister (Bewacher-ID)": "Registro de vigilantes (ID)"
+ "Bewacherregister (Bewacher-ID)": "Registro de vigilantes (ID)",
+ "Ausfallzeiten: Urlaub, Feiertage, Krankheit (%)": "Tiempo no productivo: vacaciones, festivos, enfermedad (%)"
 }

@@ -539,5 +539,6 @@
  "Arbeitsunfähigkeit (Tage)": "Sick leave (days)",
  "Kind krank (Tage)": "Child sick (days)",
  "Unbezahlter Urlaub (Tage)": "Unpaid leave (days)",
- "Bewacherregister (Bewacher-ID)": "Guard register (guard ID)"
+ "Bewacherregister (Bewacher-ID)": "Guard register (guard ID)",
+ "Ausfallzeiten: Urlaub, Feiertage, Krankheit (%)": "Downtime: leave, public holidays, sickness (%)"
 }

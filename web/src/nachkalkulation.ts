@@ -9,8 +9,9 @@ import { euro } from "./spesen.ts";
 import { mitLand, einsatzLaender, landDerFirma, minuten, naechsterMonat, vorMonat, type Eintrag } from "./stunden.ts";
 import { zuschlag } from "./zuschlaege.ts";
 
-export type Werte = { lohn: number; nebenkosten: number; nacht: number; sonntag: number; feiertag: number };
-export const STANDARD: Werte = { lohn: 15, nebenkosten: 23, nacht: 25, sonntag: 50, feiertag: 100 };
+export type Werte = { lohn: number; nebenkosten: number; nacht: number; sonntag: number; feiertag: number; ausfall?: number };
+/** S27: ausfall = paid downtime (leave, public holidays, sick pay) as % on wage costs. */
+export const STANDARD: Werte = { lohn: 15, nebenkosten: 23, nacht: 25, sonntag: 50, feiertag: 100, ausfall: 20 };
 type Kunde = { id: string; name: string };
 type Ort = { id: string; kunde_id: string | null };
 type Schicht = { datum: string; beginn: string; ende: string; einsatzort_id: string | null; personal_id: string | null };
@@ -31,7 +32,7 @@ export function nachkalkulation(d: { kunden: Kunde[]; orte: Ort[]; schichten: Sc
     for (const e of st) {
       const lohn = d.loehne.get(e.personal_id) ?? w.lohn, m = minuten(e), z = zuschlag(e, d.land);
       ist += m; zNacht += z.nacht; zSonntag += z.sonntag; zFeiertag += z.feiertag;
-      kosten += (m / 60 * lohn + (z.nacht * w.nacht + z.sonntag * w.sonntag + z.feiertag * w.feiertag) / 60 / 100 * lohn) * (1 + w.nebenkosten / 100);
+      kosten += (m / 60 * lohn + (z.nacht * w.nacht + z.sonntag * w.sonntag + z.feiertag * w.feiertag) / 60 / 100 * lohn) * (1 + w.nebenkosten / 100) * (1 + (w.ausfall ?? 0) / 100);
     }
     const re = d.rechnungen.filter((r) => r.kunde_id === kid);
     const p = kid ? d.preise.find((x) => x.kunde_id === kid) : undefined;
@@ -54,11 +55,11 @@ export function nachkalkulationSeite(z: Zeile[], o: { monat: string; werte: Wert
   const zeile = (x: Zeile) => `<tr><td>${ampel(x.quote)} ${escape(x.name)}</td><td>${x.planMin ? std(x.planMin) : "–"}</td><td>${std(x.istMin)}</td><td>${x.planMin ? `${x.istMin - x.planMin >= 0 ? "+" : ""}${std(x.istMin - x.planMin)}` : "–"}</td><td>${euro(x.kosten)}</td><td>${x.erloes === null ? `<span class="klein">kein Satz</span>` : `${euro(x.erloes)}${x.quelle === "geschaetzt" ? ` <span class="klein">(geschätzt)</span>` : ""}`}</td><td>${x.db === null ? "–" : euro(x.db)}</td><td>${x.quote === null ? "–" : `${x.quote.toLocaleString("de-DE")} %`}</td></tr>`;
   const w = o.werte;
   const werteForm = o.darf ? `<details class="termin-neu"><summary>⚙️ Kostenwerte</summary><form method="post" action="/konto/nachkalkulation"><input type="hidden" name="aktion" value="werte"><input type="hidden" name="monat" value="${o.monat}"><div class="aueg-form">
-${([["lohn", "Standard-Stundenlohn (€)", w.lohn], ["nebenkosten", "Lohnnebenkosten (%)", w.nebenkosten], ["nacht", "Nachtzuschlag (%)", w.nacht], ["sonntag", "Sonntagszuschlag (%)", w.sonntag], ["feiertag", "Feiertagszuschlag (%)", w.feiertag]] as const).map(([k, t, v]) => `<label>${t}<input name="${k}" inputmode="decimal" required value="${String(v).replace(".", ",")}"></label>`).join("")}</div><button>Speichern</button></form></details>` : "";
+${([["lohn", "Standard-Stundenlohn (€)", w.lohn], ["nebenkosten", "Lohnnebenkosten (%)", w.nebenkosten], ["ausfall", "Ausfallzeiten: Urlaub, Feiertage, Krankheit (%)", w.ausfall ?? 0], ["nacht", "Nachtzuschlag (%)", w.nacht], ["sonntag", "Sonntagszuschlag (%)", w.sonntag], ["feiertag", "Feiertagszuschlag (%)", w.feiertag]] as const).map(([k, t, v]) => `<label>${t}<input name="${k}" inputmode="decimal" required value="${String(v).replace(".", ",")}"></label>`).join("")}</div><button>Speichern</button></form></details>` : "";
   const lohnForm = o.darf && o.personen.length ? `<details class="termin-neu"><summary>👷 Stundenlöhne (${o.personen.filter((p) => p.lohn !== null).length} von ${o.personen.length} eingetragen)</summary><form method="post" action="/konto/nachkalkulation"><input type="hidden" name="aktion" value="loehne"><input type="hidden" name="monat" value="${o.monat}"><div class="aueg-form">
 ${o.personen.map((p) => `<label>${escape(p.name)}<input name="lohn_${p.id}" inputmode="decimal" maxlength="7" value="${p.lohn === null ? "" : String(p.lohn).replace(".", ",")}" placeholder="Standard ${String(w.lohn).replace(".", ",")} €"></label>`).join("")}</div><button>Speichern</button><p class="klein">Leer = Standardlohn. Die Löhne sehen nur Personen mit Finanzfreigabe.</p></form></details>` : "";
   return `<nav class="dispo-nav"><a class="knopf zweit" href="/konto/nachkalkulation?monat=${vorMonat(o.monat)}" aria-label="Vormonat">‹</a><strong>${new Date(`${o.monat}-15T12:00:00Z`).toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" })}</strong><a class="knopf zweit" href="/konto/nachkalkulation?monat=${naechsterMonat(o.monat)}" aria-label="Nächster Monat">›</a></nav>
-${o.laufend ? `<p class="klein">📅 Laufender Monat: geplante Stunden zählen nur bis gestern, damit noch kommende Schichten nicht als Lücke erscheinen.</p>` : ""}<p class="klein">Pro Kunde: geplante Stunden (Schichten an seinen Einsatzorten) gegen freigegebene Stunden, Lohnkosten (Stundenlohn + Zuschläge + ${String(w.nebenkosten).replace(".", ",")} % Lohnnebenkosten) gegen Erlös (Rechnungen des Monats, sonst geschätzt aus dem Verrechnungssatz). 🔴 Verlust · 🟡 unter 15 % · 🟢 ab 15 % Deckungsbeitrag. Gemeinkosten (Büro, Fahrzeuge, Versicherung) sind nicht abgezogen.</p>
+${o.laufend ? `<p class="klein">📅 Laufender Monat: geplante Stunden zählen nur bis gestern, damit noch kommende Schichten nicht als Lücke erscheinen.</p>` : ""}<p class="klein">Pro Kunde: geplante Stunden (Schichten an seinen Einsatzorten) gegen freigegebene Stunden, Lohnkosten (Stundenlohn + Zuschläge + ${String(w.nebenkosten).replace(".", ",")} % Lohnnebenkosten + ${String(w.ausfall ?? 0).replace(".", ",")} % Ausfallzeiten) gegen Erlös (Rechnungen des Monats, sonst geschätzt aus dem Verrechnungssatz). 🔴 Verlust · 🟡 unter 15 % · 🟢 ab 15 % Deckungsbeitrag. Gemeinkosten (Büro, Fahrzeuge, Versicherung) sind nicht abgezogen.</p>
 ${z.length ? `<p class="gewerk-zahlen"><span><strong>${euro(summe.erloes)}</strong> Erlös</span> <span><strong>${euro(summe.kosten)}</strong> Lohnkosten</span> <span><strong>${euro(sdb)}</strong> Deckungsbeitrag${summe.erloes ? ` (${(Math.round(sdb / summe.erloes * 1000) / 10).toLocaleString("de-DE")} %)` : ""}</span></p>
 <div class="tabelle-rahmen"><table class="tabelle"><thead><tr><th>Kunde</th><th>Plan-Std.</th><th>Ist-Std.</th><th>Abw.</th><th>Lohnkosten</th><th>Erlös</th><th>DB</th><th>DB %</th></tr></thead><tbody>${z.map(zeile).join("")}</tbody></table></div>` : `<p class="treffer-leer">Keine freigegebenen Stunden, Schichten oder Rechnungen in diesem Monat.</p>`}
 ${werteForm}${lohnForm}`;
@@ -82,8 +83,8 @@ export async function nachkalkulationRoute(request: Request, env: KontoEnv): Pro
     const zurueck = (h: string) => weiterleiten(`/konto/nachkalkulation?monat=${monat}&hinweis=${encodeURIComponent(h)}`, f.s.cookies);
     if (!darf) return zurueck("Ändern dürfen Bearbeiter und Admins mit Finanzfreigabe.");
     if (form.get("aktion") === "werte") {
-      const w = { lohn: zahl(form.get("lohn")), nebenkosten: zahl(form.get("nebenkosten")), nacht: zahl(form.get("nacht")), sonntag: zahl(form.get("sonntag")), feiertag: zahl(form.get("feiertag")) };
-      if (!(w.lohn > 0 && w.lohn <= 500) || ![w.nebenkosten, w.nacht, w.sonntag, w.feiertag].every((x) => x >= 0 && x <= 300) || w.nebenkosten > 100) return zurueck("Bitte die Werte prüfen.");
+      const w = { lohn: zahl(form.get("lohn")), nebenkosten: zahl(form.get("nebenkosten")), nacht: zahl(form.get("nacht")), sonntag: zahl(form.get("sonntag")), feiertag: zahl(form.get("feiertag")), ausfall: zahl(form.get("ausfall")) };
+      if (!(w.lohn > 0 && w.lohn <= 500) || ![w.nebenkosten, w.nacht, w.sonntag, w.feiertag].every((x) => x >= 0 && x <= 300) || w.nebenkosten > 100 || !(w.ausfall >= 0 && w.ausfall <= 100)) return zurueck("Bitte die Werte prüfen.");
       const r = await db(f.s, env, "nachkalkulation_werte?on_conflict=firma_id", { method: "POST", headers: { prefer: "resolution=merge-duplicates" }, body: JSON.stringify({ firma_id: firma, ...w }) });
       return zurueck(r.ok ? "Kostenwerte gespeichert." : "Speichern hat nicht geklappt.");
     }
@@ -115,13 +116,13 @@ export async function nachkalkulationRoute(request: Request, env: KontoEnv): Pro
     db<(Rechnung & { monat: string })[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&status=eq.ausgestellt&monat=eq.${monat}&select=kunde_id,netto,monat&limit=2000`),
     db<Preis[]>(f.s, env, `kunden_preise?firma_id=eq.${firma}&select=kunde_id,satz,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag&limit=1000`),
     db<{ personal_id: string; stundenlohn: number | string }[]>(f.s, env, `personal_loehne?firma_id=eq.${firma}&select=personal_id,stundenlohn&limit=5000`),
-    db<Werte[]>(f.s, env, `nachkalkulation_werte?firma_id=eq.${firma}&select=lohn,nebenkosten,nacht,sonntag,feiertag`),
+    db<Werte[]>(f.s, env, `nachkalkulation_werte?firma_id=eq.${firma}&select=lohn,nebenkosten,nacht,sonntag,feiertag,ausfall`),
     db<{ id: string; vorname: string; nachname: string }[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname&limit=5000`),
     landDerFirma(f.s, env, firma),
   ]);
   if (st.ok) st.daten = mitLand(st.daten, await einsatzLaender(f.s, env, firma));
   const w0 = we.ok ? we.daten[0] : undefined;
-  const werte: Werte = w0 ? { lohn: Number(w0.lohn), nebenkosten: Number(w0.nebenkosten), nacht: Number(w0.nacht), sonntag: Number(w0.sonntag), feiertag: Number(w0.feiertag) } : STANDARD;
+  const werte: Werte = w0 ? { lohn: Number(w0.lohn), nebenkosten: Number(w0.nebenkosten), nacht: Number(w0.nacht), sonntag: Number(w0.sonntag), feiertag: Number(w0.feiertag), ausfall: Number(w0.ausfall ?? STANDARD.ausfall) } : STANDARD;
   const loehne = new Map((lo.ok ? lo.daten : []).map((x) => [x.personal_id, Number(x.stundenlohn)]));
   const stunden = st.ok ? st.daten : [];
   const z = nachkalkulation({ kunden: k.ok ? k.daten : [], orte: o.ok ? o.daten : [], schichten: sch.ok ? sch.daten : [], stunden, rechnungen: re.ok ? re.daten : [], preise: pr.ok ? pr.daten : [], loehne, werte, land });
