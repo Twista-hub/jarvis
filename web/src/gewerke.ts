@@ -96,7 +96,7 @@ export function sitemap(adresse: string): string {
   const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...LAENDER_PFADE_DE(), ...FR_PFADE, ...LAND_PFADE, "/demo", "/preise", "/us/sam-registration", "/datenschutz", "/impressum", "/kontakt", "/partner", "/partner/bedingungen", "/hilfe", ...ANLEITUNGEN.map((x) => `/hilfe/${x.slug}`)];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pfade.map((p) => `<url><loc>${adresse}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
 }
-export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /portal/\nDisallow: /einladung\nDisallow: /auftrag/\nSitemap: ${adresse}/sitemap.xml\nSitemap: ${adresse}/sitemap-ausschreibungen.xml\n`;
+export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /portal/\nDisallow: /einladung\nDisallow: /auftrag/\nSitemap: ${adresse}/sitemap-seiten.xml\nSitemap: ${adresse}/sitemap-ausschreibungen.xml\n`;
 
 type GewerkEnv = { SUPABASE_URL: string; SUPABASE_KEY: string; WARTEN?: (p: Promise<unknown>) => void };
 
@@ -104,7 +104,8 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   const url = new URL(request.url);
   if (request.method !== "GET") return null;
   if (url.pathname === "/robots.txt") return new Response(ROBOTS(adresse), { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } });
-  if (url.pathname === "/sitemap.xml") return new Response(sitemap(adresse), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=86400" } });
+  // /sitemap-seiten.xml: same list under a new name – the Search Console kept "could not be read" for /sitemap.xml (08.11.2026).
+  if (url.pathname === "/sitemap.xml" || url.pathname === "/sitemap-seiten.xml") return new Response(sitemap(adresse), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=86400" } });
   if (url.pathname === "/ausschreibungen" || url.pathname === "/ausschreibungen/") {
     const r = antwort(meta(seite("Ausschreibungen nach Gewerk", uebersichtGewerke()), "Öffentliche Ausschreibungen für Handwerk, Reinigung, Sicherheitsdienst und Zeitarbeit: Crewtender findet täglich die passenden Aufträge für deine Firma.", `${adresse}/ausschreibungen`, alternativen(adresse, null)));
     r.headers.set("cache-control", "public, max-age=3600");
