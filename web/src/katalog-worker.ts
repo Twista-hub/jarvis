@@ -3,9 +3,10 @@ import { unzipSync } from "fflate";
 import { eformsKarte, fristenEinsetzen, type EformsFristen } from "./katalog-daten.ts";
 import { nachholLimit, releaseBloecke, normalisiereBlock, wiederholen, bestehendeBekanntmachungen, exportTage } from "./katalog-plan.ts";
 
-type Env = DbEnv & { AKTIV: string; SAMMLER: Workflow };
+type Env = DbEnv & { AKTIV: string; SAMMLER: Workflow; GH_DISPATCH_TOKEN?: string };
 const UA = "Crewtender-Katalog/1.0 (public procurement index)";
 import { katalogDb, type DbEnv } from "./katalog-db.ts";
+import { ablaeufeAnstossen } from "./katalog-zeitplan.ts";
 /** Daily eForms export (same CC0 source), bounded like the OCDS export; returns the deadlines per notice. */
 async function eformsLaden(tag: string): Promise<Map<string, EformsFristen>> {
   const response = await fetch(`https://oeffentlichevergabe.de/api/notice-exports?pubDay=${tag}&format=eforms.zip`, { headers: { "User-Agent": UA }, signal: AbortSignal.timeout(90000) });
@@ -109,7 +110,8 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
 }
 export default {
   fetch() { return new Response("Nicht gefunden", { status: 404 }); },
-  async scheduled(event: ScheduledController, env: Env) {
+  async scheduled(event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(ablaeufeAnstossen(env, new Date(event.scheduledTime)));
     if (env.AKTIV !== "1") return;
     await env.SAMMLER.create({ id: `bks-${Math.floor(event.scheduledTime / 3600000)}` });
   },

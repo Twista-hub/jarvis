@@ -130,6 +130,11 @@ def ortsstunde(zone: ZoneInfo) -> int:
     return datetime.now(zone).hour
 
 
+def stunde_erreicht(gewaehlt: int, jetzt: int) -> bool:
+    """The chosen hour has come today (catch-up for skipped runs; the 20-hour rule prevents a second mail)."""
+    return gewaehlt <= jetzt
+
+
 def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tuple]:
     """(firma_id, user_id, email, firm name, last sent, channel, deadline reminders) for everyone due now."""
     if test:  # test: all firms of this person, hits of the last 24 hours, mail and phone
@@ -144,9 +149,11 @@ def faellig(con, stunde: int, test: str | None, sofort: str | None) -> list[tupl
         where b.stunde is not null and """
     if sofort:  # first hit list right after the setup assistant: everyone of this firm who wants news
         return con.execute(basis + "b.firma_id = %s", (sofort,)).fetchall()
-    # The chosen hour counts in the firm's time zone (US firms: Eastern time); the run is hourly, so compare per firm.
+    # The chosen hour counts in the firm's time zone (US firms: Eastern time). GitHub skips or delays many hourly runs
+    # (only 3 of 16 ran on 07.11.2026), so a run sends every mail whose hour has come today and that has not gone out
+    # in the last 20 hours: a missed hour is caught up by the next run instead of being lost.
     zeilen = con.execute(basis.replace("b.fristen\n", "b.fristen, b.stunde\n") + "(b.letzte_mail is null or b.letzte_mail < now() - interval '20 hours')").fetchall()
-    return [z[:7] for z in zeilen if z[7] == (stunde if firma_sprache(con, z[0])[1] == BERLIN else ortsstunde(firma_sprache(con, z[0])[1]))
+    return [z[:7] for z in zeilen if stunde_erreicht(z[7], stunde if firma_sprache(con, z[0])[1] == BERLIN else ortsstunde(firma_sprache(con, z[0])[1]))
             and woechentlich_faellig(plan_der_firma(con, z[0]), z[4], datetime.now(firma_sprache(con, z[0])[1]))]
 
 

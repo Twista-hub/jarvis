@@ -50,12 +50,11 @@ class SocialTest(unittest.TestCase):
     def test_termine(self):
         from datetime import datetime
         b = s.BERLIN
-        # Monday 10.11.2026 (winter time): 09:23, 13:23, 17:53 → slots 1–3; 12:00 and 21:00 no slot.
-        self.assertEqual([s.slot_jetzt(datetime(2026, 11, 10, h, m, tzinfo=b)) for h, m in ((9, 23), (13, 23), (17, 53), (12, 0), (21, 0))], [1, 2, 3, None, None])
-        # Summer time: the same UTC start is one hour later in Berlin and still inside the window.
-        self.assertEqual([s.slot_jetzt(datetime(2027, 6, 7, h, 53, tzinfo=b)) for h in (10, 14, 18)], [1, 2, 3])
-        # Weekend: one slot around 11–13 Berlin.
-        self.assertEqual([s.slot_jetzt(datetime(2026, 11, 14, h, 23, tzinfo=b)) for h in (9, 11, 12, 17)], [None, 1, 1, None])
+        # Monday 10.11.2026: the latest slot whose start has come; nothing before 09:00 and from 21:00.
+        self.assertEqual([s.slot_jetzt(datetime(2026, 11, 10, h, m, tzinfo=b)) for h, m in ((8, 59), (9, 23), (12, 0), (13, 23), (16, 59), (17, 53), (20, 59), (21, 0))],
+                         [None, 1, 1, 2, 2, 3, 3, None])
+        # Weekend: one slot from 11:00.
+        self.assertEqual([s.slot_jetzt(datetime(2026, 11, 14, h, 23, tzinfo=b)) for h in (9, 11, 15, 21)], [None, 1, 1, None])
         # Morning post rotates on weekdays, the others are tenders; weekends tenders.
         self.assertEqual([s.art_fuer(date(2026, 11, 10), n) for n in (1, 2, 3)], ["zahl", "ausschreibung", "ausschreibung"])
         self.assertEqual(s.art_fuer(date(2026, 11, 14), 1), "ausschreibung")

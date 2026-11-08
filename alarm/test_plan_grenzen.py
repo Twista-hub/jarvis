@@ -13,6 +13,11 @@ BERLIN = ZoneInfo("Europe/Berlin")
 
 
 class PlanGrenzenTest(unittest.TestCase):
+    def test_mail_holt_verpasste_stunde_nach(self):
+        self.assertTrue(mail.stunde_erreicht(7, 7))
+        self.assertTrue(mail.stunde_erreicht(7, 11), "verpasster Lauf um 7 wird um 11 nachgeholt")
+        self.assertFalse(mail.stunde_erreicht(18, 11))
+
     def test_free_nur_montags_einmal_pro_woche(self):
         montag = datetime(2026, 11, 9, 7, tzinfo=BERLIN)
         self.assertTrue(mail.woechentlich_faellig("kostenlos", None, montag))
