@@ -107,6 +107,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 08.11.2026 abends – Claude Code (S16, D2, Klickprüfung)
 - Klickprüfung nach D1 (Personalakte für Leser): 566 Seiten, 0 Probleme, 0 Fehlermeldungen.
 - S16: Leistungstext je Kunde (bei Verrechnungssatz, Monat wird angehängt; Migration `20261108160000_leistungstext.sql`).
+- A1: Schichtplan prüft beim Speichern zusätzlich Feiertagsarbeit, 15 freie Sonntage pro Jahr und den Ersatzruhetag innerhalb von 2 Wochen nach einer Sonntagsschicht (Hinweis mit Bestätigung).
 - A2: Ausgeschiedene Personen werden 6 volle Kalenderjahre nach dem Austritt automatisch gelöscht, wenn keine jüngeren Zeiten vorliegen (Migration `20261108180000_loeschfrist_personal.sql`, Datenschutzerklärung in 6 Sprachen, Stand 08.11.2026).
 - D2: Alte Dateikopien von Führungs-/Gesundheitszeugnissen: Datei-Verweise entfernt, Schlüssel in `jarvis_intern.r2_loeschen`, die „Datensicherung“ löscht sie nachts aus R2 (neuer Schritt); DB-Regel verhindert neue Kopien. Migration `20261108170000_nachweise_ohne_kopie.sql`.
 

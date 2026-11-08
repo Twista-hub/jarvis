@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { arbzgHinweise, ersatzVorschlaege, konflikte, type Schicht } from "../src/schichten.ts";
+import { arbzgHinweise, arbzgJahr, ersatzVorschlaege, konflikte, nurHinweis, type Schicht } from "../src/schichten.ts";
 
 const s = (id: string, datum: string, beginn: string, ende: string, personal_id: string | null = "p1"): Schicht => ({ id, personal_id, bereich_id: null, datum, beginn, ende, ort: "", notiz: "", antwort: "zugesagt" });
 
@@ -54,4 +54,22 @@ test("§ 3b EStG: Zeitfenster Nacht 25/40 %, Sonntag, Feiertag 125/150 %", async
   assert.deepEqual([ah.f125, ah.so50], [240, 0]);
   // a shift starting at 00:30 gets no 40 % (did not start before midnight)
   assert.equal(steuerfrei3b({ datum: "2026-11-03", beginn: "00:30", ende: "04:00", pause_min: 0 }, "NW").n40, 0);
+});
+
+test("A1: Feiertagsarbeit, 15 freie Sonntage, Ersatzruhetag", () => {
+  const s = { id: "x", personal_id: "p", datum: "2026-12-25", beginn: "08:00", ende: "16:00" };
+  const h = arbzgHinweise(s, [], "NW");
+  assert.ok(h.some((x) => /^Feiertagsarbeit \(.+\): .*8 Wochen/.test(x)), h.join());
+  assert.ok(nurHinweis(h[0]), "nur Hinweis, kein Konflikt im Plan");
+  assert.deepEqual(arbzgHinweise(s, []), [], "ohne Land kein Feiertagshinweis (wie bisher)");
+  // 38 Sundays worked in 2026 → only 14 free.
+  const sonntage: string[] = [];
+  for (let d = new Date(Date.UTC(2026, 0, 4)); sonntage.length < 38; d.setUTCDate(d.getUTCDate() + 7)) sonntage.push(d.toISOString().slice(0, 10));
+  const jahr = sonntage.slice(0, 37).map((datum) => ({ datum, antwort: "zugesagt" }));
+  assert.ok(arbzgJahr([{ datum: sonntage[37] }], jahr).some((x) => /^Freie Sonntage 2026: nur noch 14/.test(x)));
+  assert.ok(!arbzgJahr([{ datum: sonntage[36] }], jahr.slice(0, 30)).some((x) => x.startsWith("Freie Sonntage")));
+  // Every day around a Sunday planned → no compensatory rest day.
+  const voll = Array.from({ length: 27 }, (_, i) => ({ datum: new Date(Date.UTC(2026, 10, 2 + i)).toISOString().slice(0, 10), antwort: "zugesagt" }));
+  assert.ok(arbzgJahr([{ datum: "2026-11-15" }], voll).some((x) => x.startsWith("Ersatzruhetag für den Sonntag 15.11.")));
+  assert.ok(!arbzgJahr([{ datum: "2026-11-15" }], voll.filter((x) => x.datum !== "2026-11-18")).some((x) => x.startsWith("Ersatzruhetag")));
 });
