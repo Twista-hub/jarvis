@@ -58,7 +58,7 @@ export async function organisation(request: Request, env: KontoEnv): Promise<Res
   if (f.m.rolle === "mitarbeiter") return antwort("<p>Das sieht das Büroteam.</p>", 403);
   const firma = f.m.firma_id;
   const [b, m, z, p] = await Promise.all([
-    db<Bereich[]>(f.s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id,ansprechpartner,telefon,email&order=name`),
+    db<Bereich[]>(f.s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id,ansprechpartner,telefon,email,bundesland&order=name`),
     db<Mitglied[]>(f.s, env, `mitglieder?firma_id=eq.${firma}&select=user_id,rolle,anzeigename,funktion,aktiv,finanzen,alle_bereiche`),
     db<Zuordnung[]>(f.s, env, `mitglied_bereiche?firma_id=eq.${firma}&select=user_id,bereich_id`),
     db<{ bereich_id: string | null }[]>(f.s, env, `personal?firma_id=eq.${firma}&select=bereich_id&limit=5000`),

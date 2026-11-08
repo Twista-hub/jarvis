@@ -50,6 +50,20 @@ export async function landDerFirma(sz: Sitzung, env: KontoEnv, firma: string): P
   return (p.ok && p.daten[0]?.bundesland) || landAusPlz(f.ok ? f.daten[0]?.plz : "");
 }
 
+/** Rechtsprüfung A4: federal state per person – the state set at the person's location (or a parent location), else the
+ *  firm's. Used for public holidays in leave and the time account. */
+export async function landJeBereich(sz: Sitzung, env: KontoEnv, firma: string): Promise<(bereich: string | null | undefined) => string> {
+  const [firmenLand, b] = await Promise.all([landDerFirma(sz, env, firma), db<{ id: string; parent_id: string | null; bundesland: string }[]>(sz, env, `bereiche?firma_id=eq.${firma}&select=id,parent_id,bundesland&limit=2000`)]);
+  return landResolver(b.ok ? b.daten : [], firmenLand);
+}
+export function landResolver(bereiche: { id: string; parent_id: string | null; bundesland: string }[], firmenLand: string): (bereich: string | null | undefined) => string {
+  const nach = new Map(bereiche.map((x) => [x.id, x]));
+  return (bereich) => {
+    for (let x = bereich ? nach.get(bereich) : undefined, n = 0; x && n < 10; x = x.parent_id ? nach.get(x.parent_id) : undefined, n++) if (x.bundesland) return x.bundesland;
+    return firmenLand;
+  };
+}
+
 /** Working-time hints (ArbZG): more than 10 hours a day, too short a break after 6 or 9 hours. */
 export function hinweise(liste: Eintrag[]): Map<string, string[]> {
   const m = new Map<string, string[]>();

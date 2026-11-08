@@ -530,5 +530,7 @@
  "Zusammenfassende Meldung": "EC sales list",
  "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "to the Federal Central Tax Office (via ELSTER, by the #th of the following month or quarter), with the customer's VAT ID and amount. Proposal, please check with your tax adviser.",
  "Leistungstext auf der Rechnung": "Service description on the invoice",
- "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "e.g. maintenance cleaning, Hauptstraße site (month is added)"
+ "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "e.g. maintenance cleaning, Hauptstraße site (month is added)",
+ "Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)": "Federal state of the location (public holidays for leave and time account)",
+ "wie Firmensitz": "as company seat"
 }

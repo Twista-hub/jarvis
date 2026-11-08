@@ -5,7 +5,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { feiertag } from "./zuschlaege.ts";
-import { landDerFirma } from "./stunden.ts";
+import { landDerFirma, landJeBereich } from "./stunden.ts";
 
 export type Konto = { personal_id: string; jahr: number; anspruch: number | string; uebertrag: number | string };
 export type Abw = { personal_id: string; von: string; bis: string; grund: string; status?: string; kurzfristig?: boolean };
@@ -43,9 +43,9 @@ export function stand(pid: string, jahr: number, konten: Konto[], abw: Abw[], la
   return { anspruch, uebertrag, genommen, beantragt, rest: anspruch + uebertrag - genommen - beantragt, eingetragen: !!k };
 }
 
-export function kontoSeite(personen: Person[], konten: Konto[], abw: Abw[], o: { jahr: number; land: string; darfAendern: boolean }): string {
+export function kontoSeite(personen: Person[], konten: Konto[], abw: Abw[], o: { jahr: number; land: string; darfAendern: boolean; landVon?: (bereich: string | null) => string }): string {
   const aktiv = personen.filter((p) => p.status !== "nicht");
-  const zeilen = aktiv.map((p) => ({ p, s: stand(p.id, o.jahr, konten, abw, o.land, p.arbeitstage) }));
+  const zeilen = aktiv.map((p) => ({ p, s: stand(p.id, o.jahr, konten, abw, o.landVon ? o.landVon(p.bereich_id) : o.land, p.arbeitstage) }));
   const ohne = zeilen.filter((z) => !z.s.eingetragen).length;
   // A-M3: statutory minimum leave § 3 BUrlG = 24 working days on a 6-day week, i.e. 4 per weekly working day.
   const wenig = zeilen.filter((z) => z.s.eingetragen && z.s.anspruch < mindesturlaub(z.p.arbeitstage));
@@ -117,16 +117,17 @@ export async function urlaub(request: Request, env: KontoEnv): Promise<Response 
   const monat = /^\d{4}-(0[1-9]|1[0-2])$/.test(url.searchParams.get("monat") ?? "") ? url.searchParams.get("monat")! : heute.slice(0, 7);
   const jahr = kalender ? Number(monat.slice(0, 4)) : jahrWahl(url.searchParams.get("jahr"));
   const von = kalender ? `${monat}-01` : `${jahr}-01-01`, bis = kalender ? new Date(Date.UTC(jahr, Number(monat.slice(5, 7)), 0)).toISOString().slice(0, 10) : `${jahr}-12-31`;
-  const [p, k, a, land, b, at] = await Promise.all([
+  const [p, k, a, land, b, at, landVon] = await Promise.all([
     db<Person[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname,status,bereich_id&order=vorname&limit=3000`),
     kalender ? Promise.resolve(null) : db<Konto[]>(f.s, env, `urlaubskonten?firma_id=eq.${firma}&jahr=eq.${jahr}&select=personal_id,jahr,anspruch,uebertrag&limit=3000`),
     db<Abw[]>(f.s, env, `personal_abwesenheiten?firma_id=eq.${firma}&von=lte.${bis}&bis=gte.${von}&select=personal_id,von,bis,grund,status&limit=10000`),
     landDerFirma(f.s, env, firma),
     kalender ? db<{ id: string; name: string }[]>(f.s, env, `bereiche?firma_id=eq.${firma}&select=id,name&order=name`) : Promise.resolve(null),
     kalender ? Promise.resolve(new Map<string, number[] | null>()) : arbeitstageLaden(f.s, env, firma),
+    landJeBereich(f.s, env, firma),
   ]);
   const hinweis = url.searchParams.get("hinweis");
   const kopf = hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : "";
   if (kalender) return antwort(kopf + kalenderSeite(p.ok ? p.daten : [], a.ok ? a.daten : [], { monat, land, heute, standort: /^[0-9a-f-]{36}$/.test(url.searchParams.get("standort") ?? "") ? url.searchParams.get("standort")! : "", standorte: b?.ok ? b.daten : [] }));
-  return antwort(kopf + kontoSeite((p.ok ? p.daten : []).map((x) => ({ ...x, arbeitstage: at.get(x.id) ?? null })), k?.ok ? k.daten : [], a.ok ? a.daten : [], { jahr, land, darfAendern }));
+  return antwort(kopf + kontoSeite((p.ok ? p.daten : []).map((x) => ({ ...x, arbeitstage: at.get(x.id) ?? null })), k?.ok ? k.daten : [], a.ok ? a.daten : [], { jahr, land, darfAendern, landVon }));
 }

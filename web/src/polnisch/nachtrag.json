@@ -530,5 +530,7 @@
  "Zusammenfassende Meldung": "informacja podsumowująca",
  "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "do Federalnego Centralnego Urzędu Skarbowego (przez ELSTER, do # dnia następnego miesiąca lub kwartału), z NIP UE klienta i kwotą. Propozycja, sprawdź z doradcą podatkowym.",
  "Leistungstext auf der Rechnung": "Opis usługi na fakturze",
- "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "np. sprzątanie bieżące, obiekt Hauptstraße (miesiąc zostanie dodany)"
+ "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "np. sprzątanie bieżące, obiekt Hauptstraße (miesiąc zostanie dodany)",
+ "Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)": "Kraj związkowy lokalizacji (święta dla urlopów i konta czasu)",
+ "wie Firmensitz": "jak siedziba firmy"
 }

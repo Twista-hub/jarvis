@@ -57,11 +57,11 @@ export interface KontoEnv {
 
 export type Sitzung = { token: string; userId: string; email: string; cookies: string[] };
 type Mitglied = { firma_id: string; rolle: string; aktiv?: boolean; erstellt: string; user_id: string; anzeigename?: string; funktion?: string; finanzen?: boolean; alle_bereiche?: boolean };
-export type Bereich = { id: string; name: string; art: string; parent_id: string | null; ansprechpartner?: string; telefon?: string; email?: string };
+export type Bereich = { id: string; name: string; art: string; parent_id: string | null; ansprechpartner?: string; telefon?: string; email?: string; bundesland?: string };
 
 /** Areas with the contact person per location (G4); falls back to the old columns until the migration has run. */
 export async function bereicheLaden(s: Sitzung, env: KontoEnv, firma: string) {
-  const r = await db<Bereich[]>(s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id,ansprechpartner,telefon,email&order=name`);
+  const r = await db<Bereich[]>(s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id,ansprechpartner,telefon,email,bundesland&order=name`);
   return r.ok ? r : db<Bereich[]>(s, env, `bereiche?firma_id=eq.${firma}&select=id,name,art,parent_id&order=name`);
 }
 type Vorgang = { us?: UsDaten | null; entfernung_km?: number | null; fragefrist?: string | null; id: string; titel: string; link: string | null; frist: string | null; status: string; punkte: number | null; erstellt: string; bereich_id?: string | null; kaufverantwortlich_id?: string | null; katalog_id?: string | null; katalog_version?: string | null; steckbrief?: string | null };

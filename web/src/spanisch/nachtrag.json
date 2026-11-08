@@ -530,5 +530,7 @@
  "Zusammenfassende Meldung": "declaración recapitulativa",
  "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "ante la Oficina Central Federal de Impuestos (por ELSTER, hasta el día # del mes o trimestre siguiente), con el NIF-IVA del cliente y el importe. Propuesta, revísalo con tu asesoría fiscal.",
  "Leistungstext auf der Rechnung": "Descripción del servicio en la factura",
- "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "p. ej. limpieza de mantenimiento, edificio Hauptstraße (se añade el mes)"
+ "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "p. ej. limpieza de mantenimiento, edificio Hauptstraße (se añade el mes)",
+ "Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)": "Estado federado del centro (festivos para vacaciones y cuenta de horas)",
+ "wie Firmensitz": "como la sede"
 }

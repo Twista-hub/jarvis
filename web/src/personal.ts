@@ -1,6 +1,7 @@
 // Personnel per location: tiles for the locations on "Firma & Team", one page per location with the workers
 // as cards (occupations, qualifications, wage group, phone, availability), and a message page that writes
 // a ready text (optionally about a tender) and opens WhatsApp, SMS or e-mail on the phone. Crewtender sends nothing itself.
+import { LAENDER as BUNDESLAENDER } from "./zuschlaege.ts";
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { akteAusFormular, akteFelder, akteZeile, nachweiseLaden, nachweisMarken, nachweisTeil, type Akte, type Nachweis } from "./personalakte.ts";
 import { bereicheLaden, db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
@@ -28,7 +29,7 @@ export function kontaktBlock(b: Bereich, admin: boolean): string {
   const da = !!(b.ansprechpartner || b.telefon || b.email);
   const zeile = da ? `<p class="standort-kontakt"><span>☎️ <strong>${escape(b.ansprechpartner || "Ansprechpartner")}</strong></span>${b.telefon ? `<a class="knopf-klein" href="tel:${escape(b.telefon.replace(/[^\d+]/g, ""))}">📞 ${escape(b.telefon)}</a>` : ""}${b.email ? `<a class="knopf-klein" href="mailto:${escape(b.email)}">📧 E-Mail</a>` : ""}</p>` : "";
   if (!admin) return zeile;
-  return `${zeile}<details class="kontakt-bearbeiten"><summary>${da ? "✏️ Ansprechpartner ändern" : "☎️ Ansprechpartner für diesen Standort eintragen"}</summary><form method="post" action="/konto/standort/${b.id}/kontakt" class="kontakt-form"><label class="ganz">Name<input name="ansprechpartner" maxlength="120" value="${escape(b.ansprechpartner ?? "")}" placeholder="z. B. Anna Berg, Disposition"></label><label>Telefon<input name="telefon" type="tel" maxlength="40" value="${escape(b.telefon ?? "")}"></label><label>E-Mail<input name="email" type="email" maxlength="200" value="${escape(b.email ?? "")}"></label><button class="ganz">Speichern</button></form></details>`;
+  return `${zeile}<details class="kontakt-bearbeiten"><summary>${da ? "✏️ Ansprechpartner ändern" : "☎️ Ansprechpartner für diesen Standort eintragen"}</summary><form method="post" action="/konto/standort/${b.id}/kontakt" class="kontakt-form"><label class="ganz">Name<input name="ansprechpartner" maxlength="120" value="${escape(b.ansprechpartner ?? "")}" placeholder="z. B. Anna Berg, Disposition"></label><label>Telefon<input name="telefon" type="tel" maxlength="40" value="${escape(b.telefon ?? "")}"></label><label>E-Mail<input name="email" type="email" maxlength="200" value="${escape(b.email ?? "")}"></label><label class="ganz">Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)<select name="bundesland"><option value="">wie Firmensitz</option>${Object.entries(BUNDESLAENDER).map(([k, n]) => `<option value="${k}"${b.bundesland === k ? " selected" : ""}>${n}</option>`).join("")}</select></label><button class="ganz">Speichern</button></form></details>`;
 }
 
 import { BERUFE } from "./berufe.ts";
@@ -332,7 +333,7 @@ export async function personal(request: Request, env: KontoEnv): Promise<Respons
     const t = (k: string, max: number) => String(form.get(k) ?? "").replace(/\s+/g, " ").trim().slice(0, max);
     const email = t("email", 200);
     if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) return weiterleiten(`${ziel}?hinweis=${encodeURIComponent("Bitte eine gültige E-Mail-Adresse eintragen.")}`, f.s.cookies);
-    const r = await db(f.s, env, `bereiche?id=eq.${kontaktSetzen[1]}&firma_id=eq.${f.m.firma_id}`, { method: "PATCH", body: JSON.stringify({ ansprechpartner: t("ansprechpartner", 120), telefon: t("telefon", 40), email }) });
+    const r = await db(f.s, env, `bereiche?id=eq.${kontaktSetzen[1]}&firma_id=eq.${f.m.firma_id}`, { method: "PATCH", body: JSON.stringify({ ansprechpartner: t("ansprechpartner", 120), telefon: t("telefon", 40), email, bundesland: Object.hasOwn(BUNDESLAENDER, t("bundesland", 2)) ? t("bundesland", 2) : "" }) });
     return weiterleiten(`${ziel}?hinweis=${encodeURIComponent(r.ok ? "Ansprechpartner gespeichert." : "Speichern hat nicht geklappt.")}`, f.s.cookies);
   }
   if (url.pathname === "/konto/tarifvertrag" && request.method === "POST") {
