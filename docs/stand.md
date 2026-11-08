@@ -104,6 +104,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 08.11.2026 nachmittags – Claude Code (E-Rechnungen als Beleg, S11)
+- Belege nehmen E-Rechnungen als XML an: XRechnung/Peppol (UBL) und XRechnung/ZUGFeRD/Factur-X (CII), ausgelesen ohne KI (`web/src/erechnung.ts`, kleiner XML-Leser ohne DTD). Vorbelegt: Datum, Lieferant, Brutto, Steuersatz, 7-%-Anteil, Notiz „Rechnung <Nr.>“; Hinweise bei Gutschrift, Fremdwährung, unbekannten Steuersätzen. Die XML-Datei ist der Beleg (Original); `/konto/belege/<id>` zeigt sie als lesbare Rechnung, `?roh=1` lädt das Original. Geht auch ohne KI-Zugang. Migration `20261108070000_belege_erechnung.sql` (beleg_mime `application/xml`). Kamera-Zwang (`capture`) am Upload entfernt, damit am Handy PDF/XML wählbar sind. Übersetzungen der Belegseite in 5 Sprachen ergänzt (war vorher größtenteils deutsch), Hilfe „Belege“ um E-Rechnung ergänzt. Rechtsprüfung S11 ✅.
+
 ### 08.11.2026 vormittags – Claude Code (Meldungen, Kostenschutz, Willkommen, Belege)
 - Push-Meldung an den Betreiber bei Abo-Ereignissen (Migration `20261108030000_abo_meldungen.sql`, Trigger auf `firmen`): neues Abo, Planwechsel, Kündigung, zurückgenommen, Zahlung fehlgeschlagen, Abo beendet, Steckbrief-Paket, weitere Einsatzkräfte; nicht bei Betreiber-Änderungen und `test`.
 - KI-Pause für Gratis-Firmen ohne Aktivität seit 30 Tagen (Migration `20261108040000_ki_inaktiv.sql`, Sperrgrund `inaktiv`, `jarvis_intern.zuletzt_aktiv` aus letzter Anmeldung/Sitzung). Free-Erstlauf nur 30 Tage bewusst nicht gebaut (Probezeit + 5-$-Gratistopf). Gratistopf (alle Gratis- und Probe-Firmen zusammen) auf Benjamins Wunsch von 5 auf **20 $/Monat** erhöht (Migration `20261108060000_gratistopf_20.sql`).

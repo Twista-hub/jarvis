@@ -79,6 +79,7 @@ export const ANLEITUNGEN: Anleitung[] = [
   { slug: "belege-datev", icon: "📸", titel: "Belege erfassen und an DATEV geben", fuer: "Buchhaltung", kurz: "Foto machen, KI-Vorschlag prüfen, Buchungsstapel exportieren.", schritte: [
     ["Mehr → Belege → „📸 Beleg erfassen“: Foto oder PDF wählen und „🤖 Auslesen lassen“ antippen.", "/konto/belege", "Belege öffnen"],
     ["Datum, Lieferant, Betrag, Steuersatz und Kategorie prüfen und speichern. Die KI kann sich verlesen."],
+    ["E-Rechnung bekommen (XRechnung, ZUGFeRD oder Factur-X als XML)? An derselben Stelle die XML-Datei wählen. Crewtender liest sie ohne KI aus und bewahrt die XML-Datei als Beleg auf."],
     ["Falsch erfasst? „Beleg stornieren“ statt löschen; der Beleg bleibt für die Aufbewahrung erhalten."],
     ["Den Monat als DATEV-Buchungsstapel herunterladen und dem Steuerbüro geben, oder dem Steuerbüro einen Leser-Zugang einrichten."],
   ] },
