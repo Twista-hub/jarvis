@@ -50,7 +50,7 @@ class SocialTest(unittest.TestCase):
     def test_termine(self):
         from datetime import datetime
         b = s.BERLIN
-        # Monday 10.11.2026: the latest slot whose start has come; nothing before 09:00 and from 21:00.
+        # Tuesday 10.11.2026: the latest slot whose start has come; nothing before 09:00 and from 21:00.
         self.assertEqual([s.slot_jetzt(datetime(2026, 11, 10, h, m, tzinfo=b)) for h, m in ((8, 59), (9, 23), (12, 0), (13, 23), (16, 59), (17, 53), (20, 59), (21, 0))],
                          [None, 1, 1, 2, 2, 3, 3, None])
         # Weekend: one slot from 11:00.
