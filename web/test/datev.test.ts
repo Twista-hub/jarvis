@@ -101,6 +101,9 @@ test("LODAS: Bewegungsdaten mit eigenen Lohnarten", () => {
   const daten = zeilen.slice(zeilen.indexOf("[Bewegungsdaten]") + 1).filter(Boolean);
   assert.deepEqual(daten, ["1;17;01.11.2026;160,50;1;1000;IMPORT Crewtender;", "1;17;01.11.2026;2,00;10;1100;IMPORT Crewtender;", "1;17;01.11.2026;12,50;2;7000;IMPORT Crewtender;"], "Nacht ohne Lohnart fehlt");
   assert.deepEqual(d.ohneNummer, ["Ohne, Nummer"]);
+  // S19: meal flat rate and mileage as their own wage types (amounts).
+  const p = lodasDatei({ berater: "1234567", mandant: "42" }, "2026-11", [{ ...z[0], spesen: 0, vma: 28, km: 12.6 } as never], { vma: "3010", km: "3020" });
+  assert.deepEqual(p.text.split("\r\n").filter((x) => x.startsWith("1;17;")), ["1;17;01.11.2026;28,00;2;3010;IMPORT Crewtender;", "1;17;01.11.2026;12,60;2;3020;IMPORT Crewtender;"]);
   // § 3b windows go out as their own wage types (hours).
   const sf = lodasDatei({ berater: "1234567", mandant: "42" }, "2026-11", [{ ...z[0], sf: { n25: 90, n40: 30, so50: 0, f125: 0, f150: 0 } } as never], { n25: "2001", n40: "2002", so50: "2003" });
   assert.ok(sf.text.includes("1;17;01.11.2026;1,50;1;2001;IMPORT Crewtender;") && sf.text.includes("1;17;01.11.2026;0,50;1;2002;IMPORT Crewtender;") && !sf.text.includes(";2003;"));
