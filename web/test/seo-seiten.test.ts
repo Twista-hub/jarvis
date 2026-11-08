@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ausschreibungSeite, beschreibungMeta, BUNDESLAENDER, gewerkAusCpv, gewerkLandSeite, istOffen, landAusOrt, seoSeiten, sitemapAusschreibungen } from "../src/seo-seiten.ts";
+import { auftraggeberSeite, ausschreibungSeite, beschreibungMeta, sitemapAuftraggeber, BUNDESLAENDER, gewerkAusCpv, gewerkLandSeite, istOffen, landAusOrt, seoSeiten, sitemapAusschreibungen } from "../src/seo-seiten.ts";
 import { GEWERKE, gewerkSeite, ROBOTS } from "../src/gewerke.ts";
 
 const reinigung = GEWERKE.find((g) => g.slug === "gebaeudereinigung")!;
@@ -44,16 +44,37 @@ test("Ausschreibungsseite: offen indexierbar, abgelaufen mit Hinweis, Personen m
   assert.match(beschreibungMeta(e), /^Öffentliche Ausschreibung: Unterhaltsreinigung Schulen\. Stadt Köln · 50667 Köln · Frist 01\.12\.2026/);
 });
 
+test("Auftraggeber-Seite: offene und frühere Ausschreibungen, Zuschlagswert ohne Bieter, Wege zu Gewerk × Land", () => {
+  const a = { id: "bks:t-1", name: "Stadt Köln", ort: "50667 Köln DEA23", offen_anzahl: 1, jahr: 3, gesamt: 5,
+    offen: [{ id: "bks:x1", titel: "Unterhaltsreinigung Schulen", frist: "2026-12-01T10:00:00Z" }],
+    frueher: [{ id: "bks:x0", titel: "Glasreinigung Rathaus", datum: "2025-06-01", status: "vergeben", laufzeit_ende: "2027-05-31", zuschlag_wert: 120000 }],
+    cpv: ["90911200", "79713000"] };
+  const html = auftraggeberSeite(a);
+  assert.ok(html.startsWith("<h1>Stadt Köln: öffentliche Ausschreibungen</h1>"));
+  assert.match(html, /href="\/ausschreibung\/bks%3Ax1"/);
+  assert.match(html, /Zuschlag 120\.000\s€/);
+  assert.match(html, /Vertrag bis 31\.05\.2027/);
+  assert.match(html, /href="\/ausschreibungen\/gebaeudereinigung\/nordrhein-westfalen"/);
+  assert.match(html, /href="\/ausschreibungen\/sicherheitsdienst\/nordrhein-westfalen"/);
+  assert.doesNotMatch(html, /DEA23/);
+  assert.match(auftraggeberSeite({ ...a, offen: [], offen_anzahl: 0 }), /keine offene Ausschreibung/);
+  assert.match(sitemapAuftraggeber("https://crewtender.eu", [["bks:t-1", "2026-11-05"]]), /<loc>https:\/\/crewtender.eu\/auftraggeber\/bks%3At-1<\/loc><lastmod>2026-11-05<\/lastmod>/);
+  assert.match(ausschreibungSeite({ id: "bks:x1", titel: "T", auftraggeber: "Stadt Köln", auftraggeber_id: "bks:t-1", frist: null, link: "", steckbrief: null }), /href="\/auftraggeber\/bks%3At-1">Stadt Köln<\/a>/);
+});
+
 test("Sitemap der Ausschreibungen und robots.txt", () => {
   const xml = sitemapAusschreibungen("https://crewtender.eu", [{ id: "bks:ocds-1", datum: "2026-11-05" }]);
   assert.match(xml, /<loc>https:\/\/crewtender.eu\/ausschreibung\/bks%3Aocds-1<\/loc><lastmod>2026-11-05<\/lastmod>/);
   assert.match(ROBOTS("https://crewtender.eu"), /Sitemap: https:\/\/crewtender.eu\/sitemap-ausschreibungen.xml/);
+  assert.match(ROBOTS("https://crewtender.eu"), /Sitemap: https:\/\/crewtender.eu\/sitemap-auftraggeber.xml/);
 });
 
 test("Routen: Gewerk × Land, unbekanntes Land leitet um, Ausschreibung mit noindex nach Fristablauf", async () => {
   const echt = globalThis.fetch;
   const antworten: Record<string, unknown> = {
     gewerk_land_statistik: { monat: 3, offen: 2, beispiele: [] },
+    auftraggeber_oeffentlich: { id: "bks:t-9", name: "Gemeinde Ruhig", ort: "", offen_anzahl: 0, jahr: 0, gesamt: 1, offen: [], frueher: [], cpv: [] },
+    sitemap_auftraggeber_json: [["bks:t-9", "2026-11-01"]],
     sitemap_ausschreibungen_json: Array.from({ length: 1500 }, (_, i) => [`bks:n${i}`, "2026-11-05"]),
     demo_eintrag: { id: "bks:x2", titel: "Wachdienst Rathaus", auftraggeber: "Stadt", ort: "DE300", frist: "2000-01-01T00:00:00Z", link: "", status: "offen", quelle: "bks", cpv: ["79713000"], steckbrief: null },
   };
@@ -74,5 +95,10 @@ test("Routen: Gewerk × Land, unbekanntes Land leitet um, Ausschreibung mit noin
     assert.equal(await seoSeiten(new Request("https://crewtender.eu/ausschreibungen/sicherheitsdienst"), env, "https://crewtender.eu", html), null);
     const sm = await (await seoSeiten(new Request("https://crewtender.eu/sitemap-ausschreibungen.xml"), env, "https://crewtender.eu", html))!.text();
     assert.equal((sm.match(/<loc>/g) ?? []).length, 1500, "mehr als 1.000 Einträge");
+    const ag = await seoSeiten(new Request("https://crewtender.eu/auftraggeber/bks%3At-9"), env, "https://crewtender.eu", html);
+    const agt = await ag!.text();
+    assert.match(agt, /<link rel="canonical" href="https:\/\/crewtender.eu\/auftraggeber\/bks%3At-9">/);
+    assert.match(agt, /<meta name="robots" content="noindex, follow">/, "ohne Ausschreibung im letzten Jahr nicht indexieren");
+    assert.match(await (await seoSeiten(new Request("https://crewtender.eu/sitemap-auftraggeber.xml"), env, "https://crewtender.eu", html))!.text(), /auftraggeber\/bks%3At-9/);
   } finally { globalThis.fetch = echt; }
 });
