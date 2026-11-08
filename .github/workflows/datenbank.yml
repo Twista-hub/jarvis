@@ -137,9 +137,9 @@ jobs:
           set -o pipefail
           # Output (also errors) through a filter that removes credentials from connection strings.
           sauber() { sed -E 's#://[^@ ]*@#://***@#g'; }
-          npx -y supabase@2.81.3 db push --db-url "$DB_URL" --include-all --dry-run 2>&1 | sauber
+          npx -y supabase@2.122.1 db push --db-url "$DB_URL" --include-all --dry-run 2>&1 | sauber
           if [ "$EREIGNIS" = push ] || { [ "$AKTION" = einspielen ] && [ "$BESTAETIGUNG" = EINSPIELEN ]; }; then
-            npx -y supabase@2.81.3 db push --db-url "$DB_URL" --include-all --yes 2>&1 | sauber
+            npx -y supabase@2.122.1 db push --db-url "$DB_URL" --include-all --yes 2>&1 | sauber
           fi
       - name: Tabellen und Firmen
         run: |
