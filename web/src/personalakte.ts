@@ -9,7 +9,7 @@ export type Akte = { arbeitstage?: number[] | null; eintritt?: string | null; be
 export type Nachweis = { id: string; personal_id: string; bezeichnung: string; erworben: string | null; gueltig_bis: string | null; datei_name: string | null; datei_mime: string | null };
 export const BESCHAEFTIGUNG: Record<string, string> = { vollzeit: "Vollzeit", teilzeit: "Teilzeit", minijob: "Minijob", aushilfe: "Aushilfe", azubi: "Auszubildende/r" };
 export const FUEHRERSCHEINE = ["B", "BE", "C1", "C1E", "C", "CE", "D1", "D", "T", "L", "Stapler"];
-export const NACHWEIS_VORSCHLAEGE = ["Staplerschein", "Erste Hilfe", "Hygieneschulung (§ 43 IfSG)", "Sachkunde § 34a GewO", "Unterrichtung § 34a GewO", "Brandschutzhelfer", "Ersthelfer", "Schweißerprüfung", "Absturzsicherung (Unterweisung)", "Gabelstapler (DGUV 308-001)", "Hebebühne / PSA", "Elektrofachkraft", "SCC-Dokument", "Führungszeugnis eingesehen", "Gesundheitszeugnis / Belehrung eingesehen"];
+export const NACHWEIS_VORSCHLAEGE = ["Staplerschein", "Erste Hilfe", "Hygieneschulung (§ 43 IfSG)", "Sachkunde § 34a GewO", "Unterrichtung § 34a GewO", "Bewacherregister (Bewacher-ID)", "Brandschutzhelfer", "Ersthelfer", "Schweißerprüfung", "Absturzsicherung (Unterweisung)", "Gabelstapler (DGUV 308-001)", "Hebebühne / PSA", "Elektrofachkraft", "SCC-Dokument", "Führungszeugnis eingesehen", "Gesundheitszeugnis / Belehrung eingesehen"];
 /** Criminal-record and health certificates: only the date of inspection is kept, never a copy (Art. 9/10 DSGVO, § 53 BZRG). */
 export const OHNE_KOPIE = /f(ü|ue)hrungszeugnis|gesundheit|(ä|ae)rztlich|tauglichkeit|attest|vorsorge|bzr|strafregister/i;
 
