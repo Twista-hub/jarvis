@@ -74,7 +74,7 @@ import { betreiber } from "./loeschen.ts";
 import { betreiberRechnungen } from "./betreiber-rechnungen.ts";
 import { betreiberPartner, partnerOeffentlich } from "./partnerprogramm.ts";
 import { seoSeiten } from "./seo-seiten.ts";
-import { herkunftWeitergeben } from "./herkunft.ts";
+import { herkunftWeitergeben, kurzlink } from "./herkunft.ts";
 import { demo } from "./demo.ts";
 import { gewerke } from "./gewerke.ts";
 import { metiers } from "./gewerke-fr.ts";
@@ -153,6 +153,8 @@ const worker = {
       return new Response(null, { status: r.status, statusText: r.statusText, headers: r.headers });
     }
     let antwort: Response;
+    const kurz = request.method === "GET" ? kurzlink(alt) : null;
+    if (kurz) return kurz;
     try { antwort = await verarbeiten(request, env); }
     catch (e) {
       // Unexpected error: phone notification to the operator (path without query, no personal data) and a friendly page.

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { herkunftAus, herkunftParsen, herkunftWeitergeben, linksMitHerkunft } from "../src/herkunft.ts";
+import { herkunftAus, herkunftParsen, herkunftWeitergeben, kurzlink, linksMitHerkunft } from "../src/herkunft.ts";
 import { registrierFormular } from "../src/anmeldung.ts";
 
 test("Herkunft aus utm-Parametern oder fremder Website, eigene Seite zählt nicht", () => {
@@ -33,4 +33,11 @@ test("Seite von außen: Links mit Herkunft und nicht zwischengespeichert; ohne H
 test("Registrierung: Herkunft als verstecktes Feld, nicht bei Einladungen", () => {
   assert.match(registrierFormular({}, "", "/konto", undefined, "linkedin~social~~"), /name="herkunft" value="linkedin~social~~"/);
   assert.doesNotMatch(registrierFormular({}, "", "/einladung/abc", undefined, "linkedin~social~~"), /name="herkunft"/);
+});
+
+test("Kurzlinks für Profile: crewtender.eu/instagram → Startseite mit Herkunft", () => {
+  const r = kurzlink(new URL("https://crewtender.eu/Instagram/"));
+  assert.equal(r?.status, 302);
+  assert.equal(r?.headers.get("location"), "/?utm_source=instagram&utm_medium=social&utm_campaign=profil");
+  assert.equal(kurzlink(new URL("https://crewtender.eu/preise")), null);
 });
