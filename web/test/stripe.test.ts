@@ -17,6 +17,8 @@ test("Stripe: Bezahl-Knöpfe im Testmodus nur für den Betreiber", () => {
   assert.equal(stripeSichtbar({ STRIPE_SECRET_KEY: "sk_test_x" }, false), false);
   assert.equal(stripeSichtbar({ STRIPE_SECRET_KEY: "sk_test_x" }, true), true);
   assert.equal(stripeSichtbar({ STRIPE_SECRET_KEY: "sk_live_x" }, false), true);
+  assert.equal(stripeSichtbar({ STRIPE_SECRET_KEY: "rk_live_x" }, false), true);
+  assert.equal(stripeSichtbar({ STRIPE_SECRET_KEY: "rk_test_x" }, false), false);
 });
 
 test("Stripe: Signatur des Webhooks", async () => {

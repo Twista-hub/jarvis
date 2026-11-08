@@ -47,10 +47,12 @@ jobs:
           WEBHOOK_NEU: ${{ inputs.webhook_neu }}
         run: |
           test -n "$STRIPE_SECRET_KEY" || { echo "::error::Secret STRIPE_SECRET_KEY fehlt"; exit 1; }
-          case "$STRIPE_SECRET_KEY" in sk_test_*) echo "Modus: TEST";; sk_live_*) echo "Modus: LIVE";; *) echo "::error::Unbekannter Schlüssel"; exit 1;; esac
+          # Secret key (sk_) or restricted key (rk_, "full access except sensitive operations"); spaces from copying are dropped.
+          K=$(printf %s "$STRIPE_SECRET_KEY" | tr -d '[:space:]')
+          case "$K" in sk_test_*|rk_test_*) echo "Modus: TEST";; sk_live_*|rk_live_*) echo "Modus: LIVE";; *) echo "::error::Unbekannter Schlüssel (beginnt mit ${K:0:3}…, erwartet sk_live_ oder rk_live_)"; exit 1;; esac
           python3 - <<'PY'
           import json, os, subprocess, urllib.parse, urllib.request
-          KEY = os.environ["STRIPE_SECRET_KEY"]
+          KEY = "".join(os.environ["STRIPE_SECRET_KEY"].split())
           def api(pfad, daten=None, methode=None):
               body = urllib.parse.urlencode(daten, doseq=True).encode() if daten is not None else None
               req = urllib.request.Request(f"https://api.stripe.com/v1/{pfad}", data=body, method=methode or ("POST" if body is not None else "GET"),
