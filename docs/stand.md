@@ -104,6 +104,13 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 08.11.2026 vormittags – Claude Code (Meldungen, Kostenschutz, Willkommen, Belege)
+- Push-Meldung an den Betreiber bei Abo-Ereignissen (Migration `20261108030000_abo_meldungen.sql`, Trigger auf `firmen`): neues Abo, Planwechsel, Kündigung, zurückgenommen, Zahlung fehlgeschlagen, Abo beendet, Steckbrief-Paket, weitere Einsatzkräfte; nicht bei Betreiber-Änderungen und `test`.
+- KI-Pause für Gratis-Firmen ohne Aktivität seit 30 Tagen (Migration `20261108040000_ki_inaktiv.sql`, Sperrgrund `inaktiv`, `jarvis_intern.zuletzt_aktiv` aus letzter Anmeldung/Sitzung). Free-Erstlauf nur 30 Tage bewusst nicht gebaut (Probezeit + 5-$-Gratistopf). **Frage an Benjamin offen:** Gratistopf (5 $/Monat für alle Gratis- und Probe-Firmen) erhöhen, z. B. auf 20 $?
+- Willkommens-Mails Tag 1/3/10 (Migration `20261108050000_willkommen_mails.sql`, `alarm/mail.py` `willkommen`, 6 Sprachen) – **ausgeschaltet** (`WILLKOMMEN_AKTIV = False`), Texte liegen Benjamin zur Freigabe vor.
+- Belege, Rechtsprüfung S9/S10/S20 (Migration `20261108020000_belege_rechtspruefung.sql`): Vorsteuer nur mit hochgeladenem Beleg, Hinweis ab 250 €, Kategorie Bewirtung mit Anlass/Teilnehmern (DATEV SKR03 4650 / SKR04 6640, ⚖️ Steuerbüro), 7-%-Anteil bei gemischten Belegen (DATEV zwei Buchungszeilen).
+- „Datenbank“-Ablauf: Supabase-CLI 2.81.3 ließ sich ab 08.11. nicht mehr installieren (beschädigter Download) → 2.122.1; Ausgabe von `db push` jetzt sichtbar.
+
 ### 08.11.2026 – Claude Code (KI-Guthaben wieder da)
 - Benjamin hat am 08.11. das API-Guthaben des Max-Plans (100 $/Monat, nächste Gutschrift 02.12.) mit „Twista's Individual Org“ verknüpft; „KI-Guthaben prüfen“ danach OK.
 - Migration `20261108010000_ki_monatsbudget_90.sql`: App-Monatsbudget 20 → 90 USD (Tagesgrenze 11 USD und Plan-Budgets unverändert).
