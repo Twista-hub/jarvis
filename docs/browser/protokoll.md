@@ -19,6 +19,9 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### Erledigt (08.11.2026) – sitemap-seiten.xml eingereicht
+- Status „Erfolgreich“, gelesen 08.11.2026, 271 Seiten (= alle Einträge; die Soll-Zahl 273 im Auftrag war falsch, Claude Code). sitemap.xml bleibt mit „Konnte nicht abgerufen werden“ in der Liste (egal), sitemap-ausschreibungen.xml weiter „Erfolgreich“, 5.526 Seiten.
+
 ### Erledigt (08.11.2026) – sitemap.xml neu eingereicht
 - Neu eingereicht, Status weiter „Konnte nicht abgerufen werden“ („Sitemap konnte nicht gelesen werden“, zuletzt gelesen 08.11.26, 0 Seiten). Eigene Prüfung: 200, application/xml, ~22 KB, gültiges XML, auch als Googlebot; robots.txt nennt beide Sitemaps.
 - Claude Code: dieselbe Liste zusätzlich unter /sitemap-seiten.xml (robots.txt nennt jetzt diese); dort neu einreichen. Keine ungültigen Zeichen, keine doppelten Adressen gefunden.
