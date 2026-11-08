@@ -492,8 +492,8 @@ def probe_erinnerungen(con, smtp, jetzt: datetime | None = None) -> int:
     return gesendet
 
 
-# Welcome mails (migration 20261108050000): day 1, 3 and 10 after a firm was created. Off until Benjamin approves the texts.
-WILLKOMMEN_AKTIV = False
+# Welcome mails (migration 20261108050000): day 1, 3 and 10 after a firm was created (texts approved 08.11.2026).
+WILLKOMMEN_AKTIV = True  # Benjamin 08.11.2026: Texte freigegeben
 WILLKOMMEN_STUFEN = (("tag1", 1), ("tag3", 3), ("tag10", 10))
 WT = {
     "de": {
@@ -632,13 +632,12 @@ def willkommen_mail(an: str, firma: str, stufe: str, probe_bis, sprache: str = "
 
 def willkommen(con, smtp, jetzt: datetime | None = None) -> int:
     """Sends due welcome mails to owners and admins (each stage once per firm, from 9 o'clock local time).
-    Not for the operator's own firms, demo firms or the full preview access."""
+    Not for the operator's own firms or the full preview access (example firms)."""
     if not WILLKOMMEN_AKTIV:
         return 0
     try:
         firmen = con.execute("""select f.id::text, f.name, f.erstellt, f.probe_bis from public.firmen f
             where f.erstellt > now() - interval '11 days' and f.paket <> 'test'
-              and coalesce(f.ki_budget_usd, 1) > 0
               and not exists (select 1 from public.mitglieder m join auth.users u on u.id = m.user_id
                               join jarvis_intern.betreiber b on b.email = lower(u.email) where m.firma_id = f.id)""").fetchall()
     except Exception as e:  # noqa: BLE001

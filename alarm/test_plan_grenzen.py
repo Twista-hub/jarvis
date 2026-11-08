@@ -114,7 +114,7 @@ class PlanGrenzenTest(unittest.TestCase):
                 self.assertIn("https://crewtender.eu/konto/", text, (sprache, stufe))
                 self.assertNotIn("Maler <Test>", m.get_body(("html",)).get_content(), "HTML maskiert")
         self.assertIn("Maler <Test> dabei", mail.willkommen_mail("a@b.example", "Maler <Test>", "tag1", None).get_body(("plain",)).get_content())
-        self.assertFalse(mail.WILLKOMMEN_AKTIV, "erst nach Benjamins OK einschalten")
+        self.assertTrue(mail.WILLKOMMEN_AKTIV, "von Benjamin am 08.11.2026 freigegeben")
 
 
 if __name__ == "__main__":
