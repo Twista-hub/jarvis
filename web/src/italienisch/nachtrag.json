@@ -532,5 +532,11 @@
   "Leistungstext auf der Rechnung": "Descrizione del servizio in fattura",
   "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "ad es. pulizia ordinaria, sede Hauptstraße (il mese viene aggiunto)",
   "Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)": "Land della sede (festività per ferie e conto ore)",
-  "wie Firmensitz": "come la sede"
+  "wie Firmensitz": "come la sede",
+  "Arbeitsunfähig (ohne Diagnose)": "Inabilità al lavoro (senza diagnosi)",
+  "Kind krank (§ 45 SGB V)": "Figlio malato (§ 45 SGB V)",
+  "Unbezahlter Urlaub": "Congedo non retribuito",
+  "Arbeitsunfähigkeit (Tage)": "Malattia (giorni)",
+  "Kind krank (Tage)": "Figlio malato (giorni)",
+  "Unbezahlter Urlaub (Tage)": "Congedo non retribuito (giorni)"
 }

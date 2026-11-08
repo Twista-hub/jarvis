@@ -532,5 +532,11 @@
  "Leistungstext auf der Rechnung": "Opis usługi na fakturze",
  "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "np. sprzątanie bieżące, obiekt Hauptstraße (miesiąc zostanie dodany)",
  "Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)": "Kraj związkowy lokalizacji (święta dla urlopów i konta czasu)",
- "wie Firmensitz": "jak siedziba firmy"
+ "wie Firmensitz": "jak siedziba firmy",
+ "Arbeitsunfähig (ohne Diagnose)": "Niezdolność do pracy (bez diagnozy)",
+ "Kind krank (§ 45 SGB V)": "Chore dziecko (§ 45 SGB V)",
+ "Unbezahlter Urlaub": "Urlop bezpłatny",
+ "Arbeitsunfähigkeit (Tage)": "Niezdolność do pracy (dni)",
+ "Kind krank (Tage)": "Chore dziecko (dni)",
+ "Unbezahlter Urlaub (Tage)": "Urlop bezpłatny (dni)"
 }

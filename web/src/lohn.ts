@@ -16,7 +16,7 @@ import { cp1252, fehltDatev, lodasDatei, type Lohnarten } from "./datev.ts";
 export type LPerson = ZPerson & { personalnummer: string; arbeitstage?: number[] | null };
 type Abw = { personal_id: string; von: string; bis: string; grund: string; status?: string; kurzfristig?: boolean };
 type Spese = { personal_id: string; betrag: number | string; status: string; art?: string };
-export type Zeile = { personalnummer: string; name: string; stunden: number; nacht: number; sonntag: number; feiertag: number; sf?: Steuerfrei; urlaub: number; schulung: number; abwesend: number; ausfaelle: number; spesen: number; vma?: number; km?: number; saldo: number | null };
+export type Zeile = { personalnummer: string; name: string; stunden: number; nacht: number; sonntag: number; feiertag: number; sf?: Steuerfrei; urlaub: number; schulung: number; abwesend: number; krank?: number; kinderkrank?: number; unbezahlt?: number; ausfaelle: number; spesen: number; vma?: number; km?: number; saldo: number | null };
 
 export function lohnZeilen(personen: LPerson[], stunden: Eintrag[], abw: Abw[], spesen: Spese[], starts: Start[], alleStunden: Eintrag[], alleAbw: Abw[], monat: string, land: string): Zeile[] {
   const von = `${monat}-01`, bis = new Date(Date.UTC(Number(monat.slice(0, 4)), Number(monat.slice(5, 7)), 0)).toISOString().slice(0, 10);
@@ -30,16 +30,19 @@ export function lohnZeilen(personen: LPerson[], stunden: Eintrag[], abw: Abw[], 
     const k = zeitkonto(p, starts.find((s) => s.personal_id === p.id), alleStunden, alleAbw, land, bis);
     return { personalnummer: p.personalnummer, name: `${p.nachname}, ${p.vorname}`.replace(/^, |, $/g, ""), stunden: l.reduce((n, e) => n + minuten(e), 0), nacht: z.nacht, sonntag: z.sonntag, feiertag: z.feiertag, sf,
       urlaub: a.filter((x) => x.grund === "urlaub").reduce((n, x) => n + tageIm(x), 0), schulung: a.filter((x) => x.grund === "schulung").reduce((n, x) => n + tageIm(x), 0),
-      abwesend: a.filter((x) => x.grund === "abwesend").reduce((n, x) => n + tageIm(x), 0), ausfaelle: a.filter((x) => x.kurzfristig).length,
+      abwesend: a.filter((x) => x.grund === "abwesend").reduce((n, x) => n + tageIm(x), 0),
+      // A-M5: sick leave (no diagnosis), child sick days and unpaid leave as separate columns for the payroll office.
+      krank: a.filter((x) => x.grund === "krank").reduce((n, x) => n + tageIm(x), 0), kinderkrank: a.filter((x) => x.grund === "kinderkrank").reduce((n, x) => n + tageIm(x), 0),
+      unbezahlt: a.filter((x) => x.grund === "unbezahlt").reduce((n, x) => n + tageIm(x), 0), ausfaelle: a.filter((x) => x.kurzfristig).length,
       // S19: receipts (Auslagenersatz), meal flat rate and mileage are separate wage types.
       spesen: spesenSumme(p.id, "auslagen"), vma: spesenSumme(p.id, "vma"), km: spesenSumme(p.id, "km"),
       saldo: k.length ? k.at(-1)!.stand : null };
-  }).filter((r) => r.stunden || r.urlaub || r.schulung || r.abwesend || r.spesen || r.vma || r.km).sort((a, b) => a.name.localeCompare(b.name, "de"));
+  }).filter((r) => r.stunden || r.urlaub || r.schulung || r.abwesend || r.krank || r.kinderkrank || r.unbezahlt || r.spesen || r.vma || r.km).sort((a, b) => a.name.localeCompare(b.name, "de"));
 }
 
-const KOPF = ["Personalnummer", "Name", "Stunden", "davon Nacht", "davon Sonntag", "davon Feiertag", "§ 3b Nacht 25 % (20–6)", "§ 3b Nacht 40 % (0–4)", "§ 3b Sonntag 50 %", "§ 3b Feiertag 125 %", "§ 3b Feiertag 150 %", "Urlaubstage", "Schulungstage", "Abwesend (Tage)", "kurzfristige Ausfälle", "Auslagen mit Beleg (€)", "Verpflegungspauschale (€)", "Kilometergeld (€)", "Zeitkonto (Std.)"];
-const werte = (r: Zeile): Zelle[] => [r.personalnummer, r.name, dezimal(r.stunden), dezimal(r.nacht), dezimal(r.sonntag), dezimal(r.feiertag), dezimal(r.sf?.n25 ?? 0), dezimal(r.sf?.n40 ?? 0), dezimal(r.sf?.so50 ?? 0), dezimal(r.sf?.f125 ?? 0), dezimal(r.sf?.f150 ?? 0), r.urlaub, r.schulung, r.abwesend, r.ausfaelle, r.spesen, r.vma ?? 0, r.km ?? 0, r.saldo === null ? "" : dezimal(r.saldo)];
-export const lohnExcel = (z: Zeile[], monat: string) => xlsxDatei([{ name: `Lohn ${monat}`, zeilen: [KOPF, ...z.map(werte)], breiten: [14, 26, 9, 11, 13, 13, 16, 16, 15, 16, 16, 11, 13, 14, 18, 14, 16, 14, 15] }]);
+const KOPF = ["Personalnummer", "Name", "Stunden", "davon Nacht", "davon Sonntag", "davon Feiertag", "§ 3b Nacht 25 % (20–6)", "§ 3b Nacht 40 % (0–4)", "§ 3b Sonntag 50 %", "§ 3b Feiertag 125 %", "§ 3b Feiertag 150 %", "Urlaubstage", "Schulungstage", "Abwesend (Tage)", "Arbeitsunfähig (Tage)", "Kind krank (Tage)", "Unbezahlt (Tage)", "kurzfristige Ausfälle", "Auslagen mit Beleg (€)", "Verpflegungspauschale (€)", "Kilometergeld (€)", "Zeitkonto (Std.)"];
+const werte = (r: Zeile): Zelle[] => [r.personalnummer, r.name, dezimal(r.stunden), dezimal(r.nacht), dezimal(r.sonntag), dezimal(r.feiertag), dezimal(r.sf?.n25 ?? 0), dezimal(r.sf?.n40 ?? 0), dezimal(r.sf?.so50 ?? 0), dezimal(r.sf?.f125 ?? 0), dezimal(r.sf?.f150 ?? 0), r.urlaub, r.schulung, r.abwesend, r.krank ?? 0, r.kinderkrank ?? 0, r.unbezahlt ?? 0, r.ausfaelle, r.spesen, r.vma ?? 0, r.km ?? 0, r.saldo === null ? "" : dezimal(r.saldo)];
+export const lohnExcel = (z: Zeile[], monat: string) => xlsxDatei([{ name: `Lohn ${monat}`, zeilen: [KOPF, ...z.map(werte)], breiten: [14, 26, 9, 11, 13, 13, 16, 16, 15, 16, 16, 11, 13, 14, 15, 13, 13, 18, 14, 16, 14, 15] }]);
 /** CSV with semicolons and decimal comma (opens correctly in German Excel and payroll imports); cells starting with = + - @ get a leading apostrophe. */
 export function lohnCsv(z: Zeile[]): string {
   const zelle = (v: Zelle) => { const s = typeof v === "number" ? String(v).replace(".", ",") : String(v ?? ""); const t = /^[=+\-@]/.test(s) && typeof v !== "number" ? `'${s}` : s; return /[;"\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
