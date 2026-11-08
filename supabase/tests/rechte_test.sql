@@ -136,6 +136,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108270000_auftraggeber_zahlen.sql
 \ir ../migrations/20261108280000_auftraggeber_schluessel.sql
 \ir ../migrations/20261108290000_sitemap_cache.sql
+\ir ../migrations/20261108300000_herkunft.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2189,5 +2190,17 @@ reset role;
 set role anon;
 do $$ begin perform 1 from jarvis_intern.sitemap_cache; raise exception 'FEHLER: Sitemap-Cache ohne Login lesbar'; exception when insufficient_privilege then null; end $$;
 reset role;
+
+-- Herkunft der Anmeldung (08.11.2026): aus den Anmeldedaten in die Firma, danach nicht mehr änderbar.
+reset role;
+insert into auth.users (id, email, raw_user_meta_data) values ('00000000-0000-0000-0000-00000000ee09', 'herkunft@kunde.test', '{"herkunft": {"quelle": "linkedin", "medium": "social", "kampagne": "", "verweis": ""}}');
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000ee09');
+select public.firma_anlegen('Herkunft GmbH') as herkunft_firma \gset
+select pruefe((select herkunft->>'quelle' = 'linkedin' and herkunft->>'medium' = 'social' from public.firmen where id = :'herkunft_firma'), 'Herkunft der Anmeldung an der Firma');
+update public.firmen set herkunft = '{"quelle": "geschummelt"}' where id = :'herkunft_firma';
+select pruefe((select herkunft->>'quelle' = 'linkedin' from public.firmen where id = :'herkunft_firma'), 'Herkunft nicht vom Kunden änderbar');
+reset role;
+select test_als('');
 
 \echo ALLE TESTS OK
