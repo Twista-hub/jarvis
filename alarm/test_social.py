@@ -43,6 +43,10 @@ class SocialTest(unittest.TestCase):
         self.assertEqual([s.art_heute(date(2026, 11, d)) for d in (9, 10, 11, 12)], ["ausschreibung", "zahl", "ausschreibung", "zahl"])
         self.assertIn(s.art_heute(date(2026, 11, 13)), ("tipp", "ausschreibung"))
 
+    def test_ort_ohne_doppelte_leerzeichen(self):
+        t = {"id": "bks:x", "titel": "Sicherheitsdienstleistung Objektschutz", "ort": "23966 Wismar DE80J · 18119 Rostock", "frist": "2026-11-20T12:00:00+01:00", "quelle": "bks", "wert": ""}
+        self.assertIn("📍 23966 Wismar · 18119 Rostock\n", s.ausschreibung_text(t, "bluesky"))
+
     def test_termine(self):
         from datetime import datetime
         b = s.BERLIN

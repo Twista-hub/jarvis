@@ -79,7 +79,8 @@ def datum_en(wert) -> str:
 
 def ausschreibung_text(t: dict, kanal: str) -> str:
     url = adresse("/demo/katalog/" + urllib.parse.quote(t["id"], safe=""), kanal)
-    zeilen = [f"📍 {kuerzen(re.sub(r'\\s+', ' ', NUTS.sub('', sauber(t['ort']).replace(' (Auftraggeberadresse; Einsatzort prüfen)', ''))).strip(' ·'), 60)}" if t.get("ort") else "",
+    ort = re.sub(r"\s+", " ", NUTS.sub("", sauber(t.get("ort") or "").replace(" (Auftraggeberadresse; Einsatzort prüfen)", ""))).strip(" ·")
+    zeilen = [f"📍 {kuerzen(ort, 60)}" if ort else "",
               f"⏰ Deadline {datum_en(t['frist'])}",
               f"💶 Est. value {t['wert']}" if t.get("wert") else "",
               f"Source: {QUELLE.get(t.get('quelle'), 'official notice')}"]
