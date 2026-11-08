@@ -128,6 +128,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108190000_standort_bundesland.sql
 \ir ../migrations/20261108200000_abwesenheit_gruende.sql
 \ir ../migrations/20261108210000_nachkalkulation_ausfall.sql
+\ir ../migrations/20261108220000_empfehlungsprogramm.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2074,5 +2075,54 @@ do $$ begin
   raise exception 'FEHLER: Anteil 7 %% ohne 19 %%';
 exception when check_violation then null; end $$;
 select pruefe(true, 'Bewirtung ohne Angaben und falscher Anteil zu 7 % abgelehnt');
+
+-- Empfehlungsprogramm (08.11.2026): Antrag ohne Login, Freischaltung durch den Betreiber, Zuordnung über den Code im
+-- neuen Konto, Provision aus bezahlten Rechnungen nur in den ersten 12 Monaten, Übersicht über den geheimen Link.
+reset role;
+select set_config('test.uid', '', false);
+set role anon;
+select public.partner_bewerben('Max Meier', 'Vergabeberatung Meier', 'Max@Meier.test', 'meier.test', 'Reinigungsfirmen in NRW');
+select public.partner_bewerben('Max Meier', 'Doppelt', 'max@meier.test', null, null);
+select pruefe(public.partner_name('vergabeberatung-meier') is null, 'Partner-Code gilt erst nach der Freischaltung');
+select pruefe((public.empfehlung_konditionen()->>'satz')::numeric = 20 and (public.empfehlung_konditionen()->>'monate')::int = 12, 'Konditionen öffentlich lesbar: 20 % für 12 Monate');
+do $$ begin perform 1 from jarvis_intern.empfehlungspartner; raise exception 'FEHLER: Partnerliste ohne Login lesbar'; exception when insufficient_privilege then null; end $$;
+do $$ begin perform jarvis_intern.zahlung_erfasst('evt_TEST000001', 'in_TEST000001', null, null, 100, now()); raise exception 'FEHLER: Zahlung ohne Login erfasst'; exception when insufficient_privilege then null; end $$;
+reset role;
+select pruefe((select count(*) = 1 from jarvis_intern.empfehlungspartner where email = 'max@meier.test' and status = 'neu'), 'Partner-Antrag gespeichert, dieselbe Adresse nur einmal');
+select id as partner_id from jarvis_intern.empfehlungspartner where email = 'max@meier.test' \gset
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aa01');
+do $$ begin perform public.betreiber_partner(); raise exception 'FEHLER: Partnerliste für Nicht-Betreiber'; exception when raise_exception then null; end $$;
+select test_als('00000000-0000-0000-0000-00000000aab1');
+select pruefe(public.betreiber_partner_setzen(:'partner_id', 'freischalten') = 'vergabeberatung-meier', 'Betreiber schaltet frei, Code aus dem Firmennamen');
+select pruefe(public.partner_name('Vergabeberatung-Meier') = 'Vergabeberatung Meier', 'Partner-Link zeigt den Partnernamen');
+reset role;
+insert into auth.users (id, email, raw_user_meta_data) values ('00000000-0000-0000-0000-00000000ee01', 'neu@kunde.test', '{"partner": "vergabeberatung-meier"}');
+select set_config('test.uid', '00000000-0000-0000-0000-00000000ee01', false);
+insert into public.firmen (name, paket) values ('Empfohlen GmbH', 'kostenlos') returning id as empf_firma \gset
+select set_config('test.uid', '', false);
+insert into public.firmen (name, paket) values ('Ohne Partner GmbH', 'kostenlos') returning id as ohne_firma \gset
+select pruefe((select count(*) = 1 from jarvis_intern.empfehlungen where firma_id = :'empf_firma' and partner_id = :'partner_id'), 'Neue Firma über den Partner-Link dem Partner zugeordnet');
+select pruefe(jarvis_intern.zahlung_erfasst('evt_TEST000002', 'in_TEST000002', null, :'empf_firma', 5900, now() - interval '1 day'), 'Erste Zahlung erfasst');
+select pruefe(not jarvis_intern.zahlung_erfasst('evt_TEST000002', 'in_TEST000002', null, :'empf_firma', 5900, now()), 'Dasselbe Ereignis zählt nur einmal');
+update public.firmen set stripe_kunde = 'cus_TEST1234567' where id = :'empf_firma';
+select jarvis_intern.zahlung_erfasst('evt_TEST000003', 'in_TEST000003', 'cus_TEST1234567', null, 5900, now());
+select jarvis_intern.zahlung_erfasst('evt_TEST000004', 'in_TEST000004', null, :'empf_firma', 5900, now() + interval '13 months');
+select jarvis_intern.zahlung_erfasst('evt_TEST000005', 'in_TEST000005', null, :'ohne_firma', 5900, now());
+select pruefe((select count(*) = 2 and sum(provision_cent) = 2360 from jarvis_intern.provisionen where partner_id = :'partner_id'), '20 % Provision je Zahlung, Kunde auch über die Stripe-Kundennummer, nach 12 Monaten keine mehr');
+select pruefe((select count(*) = 0 from jarvis_intern.provisionen where firma_id = :'ohne_firma'), 'Firma ohne Partner bringt keine Provision');
+select token as partner_token from jarvis_intern.empfehlungspartner where id = :'partner_id' \gset
+set role anon;
+select pruefe((public.partner_uebersicht(:'partner_token')->>'offen_cent')::int = 2360 and (public.partner_uebersicht(:'partner_token')->>'kunden')::int = 1, 'Partner sieht seine Zahlen über den geheimen Link');
+select pruefe(public.partner_uebersicht('falsch') is null, 'Falscher Link zeigt nichts');
+reset role;
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aab1');
+select public.betreiber_partner_setzen(:'partner_id', 'ausgezahlt');
+select pruefe((public.betreiber_partner()->'partner'->0->>'offen_cent')::int = 0 and (public.betreiber_partner()->'partner'->0->>'bezahlt_cent')::int = 2360, 'Betreiber hakt die Auszahlung ab');
+select public.betreiber_partner_setzen(:'partner_id', 'sperren');
+reset role;
+select jarvis_intern.zahlung_erfasst('evt_TEST000006', 'in_TEST000006', null, :'empf_firma', 5900, now());
+select pruefe((select count(*) = 2 from jarvis_intern.provisionen where partner_id = :'partner_id'), 'Gesperrter Partner bekommt keine neue Provision');
 
 \echo ALLE TESTS OK

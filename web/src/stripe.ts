@@ -164,12 +164,29 @@ export function aboAenderung(e: { id: string; type: string; data: { object: any 
   return null;
 }
 
+export type Zahlung = { ereignis: string; rechnung: string; kunde: string | null; firma: string | null; betrag_cent: number; gezahlt: string };
+/** Paid invoice (subscription or Steckbrief pack) for the referral commission; null for everything else. */
+export function zahlungAusEreignis(e: { id: string; type: string; data: { object: any } }): Zahlung | null {
+  if (e.type !== "invoice.paid") return null;
+  const o = e.data?.object ?? {};
+  if (typeof o.id !== "string" || !/^in_[A-Za-z0-9]{6,80}$/.test(o.id) || String(o.currency ?? "eur").toLowerCase() !== "eur") return null;
+  const meta = o.parent?.subscription_details?.metadata ?? o.subscription_details?.metadata ?? o.metadata ?? {};
+  const betrag = Math.max(0, Math.floor(Number(o.amount_paid) || 0));
+  return { ereignis: e.id, rechnung: o.id, kunde: typeof o.customer === "string" ? o.customer : null, firma: uuid(meta.firma), betrag_cent: betrag,
+    gezahlt: zeit(o.status_transitions?.paid_at) ?? zeit(o.created) ?? new Date().toISOString() };
+}
+
 /** POST /stripe/webhook */
 export async function stripeWebhook(request: Request, env: StripeEnv): Promise<Response> {
   const body = await request.text();
   if (!env.STRIPE_WEBHOOK_SECRET || !(await signaturGueltig(body, request.headers.get("stripe-signature") ?? "", env.STRIPE_WEBHOOK_SECRET))) return new Response("Signatur ungültig", { status: 400 });
   let e: { id: string; type: string; data: { object: unknown } };
   try { e = JSON.parse(body); } catch { return new Response("kein JSON", { status: 400 }); }
+  const z = zahlungAusEreignis(e as never);
+  if (z) {
+    await katalogDb(env, (sql) => sql`select jarvis_intern.zahlung_erfasst(${z.ereignis}, ${z.rechnung}, ${z.kunde}, ${z.firma}::uuid, ${z.betrag_cent}::int, ${z.gezahlt}::timestamptz)`);
+    return Response.json({ ok: true });
+  }
   const a = aboAenderung(e as never);
   if (!a) return Response.json({ ok: true, ignoriert: e.type });
   await katalogDb(env, (sql) => sql`select jarvis_intern.stripe_ereignis(${a.ereignis}, ${a.typ}, ${a.firma}::uuid, ${a.paket}, ${a.kunde}, ${a.abo}, ${a.status}, ${a.bis}::timestamptz, ${a.zahlweise}, ${a.kuendigt}, ${a.kraefte ?? null}::int, ${a.steckbriefe ?? null}::int)`);
