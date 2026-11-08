@@ -15,9 +15,9 @@ import { fehlendFuerXRechnung, xrechnungXml } from "./xrechnung.ts";
 export type Position = { text: string; menge: number; einheit: string; preis: number; betrag: number };
 export type Empfaenger = { name: string; ansprechpartner?: string; strasse?: string; plz?: string; ort?: string; land?: string; privat?: boolean; email?: string; leitweg?: string; ustid?: string };
 export type Rechnung = { id: string; kunde_id: string | null; nummer: string; monat: string; datum: string; positionen: Position[]; netto: number | string; ust_satz: number | string; erstellt: string; bezahlt_am?: string | null; mahnstufe?: number; gemahnt_am?: string | null; zahlungsziel_tage?: number;
-  status?: "entwurf" | "ausgestellt"; art?: "rechnung" | "storno"; bezug_nummer?: string; storniert_durch?: string | null; absender?: Omit<Absender, "kleinunternehmer"> | null; empfaenger?: Empfaenger | null; kleinunternehmer?: boolean | null; ust_betrag?: number | string | null; reverse_charge?: boolean };
+  status?: "entwurf" | "ausgestellt"; art?: "rechnung" | "storno"; bezug_nummer?: string; storniert_durch?: string | null; absender?: Omit<Absender, "kleinunternehmer"> | null; empfaenger?: Empfaenger | null; kleinunternehmer?: boolean | null; ust_betrag?: number | string | null; reverse_charge?: boolean; reverse_charge_eu?: boolean };
 /** Columns the pages read. */
-export const RECHNUNG_SPALTEN = "id,kunde_id,nummer,monat,datum,positionen,netto,ust_satz,erstellt,bezahlt_am,mahnstufe,gemahnt_am,zahlungsziel_tage,status,art,bezug_nummer,storniert_durch,absender,empfaenger,kleinunternehmer,ust_betrag,reverse_charge";
+export const RECHNUNG_SPALTEN = "id,kunde_id,nummer,monat,datum,positionen,netto,ust_satz,erstellt,bezahlt_am,mahnstufe,gemahnt_am,zahlungsziel_tage,status,art,bezug_nummer,storniert_durch,absender,empfaenger,kleinunternehmer,ust_betrag,reverse_charge,reverse_charge_eu";
 export const istEntwurf = (r: Pick<Rechnung, "status">) => r.status === "entwurf";
 /** VAT of an invoice: frozen amount once issued, otherwise computed from today's small-business setting. */
 export const ustVon = (r: Rechnung, kleinunternehmer: boolean) => r.ust_betrag !== null && r.ust_betrag !== undefined && !istEntwurf(r) ? Number(r.ust_betrag) : (r.kleinunternehmer ?? kleinunternehmer) ? 0 : rund((Number(r.netto) * Number(r.ust_satz)) / 100);
@@ -30,12 +30,16 @@ export function beteiligte(r: Rechnung, kunde: Kunde | null, a: Absender): { a: 
 export const KU_HINWEIS = "Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung nach § 19 Abs. 1 UStG.";
 /** § 14a Abs. 5 UStG: mandatory wording when the customer owes the VAT (§ 13b). */
 export const RC_HINWEIS = "Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG).";
+/** Reverse charge for a business customer in another EU country (§ 14a Abs. 1 UStG; Art. 196 MwStSystRL). */
+export const RC_EU_HINWEIS = "Steuerschuldnerschaft des Leistungsempfängers / Reverse charge (Art. 196 MwStSystRL).";
+/** Kind of reverse charge: frozen once issued, otherwise today's customer setting. */
+export const istReverseChargeEu = (r: Rechnung, kunde: Kunde | null) => (istEntwurf(r) ? !!kunde?.reverse_charge_eu : !!r.reverse_charge_eu);
 /** Reverse charge: frozen once issued; for a draft from today's customer setting (never for small businesses). */
 /** § 14 Abs. 4 Satz 1 Nr. 9 UStG: note on the private recipient's two-year retention duty (§ 14b Abs. 1 Satz 5 UStG). */
 export const PRIVAT_HINWEIS = "Sie sind als Privatperson gesetzlich verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre lang aufzubewahren. Die Frist beginnt mit dem Schluss des Kalenderjahres, in dem die Rechnung ausgestellt wurde (§ 14b Abs. 1 Satz 5 UStG).";
 /** Private customer: frozen once issued, otherwise today's customer setting. */
 export const istPrivat = (r: Rechnung, kunde: Kunde | null) => (istEntwurf(r) || !r.empfaenger ? !!kunde?.privat : !!r.empfaenger.privat);
-export const istReverseCharge = (r: Rechnung, kunde: Kunde | null, kleinunternehmer: boolean) => istEntwurf(r) ? !!kunde?.ust_13b && !kleinunternehmer : !!r.reverse_charge;
+export const istReverseCharge = (r: Rechnung, kunde: Kunde | null, kleinunternehmer: boolean) => istEntwurf(r) ? (!!kunde?.ust_13b || !!kunde?.reverse_charge_eu) && !kleinunternehmer : !!r.reverse_charge;
 export const neueEntwurfsnummer = () => `ENTWURF-${crypto.randomUUID().slice(0, 8)}`;
 /** Invoice template from the firm profile (Rechnungsvorlage): logo, opening and closing text, footer lines. */
 export type Vorlage2 = { logo?: { bytes: Uint8Array; typ: "png" | "jpeg" } | null; einleitung?: string; schluss?: string; fuss?: string[] };
@@ -82,7 +86,7 @@ export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeut
       ["", "Summe netto", "", "", euro(netto)], ...(a.kleinunternehmer || rc ? [] : [["", `zzgl. ${zahl(Number(r.ust_satz)).replace(",00", "")} % Umsatzsteuer`, "", "", euro(ust)]]), ["", "Rechnungsbetrag", "", "", euro(netto + ust)]], [600, 4300, 1400, 1600, 1700], true)
     + (a.kleinunternehmer ? absatz(KU_HINWEIS, { abstand: 160 }) : "")
     + (istPrivat(r, kundeHeute) ? absatz(PRIVAT_HINWEIS, { abstand: 160 }) : "")
-    + (rc ? absatz(`${RC_HINWEIS}${(r.empfaenger?.ustid || kundeHeute?.ustid) ? ` USt-IdNr. des Leistungsempfängers: ${r.empfaenger?.ustid || kundeHeute?.ustid}` : ""}`, { abstand: 160 }) : "")
+    + (rc ? absatz(`${istReverseChargeEu(r, kundeHeute) ? RC_EU_HINWEIS : RC_HINWEIS}${(r.empfaenger?.ustid || kundeHeute?.ustid) ? ` USt-IdNr. des Leistungsempfängers: ${r.empfaenger?.ustid || kundeHeute?.ustid}` : ""}${istReverseChargeEu(r, kundeHeute) && a.ustid ? ` · Unsere USt-IdNr.: ${a.ustid}` : ""}`, { abstand: 160 }) : "")
     + (storno ? absatz(`Diese Stornorechnung hebt die Rechnung ${r.bezug_nummer ?? ""} vollständig auf.`, { abstand: 300 })
       : absatz(`Zahlbar ohne Abzug bis ${entwurf ? `${r.zahlungsziel_tage ?? 14} Tage nach Rechnungsdatum` : datum(faellig)}.${a.zahlungshinweis ? `\n${a.zahlungshinweis}` : ""}`, { abstand: 300 }))
     + (vorlage.schluss ? absatz(vorlage.schluss, { abstand: 300 }) : "")
@@ -226,7 +230,7 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     const r = await db<Rechnung[]>(f.s, env, `rechnungen?id=eq.${docx[1]}&firma_id=eq.${firma}&select=${RECHNUNG_SPALTEN}`);
     const x = r.ok ? r.daten[0] : undefined;
     if (!x) return new Response("Nicht gefunden", { status: 404 });
-    const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,land,ansprechpartner,telefon,email,notiz,leitweg_id,ustid,ust_13b,privat`) : null;
+    const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,land,ansprechpartner,telefon,email,notiz,leitweg_id,ustid,ust_13b,reverse_charge_eu,privat`) : null;
     const kunde = k?.ok ? k.daten[0] ?? null : null;
     if (docx[2] === "mahnung.docx") {
       if (!x.mahnstufe) return new Response("Noch keine Mahnung", { status: 404 });

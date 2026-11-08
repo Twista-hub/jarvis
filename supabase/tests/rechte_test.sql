@@ -121,6 +121,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108120000_personal_sensibel.sql
 \ir ../migrations/20261108130000_umsatz_extern.sql
 \ir ../migrations/20261108140000_belege_datev.sql
+\ir ../migrations/20261108150000_reverse_charge_eu.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1371,6 +1372,20 @@ select test_als('00000000-0000-0000-0000-00000000000b');
 insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'k13b', 'ENTWURF-13b', '2026-11', current_date, 1000) returning id as re13b \gset
 select public.rechnung_ausstellen(:'re13b');
 select pruefe((select reverse_charge and ust_betrag = 0 and ust_satz = 0 and empfaenger->>'ustid' = 'DE111222333' from public.rechnungen where id = :'re13b'), '§ 13b: Rechnung ohne Umsatzsteuer mit USt-IdNr. des Kunden');
+-- Reverse charge EU: only for a customer in another EU country with VAT ID, frozen with its kind.
+reset role;
+insert into public.kunden (firma_id, bereich_id, name, land, reverse_charge_eu, ustid) select :'firma', bereich_id, 'Wien Personal GmbH', 'AT', true, 'ATU12345678' from public.kunden where id = :'kunde_berlin' returning id as keu \gset
+insert into public.kunden (firma_id, bereich_id, name, land, reverse_charge_eu, ustid) select :'firma', bereich_id, 'Zürich AG', 'CH', true, 'CHE123' from public.kunden where id = :'kunde_berlin' returning id as kch \gset
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'keu', 'ENTWURF-eu', '2026-11', current_date, 1000) returning id as reeu \gset
+select public.rechnung_ausstellen(:'reeu');
+select pruefe((select reverse_charge and reverse_charge_eu and ust_betrag = 0 and empfaenger->>'land' = 'AT' from public.rechnungen where id = :'reeu'), 'Reverse Charge EU: 0 %, Art eingefroren');
+insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'kch', 'ENTWURF-ch', '2026-11', current_date, 1000) returning id as rech \gset
+do $$ begin
+  perform public.rechnung_ausstellen((select id from public.rechnungen where nummer = 'ENTWURF-ch'));
+  raise exception 'FEHLER: Reverse Charge EU für die Schweiz';
+exception when raise_exception then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 -- S17: private customers – the flag is frozen into the invoice; § 13b and private together are refused.
 reset role;
 insert into public.kunden (firma_id, bereich_id, name, privat) select :'firma', bereich_id, 'Erika Muster', true from public.kunden where id = :'kunde_berlin' returning id as kprivat \gset
@@ -1461,7 +1476,7 @@ update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000
 update public.kunden_portale set rechnungen_zeigen = true;
 set role anon;
 select pruefe(public.portal_abrufen('falsch') is null, 'Portal nur mit richtigem Link');
-select pruefe((select (d->>'kunde') = 'Messe Berlin GmbH' and jsonb_array_length(d->'rechnungen') = 3 and d::text not like '%ENTWURF%' and (d->'rechnungen'->0->>'nummer') like 'RE-%-0005'
+select pruefe((select (d->>'kunde') = 'Messe Berlin GmbH' and jsonb_array_length(d->'rechnungen') = 3 and d::text not like '%ENTWURF%' and (d->'rechnungen'->0->>'nummer') like 'RE-%-0006'
   and jsonb_array_length(d->'nachweise') = 1 and (d->'nachweise'->0->'summe'->>'std') = '12.5' and d::text not like '%Protokoll Berlin%'
   and jsonb_array_length(d->'vorfaelle') = 1 and not (d->'vorfaelle'->0 ? 'text') and (d->'orte'->0->>'scans')::int = 1 from public.portal_abrufen('portal-geheim-1') d),
   'Portal zeigt nur Rechnungen, Summen und Berichte dieses Kunden, keine Namen');

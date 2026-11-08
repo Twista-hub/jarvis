@@ -521,5 +521,12 @@
   "Vorsteuer (Kz. 66)": "IVA a credito (rigo 66)",
   "Zahllast": "Da versare",
   "Summe": "Totale",
-  "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "Per una fattura dall'estero (§ 13b) scegli IVA 0 %: l'IVA la calcola il commercialista o DATEV."
+  "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "Per una fattura dall'estero (§ 13b) scegli IVA 0 %: l'IVA la calcola il commercialista o DATEV.",
+  "Reverse Charge EU: Kunde ist ein Unternehmen in einem anderen EU-Land und die Leistung ist dort steuerbar (z. B. Personal für eine Firma in Österreich). Rechnungen dann ohne Umsatzsteuer mit Hinweis, Zusammenfassende Meldung nötig.": "Inversione contabile UE: il cliente è un'azienda di un altro paese UE e la prestazione è imponibile lì (ad es. personale per un'azienda in Austria). Fatture senza IVA con dicitura; serve l'elenco riepilogativo.",
+  "Nicht": "Non",
+  "für Arbeiten an Gebäuden in Deutschland – dort gilt deutsche Umsatzsteuer. Vorschlag, im Zweifel Steuerbüro fragen.": "per lavori su edifici in Germania: lì si applica l'IVA tedesca. Proposta, in caso di dubbio chiedi al commercialista.",
+  "Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).": "L'inversione contabile UE vale solo per un'azienda di un altro paese UE con partita IVA (non insieme al § 13b o a un privato).",
+  "🇪🇺 Rechnungen mit Reverse Charge an Unternehmen in anderen EU-Ländern: Dafür ist zusätzlich die": "🇪🇺 Fatture con inversione contabile ad aziende di altri paesi UE: serve inoltre l'",
+  "Zusammenfassende Meldung": "elenco riepilogativo",
+  "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "presso l'Ufficio centrale federale delle imposte (tramite ELSTER, entro il # del mese o trimestre successivo), con la partita IVA del cliente e l'importo. Proposta, verifica con il commercialista."
 }

@@ -71,3 +71,12 @@ test("S13: Gründungsjahr, Umsätze außerhalb Crewtender, vorsichtige Zählung"
   assert.match(html, /name="extern_laufend"[^>]*value="1000"/);
   assert.doesNotMatch(umsatzsteuerSeite([], { jahr: 2026, quartal: false, ist: false, kleinunternehmer: true, waechter: kleinunternehmerWaechter(0, 0, true), vorjahr: 0, laufend: 0, heuteJahr: 2026 }), /extern_laufend/, "nur Inhaber/Admin pflegen");
 });
+
+test("Reverse Charge EU in der USt-Übersicht: Kz. 21 und Zusammenfassende Meldung", () => {
+  const p = perioden([{ datum: "2026-11-03", monat: "2026-11", netto: 1000, ust_satz: 0, ust_betrag: 0, reverse_charge: true, reverse_charge_eu: true }], [], { jahr: 2026, quartal: false, ist: false, kleinunternehmer: false });
+  const nov = p.find((x) => x.umsatzEu)!;
+  assert.deepEqual([nov.umsatzEu, nov.umsatz13b, nov.ust], [1000, 0, 0]);
+  const html = umsatzsteuerSeite(p, { jahr: 2026, quartal: false, ist: false, kleinunternehmer: false, waechter: kleinunternehmerWaechter(0, 0, false), vorjahr: 0, laufend: 0, heuteJahr: 2026 });
+  assert.match(html, /EU Reverse Charge \(Kz\. 21\)/);
+  assert.match(html, /Zusammenfassende Meldung/);
+});

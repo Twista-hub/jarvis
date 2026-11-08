@@ -6,11 +6,13 @@ import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { ustIdPasst } from "./xrechnung.ts";
 /** Countries a customer can be in (ISO 3166 codes, used for the address on invoices and in the XRechnung). */
-export const KUNDEN_LAENDER: Record<string, string> = { DE: "Deutschland", AT: "Österreich", CH: "Schweiz", NL: "Niederlande", BE: "Belgien", LU: "Luxemburg", FR: "Frankreich", DK: "Dänemark", PL: "Polen", CZ: "Tschechien", IT: "Italien", ES: "Spanien", GB: "Vereinigtes Königreich", US: "USA" };
+export const KUNDEN_LAENDER: Record<string, string> = { DE: "Deutschland", AT: "Österreich", CH: "Schweiz", NL: "Niederlande", BE: "Belgien", LU: "Luxemburg", FR: "Frankreich", DK: "Dänemark", PL: "Polen", CZ: "Tschechien", IT: "Italien", ES: "Spanien", SE: "Schweden", FI: "Finnland", IE: "Irland", PT: "Portugal", GR: "Griechenland", HU: "Ungarn", RO: "Rumänien", BG: "Bulgarien", SK: "Slowakei", SI: "Slowenien", HR: "Kroatien", EE: "Estland", LV: "Lettland", LT: "Litauen", MT: "Malta", CY: "Zypern", GB: "Vereinigtes Königreich", NO: "Norwegen", US: "USA" };
+/** Other EU member states (reverse charge EU, EC sales list). */
+export const EU_LAENDER = ["AT", "BE", "BG", "CY", "CZ", "DK", "EE", "ES", "FI", "FR", "GR", "HR", "HU", "IE", "IT", "LT", "LU", "LV", "MT", "NL", "PL", "PT", "RO", "SE", "SI", "SK"];
 /** Postcode check per country: five digits in Germany, otherwise 3–10 letters, digits, spaces or hyphens. */
 export const plzPasst = (plz: string, land: string) => (land === "DE" ? /^\d{5}$/ : /^[0-9A-Za-z][0-9A-Za-z -]{1,8}[0-9A-Za-z]$/).test(plz);
 
-export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; land?: string; ansprechpartner: string; telefon: string; email: string; notiz: string; bz_tarif?: string; bz_prozente?: (number | string)[]; ust_13b?: boolean; privat?: boolean; ustid?: string; leitweg_id?: string };
+export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; land?: string; ansprechpartner: string; telefon: string; email: string; notiz: string; bz_tarif?: string; bz_prozente?: (number | string)[]; ust_13b?: boolean; reverse_charge_eu?: boolean; privat?: boolean; ustid?: string; leitweg_id?: string };
 export type Einsatzort = { id: string; kunde_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; treffpunkt: string; kleidung: string; hinweise: string };
 export type Preis = { kunde_id: string; satz: number | string; zuschlag_nacht?: number | string; zuschlag_sonntag?: number | string; zuschlag_feiertag?: number | string };
 // T38: sector surcharge agreements (temporary work). Only the metal/electrical preset is filled in; please check against the current agreement.
@@ -37,6 +39,7 @@ ${preis !== null ? `<label>Verrechnungssatz (€/Std., netto)<input name="satz" 
 <label>USt-IdNr. des Kunden<input name="ustid" maxlength="20" value="${escape(k.ustid ?? "")}" placeholder="DE123456789"></label>
 <label>Leitweg-ID (nur öffentliche Auftraggeber, für die XRechnung)<input name="leitweg_id" maxlength="46" pattern="[0-9A-Za-z\-]{5,46}" value="${escape(k.leitweg_id ?? "")}" placeholder="z. B. 05315-12345-67"></label>
 <label class="zeile ganz"><input type="checkbox" name="privat"${k.privat ? " checked" : ""}>Privatperson (kein Unternehmen): Rechnungen bekommen den Pflichthinweis zur Aufbewahrung (§ 14 Abs. 4 Nr. 9 UStG, z. B. bei Reinigung oder Arbeiten am Haus), Mahnungen die Verzugszinsen für Verbraucher.</label>
+<label class="zeile ganz"><input type="checkbox" name="reverse_charge_eu"${k.reverse_charge_eu ? " checked" : ""}>Reverse Charge EU: Kunde ist ein Unternehmen in einem anderen EU-Land und die Leistung ist dort steuerbar (z. B. Personal für eine Firma in Österreich). Rechnungen dann ohne Umsatzsteuer mit Hinweis, Zusammenfassende Meldung nötig. <strong>Nicht</strong> für Arbeiten an Gebäuden in Deutschland – dort gilt deutsche Umsatzsteuer. Vorschlag, im Zweifel Steuerbüro fragen.</label>
 <label class="zeile ganz"><input type="checkbox" name="ust_13b"${k.ust_13b ? " checked" : ""}>Kunde schuldet die Umsatzsteuer (§ 13b UStG): z. B. Gebäudereinigung für einen Gebäudereiniger oder Bauleistung für ein Bauunternehmen. Rechnungen dann ohne Umsatzsteuer mit Hinweis. Nachweis (z. B. USt 1 TG) beim Kunden anfordern und ablegen.</label>
 <label class="ganz">Notiz<input name="notiz" maxlength="500" value="${escape(k.notiz ?? "")}"></label></div>`;
 
@@ -79,7 +82,7 @@ ${ohne.length ? `<h2>Einsatzorte ohne Kunde</h2><ul class="ort-liste">${ohne.map
 
 export async function kundenLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string, finanzen: boolean) {
   const [k, o, p] = await Promise.all([
-    db<Kunde[]>(s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,land,ansprechpartner,telefon,email,notiz,bz_tarif,bz_prozente,ust_13b,privat,ustid,leitweg_id&order=name&limit=1000`),
+    db<Kunde[]>(s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,land,ansprechpartner,telefon,email,notiz,bz_tarif,bz_prozente,ust_13b,reverse_charge_eu,privat,ustid,leitweg_id&order=name&limit=1000`),
     db<Einsatzort[]>(s, env, `einsatzorte?firma_id=eq.${firma}&select=id,kunde_id,name,strasse,plz,ort,ansprechpartner,telefon,treffpunkt,kleidung,hinweise&order=name&limit=3000`),
     finanzen ? db<Preis[]>(s, env, `kunden_preise?firma_id=eq.${firma}&select=kunde_id,satz,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag&limit=1000`) : Promise.resolve(null),
   ]);
@@ -118,10 +121,11 @@ export async function kunden(request: Request, env: KontoEnv): Promise<Response 
     let bz = [0, 1, 2, 3, 4].map((i) => pz(`bz_${i}`));
     if (bz.every((x) => x === null) && BZ_VORLAGEN[bzTarif]) bz = BZ_VORLAGEN[bzTarif];
     const zeile = { firma_id: firma, name: t("name", 160), strasse: t("strasse", 160), plz: plzPasst(plzKunde, land) ? plzKunde : "", ort: t("ort", 100), ansprechpartner: t("ansprechpartner", 160), telefon: t("telefon", 60), email: t("email", 200), notiz: t("notiz", 500), bereich_id: uuid("bereich") || null,
-      bz_tarif: bzTarif, bz_prozente: bz.some((x) => x !== null) ? bz.map((x) => x ?? 0) : [], ust_13b: form.get("ust_13b") === "on" && form.get("privat") !== "on", privat: form.get("privat") === "on", ustid: t("ustid", 20).toUpperCase().replace(/[\s-]/g, ""), land, leitweg_id: /^[0-9A-Za-z-]{5,46}$/.test(t("leitweg_id", 46).replace(/\s/g, "")) ? t("leitweg_id", 46).replace(/\s/g, "") : "" };
+      bz_tarif: bzTarif, bz_prozente: bz.some((x) => x !== null) ? bz.map((x) => x ?? 0) : [], ust_13b: form.get("ust_13b") === "on" && form.get("privat") !== "on", reverse_charge_eu: form.get("reverse_charge_eu") === "on", privat: form.get("privat") === "on", ustid: t("ustid", 20).toUpperCase().replace(/[\s-]/g, ""), land, leitweg_id: /^[0-9A-Za-z-]{5,46}$/.test(t("leitweg_id", 46).replace(/\s/g, "")) ? t("leitweg_id", 46).replace(/\s/g, "") : "" };
     if (zeile.name.length < 2) return zurueck("Bitte einen Namen angeben.");
     if (plzKunde && !zeile.plz) return zurueck(land === "DE" ? "Die PLZ in Deutschland hat 5 Ziffern." : "Bitte die Postleitzahl prüfen.");
     if (form.get("privat") === "on" && form.get("ust_13b") === "on") return zurueck("Eine Privatperson kann die Umsatzsteuer nicht nach § 13b schulden. Bitte eines von beiden abwählen.");
+    if (zeile.reverse_charge_eu && (zeile.ust_13b || zeile.privat || !EU_LAENDER.includes(land) || !zeile.ustid)) return zurueck("Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).");
     if (!ustIdPasst(zeile.ustid)) return zurueck("Die USt-IdNr. beginnt mit dem Ländercode, z. B. DE123456789 oder ATU12345678.");
     const r = id ? await db<{ id: string }[]>(f.s, env, `kunden?id=eq.${id}&firma_id=eq.${firma}&select=id`, { method: "PATCH", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) })
       : await db<{ id: string }[]>(f.s, env, "kunden?select=id", { method: "POST", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) });

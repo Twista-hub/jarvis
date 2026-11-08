@@ -132,3 +132,10 @@ test("S18: Barbelege gegen Kasse, Arbeitskleidung, Auslandsrechnung mit § 13b-S
   const [bar04] = buchungenAus([], [b("a", { zahlart: "bar" })], { ...e, skr: "04" });
   assert.equal(bar04.gegenkonto, "1600");
 });
+
+test("Reverse Charge EU: eigenes Erlöskonto", () => {
+  const e: DatevEinstellung = { berater: "1234567", mandant: "42", skr: "03", wjBeginn: 1, kleinunternehmer: false };
+  const [b] = buchungenAus([{ nummer: "RE-1", datum: "2026-11-03", netto: 1000, ust_satz: 0, ust_betrag: 0, reverse_charge: true, reverse_charge_eu: true }], [], e);
+  assert.equal(b.gegenkonto, "8338");
+  assert.equal(buchungenAus([{ nummer: "RE-1", datum: "2026-11-03", netto: 1000, ust_satz: 0, ust_betrag: 0, reverse_charge: true, reverse_charge_eu: true }], [], { ...e, skr: "04" })[0].gegenkonto, "4336");
+});

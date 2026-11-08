@@ -521,5 +521,12 @@
  "Vorsteuer (Kz. 66)": "VAT naliczony (poz. 66)",
  "Zahllast": "Do zapłaty",
  "Summe": "Suma",
- "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "Dla faktury z zagranicy (§ 13b) wybierz 0 % VAT: VAT oblicza doradca podatkowy lub DATEV."
+ "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "Dla faktury z zagranicy (§ 13b) wybierz 0 % VAT: VAT oblicza doradca podatkowy lub DATEV.",
+ "Reverse Charge EU: Kunde ist ein Unternehmen in einem anderen EU-Land und die Leistung ist dort steuerbar (z. B. Personal für eine Firma in Österreich). Rechnungen dann ohne Umsatzsteuer mit Hinweis, Zusammenfassende Meldung nötig.": "Odwrotne obciążenie UE: klient jest firmą w innym kraju UE i usługa jest tam opodatkowana (np. personel dla firmy w Austrii). Faktury wtedy bez VAT z adnotacją; potrzebna informacja podsumowująca.",
+ "Nicht": "Nie",
+ "für Arbeiten an Gebäuden in Deutschland – dort gilt deutsche Umsatzsteuer. Vorschlag, im Zweifel Steuerbüro fragen.": "dla prac przy budynkach w Niemczech – obowiązuje tam niemiecki VAT. Propozycja, w razie wątpliwości zapytaj doradcę podatkowego.",
+ "Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).": "Odwrotne obciążenie UE tylko dla firmy z innego kraju UE z NIP UE (nie razem z § 13b ani osobą prywatną).",
+ "🇪🇺 Rechnungen mit Reverse Charge an Unternehmen in anderen EU-Ländern: Dafür ist zusätzlich die": "🇪🇺 Faktury z odwrotnym obciążeniem dla firm z innych krajów UE: wymagana jest dodatkowo",
+ "Zusammenfassende Meldung": "informacja podsumowująca",
+ "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "do Federalnego Centralnego Urzędu Skarbowego (przez ELSTER, do # dnia następnego miesiąca lub kwartału), z NIP UE klienta i kwotą. Propozycja, sprawdź z doradcą podatkowym."
 }
