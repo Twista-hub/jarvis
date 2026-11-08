@@ -135,6 +135,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108260000_auftraggeber_nach_name.sql
 \ir ../migrations/20261108270000_auftraggeber_zahlen.sql
 \ir ../migrations/20261108280000_auftraggeber_schluessel.sql
+\ir ../migrations/20261108290000_sitemap_cache.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2147,6 +2148,9 @@ select pruefe((public.gewerk_land_statistik(array['90911','90919','90910'], 'A')
 select pruefe((public.gewerk_land_statistik(array['90911','90919','90910'], '2')->>'offen')::int = 0 and (public.gewerk_land_statistik(array['90911','90919','90910'], '2')->>'monat')::int >= 1, 'Bayern: abgelaufene zählt im Monat, nicht als offen');
 select pruefe((public.gewerk_land_statistik(array['90911'], 'C')->>'monat')::int = 0, 'Land ohne Ausschreibungen: leere Zahlen');
 select pruefe(exists (select 1 from public.sitemap_ausschreibungen() where id = 'bks:seo1') and not exists (select 1 from public.sitemap_ausschreibungen() where id = 'bks:seo2'), 'Sitemap nur mit offenen Ausschreibungen');
+reset role;
+select jarvis_intern.sitemaps_aktualisieren();
+set role anon;
 select pruefe(public.sitemap_ausschreibungen_json() @> '[["bks:seo1"]]' and not public.sitemap_ausschreibungen_json() @> '[["bks:seo2"]]', 'Sitemap als JSON ohne Zeilengrenze');
 do $$ begin perform 1 from jarvis_intern.gewerk_land_cache; raise exception 'FEHLER: Länder-Cache ohne Login lesbar'; exception when insufficient_privilege then null; end $$;
 reset role;
@@ -2166,6 +2170,9 @@ select pruefe(position('Fremde Ausschreibung' in public.auftraggeber_oeffentlich
 select pruefe((public.auftraggeber_oeffentlich('stadt-koeln')->'frueher'->0->>'zuschlag_wert')::numeric = 120000
   and position('Mustermann' in public.auftraggeber_oeffentlich('stadt-koeln')::text) = 0, 'Zuschlag nur als Wert, kein Gewinnername');
 select pruefe(public.auftraggeber_oeffentlich('gibt-es-nicht') is null and public.auftraggeber_oeffentlich('buyer-seo') is null, 'Unbekannter Auftraggeber: nichts');
+reset role;
+select jarvis_intern.sitemaps_aktualisieren();
+set role anon;
 select pruefe(public.sitemap_auftraggeber_json() @> '[["stadt-koeln"]]' and public.sitemap_auftraggeber_json() @> '[["gemeinde-anderswo"]]', 'Auftraggeber in der Sitemap');
 select pruefe(public.demo_eintrag('bks:seo1')->>'auftraggeber_seite' = 'stadt-koeln', 'Ausschreibung nennt die Auftraggeber-Seite');
 reset role;
@@ -2177,6 +2184,10 @@ select pruefe(jarvis_intern.ag_schluessel('Stadt Köln', '{"buyer":{"id":"ORG-1"
 update public.vergabekatalog set auftraggeber_id = 'manipuliert' where id = 'bks:seo4';
 select pruefe((select auftraggeber_id from public.vergabekatalog where id = 'bks:seo4') = 'bks:gemeinde-anderswo', 'Kennung wird immer aus Name und PLZ berechnet');
 set role anon;
+reset role;
+
+set role anon;
+do $$ begin perform 1 from jarvis_intern.sitemap_cache; raise exception 'FEHLER: Sitemap-Cache ohne Login lesbar'; exception when insufficient_privilege then null; end $$;
 reset role;
 
 \echo ALLE TESTS OK

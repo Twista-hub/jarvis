@@ -140,24 +140,24 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
     if (alt) return alt;
     const r = await bauen();
     if (!r) return null;
-    r.headers.set("cache-control", `public, max-age=${sekunden}`);
-    if (cache && r.status === 200) env.WARTEN?.(cache.put(k, r.clone()).catch(() => undefined));
+    r.headers.set("cache-control", `public, max-age=${r.headers.has("x-reserve") ? 300 : sekunden}`);
+    if (cache && r.status === 200 && !r.headers.has("x-reserve")) env.WARTEN?.(cache.put(k, r.clone()).catch(() => undefined));
     return r;
   };
-  if (url.pathname === "/sitemap-ausschreibungen.xml") {
-    return gecacht("/sitemap-ausschreibungen.xml?v=2", async () => {
-      const z = await rpc<[string, string][]>(env, "sitemap_ausschreibungen_json", {});
-      if (!Array.isArray(z)) return new Response("nicht erreichbar", { status: 503 });
-      return new Response(sitemapAusschreibungen(adresse, z.map(([id, datum]) => ({ id, datum }))), { headers: { "content-type": "application/xml; charset=utf-8" } });
-    }, 21600);
-  }
-  if (url.pathname === "/sitemap-auftraggeber.xml") {
-    return gecacht("/sitemap-auftraggeber.xml?v=2", async () => {
-      const z = await rpc<[string, string][]>(env, "sitemap_auftraggeber_json", {});
-      if (!Array.isArray(z)) return new Response("nicht erreichbar", { status: 503 });
-      return new Response(sitemapAuftraggeber(adresse, z), { headers: { "content-type": "application/xml; charset=utf-8" } });
-    }, 21600);
-  }
+  // Sitemaps: 6 h edge cache plus a 7-day reserve copy that is served when the database does not answer.
+  const sitemap = (schluessel: string, funktion: string, xml: (z: [string, string][]) => string) => gecacht(schluessel, async () => {
+    const z = await rpc<[string, string][]>(env, funktion, {});
+    const reserve = new Request(`${adresse}${schluessel}&reserve=1`);
+    if (!Array.isArray(z)) {
+      const alt = await cache?.match(reserve).catch(() => undefined);
+      return alt ? new Response(alt.body, { headers: { "content-type": "application/xml; charset=utf-8", "x-reserve": "1" } }) : new Response("nicht erreichbar", { status: 503, headers: { "retry-after": "60" } });
+    }
+    const text = xml(z);
+    if (cache) env.WARTEN?.(cache.put(reserve, new Response(text, { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=604800" } })).catch(() => undefined));
+    return new Response(text, { headers: { "content-type": "application/xml; charset=utf-8" } });
+  }, 21600);
+  if (url.pathname === "/sitemap-ausschreibungen.xml") return sitemap("/sitemap-ausschreibungen.xml?v=3", "sitemap_ausschreibungen_json", (z) => sitemapAusschreibungen(adresse, z.map(([id, datum]) => ({ id, datum }))));
+  if (url.pathname === "/sitemap-auftraggeber.xml") return sitemap("/sitemap-auftraggeber.xml?v=3", "sitemap_auftraggeber_json", (z) => sitemapAuftraggeber(adresse, z));
   const gl = url.pathname.match(/^\/ausschreibungen\/([a-z-]+)\/([a-z-]+)\/?$/);
   if (gl) {
     const g = GEWERKE.find((x) => x.slug === gl[1]), l = BUNDESLAENDER.find((x) => x.slug === gl[2]);
