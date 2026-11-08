@@ -26,7 +26,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           # Lists the release files and picks the best package: a standalone jar, else a distribution zip, else any zip.
-          asset() { curl -fsS -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$1/releases/latest" | python3 -c "
+          asset() { curl -fsS --retry 4 --retry-all-errors -H "Authorization: Bearer $GH_TOKEN" "https://api.github.com/repos/$1/releases/latest" | python3 -c "
           import json, sys
           d = json.load(sys.stdin)
           namen = [a['name'] for a in d['assets']]
@@ -37,8 +37,8 @@ jobs:
           beste = min(d['assets'], key=lambda a: rang(a['name']))
           print(beste['browser_download_url'])"; }
           holen() { u=$(asset "$1"); echo "$1 -> $u"; mkdir -p "$2"; case "$u" in
-            *.jar) curl -fsSL -o "$2/$(basename "$u")" "$u" ;;
-            *) curl -fsSL -o "$2.zip" "$u"; ls -la "$2.zip"; unzip -q -o "$2.zip" -d "$2" ;;
+            *.jar) curl -fsSL --retry 6 --retry-all-errors --retry-delay 10 -o "$2/$(basename "$u")" "$u" ;;
+            *) curl -fsSL --retry 6 --retry-all-errors --retry-delay 10 -o "$2.zip" "$u"; ls -la "$2.zip"; unzip -q -o "$2.zip" -d "$2" ;;
           esac; }
           holen itplr-kosit/validator validator
           holen itplr-kosit/validator-configuration-xrechnung konfig
