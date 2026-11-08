@@ -114,13 +114,21 @@ def art_heute(heute: date) -> str:
     return {1: "ausschreibung", 2: "zahl", 3: "ausschreibung", 4: "zahl"}.get(w, "tipp" if heute.isocalendar()[1] % 2 == 0 else "ausschreibung")
 
 
+SLOT_START = {1: 9, 2: 13, 3: 17}  # weekdays, Berlin hour; weekends one slot from 11
+ENDE = 21  # no posts from 21:00 Berlin
+
+
 def slot_jetzt(jetzt: datetime) -> int | None:
-    """Time slot of a Berlin time: weekdays 9–11 → 1, 13–15 → 2, 17–19 → 3; weekends 11–13 → 1. The windows are wide so
-    that one UTC start time per slot works in summer and winter time and a late GitHub start still counts."""
+    """Latest slot whose start has come today (Berlin): weekdays 09 → 1, 13 → 2, 17 → 3; weekends 11 → 1; none before the
+    first start or from 21:00. GitHub skips or delays scheduled runs, so a later run catches up the latest missed slot
+    (only that one, no burst of old posts)."""
     h = jetzt.hour
+    if h >= ENDE:
+        return None
     if jetzt.isoweekday() > 5:
-        return 1 if 11 <= h <= 13 else None
-    return 1 if 9 <= h <= 11 else 2 if 13 <= h <= 15 else 3 if 17 <= h <= 19 else None
+        return 1 if h >= 11 else None
+    erreicht = [n for n, start in SLOT_START.items() if h >= start]
+    return max(erreicht) if erreicht else None
 
 
 def art_fuer(heute: date, slot: int) -> str:
