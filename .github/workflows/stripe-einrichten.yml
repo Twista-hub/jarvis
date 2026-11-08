@@ -23,6 +23,9 @@ on:
       testpaket_firma:
         description: "Nur im Testmodus: Bezahlseite für ein Steckbrief-Paket dieser Firma (UUID) anlegen (leer = nichts)"
         default: ""
+      pruefen:
+        description: "Nur prüfen, ob der Schlüssel alles darf (Bezahlseiten anlegen und sofort ungültig machen, kein Geld); legt das Kundenportal an, falls es fehlt (ja/nein)"
+        default: "nein"
 permissions:
   contents: read
 concurrency:
@@ -39,7 +42,7 @@ jobs:
       - run: npm ci --silent
         working-directory: web
       - name: Pläne, Preise, Webhook
-        if: inputs.abgleich != 'ja' && inputs.testabos_beenden != 'ja' && inputs.testabo_plan == '' && inputs.testabo_kraefte == '' && inputs.testpaket_firma == ''
+        if: inputs.abgleich != 'ja' && inputs.testabos_beenden != 'ja' && inputs.testabo_plan == '' && inputs.testabo_kraefte == '' && inputs.testpaket_firma == '' && inputs.pruefen != 'ja'
         env:
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -109,6 +112,68 @@ jobs:
               print("Webhook angelegt, Secret im Worker gesetzt")
           subprocess.run(["npx", "wrangler", "secret", "put", "STRIPE_SECRET_KEY"], input=KEY.encode(), cwd="web", check=True, stdout=subprocess.DEVNULL)
           print("STRIPE_SECRET_KEY im Worker gesetzt")
+          PY
+      - name: Schlüssel prüfen
+        if: inputs.pruefen == 'ja'
+        env:
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+        run: |
+          # Checks every API the app uses with the stored key, without moving money: read prices, subscriptions and
+          # customers; create a subscription and a one-off Checkout page and expire both at once (nobody can pay them).
+          # The customer portal ("Abo verwalten") needs a configuration; if none exists, one is created.
+          python3 - <<'PY'
+          import json, os, urllib.error, urllib.parse, urllib.request
+          KEY = "".join(os.environ["STRIPE_SECRET_KEY"].split())
+          print("Modus:", "LIVE" if "_live_" in KEY[:8] else "TEST", "· Schlüsselart:", "eingeschränkt" if KEY.startswith("rk_") else "geheim")
+          fehler = 0
+          def api(pfad, daten=None):
+              req = urllib.request.Request(f"https://api.stripe.com/v1/{pfad}", data=urllib.parse.urlencode(daten, doseq=True).encode() if daten is not None else None,
+                                           headers={"Authorization": f"Bearer {KEY}"})
+              with urllib.request.urlopen(req, timeout=30) as r:
+                  return json.load(r)
+          def probe(name, f):
+              global fehler
+              try:
+                  r = f(); print(f"OK      {name}"); return r
+              except urllib.error.HTTPError as e:
+                  fehler += 1
+                  try: msg = json.load(e).get("error", {}).get("message", "")
+                  except Exception: msg = ""
+                  print(f"FEHLER  {name}: HTTP {e.code} {msg[:200]}")
+          preise = probe("Preise lesen", lambda: api("prices?" + urllib.parse.urlencode([("lookup_keys[]", "crewtender_basis_monat"), ("lookup_keys[]", "crewtender_steckbriefe_10")])))["data"]
+          ids = {p["lookup_key"]: p["id"] for p in preise or []}
+          probe("Abos lesen", lambda: api("subscriptions?limit=1&status=all"))
+          probe("Kunden lesen", lambda: api("customers?limit=1"))
+          probe("Webhooks lesen", lambda: api("webhook_endpoints?limit=1"))
+          ziel = {"success_url": "https://crewtender.eu/konto/plan?probe=1", "cancel_url": "https://crewtender.eu/konto/plan?probe=1"}
+          if "crewtender_basis_monat" in ids:
+              s1 = probe("Bezahlseite Abo anlegen", lambda: api("checkout/sessions", {"mode": "subscription", "line_items[0][price]": ids["crewtender_basis_monat"], "line_items[0][quantity]": 1,
+                  "billing_address_collection": "required", "tax_id_collection[enabled]": "true", "metadata[probe]": "ja", **ziel}))
+              if s1: probe("Bezahlseite Abo ungültig machen", lambda: api(f"checkout/sessions/{s1['id']}/expire", {}))
+          if "crewtender_steckbriefe_10" in ids:
+              s2 = probe("Bezahlseite Paket anlegen", lambda: api("checkout/sessions", {"mode": "payment", "line_items[0][price]": ids["crewtender_steckbriefe_10"], "line_items[0][quantity]": 1,
+                  "invoice_creation[enabled]": "true", "customer_creation": "always", "metadata[probe]": "ja", **ziel}))
+              if s2: probe("Bezahlseite Paket ungültig machen", lambda: api(f"checkout/sessions/{s2['id']}/expire", {}))
+          konf = probe("Kundenportal lesen", lambda: api("billing_portal/configurations?limit=10&active=true"))
+          if konf is not None:
+              if any(c.get("is_default") for c in konf["data"]):
+                  print("        Kundenportal ist eingerichtet")
+              else:
+                  probe("Kundenportal anlegen", lambda: api("billing_portal/configurations", {
+                      "business_profile[headline]": "Crewtender: Abo verwalten",
+                      "business_profile[privacy_policy_url]": "https://crewtender.eu/datenschutz",
+                      "business_profile[terms_of_service_url]": "https://crewtender.eu/nutzungsbedingungen",
+                      "default_return_url": "https://crewtender.eu/konto/plan",
+                      "features[invoice_history][enabled]": "true",
+                      "features[payment_method_update][enabled]": "true",
+                      "features[customer_update][enabled]": "true",
+                      "features[customer_update][allowed_updates][]": ["email", "address", "name", "tax_id"],
+                      "features[subscription_cancel][enabled]": "true",
+                      "features[subscription_cancel][mode]": "at_period_end",
+                      "features[subscription_update][enabled]": "false",
+                  }))
+          print("Ergebnis:", "alles in Ordnung" if not fehler else f"{fehler} Fehler")
+          raise SystemExit(1 if fehler else 0)
           PY
       - name: Abo-Abgleich
         if: inputs.abgleich == 'ja'
