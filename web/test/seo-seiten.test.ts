@@ -103,3 +103,29 @@ test("Routen: Gewerk × Land, unbekanntes Land leitet um, Ausschreibung mit noin
     assert.equal((await seoSeiten(new Request("https://crewtender.eu/auftraggeber/bks%3Aalt"), env, "https://crewtender.eu", html))?.status, 404, "alte Kennungen: nicht gefunden");
   } finally { globalThis.fetch = echt; }
 });
+
+test("Sitemap mit Reserve: Datenbank antwortet nicht → letzte gute Fassung, sonst 503 mit Retry-After", async () => {
+  const echt = globalThis.fetch, cacheAlt = (globalThis as { caches?: unknown }).caches;
+  const ablage = new Map<string, Response>();
+  (globalThis as { caches?: unknown }).caches = { default: { match: async (r: Request) => ablage.get(r.url)?.clone(), put: async (r: Request, a: Response) => { ablage.set(r.url, a.clone()); } } };
+  let ok = true;
+  globalThis.fetch = (async () => ok ? new Response(JSON.stringify([["stadt-koeln", "2026-11-05"]]), { status: 200 }) : new Response("timeout", { status: 500 })) as typeof fetch;
+  try {
+    const warten: Promise<unknown>[] = [];
+    const env = { SUPABASE_URL: "https://db.test", SUPABASE_KEY: "k", WARTEN: (p: Promise<unknown>) => { warten.push(p); } };
+    const html = (h: string) => new Response(h);
+    const erst = await seoSeiten(new Request("https://crewtender.eu/sitemap-auftraggeber.xml"), env, "https://crewtender.eu", html);
+    assert.equal(erst?.status, 200);
+    await Promise.all(warten);
+    ablage.delete("https://crewtender.eu/sitemap-auftraggeber.xml?v=3");
+    ok = false;
+    const reserve = await seoSeiten(new Request("https://crewtender.eu/sitemap-auftraggeber.xml"), env, "https://crewtender.eu", html);
+    assert.equal(reserve?.status, 200);
+    assert.match(await reserve!.text(), /auftraggeber\/stadt-koeln/);
+    assert.equal(reserve?.headers.get("cache-control"), "public, max-age=300");
+    ablage.clear();
+    const leer = await seoSeiten(new Request("https://crewtender.eu/sitemap-auftraggeber.xml"), env, "https://crewtender.eu", html);
+    assert.equal(leer?.status, 503);
+    assert.equal(leer?.headers.get("retry-after"), "60");
+  } finally { globalThis.fetch = echt; (globalThis as { caches?: unknown }).caches = cacheAlt; }
+});

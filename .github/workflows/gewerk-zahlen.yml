@@ -26,6 +26,7 @@ jobs:
               c.execute("set statement_timeout = '5min'")
               n = c.execute("select jarvis_intern.gewerk_aktualisieren()").fetchone()[0]
               print("Gewerke berechnet:", n)
+              print("Sitemap-Einträge:", c.execute("select jarvis_intern.sitemaps_aktualisieren()").fetchone()[0])
               for k, m in c.execute("select schluessel, daten->>'monat' from jarvis_intern.gewerk_cache order by schluessel").fetchall():
                   print(k, m)
           PY

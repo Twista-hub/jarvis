@@ -225,3 +225,8 @@ Nur gelesen. Nichts gekauft, kein Limit geändert, nichts verknüpft.
 - Status „Erfolgreich“, 47 erkannte Seiten – das war noch die erste Fassung mit `bks:`-Adressen (vor der Umstellung auf Namen). Erste Abfrage 503, danach 200.
 - URL geprüft: /auftraggeber/bks%3A1c39…2774 – „URL ist Google nicht bekannt“, Indexierung beantragt. (Adresse gibt inzwischen 404 + noindex; Google verwirft sie von selbst.)
 - Folgeauftrag: Sitemap erneut senden (jetzt 8.015 Adressen), siehe `docs/auftraege/crewtender-search-console-auftraggeber.md`.
+
+## Erledigt (08.11.2026): sitemap-auftraggeber.xml erneut gesendet (2. Runde)
+- Vorabprüfung ok (8.015 Adressen mit Namen). Status „Erfolgreich“, 8.015 erkannte Seiten.
+- URL geprüft: /auftraggeber/db-infrago-ag-geschaeftsbereich-fahrweg-bukr-16 (200) – „URL ist Google nicht bekannt“, Indexierung beantragt.
+- 3 von 6 Abrufen gaben 503 nach ~3,1 s → von Claude behoben (Sitemaps vorberechnet, Reserve-Fassung im Worker).
