@@ -71,6 +71,8 @@ jobs:
         if: inputs.aktion == 'anmeldungen'
         run: |
           # E-Mail-Adressen nur gekürzt (erste 3 Zeichen + Domain).
+          # Registrierungs-Trichter: Konten der letzten 30 Tage, ob die Mail bestätigt ist und ob eine Firma angelegt wurde.
+          psql "$DB_URL" -c "select u.created_at::date as tag, regexp_replace(u.email, '^(.{3})[^@]*', '\\1…') as wer, u.email_confirmed_at is not null as bestaetigt, u.last_sign_in_at is not null as angemeldet, exists(select 1 from public.mitglieder m where m.user_id = u.id) as hat_firma from auth.users u where u.created_at > now() - interval '30 days' order by u.created_at desc limit 50"
           psql "$DB_URL" -c "select created_at, payload->>'action' as aktion, regexp_replace(coalesce(payload->>'actor_username', payload->'traits'->>'user_email', ''), '^(.{3})[^@]*', '\\1…') as wer, payload->>'log_type' as art from auth.audit_log_entries order by created_at desc limit 25"
           psql "$DB_URL" -c "select created_at, authentication_method, auth_code_issued_at, updated_at from auth.flow_state order by created_at desc limit 10"
       - name: Kontolöschungs-Blocker prüfen (nur lesend)
