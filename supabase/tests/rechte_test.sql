@@ -108,6 +108,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261107030000_probe_erinnerungen.sql
 \ir ../migrations/20261107040000_zusatzkaeufe.sql
 \ir ../migrations/20261108010000_ki_monatsbudget_90.sql
+\ir ../migrations/20261108030000_abo_meldungen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1932,6 +1933,24 @@ set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000aab1');
 select public.betreiber_zusatz(:'gfirma', 7, 10);
 select pruefe((select zusatz_einsatzkraefte = 7 and steckbrief_guthaben = 10 and probe_bis is not null from public.betreiber_firmen() where id = :'gfirma'), 'Betreiber bucht Zusatz per Rechnung und sieht ihn');
+reset role;
+
+-- Meldungen an den Betreiber, wenn sich am Abo etwas tut (08.11.2026).
+reset role;
+select set_config('test.uid', '', false);
+delete from public.push_warteschlange;
+update public.firmen set paket = 'kostenlos', abo_kuendigt = false, abo_status = null where id = :'gfirma';
+select pruefe(jarvis_intern.stripe_ereignis('evt_melden000001', 'checkout.session.completed', :'gfirma', 'pro', null, null, 'active', null, 'jahr', false), 'Meldung: Abo');
+select pruefe(jarvis_intern.stripe_ereignis('evt_melden000002', 'customer.subscription.updated', :'gfirma', 'pro', null, null, 'past_due', null, 'jahr', false), 'Meldung: Zahlung');
+select pruefe(jarvis_intern.stripe_ereignis('evt_melden000003', 'customer.subscription.updated', :'gfirma', 'pro', null, null, 'active', '2027-11-08', 'jahr', true), 'Meldung: Kündigung');
+select pruefe(jarvis_intern.stripe_ereignis('evt_melden000004', 'checkout.session.completed', :'gfirma', null, null, null, null, null, null, null, steckbriefe_plus => 10), 'Meldung: Paket');
+select pruefe(jarvis_intern.stripe_ereignis('evt_melden000005', 'customer.subscription.deleted', :'gfirma', 'kostenlos', null, null, 'canceled', null, null, false, kraefte => 0), 'Meldung: Ende');
+select pruefe((select array_agg(titel order by id) from public.push_warteschlange) @> array['💶 Neues Abo', '⚠️ Zahlung fehlgeschlagen', '📉 Abo gekündigt', '📄 Steckbrief-Paket gekauft', '👋 Abo beendet'], 'Betreiber bekommt alle Abo-Meldungen');
+select pruefe((select text from public.push_warteschlange where titel = '📉 Abo gekündigt' limit 1) like '%Pro jährlich, läuft bis 08.11.2027', 'Kündigungsmeldung nennt Plan und Ende');
+delete from public.push_warteschlange;
+update public.firmen set paket = 'test' where id = :'gfirma';
+update public.firmen set paket = 'pro' where id = :'gfirma';
+select pruefe(not exists (select 1 from public.push_warteschlange), 'Wechsel von/zu test wird nicht gemeldet');
 reset role;
 
 \echo ALLE TESTS OK
