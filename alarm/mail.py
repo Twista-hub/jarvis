@@ -492,6 +492,179 @@ def probe_erinnerungen(con, smtp, jetzt: datetime | None = None) -> int:
     return gesendet
 
 
+# Welcome mails (migration 20261108050000): day 1, 3 and 10 after a firm was created. Off until Benjamin approves the texts.
+WILLKOMMEN_AKTIV = False
+WILLKOMMEN_STUFEN = (("tag1", 1), ("tag3", 3), ("tag10", 10))
+WT = {
+    "de": {
+        "tag1": ("Willkommen bei Crewtender – so geht's los",
+                 ["Hallo,", "schön, dass {f} dabei ist! Drei Dinge lohnen sich am ersten Tag:",
+                  "1. Suchprofil prüfen: Stimmen die Arbeiten und Orte, nach denen Crewtender sucht? Jeder 👍 oder 👎 bei einem Treffer macht die Suche genauer.",
+                  "2. Uhrzeit wählen: Wann soll die tägliche Nachricht mit neuen Ausschreibungen kommen, per Mail oder aufs Handy?",
+                  "3. Crewtender aufs Handy: Seite im Browser öffnen und „Zum Startbildschirm hinzufügen“ antippen."],
+                 [("Suchprofil öffnen", "/konto/suchprofil"), ("Uhrzeit wählen", "/konto#mail")]),
+        "tag3": ("Lade deine erste Ausschreibung hoch",
+                 ["Hallo,", "der größte Zeitgewinn mit Crewtender: Lade die Vergabeunterlagen einer Ausschreibung hoch. Crewtender liest alles und schreibt einen Steckbrief mit Losen, Mengen, Fristen und geforderten Nachweisen. Daraus rechnest du mit deinen Löhnen den Preis.",
+                  "In der Probezeit sind 10 Steckbriefe aus Unterlagen enthalten."],
+                 [("Unterlagen hochladen", "/konto/unterlagen")]),
+        "tag10": ("Personal und Einsatzplanung in Crewtender",
+                  ["Hallo,", "wenn der Auftrag da ist, hilft Crewtender weiter: Personal mit Qualifikationen und Nachweisen, Schichtplan mit Prüfung des Arbeitszeitgesetzes, Stunden per Handy und die Lohnliste für das Lohnbüro.",
+                   "Am schnellsten geht's mit dem Import aus Excel. Danach kannst du dein Team einladen."],
+                  [("Personal importieren", "/konto/personal/import"), ("Team einladen", "/konto/team")]),
+        "fuss": "Fragen? Einfach auf diese Mail antworten.", "probe": "Deine Probezeit mit allen Pro-Funktionen läuft bis {d}.",
+    },
+    "en": {
+        "tag1": ("Welcome to Crewtender – getting started",
+                 ["Hello,", "great to have {f} on board! Three things are worth doing on day one:",
+                  "1. Check your search profile: are the services and places Crewtender searches for right? Every 👍 or 👎 on a match makes the search more precise.",
+                  "2. Choose a time: when should the daily message with new tenders arrive, by email or on your phone?",
+                  "3. Crewtender on your phone: open the page in your browser and tap “Add to Home screen”."],
+                 [("Open search profile", "/konto/suchprofil"), ("Choose time", "/konto#mail")]),
+        "tag3": ("Upload your first tender",
+                 ["Hello,", "the biggest time saver in Crewtender: upload the documents of a tender. Crewtender reads everything and writes a fact sheet with lots, quantities, deadlines and required evidence. From it you calculate the price with your own wages.",
+                  "The trial includes 10 fact sheets from documents."],
+                 [("Upload documents", "/konto/unterlagen")]),
+        "tag10": ("Staff and scheduling in Crewtender",
+                  ["Hello,", "once you win the contract, Crewtender keeps helping: staff with qualifications and certificates, shift plans checked against working-time rules, hours by phone and the payroll list.",
+                   "The quickest start is the import from Excel. Then you can invite your team."],
+                  [("Import staff", "/konto/personal/import"), ("Invite team", "/konto/team")]),
+        "fuss": "Questions? Just reply to this email.", "probe": "Your trial with all Pro features runs until {d}.",
+    },
+    "fr": {
+        "tag1": ("Bienvenue sur Crewtender – pour bien démarrer",
+                 ["Bonjour,", "ravis que {f} nous rejoigne ! Trois choses valent la peine dès le premier jour :",
+                  "1. Vérifier le profil de recherche : les prestations et les lieux recherchés par Crewtender sont-ils justes ? Chaque 👍 ou 👎 sur un résultat affine la recherche.",
+                  "2. Choisir l'heure : quand le message quotidien avec les nouveaux appels d'offres doit-il arriver, par e-mail ou sur le téléphone ?",
+                  "3. Crewtender sur le téléphone : ouvrez la page dans le navigateur et touchez « Ajouter à l'écran d'accueil »."],
+                 [("Ouvrir le profil de recherche", "/konto/suchprofil"), ("Choisir l'heure", "/konto#mail")]),
+        "tag3": ("Téléversez votre premier appel d'offres",
+                 ["Bonjour,", "le plus grand gain de temps avec Crewtender : téléversez les documents d'un appel d'offres. Crewtender lit tout et rédige une fiche synthèse avec lots, quantités, délais et justificatifs demandés. Vous en déduisez le prix avec vos propres salaires.",
+                  "L'essai comprend 10 fiches synthèse à partir de documents."],
+                 [("Téléverser des documents", "/konto/unterlagen")]),
+        "tag10": ("Personnel et planification dans Crewtender",
+                  ["Bonjour,", "une fois le marché obtenu, Crewtender continue de vous aider : personnel avec qualifications et justificatifs, planning vérifié selon les règles du temps de travail, heures par téléphone et liste de paie.",
+                   "Le plus rapide : l'import depuis Excel. Ensuite, vous pouvez inviter votre équipe."],
+                  [("Importer le personnel", "/konto/personal/import"), ("Inviter l'équipe", "/konto/team")]),
+        "fuss": "Des questions ? Répondez simplement à cet e-mail.", "probe": "Votre essai avec toutes les fonctions Pro dure jusqu'au {d}.",
+    },
+    "pl": {
+        "tag1": ("Witamy w Crewtender – jak zacząć",
+                 ["Dzień dobry,", "cieszymy się, że {f} jest z nami! W pierwszym dniu warto zrobić trzy rzeczy:",
+                  "1. Sprawdzić profil wyszukiwania: czy usługi i miejsca, których szuka Crewtender, się zgadzają? Każde 👍 lub 👎 przy wyniku zwiększa trafność.",
+                  "2. Wybrać godzinę: kiedy ma przychodzić codzienna wiadomość z nowymi przetargami, e-mailem czy na telefon?",
+                  "3. Crewtender na telefonie: otwórz stronę w przeglądarce i dotknij „Dodaj do ekranu głównego”."],
+                 [("Otwórz profil wyszukiwania", "/konto/suchprofil"), ("Wybierz godzinę", "/konto#mail")]),
+        "tag3": ("Prześlij swój pierwszy przetarg",
+                 ["Dzień dobry,", "największa oszczędność czasu z Crewtender: prześlij dokumenty przetargu. Crewtender czyta wszystko i tworzy kartę przetargu z częściami, ilościami, terminami i wymaganymi dokumentami. Na tej podstawie obliczysz cenę z własnymi stawkami.",
+                  "Okres próbny obejmuje 10 kart przetargu z dokumentów."],
+                 [("Prześlij dokumenty", "/konto/unterlagen")]),
+        "tag10": ("Personel i planowanie w Crewtender",
+                  ["Dzień dobry,", "gdy zlecenie jest już Twoje, Crewtender pomaga dalej: personel z kwalifikacjami i zaświadczeniami, grafik sprawdzany pod kątem czasu pracy, godziny przez telefon i lista płac.",
+                   "Najszybciej zaczniesz od importu z Excela. Potem możesz zaprosić zespół."],
+                  [("Importuj personel", "/konto/personal/import"), ("Zaproś zespół", "/konto/team")]),
+        "fuss": "Pytania? Po prostu odpowiedz na tego e-maila.", "probe": "Twój okres próbny ze wszystkimi funkcjami Pro trwa do {d}.",
+    },
+    "es": {
+        "tag1": ("Bienvenido a Crewtender: primeros pasos",
+                 ["Hola:", "¡qué bien que {f} esté con nosotros! El primer día merece la pena hacer tres cosas:",
+                  "1. Revisar el perfil de búsqueda: ¿son correctos los servicios y lugares que busca Crewtender? Cada 👍 o 👎 en un resultado afina la búsqueda.",
+                  "2. Elegir la hora: ¿cuándo debe llegar el mensaje diario con nuevas licitaciones, por correo o al móvil?",
+                  "3. Crewtender en el móvil: abre la página en el navegador y toca «Añadir a pantalla de inicio»."],
+                 [("Abrir perfil de búsqueda", "/konto/suchprofil"), ("Elegir hora", "/konto#mail")]),
+        "tag3": ("Sube tu primera licitación",
+                 ["Hola:", "el mayor ahorro de tiempo con Crewtender: sube los documentos de una licitación. Crewtender lo lee todo y redacta una ficha con lotes, cantidades, plazos y documentación exigida. Con ella calculas el precio con tus propios salarios.",
+                  "La prueba incluye 10 fichas a partir de documentos."],
+                 [("Subir documentos", "/konto/unterlagen")]),
+        "tag10": ("Personal y planificación en Crewtender",
+                  ["Hola:", "cuando consigues el contrato, Crewtender sigue ayudando: personal con cualificaciones y certificados, cuadrante revisado según las normas de jornada, horas desde el móvil y lista de nóminas.",
+                   "Lo más rápido es importar desde Excel. Después puedes invitar a tu equipo."],
+                  [("Importar personal", "/konto/personal/import"), ("Invitar al equipo", "/konto/team")]),
+        "fuss": "¿Preguntas? Responde a este correo.", "probe": "Tu prueba con todas las funciones Pro dura hasta el {d}.",
+    },
+    "it": {
+        "tag1": ("Benvenuto in Crewtender – per iniziare",
+                 ["Buongiorno,", "che bello avere {f} con noi! Il primo giorno vale la pena fare tre cose:",
+                  "1. Controllare il profilo di ricerca: i servizi e i luoghi che Crewtender cerca sono giusti? Ogni 👍 o 👎 su un risultato rende la ricerca più precisa.",
+                  "2. Scegliere l'orario: quando deve arrivare il messaggio quotidiano con le nuove gare, via e-mail o sul telefono?",
+                  "3. Crewtender sul telefono: apri la pagina nel browser e tocca «Aggiungi a schermata Home»."],
+                 [("Apri profilo di ricerca", "/konto/suchprofil"), ("Scegli orario", "/konto#mail")]),
+        "tag3": ("Carica la tua prima gara",
+                 ["Buongiorno,", "il maggior risparmio di tempo con Crewtender: carica i documenti di una gara. Crewtender legge tutto e scrive una scheda con lotti, quantità, scadenze e documenti richiesti. Da lì calcoli il prezzo con i tuoi salari.",
+                  "La prova include 10 schede da documenti."],
+                 [("Carica documenti", "/konto/unterlagen")]),
+        "tag10": ("Personale e pianificazione in Crewtender",
+                  ["Buongiorno,", "quando ottieni l'appalto, Crewtender continua ad aiutarti: personale con qualifiche e attestati, turni verificati secondo le regole sull'orario di lavoro, ore dal telefono e lista paghe.",
+                   "Il modo più rapido è l'import da Excel. Poi puoi invitare il tuo team."],
+                  [("Importa personale", "/konto/personal/import"), ("Invita il team", "/konto/team")]),
+        "fuss": "Domande? Rispondi semplicemente a questa e-mail.", "probe": "La tua prova con tutte le funzioni Pro dura fino al {d}.",
+    },
+}
+
+
+def willkommen_stufe(erstellt: datetime, jetzt: datetime) -> str | None:
+    """Due welcome stage: from day N for one day (a stage that was missed is not sent days later)."""
+    alter = jetzt - erstellt
+    for stufe, tage in WILLKOMMEN_STUFEN:
+        if timedelta(days=tage) <= alter < timedelta(days=tage + 1):
+            return stufe
+    return None
+
+
+def willkommen_mail(an: str, firma: str, stufe: str, probe_bis, sprache: str = "de", zone: ZoneInfo = BERLIN) -> EmailMessage:
+    t, tt = WT.get(sprache, WT["en"]), T.get(sprache, T["en"])
+    betreff, absaetze, knoepfe = t[stufe]
+    absaetze = [a.format(f=firma) for a in absaetze]
+    if probe_bis and probe_bis > datetime.now(zone):
+        absaetze.append(t["probe"].format(d=probe_bis.astimezone(zone).strftime(tt["tag"])))
+    m = EmailMessage()
+    m["From"] = formataddr(ABSENDER)
+    m["To"] = an
+    m["Subject"] = betreff
+    m["Message-ID"] = make_msgid(domain="wpdigitalranger.com")
+    m.set_content("\n\n".join(absaetze) + "\n\n" + "\n".join(f"{k}: {APP}{u}" for k, u in knoepfe) + f"\n\n{t['fuss']}\n\nCrewtender · WP Digital Ranger · {APP}/impressum\n")
+    knopf = lambda k, u, erst: f'<a href="{APP}{u}" style="display:inline-block;padding:10px 16px;border-radius:8px;text-decoration:none;{"background:#1d4ed8;color:#fff" if erst else "color:#1d4ed8"}">{html.escape(k)}</a>'  # noqa: E731
+    m.add_alternative(f"""<div style="font-family:system-ui,sans-serif;max-width:640px">{''.join(f'<p>{html.escape(a)}</p>' for a in absaetze)}
+<p>{' '.join(knopf(k, u, i == 0) for i, (k, u) in enumerate(knoepfe))}</p>
+<p>{html.escape(t['fuss'])}</p>
+<p style="color:#666;font-size:13px">Crewtender · WP Digital Ranger · <a href="{APP}/impressum">{tt['impressum']}</a></p></div>""", subtype="html")
+    return m
+
+
+def willkommen(con, smtp, jetzt: datetime | None = None) -> int:
+    """Sends due welcome mails to owners and admins (each stage once per firm, from 9 o'clock local time).
+    Not for the operator's own firms, demo firms or the full preview access."""
+    if not WILLKOMMEN_AKTIV:
+        return 0
+    try:
+        firmen = con.execute("""select f.id::text, f.name, f.erstellt, f.probe_bis from public.firmen f
+            where f.erstellt > now() - interval '11 days' and f.paket <> 'test'
+              and coalesce(f.ki_budget_usd, 1) > 0
+              and not exists (select 1 from public.mitglieder m join auth.users u on u.id = m.user_id
+                              join jarvis_intern.betreiber b on b.email = lower(u.email) where m.firma_id = f.id)""").fetchall()
+    except Exception as e:  # noqa: BLE001
+        print(f"Willkommens-Mails übersprungen: {e}", file=sys.stderr)
+        return 0
+    gesendet = 0
+    for firma_id, name, erstellt, probe_bis in firmen:
+        sprache, zone = firma_sprache(con, firma_id)
+        jetzt_ort = (jetzt or datetime.now(zone)).astimezone(zone)
+        stufe = willkommen_stufe(erstellt, jetzt_ort)
+        if not stufe or jetzt_ort.hour < 9:
+            continue
+        try:
+            if not con.execute("""insert into jarvis_intern.willkommen_mails (firma_id, stufe) values (%s, %s)
+                    on conflict do nothing returning firma_id""", (firma_id, stufe)).fetchone():
+                continue
+        except Exception as e:  # noqa: BLE001
+            print(f"Willkommens-Mail nicht vermerkt: {e}", file=sys.stderr)
+            return gesendet
+        for (email,) in con.execute("""select u.email from public.mitglieder m join auth.users u on u.id = m.user_id
+                where m.firma_id = %s and m.aktiv and m.rolle in ('inhaber', 'admin') and coalesce(u.email, '') <> ''""", (firma_id,)).fetchall():
+            smtp.send_message(willkommen_mail(email, name, stufe, probe_bis, sprache, zone))
+            gesendet += 1
+    return gesendet
+
+
 def main() -> None:
     args = sys.argv[1:]
     test = args[1] if args[:1] == ["--test"] and len(args) > 1 else None
@@ -528,6 +701,7 @@ def main() -> None:
                     con.execute("insert into public.nachweis_erinnerungen (firma_id,dokument_id,user_id,tage) values (%s,%s,%s,%s) on conflict do nothing", (firma_id, dokument_id, user_id, tage))
         if not (test or sofort):
             mails += probe_erinnerungen(con, smtp)
+            mails += willkommen(con, smtp)
             pushs += warteschlange(con, schl)
             # Deadline-day message at 7, or at the end of the person's quiet hours when 7 falls into them (I2).
             for firma_id, user_id, von, bis in con.execute("""select b.firma_id::text, b.user_id::text, b.ruhe_von, b.ruhe_bis from public.benachrichtigungen b
