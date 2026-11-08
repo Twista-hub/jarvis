@@ -6,6 +6,8 @@ import { escape, seite } from "./seite.ts";
 import { kalenderwoche, montag, wochentage } from "./disposition.ts";
 import { ortInfo, type Einsatzort } from "./kunden.ts";
 import { gesperrtFuer, type Bewertung } from "./bewertungen.ts";
+import { feiertag } from "./zuschlaege.ts";
+import { landDerFirma } from "./stunden.ts";
 
 export type Schicht = { id: string; personal_id: string | null; bereich_id: string | null; datum: string; beginn: string; ende: string; ort: string; notiz: string; antwort: string; einsatzort_id?: string | null; einsatzorte?: Einsatzort | null; beruf?: string };
 type Person = { id: string; vorname: string; nachname: string; bereich_id: string | null; status: string; berufe?: string[] };
@@ -44,7 +46,9 @@ const std = (min: number) => String(Math.round(min / 6) / 10).replace(".", ",");
 /** Rechtsprüfung 03.11.2026 (A1): Arbeitszeitgesetz for one shift against the person's other shifts. More than 10 hours
  *  of work on a day (§ 3), less than 11 hours rest between two shifts (§ 5), Sunday work (§ 9, only with an exception
  *  such as § 10 and a substitute rest day, § 11). Hints for the office, no legal advice. */
-export function arbzgHinweise(s: Pick<Schicht, "id" | "personal_id" | "datum" | "beginn" | "ende">, alle: Schicht[]): string[] {
+/** Informational hints (Sunday/holiday work, free Sundays, compensatory rest) – not a conflict in the plan view. */
+export const nurHinweis = (h: string) => /^(Sonntag|Feiertag|Freie Sonntage|Ersatzruhetag)/.test(h);
+export function arbzgHinweise(s: Pick<Schicht, "id" | "personal_id" | "datum" | "beginn" | "ende">, alle: Schicht[], land?: string): string[] {
   if (!s.personal_id) return [];
   const eigene = alle.filter((x) => x.personal_id === s.personal_id && x.id !== s.id && x.antwort !== "abgesagt");
   const [a, b] = zeitraum(s);
@@ -56,7 +60,27 @@ export function arbzgHinweise(s: Pick<Schicht, "id" | "personal_id" | "datum" | 
     const ruhe = q <= a ? a - q : b <= p ? p - b : null;
     if (ruhe !== null && ruhe < 660) { h.push(`nur ${std(ruhe)} Std. Ruhezeit zur Schicht am ${x.datum.slice(8, 10)}.${x.datum.slice(5, 7)}., mindestens 11 nötig (§ 5 ArbZG)`); break; }
   }
-  if (new Date(`${s.datum}T12:00:00Z`).getUTCDay() === 0) h.push("Sonntagsarbeit: nur mit Ausnahme (§ 10 ArbZG) und Ersatzruhetag (§ 11)");
+  if (new Date(`${s.datum}T12:00:00Z`).getUTCDay() === 0) h.push("Sonntagsarbeit: nur mit Ausnahme (§ 10 ArbZG) und Ersatzruhetag innerhalb von 2 Wochen (§ 11 Abs. 3)");
+  else if (land !== undefined) { const f = feiertag(s.datum, land); if (f) h.push(`Feiertagsarbeit (${f}): nur mit Ausnahme (§ 10 ArbZG) und Ersatzruhetag innerhalb von 8 Wochen (§ 11 Abs. 3)`); }
+  return h;
+}
+
+/** Rechtsprüfung A1: yearly rules for one person – at least 15 free Sundays a year (§ 11 Abs. 1 ArbZG) and, for a Sunday
+ *  shift, a compensatory weekday off within the two weeks around it (§ 11 Abs. 3). Only shifts already planned count,
+ *  so days not planned yet are free. */
+export function arbzgJahr(neu: Pick<Schicht, "datum">[], jahr: Pick<Schicht, "datum" | "antwort">[]): string[] {
+  const tage = new Set([...jahr.filter((x) => x.antwort !== "abgesagt"), ...neu].map((x) => x.datum));
+  const h: string[] = [];
+  const wochentag = (d: string) => new Date(`${d}T12:00:00Z`).getUTCDay();
+  const plus = (d: string, n: number) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);
+  for (const j of new Set(neu.map((x) => x.datum.slice(0, 4)))) {
+    const sonntage = [...tage].filter((d) => d.startsWith(j) && wochentag(d) === 0).length;
+    if (sonntage > 52 - 15) h.push(`Freie Sonntage ${j}: nur noch ${Math.max(0, 52 - sonntage)}, mindestens 15 nötig (§ 11 Abs. 1 ArbZG)`);
+  }
+  for (const s of neu.filter((x) => wochentag(x.datum) === 0)) {
+    const frei = Array.from({ length: 27 }, (_, i) => plus(s.datum, i - 13)).some((d) => wochentag(d) !== 0 && !tage.has(d));
+    if (!frei) h.push(`Ersatzruhetag für den Sonntag ${s.datum.slice(8, 10)}.${s.datum.slice(5, 7)}.: kein freier Werktag innerhalb von 2 Wochen (§ 11 Abs. 3 ArbZG)`);
+  }
   return h;
 }
 
@@ -67,7 +91,7 @@ export function konflikte(schichten: Schicht[], abw: Abw[]): Map<string, string>
     if (!s.personal_id || s.antwort === "abgesagt") continue;
     if (abw.some((a) => a.personal_id === s.personal_id && a.von <= s.datum && a.bis >= s.datum)) m.set(s.id, "abwesend");
     else if (schichten.some((x) => x.id !== s.id && x.personal_id === s.personal_id && x.datum === s.datum && x.antwort !== "abgesagt" && ueberschneiden(x, s))) m.set(s.id, "doppelt eingeplant");
-    else { const h = arbzgHinweise(s, schichten).filter((x) => !x.startsWith("Sonntag")); if (h.length) m.set(s.id, `Arbeitszeit: ${h[0]}`); }
+    else { const h = arbzgHinweise(s, schichten).filter((x) => !nurHinweis(x)); if (h.length) m.set(s.id, `Arbeitszeit: ${h[0]}`); }
   }
   return m;
 }
@@ -81,7 +105,7 @@ export function ersatzVorschlaege(schicht: Schicht, fuer: Person | undefined, pe
     && !schichten.some((x) => x.personal_id === p.id && x.datum === schicht.datum && x.antwort !== "abgesagt" && ueberschneiden(x, schicht)));
   const passt = (p: Person) => (fuer?.berufe ?? []).some((b) => (p.berufe ?? []).includes(b));
   // Nobody who would exceed 10 hours a day or get less than 11 hours rest (ArbZG §§ 3, 5).
-  const arbzgOk = (p: Person) => !arbzgHinweise({ ...schicht, id: "neu", personal_id: p.id }, schichten).some((x) => !x.startsWith("Sonntag"));
+  const arbzgOk = (p: Person) => !arbzgHinweise({ ...schicht, id: "neu", personal_id: p.id }, schichten).some((x) => !nurHinweis(x));
   const ok = frei.filter(arbzgOk);
   return [...ok.filter(passt), ...ok.filter((p) => !passt(p))].slice(0, 5);
 }
@@ -180,10 +204,14 @@ export async function schichtenRoute(request: Request, env: KontoEnv): Promise<R
     const zeilen = liste.map((d) => ({ firma_id: firma, bereich_id: bereich, personal_id: person || null, einsatzort_id: einsatzort, datum: d, beginn, ende, ort, notiz: t("notiz", 300), beruf: person ? "" : t("beruf", 120) }));
     if (person && form.get("arbzg_ok") !== "1") {
       // ArbZG: check against the person's other shifts around these days; warn first, save only after confirmation.
-      const vorhanden = await db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&personal_id=eq.${person}&datum=gte.${plusTage(liste[0], -1)}&datum=lte.${plusTage(liste[liste.length - 1], 1)}&select=id,personal_id,bereich_id,datum,beginn,ende,ort,notiz,antwort&limit=2000`);
+      const [vorhanden, jahr, land] = await Promise.all([
+        db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&personal_id=eq.${person}&datum=gte.${plusTage(liste[0], -1)}&datum=lte.${plusTage(liste[liste.length - 1], 1)}&select=id,personal_id,bereich_id,datum,beginn,ende,ort,notiz,antwort&limit=2000`),
+        db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&personal_id=eq.${person}&datum=gte.${liste[0].slice(0, 4)}-01-01&datum=lte.${liste[liste.length - 1].slice(0, 4)}-12-31&select=datum,antwort&limit=5000`),
+        landDerFirma(f.s, env, firma),
+      ]);
       const neu = zeilen.map((z, i) => ({ ...z, id: `neu-${i}`, antwort: "offen" }) as unknown as Schicht);
       const alle = [...(vorhanden.ok ? vorhanden.daten : []), ...neu];
-      const hinweise = [...new Set(neu.flatMap((z) => arbzgHinweise(z, alle).map((h) => `${z.datum.slice(8, 10)}.${z.datum.slice(5, 7)}.: ${h}`)))];
+      const hinweise = [...new Set([...neu.flatMap((z) => arbzgHinweise(z, alle, land).map((h) => `${z.datum.slice(8, 10)}.${z.datum.slice(5, 7)}.: ${h}`)), ...arbzgJahr(neu, jahr.ok ? jahr.daten : [])])];
       if (hinweise.length) return zurueck(`⚠️ Arbeitszeitgesetz: ${hinweise.slice(0, 4).join(" · ")}${hinweise.length > 4 ? " …" : ""}. Nichts gespeichert. Bitte Zeiten prüfen oder „Hinweise gelesen, trotzdem speichern“ ankreuzen.`, montag(datum));
     }
     const r = await db(f.s, env, "schichten", { method: "POST", body: JSON.stringify(zeilen) });
