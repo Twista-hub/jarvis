@@ -539,5 +539,6 @@
   "Arbeitsunfähigkeit (Tage)": "Malattia (giorni)",
   "Kind krank (Tage)": "Figlio malato (giorni)",
   "Unbezahlter Urlaub (Tage)": "Congedo non retribuito (giorni)",
-  "Bewacherregister (Bewacher-ID)": "Registro delle guardie (ID)"
+  "Bewacherregister (Bewacher-ID)": "Registro delle guardie (ID)",
+  "Ausfallzeiten: Urlaub, Feiertage, Krankheit (%)": "Tempi improduttivi: ferie, festività, malattia (%)"
 }

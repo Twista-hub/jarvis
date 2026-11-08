@@ -13,7 +13,7 @@ test("Nachkalkulation: Kosten, Erlös, Deckungsbeitrag", () => {
     stunden: [e("s1", "p1", "2026-11-02", "08:00", "16:00", "k1"), e("s2", "p2", "2026-11-08", "08:00", "12:00", "k2"), e("s3", "p2", "2026-11-03", "08:00", "10:00", null)],
     rechnungen: [{ kunde_id: "k1", netto: 150 }],
     preise: [{ kunde_id: "k2", satz: 30, zuschlag_nacht: 0, zuschlag_sonntag: 50, zuschlag_feiertag: 0 }],
-    loehne: new Map([["p1", 20]]), werte: STANDARD, land: "NW",
+    loehne: new Map([["p1", 20]]), werte: { ...STANDARD, ausfall: 0 }, land: "NW",
   });
   const messe = z.find((x) => x.kunde_id === "k1")!, hotel = z.find((x) => x.kunde_id === "k2")!, ohne = z.find((x) => x.kunde_id === null)!;
   assert.equal(messe.planMin, 600);
@@ -33,4 +33,13 @@ test("Nachkalkulation: Kosten, Erlös, Deckungsbeitrag", () => {
   assert.match(html, /Ali &#60;K&#62;[\s\S]*value="20"/);
   assert.match(html, /330,00\s€<\/strong> Erlös/);
   assert.doesNotMatch(nachkalkulationSeite(z, { monat: "2026-11", werte: STANDARD, personen: [], darf: false }), /<form/);
+});
+
+test("S27: Ausfallzeiten als Zuschlag auf die Lohnkosten", () => {
+  const basis = { kunden: [{ id: "k1", name: "K" }], orte: [], schichten: [], rechnungen: [], preise: [], loehne: new Map([["p1", 20]]), land: "NW",
+    stunden: [{ id: "e1", personal_id: "p1", datum: "2026-11-03", beginn: "08:00", ende: "16:00", pause_min: 0, einsatz: "", notiz: "", status: "freigegeben", kunde_id: "k1" }] } as never;
+  const ohne = nachkalkulation({ ...(basis as object), werte: { ...STANDARD, ausfall: 0 } } as never)[0].kosten;
+  const mit = nachkalkulation({ ...(basis as object), werte: STANDARD } as never)[0].kosten;
+  assert.equal(STANDARD.ausfall, 20);
+  assert.equal(Math.round(mit * 100), Math.round(ohne * 1.2 * 100));
 });

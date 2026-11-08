@@ -539,5 +539,6 @@
  "Arbeitsunfähigkeit (Tage)": "Arrêt maladie (jours)",
  "Kind krank (Tage)": "Enfant malade (jours)",
  "Unbezahlter Urlaub (Tage)": "Congé sans solde (jours)",
- "Bewacherregister (Bewacher-ID)": "Registre des agents de sécurité (ID)"
+ "Bewacherregister (Bewacher-ID)": "Registre des agents de sécurité (ID)",
+ "Ausfallzeiten: Urlaub, Feiertage, Krankheit (%)": "Temps non productif : congés, jours fériés, maladie (%)"
 }
