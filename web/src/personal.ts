@@ -53,7 +53,9 @@ const ID = /^[0-9a-f-]{36}$/;
  *  rpc/personal_sicht, which blanks them for readers (Rechtsprüfung D1, migration 20261108120000). */
 export const KRAFT_SPALTEN = "id,firma_id,bereich_id,vorname,nachname,berufe,qualifikationen,eg,telefon,email,status,erstellt,tarifvertrag_id,foto,eintritt,beschaeftigung,wochenstunden,fuehrerschein,sprachen,wohn_plz,user_id,probezeit_bis,befristet_bis,firmenwagen,austritt_am,personalnummer,arbeitstage";
 export type Abwesenheit = { id: string; personal_id: string; von: string; bis: string; grund: string; notiz: string; status?: string };
-export const GRUENDE: Record<string, [string, string]> = { urlaub: ["🌴", "Urlaub"], schulung: ["🎓", "Schulung"], abwesend: ["⏸️", "Nicht verfügbar"] };
+/** Reasons shown neutrally outside the staff file and payroll (Art. 9 DSGVO). */
+export const NEUTRAL: Record<string, string> = { krank: "abwesend", kinderkrank: "abwesend" };
+export const GRUENDE: Record<string, [string, string]> = { urlaub: ["🌴", "Urlaub"], schulung: ["🎓", "Schulung"], abwesend: ["⏸️", "Nicht verfügbar"], krank: ["🤒", "Arbeitsunfähig (ohne Diagnose)"], kinderkrank: ["🧒", "Kind krank (§ 45 SGB V)"], unbezahlt: ["⏳", "Unbezahlter Urlaub"] };
 const tagMonat = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: "UTC" });
 export const heuteIso = () => new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
 /** Absence today, if any. */
@@ -178,7 +180,9 @@ export function ausFormular(f: FormData, qualifikationen: string[] = QUALIFIKATI
 export function kraftKarte(k: Kraft, darfAendern: boolean, einsaetze: Einsatz[] = [], qualifikationen: string[] = QUALIFIKATIONEN, tarife: Tarifvertrag[] = [], abw: Abwesenheit[] = [], auegHinweis = "", nachweise: Nachweis[] = []): string {
   const eigeneNachweise = nachweise.filter((n) => n.personal_id === k.id);
   const heute = abwesendAm(abw, k.id);
-  const [icon, text] = heute ? [(GRUENDE[heute.grund] ?? GRUENDE.abwesend)[0], `${(GRUENDE[heute.grund] ?? GRUENDE.abwesend)[1]} bis ${tagMonat(heute.bis)}`] : STATUS[k.status] ?? STATUS.verfuegbar;
+  // On cards visible to the whole office only neutral reasons; sick leave is shown in the staff file and payroll only.
+  const sichtbar = heute ? GRUENDE[NEUTRAL[heute.grund] ?? heute.grund] ?? GRUENDE.abwesend : null;
+  const [icon, text] = heute && sichtbar ? [sichtbar[0], `${sichtbar[1]} bis ${tagMonat(heute.bis)}`] : STATUS[k.status] ?? STATUS.verfuegbar;
   const name = `${k.vorname} ${k.nachname}`.trim();
   const bald = abw.filter((a) => a.personal_id === k.id && a !== heute && a.von > heuteIso() && a.von <= new Date(Date.now() + 45 * 86400_000).toISOString().slice(0, 10));
   return `<article class="person-karte">

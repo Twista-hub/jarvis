@@ -532,5 +532,11 @@
  "Leistungstext auf der Rechnung": "Libellé de la prestation sur la facture",
  "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "p. ex. nettoyage d'entretien, site Hauptstraße (le mois est ajouté)",
  "Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)": "Land (État fédéral) du site (jours fériés pour congés et compte temps)",
- "wie Firmensitz": "comme le siège"
+ "wie Firmensitz": "comme le siège",
+ "Arbeitsunfähig (ohne Diagnose)": "Arrêt maladie (sans diagnostic)",
+ "Kind krank (§ 45 SGB V)": "Enfant malade (§ 45 SGB V)",
+ "Unbezahlter Urlaub": "Congé sans solde",
+ "Arbeitsunfähigkeit (Tage)": "Arrêt maladie (jours)",
+ "Kind krank (Tage)": "Enfant malade (jours)",
+ "Unbezahlter Urlaub (Tage)": "Congé sans solde (jours)"
 }

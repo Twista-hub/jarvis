@@ -126,6 +126,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108170000_nachweise_ohne_kopie.sql
 \ir ../migrations/20261108180000_loeschfrist_personal.sql
 \ir ../migrations/20261108190000_standort_bundesland.sql
+\ir ../migrations/20261108200000_abwesenheit_gruende.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values

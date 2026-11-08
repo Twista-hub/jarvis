@@ -532,5 +532,11 @@
  "Leistungstext auf der Rechnung": "Service description on the invoice",
  "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "e.g. maintenance cleaning, Hauptstraße site (month is added)",
  "Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)": "Federal state of the location (public holidays for leave and time account)",
- "wie Firmensitz": "as company seat"
+ "wie Firmensitz": "as company seat",
+ "Arbeitsunfähig (ohne Diagnose)": "Unfit for work (no diagnosis)",
+ "Kind krank (§ 45 SGB V)": "Child sick (§ 45 SGB V)",
+ "Unbezahlter Urlaub": "Unpaid leave",
+ "Arbeitsunfähigkeit (Tage)": "Sick leave (days)",
+ "Kind krank (Tage)": "Child sick (days)",
+ "Unbezahlter Urlaub (Tage)": "Unpaid leave (days)"
 }

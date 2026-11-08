@@ -43,8 +43,10 @@ test("G1: Prüfung erkennt Doppelte, Bekannte und fehlende Vornamen, ordnet Stan
 
 test("G2: Abwesenheiten mit Zeitraum, nur neutrale Gründe", () => {
   const f = new FormData();
-  f.set("von", "2026-11-10"); f.set("bis", "2026-11-20"); f.set("grund", "krank");
-  assert.deepEqual(abwesenheitAusFormular(f), { von: "2026-11-10", bis: "2026-11-20", grund: "urlaub", notiz: "" });
+  f.set("von", "2026-11-10"); f.set("bis", "2026-11-20"); f.set("grund", "diagnose");
+  assert.deepEqual(abwesenheitAusFormular(f), { von: "2026-11-10", bis: "2026-11-20", grund: "urlaub", notiz: "" }, "unbekannte Gründe nicht");
+  f.set("grund", "krank");
+  assert.equal(abwesenheitAusFormular(f)?.grund, "krank", "A-M5: Arbeitsunfähigkeit ohne Diagnose fürs Lohnbüro");
   f.set("bis", "2026-11-01");
   assert.equal(abwesenheitAusFormular(f), null);
   f.set("bis", "2028-01-01");
@@ -86,4 +88,20 @@ test("G5: Protokoll in verständlichen Sätzen, ohne interne Kennungen", () => {
   assert.match(html, />Gestern</);
   assert.match(html, /hat 👷 Personal „Eva Muster“ gelöscht/);
   assert.match(html, /&#60;x&#62;/);
+});
+
+test("A-M5: Arbeitsunfähig, Kind krank, unbezahlt getrennt in der Lohnliste, auf der Karte neutral", async () => {
+  const { lohnZeilen, lohnCsv } = await import("../src/lohn.ts");
+  const { kraftKarte } = await import("../src/personal.ts");
+  const personen = [{ id: "p1", vorname: "Eva", nachname: "Muster", personalnummer: "1", status: "verfuegbar", wochenstunden: 40, eintritt: null }];
+  const abw = [{ personal_id: "p1", von: "2026-10-05", bis: "2026-10-06", grund: "krank", status: "bestaetigt", kurzfristig: false },
+    { personal_id: "p1", von: "2026-10-12", bis: "2026-10-12", grund: "kinderkrank", status: "bestaetigt", kurzfristig: false },
+    { personal_id: "p1", von: "2026-10-19", bis: "2026-10-20", grund: "unbezahlt", status: "bestaetigt", kurzfristig: false }];
+  const [z] = lohnZeilen(personen as never, [], abw as never, [], [], [], abw as never, "2026-10", "");
+  assert.deepEqual([z.krank, z.kinderkrank, z.unbezahlt, z.abwesend], [2, 1, 2, 0]);
+  assert.match(lohnCsv([z]), /Arbeitsunfähig \(Tage\);Kind krank \(Tage\);Unbezahlt \(Tage\)/);
+  const heute = new Date().toISOString().slice(0, 10);
+  const karte = kraftKarte({ id: "p1", firma_id: "f", bereich_id: null, vorname: "Eva", nachname: "M", berufe: [], qualifikationen: [], eg: "", telefon: "", email: "", status: "verfuegbar", notiz: "" } as never, false, [], [], [], [{ id: "a", personal_id: "p1", von: heute, bis: heute, grund: "krank", notiz: "" }]);
+  assert.doesNotMatch(karte, /Arbeitsunfähig/);
+  assert.match(karte, /Nicht verfügbar/);
 });

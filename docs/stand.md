@@ -107,6 +107,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ### 08.11.2026 abends – Claude Code (S16, D2, Klickprüfung)
 - Klickprüfung nach D1 (Personalakte für Leser): 566 Seiten, 0 Probleme, 0 Fehlermeldungen.
 - S16: Leistungstext je Kunde (bei Verrechnungssatz, Monat wird angehängt; Migration `20261108160000_leistungstext.sql`).
+- A-M5: Abwesenheitsgründe „Arbeitsunfähig (ohne Diagnose)“, „Kind krank“, „Unbezahlter Urlaub“ nur fürs Büro, eigene Spalten in Lohnliste/LODAS, sonst neutral angezeigt (Migration `20261108200000_abwesenheit_gruende.sql`). A-M3 Teilzeit und A6 LODAS als erledigt eingetragen.
 - A4: Standorte haben ein Feld „Bundesland“; Urlaub und Zeitkonto zählen Feiertage danach (sonst Firmensitz). Migration `20261108190000_standort_bundesland.sql`.
 - A1: Schichtplan prüft beim Speichern zusätzlich Feiertagsarbeit, 15 freie Sonntage pro Jahr und den Ersatzruhetag innerhalb von 2 Wochen nach einer Sonntagsschicht (Hinweis mit Bestätigung).
 - A2: Ausgeschiedene Personen werden 6 volle Kalenderjahre nach dem Austritt automatisch gelöscht, wenn keine jüngeren Zeiten vorliegen (Migration `20261108180000_loeschfrist_personal.sql`, Datenschutzerklärung in 6 Sprachen, Stand 08.11.2026).
