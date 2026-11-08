@@ -58,3 +58,16 @@ test("Umsatzsteuer S9/S20: Vorsteuer nur mit Belegdatei, gemischte Belege je Sat
   const ohne = umsatzsteuerSeite(perioden(re, be, { jahr: 2026, quartal: false, ist: false, kleinunternehmer: false }), { jahr: 2026, quartal: false, ist: false, kleinunternehmer: false, waechter: kleinunternehmerWaechter(0, 0, false), vorjahr: 0, laufend: 0, heuteJahr: 2026 });
   assert.doesNotMatch(ohne, /nicht als Vorsteuer gezählt/, "alle Belege mit Datei: kein Hinweis");
 });
+
+test("S13: Gründungsjahr, Umsätze außerhalb Crewtender, vorsichtige Zählung", () => {
+  // Founding year: 25,000 € already for the current year.
+  assert.equal(kleinunternehmerWaechter(0, 26_000, true, true).stufe, "rot");
+  assert.equal(kleinunternehmerWaechter(0, 21_000, true, true).stufe, "gelb");
+  assert.equal(kleinunternehmerWaechter(0, 10_000, true, true).stufe, "ok");
+  assert.equal(kleinunternehmerWaechter(0, 26_000, true, false).stufe, "gelb", "sonst nur Hinweis fürs nächste Jahr");
+  const html = umsatzsteuerSeite([], { jahr: 2026, quartal: false, ist: false, kleinunternehmer: true, waechter: kleinunternehmerWaechter(0, 26_000, true, true), vorjahr: 0, laufend: 26_000, heuteJahr: 2026, extern: { laufend: 1000, vorjahr: 0 }, bezahlt: 20_000, gruendungsjahr: true, admin: true });
+  assert.match(html, /Gründungsjahr/);
+  assert.match(html, /samt Umsätzen außerhalb Crewtender/);
+  assert.match(html, /name="extern_laufend"[^>]*value="1000"/);
+  assert.doesNotMatch(umsatzsteuerSeite([], { jahr: 2026, quartal: false, ist: false, kleinunternehmer: true, waechter: kleinunternehmerWaechter(0, 0, true), vorjahr: 0, laufend: 0, heuteJahr: 2026 }), /extern_laufend/, "nur Inhaber/Admin pflegen");
+});

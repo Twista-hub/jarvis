@@ -104,6 +104,10 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 08.11.2026 abends – Claude Code (Standardlösungen statt Steuerbüro: S13, S18)
+- S13 Kleinunternehmer-Wächter: Gründungsjahr (25.000 € im laufenden Jahr), Umsätze außerhalb Crewtender je Jahr (Migration `20261108130000_umsatz_extern.sql`), vorsichtige Zählung nach Rechnungsdatum mit „davon bezahlt“.
+- S18 DATEV: Belege mit „Bezahlt: bar“ gegen Kasse (1000/1600), Häkchen „Lieferant im Ausland (§ 13b)“ → BU 94 und Hinweis in der USt-Übersicht, neue Kategorie „Arbeitskleidung & Schutzausrüstung“ (4980/6850). Migration `20261108140000_belege_datev.sql`. USt-Übersicht in allen Sprachen.
+
 ### 08.11.2026 abends – Claude Code (Personalakte für Leser, D1)
 - Leser (z. B. Steuerbüro) sehen bei der Personalakte keine Notiz, keinen Geburtstag und kein Aufenthaltstitel-Datum mehr: Spaltenrechte entzogen, Lesen nur über `rpc/personal_sicht` (leert die drei Felder für Leser; Büro und die Person selbst sehen sie). Migration `20261108120000_personal_sensibel.sql`. **Neue Spalten in `personal` brauchen ab jetzt `grant select (spalte) on public.personal to authenticated`.** Test im Web prüft, dass kein Code `personal` mit `select=*` oder den drei Spalten direkt liest.
 - Benjamin 08.11.: Steuerbüro und Anwalt erst, wenn die App Geld einbringt; bis dahin sinnvolle, vorsichtige Standardlösungen bauen statt auf ⚖️ zu warten.
