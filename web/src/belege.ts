@@ -12,10 +12,10 @@ import { belegLesen, type Gelesen } from "./belegleser.ts";
 import type { KiEnv } from "./api-budget.ts";
 import { kiSperrText } from "./ki-fehler.ts";
 
-export type Beleg = { id: string; datum: string; lieferant: string; kategorie: string; brutto: number | string; ust_satz: number | string; notiz: string; beleg_mime: string | null; storniert_am?: string | null; storno_grund?: string };
+export type Beleg = { id: string; datum: string; lieferant: string; kategorie: string; brutto: number | string; ust_satz: number | string; notiz: string; beleg_mime: string | null; storniert_am?: string | null; storno_grund?: string; brutto_7?: number | string | null; anlass?: string | null; teilnehmer?: string | null };
 /** Cancelled receipts stay visible but count for nothing (GoBD, Rechtsprüfung 03.11.2026 S5). */
 export const gueltig = (l: Beleg[]) => l.filter((b) => !b.storniert_am);
-export const KATEGORIEN: Record<string, string> = { material: "🔩 Material & Waren", fahrzeug: "🚐 Fahrzeug & Tanken", buero: "🖇️ Büro & Software", miete: "🏠 Miete & Nebenkosten", versicherung: "🛡️ Versicherung", telefon: "📞 Telefon & Internet", reise: "🚆 Reise & Übernachtung", personal: "👷 Personal (Fremdleistung, Schulung)", sonstiges: "📦 Sonstiges" };
+export const KATEGORIEN: Record<string, string> = { material: "🔩 Material & Waren", fahrzeug: "🚐 Fahrzeug & Tanken", buero: "🖇️ Büro & Software", miete: "🏠 Miete & Nebenkosten", versicherung: "🛡️ Versicherung", telefon: "📞 Telefon & Internet", reise: "🚆 Reise & Übernachtung", bewirtung: "🍽️ Bewirtung (Geschäftsessen)", personal: "👷 Personal (Fremdleistung, Schulung)", sonstiges: "📦 Sonstiges" };
 const SAETZE = [19, 7, 0];
 const TYPEN = ["application/pdf", "image/png", "image/jpeg"];
 const passt = (b: Uint8Array, typ: string) => typ === "application/pdf" ? b[0] === 0x25 && b[1] === 0x50 : typ === "image/png" ? b[0] === 0x89 && b[1] === 0x50 : b[0] === 0xff && b[1] === 0xd8;
@@ -23,17 +23,37 @@ export const dateiSchluessel = (firma: string, id: string) => `belege/${firma}/$
 const rund = (n: number) => Math.round(n * 100) / 100;
 /** VAT contained in a gross amount (e.g. 119 € at 19 % → 19 €). */
 export const ustAus = (brutto: number, satz: number) => rund(brutto * satz / (100 + satz));
+type Saetze = Pick<Beleg, "brutto" | "ust_satz" | "brutto_7">;
+/** Gross amount at 7 % contained in a mixed receipt (19 % and 7 %, Rechtsprüfung S20); 0 for a single-rate receipt. */
+export const anteil7 = (b: Saetze) => { const brutto = Number(b.brutto), b7 = Number(b.brutto_7 ?? 0); return Number(b.ust_satz) === 19 && b7 > 0 && b7 <= brutto ? rund(b7) : 0; };
+/** Parts of a receipt per VAT rate: one part, or 19 % and 7 % for a mixed receipt. */
+export function teile(b: Saetze): { satz: number; brutto: number }[] {
+  const brutto = Number(b.brutto), b7 = anteil7(b);
+  return b7 ? [{ satz: 19, brutto: rund(brutto - b7) }, { satz: 7, brutto: b7 }].filter((x) => x.brutto > 0) : [{ satz: Number(b.ust_satz), brutto }];
+}
+/** VAT contained in a receipt, per rate for mixed receipts. */
+export const ustBeleg = (b: Saetze) => rund(teile(b).reduce((n, x) => n + ustAus(x.brutto, x.satz), 0));
+/** Simplified invoices (Kleinbetragsrechnung, § 33 UStDV) go up to 250 € gross; above that the full details of § 14 Abs. 4 UStG apply. */
+export const KLEINBETRAG = 250;
 const tag = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "UTC" });
 const monatName = (m: string) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 
-/** Sums per category and per VAT rate (gross, VAT, net). */
+/** Sums per category and per VAT rate (gross, VAT, net). Input VAT counts only receipts with an uploaded file
+ *  (Rechtsprüfung S9); the VAT of entries without a file is shown separately as not counted. */
 export function summen(alle: Beleg[]) {
   const liste = gueltig(alle);
-  const z = (l: Beleg[]) => { const brutto = rund(l.reduce((n, b) => n + Number(b.brutto), 0)), ust = rund(l.reduce((n, b) => n + ustAus(Number(b.brutto), Number(b.ust_satz)), 0)); return { anzahl: l.length, brutto, ust, netto: rund(brutto - ust) }; };
+  const z = (l: Beleg[]) => { const brutto = rund(l.reduce((n, b) => n + Number(b.brutto), 0)), ust = rund(l.reduce((n, b) => n + ustBeleg(b), 0)); return { anzahl: l.length, brutto, ust, netto: rund(brutto - ust) }; };
+  const satz = (s: number) => {
+    const t = liste.map((b) => teile(b).find((x) => x.satz === s)).filter((x) => x !== undefined);
+    const brutto = rund(t.reduce((n, x) => n + x.brutto, 0)), ust = rund(t.reduce((n, x) => n + ustAus(x.brutto, s), 0));
+    return { anzahl: t.length, brutto, ust, netto: rund(brutto - ust) };
+  };
   return {
     gesamt: z(liste),
+    vorsteuer: rund(liste.filter((b) => b.beleg_mime).reduce((n, b) => n + ustBeleg(b), 0)),
+    ohneBeleg: rund(liste.filter((b) => !b.beleg_mime).reduce((n, b) => n + ustBeleg(b), 0)),
     kategorien: Object.keys(KATEGORIEN).map((k) => ({ k, ...z(liste.filter((b) => b.kategorie === k)) })).filter((x) => x.anzahl),
-    saetze: SAETZE.map((s) => ({ s, ...z(liste.filter((b) => Number(b.ust_satz) === s)) })).filter((x) => x.anzahl),
+    saetze: SAETZE.map((s) => ({ s, ...satz(s) })).filter((x) => x.anzahl),
   };
 }
 
@@ -41,10 +61,10 @@ export function summen(alle: Beleg[]) {
 export function belegeCsv(liste: Beleg[]): string {
   const zahl = (n: number) => n.toFixed(2).replace(".", ",");
   const text = (v: string) => { const t = /^[=+\-@]/.test(v) ? `'${v}` : v; return /[;"\n\r]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t; };
-  const kopf = ["Datum", "Lieferant", "Kategorie", "Brutto", "USt-Satz", "USt", "Netto", "Notiz", "Beleg"];
+  const kopf = ["Datum", "Lieferant", "Kategorie", "Brutto", "USt-Satz", "USt", "Netto", "Notiz", "Beleg", "davon Brutto zu 7 %", "Anlass der Bewirtung", "Teilnehmer der Bewirtung"];
   const zeilen = [...liste].sort((a, b) => a.datum.localeCompare(b.datum)).map((b) => {
-    const brutto = Number(b.brutto), satz = Number(b.ust_satz), ust = ustAus(brutto, satz);
-    return [tag(b.datum), text(b.lieferant), text((KATEGORIEN[b.kategorie] ?? b.kategorie).replace(/^\S+\s/, "")), zahl(brutto), `${satz} %`, zahl(ust), zahl(rund(brutto - ust)), text(b.notiz), b.beleg_mime ? "ja" : "nein"].join(";");
+    const brutto = Number(b.brutto), satz = Number(b.ust_satz), ust = ustBeleg(b), b7 = anteil7(b);
+    return [tag(b.datum), text(b.lieferant), text((KATEGORIEN[b.kategorie] ?? b.kategorie).replace(/^\S+\s/, "")), zahl(brutto), `${satz} %`, zahl(ust), zahl(rund(brutto - ust)), text(b.notiz), b.beleg_mime ? "ja" : "nein", b7 ? zahl(b7) : "", text(b.anlass ?? ""), text(b.teilnehmer ?? "")].join(";");
   });
   return "﻿" + [kopf.join(";"), ...zeilen].join("\r\n") + "\r\n";
 }
@@ -72,15 +92,17 @@ export function belegeSeite(liste: Beleg[], o: { monat: string; heute: string; n
 <p class="klein">Firmenbelege (Tanken, Material, Miete …) per Foto erfassen. Am Monatsende die Liste als CSV an die Steuerberatung geben. Kategorie und Steuersatz trägst du ein; Crewtender gibt keine Steuerberatung. Mitarbeiter-Auslagen laufen weiter über <a href="/konto/spesen">Spesen</a>.</p>
 ${o.nurLesen ? "" : `<details class="termin-neu"${liste.length && !v ? "" : " open"}><summary>📸 Beleg erfassen</summary>
 ${o.kiAn && !v ? `<form method="post" action="/konto/belege" enctype="multipart/form-data" class="formular-zeile"><input type="hidden" name="aktion" value="lesen"><input type="hidden" name="monat" value="${o.monat}"><label>Foto oder PDF<input type="file" name="beleg" required accept="image/jpeg,image/png,application/pdf" capture="environment"></label><button>🤖 Auslesen lassen</button></form><p class="klein">Crewtender liest Datum, Lieferant, Betrag, Steuersatz und Kategorie vor, du prüfst und speicherst. Das Foto geht dafür an den KI-Dienst Claude (Anthropic, USA), der es nicht zum Training nutzt. Oder unten alles selbst eintragen.</p>` : ""}
-${v ? `<p class="${g?.sicher ? "hinweis ok" : "hinweis"}">${g ? g.sicher ? "🤖 Vorschlag aus dem Foto – bitte kurz prüfen." : "🤖 Teilweise lesbar – bitte die leeren oder falschen Felder ergänzen." : v.sperre ? `🤖 ${escape(v.sperre)} Bitte den Beleg selbst eintragen.` : "🤖 Das Foto konnte nicht gelesen werden – bitte selbst eintragen."}${g?.gemischt ? " Der Beleg hat mehrere Steuersätze; eingetragen ist der größte Anteil – ggf. als zwei Belege erfassen." : ""}</p>` : ""}
+${v ? `<p class="${g?.sicher ? "hinweis ok" : "hinweis"}">${g ? g.sicher ? "🤖 Vorschlag aus dem Foto – bitte kurz prüfen." : "🤖 Teilweise lesbar – bitte die leeren oder falschen Felder ergänzen." : v.sperre ? `🤖 ${escape(v.sperre)} Bitte den Beleg selbst eintragen.` : "🤖 Das Foto konnte nicht gelesen werden – bitte selbst eintragen."}${g?.gemischt ? ` <span>Der Beleg hat mehrere Steuersätze: Bei 19 % und 7 % bitte 19 % wählen und den Bruttoanteil zu 7 % unter „davon zu 7 %“ eintragen.</span>` : ""}</p>` : ""}
 <form method="post" action="/konto/belege" enctype="multipart/form-data"><input type="hidden" name="monat" value="${o.monat}">${v ? `<input type="hidden" name="datei_id" value="${v.dateiId}"><input type="hidden" name="datei_mime" value="${escape(v.mime)}">` : ""}<div class="aueg-form">
 <label>Datum<input type="date" name="datum" required value="${g?.datum || o.heute}" max="${o.heute}"></label><label>Lieferant<input name="lieferant" maxlength="160" required placeholder="z. B. Aral, Würth" value="${wert(g?.lieferant)}"></label>
 <label>Betrag brutto (€)<input name="brutto" inputmode="decimal" required maxlength="12" placeholder="z. B. 59,90" value="${g?.brutto ? g.brutto.toFixed(2).replace(".", ",") : ""}"></label><label>USt-Satz<select name="ust_satz">${SAETZE.map((x) => `<option value="${x}"${g && g.ust_satz === x ? " selected" : ""}>${x} %</option>`).join("")}</select></label>
-<label>Kategorie<select name="kategorie">${Object.entries(KATEGORIEN).map(([k, t]) => `<option value="${k}"${g?.kategorie === k ? " selected" : ""}>${t}</option>`).join("")}</select></label><label>Notiz<input name="notiz" maxlength="300"></label>
+<label>davon zu 7 % (bei gemischten Belegen)<input name="brutto_7" inputmode="decimal" maxlength="12" placeholder="nur bei 19 % und 7 % auf einem Beleg"></label><label>Kategorie<select name="kategorie">${Object.entries(KATEGORIEN).map(([k, t]) => `<option value="${k}"${g?.kategorie === k ? " selected" : ""}>${t}</option>`).join("")}</select></label>
+<label class="beleg-bewirtung">Anlass der Bewirtung<input name="anlass" maxlength="300" placeholder="z. B. Angebotsbesprechung Objekt Hauptstraße"></label><label class="beleg-bewirtung">Teilnehmer (alle, auch Gastgeber)<input name="teilnehmer" maxlength="500" placeholder="z. B. A. Beispiel (Kunde GmbH), ich"></label>
+<p class="klein ganz beleg-bewirtung">🍽️ Bei „Bewirtung“ sind Anlass und Teilnehmer Pflichtfelder.</p><label class="ganz">Notiz<input name="notiz" maxlength="300"></label>
 ${v ? `<p class="klein ganz">📎 Foto ist angehängt.</p>` : `<label class="ganz">Beleg (Foto oder PDF bis 5 MB)<input type="file" name="beleg" accept="image/jpeg,image/png,application/pdf" capture="environment"></label>`}</div><button>Speichern</button></form></details>`}
-${liste.length ? `<p class="gewerk-zahlen"><span><strong>${euro(s.gesamt.brutto)}</strong> brutto</span> <span><strong>${euro(s.gesamt.ust)}</strong> Vorsteuer laut Eingabe</span> <span><strong>${s.gesamt.anzahl}</strong> Belege</span></p>
+${liste.length ? `<p class="gewerk-zahlen"><span><strong>${euro(s.gesamt.brutto)}</strong> brutto</span> <span><strong>${euro(s.vorsteuer)}</strong> Vorsteuer laut Eingabe</span>${s.ohneBeleg ? ` <span><strong>${euro(s.ohneBeleg)}</strong> nicht als Vorsteuer gezählt (kein Beleg hochgeladen)</span>` : ""} <span><strong>${s.gesamt.anzahl}</strong> Belege</span></p>
 <p><a class="knopf" href="/konto/belege.csv?monat=${o.monat}" download>📤 CSV für die Steuerberatung</a></p>
-<ul class="kontakt-liste">${liste.map((b) => `<li><div><strong>${tag(b.datum)} · ${escape(b.lieferant)}</strong><span class="klein">${KATEGORIEN[b.kategorie] ?? escape(b.kategorie)} · ${Number(b.ust_satz)} % USt${b.notiz ? ` · ${escape(b.notiz)}` : ""} · ${b.beleg_mime ? `<a href="/konto/belege/${b.id}" target="_blank" rel="noopener">📎 Beleg</a>` : "⚠️ ohne Beleg"}</span></div><span class="knopf-zeile">${b.storniert_am ? `<s>${euro(Number(b.brutto))}</s> <span class="klein">↩︎ storniert${b.storno_grund ? `: ${escape(b.storno_grund)}` : ""}</span>` : `<strong>${euro(Number(b.brutto))}</strong>${o.nurLesen ? "" : `<details class="storno"><summary class="knopf zweit" aria-label="Beleg stornieren">↩︎</summary><form method="post" action="/konto/belege"><input type="hidden" name="monat" value="${o.monat}"><input type="hidden" name="storno" value="${b.id}"><label>Grund<input name="grund" required minlength="3" maxlength="300" placeholder="z. B. doppelt erfasst"></label><button class="zweit">Beleg stornieren</button><p class="klein">Belege werden nicht gelöscht (GoBD): Der Beleg bleibt mit Grund sichtbar, zählt aber nicht mehr für Vorsteuer und DATEV.</p></form></details>`}`}</span></li>`).join("")}</ul>
+<ul class="kontakt-liste">${liste.map((b) => `<li><div><strong>${tag(b.datum)} · ${escape(b.lieferant)}</strong><span class="klein">${KATEGORIEN[b.kategorie] ?? escape(b.kategorie)} · ${Number(b.ust_satz)} % USt${b.notiz ? ` · ${escape(b.notiz)}` : ""} · ${b.beleg_mime ? `<a href="/konto/belege/${b.id}" target="_blank" rel="noopener">📎 Beleg</a>` : "⚠️ ohne Beleg"}</span>${anteil7(b) ? `<span class="klein">${euro(anteil7(b))} davon zu 7 % USt</span>` : ""}${b.kategorie === "bewirtung" ? `<span class="klein">🍽️ <em>Anlass:</em> ${escape(b.anlass ?? "")} · <em>Teilnehmer:</em> ${escape(b.teilnehmer ?? "")}</span>` : ""}${!b.storniert_am && Number(b.brutto) > KLEINBETRAG ? `<span class="klein">⚠️ Über 250 €: Die Rechnung braucht u. a. Name und Anschrift des Empfängers, Steuernummer oder USt-IdNr. des Lieferanten und eine Rechnungsnummer (§ 14 Abs. 4 UStG) – bitte prüfen.</span>` : ""}</div><span class="knopf-zeile">${b.storniert_am ? `<s>${euro(Number(b.brutto))}</s> <span class="klein">↩︎ storniert${b.storno_grund ? `: ${escape(b.storno_grund)}` : ""}</span>` : `<strong>${euro(Number(b.brutto))}</strong>${o.nurLesen ? "" : `<details class="storno"><summary class="knopf zweit" aria-label="Beleg stornieren">↩︎</summary><form method="post" action="/konto/belege"><input type="hidden" name="monat" value="${o.monat}"><input type="hidden" name="storno" value="${b.id}"><label>Grund<input name="grund" required minlength="3" maxlength="300" placeholder="z. B. doppelt erfasst"></label><button class="zweit">Beleg stornieren</button><p class="klein">Belege werden nicht gelöscht (GoBD): Der Beleg bleibt mit Grund sichtbar, zählt aber nicht mehr für Vorsteuer und DATEV.</p></form></details>`}`}</span></li>`).join("")}</ul>
 ${tabelle("Nach Kategorie", s.kategorien.map((x) => ({ ...x, name: KATEGORIEN[x.k] })))}${tabelle("Nach Steuersatz", s.saetze.map((x) => ({ ...x, name: `${x.s} %` })))}` : `<p class="treffer-leer">Keine Belege in diesem Monat.</p>`}${o.datev ? datevTeil(o.datev, o.monat) : ""}`;
 }
 
@@ -105,7 +127,7 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
     if (!x || !obj) return new Response("Nicht gefunden", { status: 404 });
     return new Response(obj.body, { headers: kopf({ "content-type": x.beleg_mime!, "content-disposition": "inline", "cache-control": "private, no-store", "x-content-type-options": "nosniff", "content-security-policy": "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; sandbox" }) });
   }
-  const laden = (monat: string) => db<Beleg[]>(f.s, env, `belege?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,datum,lieferant,kategorie,brutto,ust_satz,notiz,beleg_mime,storniert_am,storno_grund&order=datum.desc,erstellt.desc&limit=5000`);
+  const laden = (monat: string) => db<Beleg[]>(f.s, env, `belege?firma_id=eq.${firma}&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,datum,lieferant,kategorie,brutto,ust_satz,brutto_7,anlass,teilnehmer,notiz,beleg_mime,storniert_am,storno_grund&order=datum.desc,erstellt.desc&limit=5000`);
   const datevLaden = async (): Promise<{ e: DatevEinstellung; lohnarten: Lohnarten }> => {
     const r = await db<{ datev_berater: string; datev_mandant: string; datev_skr: "03" | "04"; datev_wj_beginn: number; kleinunternehmer: boolean; lohnarten: Lohnarten }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=datev_berater,datev_mandant,datev_skr,datev_wj_beginn,kleinunternehmer,lohnarten`);
     const x = r.ok ? r.daten[0] : undefined;
@@ -161,11 +183,21 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
       const r = await db<boolean>(f.s, env, "rpc/beleg_stornieren", { method: "POST", body: JSON.stringify({ b: storno, grund: t("grund", 300) }) });
       return zurueck(r.ok ? (r.daten ? "Beleg storniert." : "Der Beleg war schon storniert.") : /"message":"([^"]+)"/.exec(r.fehler)?.[1] ?? "Stornieren hat nicht geklappt.");
     }
-    const brutto = Number(t("brutto", 14).replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
-    const datum = t("datum", 10), satz = Number(t("ust_satz", 2)), lieferant = t("lieferant", 160);
+    const betrag = (k: string) => Number(t(k, 14).replace(/[^\d,.-]/g, "").replace(/\.(?=\d{3}(\D|$))/g, "").replace(",", "."));
+    const brutto = betrag("brutto");
+    const datum = t("datum", 10), satzRoh = Number(t("ust_satz", 2)), lieferant = t("lieferant", 160);
+    const satz = SAETZE.includes(satzRoh) ? satzRoh : 19;
     if (!Number.isFinite(brutto) || brutto <= 0 || brutto > 1_000_000) return zurueck("Bitte einen Betrag über 0 € angeben.");
     if (!/^\d{4}-\d{2}-\d{2}$/.test(datum) || datum > heute || datum < `${Number(heute.slice(0, 4)) - 2}-01-01`) return zurueck("Bitte ein Datum bis heute wählen (höchstens zwei Jahre zurück).");
     if (!lieferant) return zurueck("Bitte den Lieferanten angeben.");
+    // S20: optional gross part at 7 % on a mixed receipt (only together with 19 %).
+    const brutto7 = t("brutto_7", 14) ? rund(betrag("brutto_7")) : null;
+    if (brutto7 !== null && satz !== 19) return zurueck("Den Anteil zu 7 % bitte nur bei USt-Satz 19 % eintragen.");
+    if (brutto7 !== null && (!Number.isFinite(brutto7) || brutto7 <= 0 || brutto7 > rund(brutto))) return zurueck("Der Anteil zu 7 % muss über 0 € liegen und darf den Gesamtbetrag nicht übersteigen.");
+    // S10: business meals need occasion and participants (§ 4 Abs. 5 Nr. 2 EStG); the database checks this too.
+    const kategorieRoh = t("kategorie", 20), kategorie = Object.hasOwn(KATEGORIEN, kategorieRoh) ? kategorieRoh : "sonstiges";
+    const bewirtung = kategorie === "bewirtung", anlass = bewirtung ? t("anlass", 300) : "", teilnehmer = bewirtung ? t("teilnehmer", 500) : "";
+    if (bewirtung && (!anlass || !teilnehmer)) return zurueck("Bei Bewirtung bitte Anlass und Teilnehmer angeben.");
     const dateiId = t("datei_id", 36), dateiMime = t("datei_mime", 20);
     const vorhanden = /^[0-9a-f-]{36}$/.test(dateiId) && TYPEN.includes(dateiMime) && !!(await env.DATEN?.head(dateiSchluessel(firma, dateiId)));
     const id = vorhanden ? dateiId : crypto.randomUUID();
@@ -177,8 +209,7 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
       mime = b.type;
       await env.DATEN?.put(dateiSchluessel(firma, id), bytes, { httpMetadata: { contentType: mime } });
     }
-    const kategorie = t("kategorie", 20);
-    const r = await db(f.s, env, "belege", { method: "POST", body: JSON.stringify({ id, firma_id: firma, datum, lieferant, kategorie: kategorie in KATEGORIEN ? kategorie : "sonstiges", brutto: rund(brutto), ust_satz: SAETZE.includes(satz) ? satz : 19, notiz: t("notiz", 300), beleg_mime: mime }) });
+    const r = await db(f.s, env, "belege", { method: "POST", body: JSON.stringify({ id, firma_id: firma, datum, lieferant, kategorie, brutto: rund(brutto), ust_satz: satz, brutto_7: brutto7, anlass: bewirtung ? anlass : null, teilnehmer: bewirtung ? teilnehmer : null, notiz: t("notiz", 300), beleg_mime: mime }) });
     if (!r.ok && bytes) await env.DATEN?.delete(dateiSchluessel(firma, id));
     return weiterleiten(`/konto/belege?monat=${datum.slice(0, 7)}&hinweis=${encodeURIComponent(r.ok ? `${euro(rund(brutto))} von ${lieferant} gespeichert.` : "Speichern hat nicht geklappt.")}`, f.s.cookies);
   }

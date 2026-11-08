@@ -8,7 +8,7 @@ const re = [
   { datum: "2026-04-01", netto: 500, ust_satz: 19, bezahlt_am: "2026-04-10" },
   { datum: "2025-06-01", netto: 30000, ust_satz: 19, bezahlt_am: "2025-06-20" },
 ];
-const be = [{ datum: "2026-01-20", brutto: 119, ust_satz: 19 }, { datum: "2026-02-05", brutto: 10.7, ust_satz: 7 }];
+const be = [{ datum: "2026-01-20", brutto: 119, ust_satz: 19, beleg_mime: "image/jpeg" }, { datum: "2026-02-05", brutto: 10.7, ust_satz: 7, beleg_mime: "application/pdf" }];
 
 test("Umsatzsteuer: Monate, Quartale, Soll und Ist", () => {
   const m = perioden(re, be, { jahr: 2026, quartal: false, ist: false, kleinunternehmer: false });
@@ -44,4 +44,17 @@ test("Umsatzsteuer: Seite", () => {
   assert.match(ku, /🟡 Kleinunternehmer-Wächter/);
   assert.match(ku, /width:85%/);
   assert.doesNotMatch(ku, /Kz\. 81/);
+});
+
+test("Umsatzsteuer S9/S20: Vorsteuer nur mit Belegdatei, gemischte Belege je Satz", () => {
+  const belege = [...be,
+    { datum: "2026-01-25", brutto: 238, ust_satz: 19, beleg_mime: null },
+    { datum: "2026-01-28", brutto: 226, ust_satz: 19, brutto_7: "107.00", beleg_mime: "image/png" }];
+  const m = perioden(re, belege, { jahr: 2026, quartal: false, ist: false, kleinunternehmer: false });
+  assert.deepEqual([m[0].vorsteuer, m[0].ohneBeleg, m[0].zahllast], [45, 38, 145], "19 + (19 + 7); 38 € ohne Datei nicht gezählt");
+  const html = umsatzsteuerSeite(m, { jahr: 2026, quartal: false, ist: false, kleinunternehmer: false, waechter: kleinunternehmerWaechter(0, 0, false), vorjahr: 0, laufend: 0, heuteJahr: 2026 });
+  assert.match(html, /\(\+ 38,00\s€ ohne Beleg, nicht gezählt\)/);
+  assert.match(html, /38,00\s€<\/strong> nicht als Vorsteuer gezählt \(kein Beleg hochgeladen\)/);
+  const ohne = umsatzsteuerSeite(perioden(re, be, { jahr: 2026, quartal: false, ist: false, kleinunternehmer: false }), { jahr: 2026, quartal: false, ist: false, kleinunternehmer: false, waechter: kleinunternehmerWaechter(0, 0, false), vorjahr: 0, laufend: 0, heuteJahr: 2026 });
+  assert.doesNotMatch(ohne, /nicht als Vorsteuer gezählt/, "alle Belege mit Datei: kein Hinweis");
 });

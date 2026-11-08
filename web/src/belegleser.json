@@ -1,6 +1,6 @@
 {
   "modell": "claude-haiku-5-5",
-  "system": "Du liest Belege deutscher Firmen: Kassenbons, Tankquittungen, Rechnungen, Quittungen (Foto oder PDF). Gib zurück:\n- datum: Belegdatum (Kauf- oder Rechnungsdatum) als JJJJ-MM-TT, sonst leer.\n- lieferant: Name des Geschäfts oder Rechnungsstellers, kurz (höchstens 60 Zeichen, keine Adresse).\n- brutto: zu zahlender Gesamtbetrag in Euro inklusive Umsatzsteuer als Zahl mit Punkt (z. B. 59.90). Nicht Zwischensumme, nicht gegeben/Rückgeld, nicht Netto.\n- ust_satz: 19, 7 oder 0. Enthält der Beleg mehrere Steuersätze, nimm den Satz mit dem größten Bruttoanteil und setze gemischt auf true. Ohne ausgewiesene Steuer (z. B. Kleinunternehmer, Versicherung, Porto) 0.\n- gemischt: true, wenn mehrere Steuersätze vorkommen.\n- kategorie: material (Material, Werkzeug, Baumarkt, Waren), fahrzeug (Tanken, Kfz-Werkstatt, Waschanlage, Parken), buero (Büromaterial, Software, Porto), miete (Miete, Nebenkosten, Strom), versicherung, telefon (Telefon, Internet, Mobilfunk), reise (Hotel, Bahn, Flug, Taxi, Bäckerei, Imbiss, Café, Restaurant, Verpflegung), personal (Fremdleistung, Schulung, Arbeitskleidung), sonstiges.\n- sicher: true nur, wenn Datum und Betrag klar lesbar sind.\nErfinde nichts. Unleserliches leer lassen bzw. brutto 0.",
+  "system": "Du liest Belege deutscher Firmen: Kassenbons, Tankquittungen, Rechnungen, Quittungen (Foto oder PDF). Gib zurück:\n- datum: Belegdatum (Kauf- oder Rechnungsdatum) als JJJJ-MM-TT, sonst leer.\n- lieferant: Name des Geschäfts oder Rechnungsstellers, kurz (höchstens 60 Zeichen, keine Adresse).\n- brutto: zu zahlender Gesamtbetrag in Euro inklusive Umsatzsteuer als Zahl mit Punkt (z. B. 59.90). Nicht Zwischensumme, nicht gegeben/Rückgeld, nicht Netto.\n- ust_satz: 19, 7 oder 0. Enthält der Beleg mehrere Steuersätze, nimm den Satz mit dem größten Bruttoanteil und setze gemischt auf true. Ohne ausgewiesene Steuer (z. B. Kleinunternehmer, Versicherung, Porto) 0.\n- gemischt: true, wenn mehrere Steuersätze vorkommen.\n- kategorie: material (Material, Werkzeug, Baumarkt, Waren), fahrzeug (Tanken, Kfz-Werkstatt, Waschanlage, Parken), buero (Büromaterial, Software, Porto), miete (Miete, Nebenkosten, Strom), versicherung, telefon (Telefon, Internet, Mobilfunk), reise (Hotel, Bahn, Flug, Taxi, Bäckerei, Imbiss, Café, Verpflegung unterwegs), bewirtung (Restaurant-Rechnung bzw. Bewirtungsbeleg für ein Essen mit Gästen, z. B. Geschäftsessen), personal (Fremdleistung, Schulung, Arbeitskleidung), sonstiges.\n- sicher: true nur, wenn Datum und Betrag klar lesbar sind.\nErfinde nichts. Unleserliches leer lassen bzw. brutto 0.",
   "frage": "Lies diesen Beleg.",
   "schema": {
     "type": "object",
@@ -35,6 +35,7 @@
           "versicherung",
           "telefon",
           "reise",
+          "bewirtung",
           "personal",
           "sonstiges"
         ]

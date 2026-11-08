@@ -750,6 +750,7 @@ ${grundTags(titel)}
   .aueg-aktionen button { min-height: 30px; padding: 2px 8px; font-size: 12px; width: auto; }
   .aueg-form { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; align-items: end; }
   .aueg-form label { margin: 0; min-width: 0; } .aueg-form input, .aueg-form select { min-width: 0; width: 100%; } .aueg-form .ganz { grid-column: 1 / -1; }
+  .aueg-form:has(select[name="kategorie"]):not(:has(option[value="bewirtung"]:checked)) .beleg-bewirtung { display: none; }
   .termin-neu form > .aueg-form, .termin-neu form > .baustein-knoepfe, .termin-neu form > p, .termin-neu form > label.zeile { grid-column: 1 / -1; }
   .unterweisung-karte summary strong, .unterweisung-karte summary .klein { display: block; }
   .aueg-hinweis { margin: 0; font-size: 13px; font-weight: 600; } .aueg-hinweis a { color: #b07800; }

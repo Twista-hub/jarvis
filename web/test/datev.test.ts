@@ -61,6 +61,22 @@ test("DATEV-Buchungsstapel: Format und Kontenvorschlag", () => {
   assert.equal(wj[12].v, "20260701", "abweichendes Wirtschaftsjahr");
 });
 
+test("DATEV: Bewirtung auf eigenem Konto, gemischter Beleg in zwei Buchungen (S10, S20)", () => {
+  const neu: Beleg[] = [
+    { id: "44444444-dddd", datum: "2026-11-06", lieferant: "Gasthaus Linde", kategorie: "bewirtung", brutto: 119, ust_satz: 19, notiz: "", beleg_mime: "image/jpeg", anlass: "Angebot", teilnehmer: "A. Kunde, ich" },
+    { id: "55555555-eeee", datum: "2026-11-07", lieferant: "Supermarkt", kategorie: "material", brutto: 226, ust_satz: 19, brutto_7: 107, notiz: "", beleg_mime: "image/jpeg" },
+  ];
+  for (const [skr, bewirtung, material] of [["03", "4650", "3000"], ["04", "6640", "5000"]] as const) {
+    const b = pruefe(buchungsstapel({ ...e, skr }, "2026-11", buchungenAus([], neu, { ...e, skr })));
+    assert.deepEqual(b.map((f) => [f[0].v, f[6].v, f[7].v, f[8].v, f[10].v]), [
+      ["119,00", bewirtung, "70000", "9", "B261106444444"],
+      ["119,00", material, "70000", "9", "B261107555555"], ["107,00", material, "70000", "8", "B261107555555"],
+    ]);
+  }
+  const ku = buchungenAus([], neu, { ...e, kleinunternehmer: true });
+  assert.deepEqual(ku.map((b) => [b.cent, b.bu]), [[11900, ""], [22600, ""]], "Kleinunternehmer: eine Buchung ohne Vorsteuer");
+});
+
 test("DATEV: Zeichensatz Windows-1252 und Einstellungen", () => {
   assert.deepEqual([...cp1252("€ä„–")], [0x80, 0xe4, 0x84, 0x96]);
   assert.deepEqual([...cp1252("✓")], [0x3f]);

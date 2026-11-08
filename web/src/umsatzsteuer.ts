@@ -6,11 +6,12 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { euro } from "./spesen.ts";
-import { ustAus } from "./belege.ts";
+import { ustBeleg } from "./belege.ts";
 
 export type ReZeile = { datum: string; netto: number | string; ust_satz: number | string; bezahlt_am?: string | null; monat?: string; art?: string; ust_betrag?: number | string | null; kleinunternehmer?: boolean | null; reverse_charge?: boolean };
-export type BeZeile = { datum: string; brutto: number | string; ust_satz: number | string };
-export type Periode = { schluessel: string; name: string; umsatz19: number; umsatz7: number; umsatz0: number; umsatz13b?: number; ust: number; vorsteuer: number; zahllast: number; anzahl: number };
+export type BeZeile = { datum: string; brutto: number | string; ust_satz: number | string; brutto_7?: number | string | null; beleg_mime?: string | null };
+/** vorsteuer: only receipts with an uploaded file (Rechtsprüfung S9); ohneBeleg: VAT of entries without a file, not counted. */
+export type Periode = { schluessel: string; name: string; umsatz19: number; umsatz7: number; umsatz0: number; umsatz13b?: number; ust: number; vorsteuer: number; ohneBeleg: number; zahllast: number; anzahl: number };
 export const GRENZE_VORJAHR = 25_000, GRENZE_LAUFEND = 100_000;
 const rund = (n: number) => Math.round(n * 100) / 100;
 const MONATE = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
@@ -25,7 +26,7 @@ const umsatztag = (r: ReZeile, ist: boolean) => ist ? r.bezahlt_am ?? null : r.d
 export function perioden(re: ReZeile[], be: BeZeile[], o: { jahr: number; quartal: boolean; ist: boolean; kleinunternehmer: boolean }): Periode[] {
   const anzahl = o.quartal ? 4 : 12;
   const teil = (d: string) => { const m = Number(d.slice(5, 7)) - 1; return o.quartal ? Math.floor(m / 3) : m; };
-  const leer = Array.from({ length: anzahl }, (_, i): Periode => ({ schluessel: o.quartal ? `${o.jahr}-Q${i + 1}` : `${o.jahr}-${String(i + 1).padStart(2, "0")}`, name: o.quartal ? `${i + 1}. Quartal` : MONATE[i], umsatz19: 0, umsatz7: 0, umsatz0: 0, ust: 0, vorsteuer: 0, zahllast: 0, anzahl: 0 }));
+  const leer = Array.from({ length: anzahl }, (_, i): Periode => ({ schluessel: o.quartal ? `${o.jahr}-Q${i + 1}` : `${o.jahr}-${String(i + 1).padStart(2, "0")}`, name: o.quartal ? `${i + 1}. Quartal` : MONATE[i], umsatz19: 0, umsatz7: 0, umsatz0: 0, ust: 0, vorsteuer: 0, ohneBeleg: 0, zahllast: 0, anzahl: 0 }));
   for (const r of re) {
     const d = stichtag(r, o.ist);
     if (!d || Number(d.slice(0, 4)) !== o.jahr) continue;
@@ -37,9 +38,10 @@ export function perioden(re: ReZeile[], be: BeZeile[], o: { jahr: number; quarta
   }
   if (!o.kleinunternehmer) for (const b of be) {
     if (Number(b.datum.slice(0, 4)) !== o.jahr) continue;
-    leer[teil(b.datum)].vorsteuer += ustAus(Number(b.brutto), Number(b.ust_satz));
+    const p = leer[teil(b.datum)];
+    if (b.beleg_mime) p.vorsteuer += ustBeleg(b); else p.ohneBeleg += ustBeleg(b);
   }
-  for (const p of leer) { p.umsatz19 = rund(p.umsatz19); p.umsatz7 = rund(p.umsatz7); p.umsatz0 = rund(p.umsatz0); p.umsatz13b = rund(p.umsatz13b ?? 0); p.ust = rund(p.ust); p.vorsteuer = rund(p.vorsteuer); p.zahllast = rund(p.ust - p.vorsteuer); }
+  for (const p of leer) { p.umsatz19 = rund(p.umsatz19); p.umsatz7 = rund(p.umsatz7); p.umsatz0 = rund(p.umsatz0); p.umsatz13b = rund(p.umsatz13b ?? 0); p.ust = rund(p.ust); p.vorsteuer = rund(p.vorsteuer); p.ohneBeleg = rund(p.ohneBeleg); p.zahllast = rund(p.ust - p.vorsteuer); }
   return leer;
 }
 
@@ -62,11 +64,11 @@ export function kleinunternehmerWaechter(vorjahr: number, laufend: number, klein
 
 export function umsatzsteuerSeite(p: Periode[], o: { jahr: number; quartal: boolean; ist: boolean; kleinunternehmer: boolean; waechter: Waechter; vorjahr: number; laufend: number; heuteJahr: number }): string {
   const q = (j: number, quartal: boolean, ist: boolean) => `/konto/umsatzsteuer?jahr=${j}${quartal ? "&zeitraum=quartal" : ""}${ist ? "&ist=1" : ""}`;
-  const summe = p.reduce((a, x) => ({ u19: a.u19 + x.umsatz19, u7: a.u7 + x.umsatz7, u0: a.u0 + x.umsatz0, ust: a.ust + x.ust, vst: a.vst + x.vorsteuer }), { u19: 0, u7: 0, u0: 0, ust: 0, vst: 0 });
+  const summe = p.reduce((a, x) => ({ u19: a.u19 + x.umsatz19, u7: a.u7 + x.umsatz7, u0: a.u0 + x.umsatz0, ust: a.ust + x.ust, vst: a.vst + x.vorsteuer, ohne: a.ohne + x.ohneBeleg }), { u19: 0, u7: 0, u0: 0, ust: 0, vst: 0, ohne: 0 });
   const balken = (wert: number, grenze: number) => `<div class="fortschritt" role="img" aria-label="${Math.round(wert / grenze * 100)} %"><span style="width:${Math.min(100, Math.round(wert / grenze * 100))}%"></span></div>`;
   const zeilen = p.map((x) => o.kleinunternehmer
     ? `<tr><td>${x.name}</td><td>${euro(x.umsatz0 + x.umsatz7 + x.umsatz19)}</td><td>${x.anzahl}</td></tr>`
-    : `<tr><td>${x.name}</td><td>${euro(x.umsatz19)}</td><td>${euro(x.umsatz7)}</td><td>${euro(x.umsatz0)}${x.umsatz13b ? ` <span class="klein">+ ${euro(x.umsatz13b)} § 13b (Kz. 60)</span>` : ""}</td><td>${euro(x.ust)}</td><td>${euro(x.vorsteuer)}</td><td><strong>${euro(x.zahllast)}</strong></td></tr>`).join("");
+    : `<tr><td>${x.name}</td><td>${euro(x.umsatz19)}</td><td>${euro(x.umsatz7)}</td><td>${euro(x.umsatz0)}${x.umsatz13b ? ` <span class="klein">+ ${euro(x.umsatz13b)} § 13b (Kz. 60)</span>` : ""}</td><td>${euro(x.ust)}</td><td>${euro(x.vorsteuer)}${x.ohneBeleg ? ` <span class="klein">(+ ${euro(x.ohneBeleg)} ohne Beleg, nicht gezählt)</span>` : ""}</td><td><strong>${euro(x.zahllast)}</strong></td></tr>`).join("");
   const tabelle = o.kleinunternehmer
     ? `<table class="tabelle"><thead><tr><th>${o.quartal ? "Quartal" : "Monat"}</th><th>Umsatz</th><th>Rechnungen</th></tr></thead><tbody>${zeilen}</tbody></table>`
     : `<table class="tabelle"><thead><tr><th>${o.quartal ? "Quartal" : "Monat"}</th><th>Umsatz 19 % (Kz. 81)</th><th>Umsatz 7 % (Kz. 86)</th><th>ohne USt</th><th>Umsatzsteuer</th><th>Vorsteuer (Kz. 66)</th><th>Zahllast</th></tr></thead><tbody>${zeilen}<tr><td><strong>Summe</strong></td><td>${euro(summe.u19)}</td><td>${euro(summe.u7)}</td><td>${euro(summe.u0)}</td><td>${euro(summe.ust)}</td><td>${euro(summe.vst)}</td><td><strong>${euro(summe.ust - summe.vst)}</strong></td></tr></tbody></table>`;
@@ -75,7 +77,8 @@ export function umsatzsteuerSeite(p: Periode[], o: { jahr: number; quartal: bool
 ${o.kleinunternehmer ? `<p class="klein">Laufendes Jahr ${euro(o.laufend)} von ${euro(GRENZE_LAUFEND)}</p>${balken(o.laufend, GRENZE_LAUFEND)}<p class="klein">Vorjahr ${euro(o.vorjahr)} von ${euro(GRENZE_VORJAHR)}</p>${balken(o.vorjahr, GRENZE_VORJAHR)}` : ""}</section>
 <nav class="ordner-chips" aria-label="Ansicht"><a href="${q(o.jahr, false, o.ist)}"${o.quartal ? "" : ' aria-current="page"'}>Monate</a><a href="${q(o.jahr, true, o.ist)}"${o.quartal ? ' aria-current="page"' : ""}>Quartale</a><a href="${q(o.jahr, o.quartal, false)}"${o.ist ? "" : ' aria-current="page"'}>nach Rechnungsdatum</a><a href="${q(o.jahr, o.quartal, true)}"${o.ist ? ' aria-current="page"' : ""}>nach Zahlungseingang</a></nav>
 <div class="tabelle-rahmen">${tabelle}</div>
-<p class="klein">Aus den Rechnungen in Crewtender${o.kleinunternehmer ? "" : " und den erfassten Belegen (Vorsteuer laut Eingabe)"}. ${o.ist ? "Nach Zahlungseingang: nur als bezahlt markierte Rechnungen (Ist-Versteuerung)." : "Nach Rechnungsdatum (Soll-Versteuerung)."} Rechnungen außerhalb von Crewtender fehlen hier. Die Kennzahlen (Kz.) sind zur Orientierung für die Umsatzsteuer-Voranmeldung in ELSTER. Crewtender übermittelt nichts und ersetzt keine Steuerberatung.</p>`;
+${!o.kleinunternehmer && rund(summe.ohne) > 0 ? `<p class="hinweis">⚠️ <strong>${euro(rund(summe.ohne))}</strong> nicht als Vorsteuer gezählt (kein Beleg hochgeladen)<br><span class="klein">Ohne hochgeladene Belegdatei zählt Crewtender keine Vorsteuer. Fehlt die Datei, den Eintrag unter <a href="/konto/belege">Belege</a> stornieren und mit Datei neu erfassen.</span></p>` : ""}
+<p class="klein">Aus den Rechnungen in Crewtender${o.kleinunternehmer ? "" : " und den erfassten Belegen mit hochgeladener Datei (Vorsteuer laut Eingabe)"}. ${o.ist ? "Nach Zahlungseingang: nur als bezahlt markierte Rechnungen (Ist-Versteuerung)." : "Nach Rechnungsdatum (Soll-Versteuerung)."} Rechnungen außerhalb von Crewtender fehlen hier. Die Kennzahlen (Kz.) sind zur Orientierung für die Umsatzsteuer-Voranmeldung in ELSTER. Crewtender übermittelt nichts und ersetzt keine Steuerberatung.</p>`;
 }
 
 export async function umsatzsteuer(request: Request, env: KontoEnv): Promise<Response | null> {
@@ -91,7 +94,7 @@ export async function umsatzsteuer(request: Request, env: KontoEnv): Promise<Res
   const quartal = url.searchParams.get("zeitraum") === "quartal", ist = url.searchParams.get("ist") === "1";
   const [re, be, pr] = await Promise.all([
     db<ReZeile[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&status=eq.ausgestellt&datum=gte.${jahr - 1}-01-01&select=datum,netto,ust_satz,bezahlt_am,monat,art,ust_betrag,kleinunternehmer,reverse_charge&limit=20000`),
-    db<BeZeile[]>(f.s, env, `belege?firma_id=eq.${firma}&storniert_am=is.null&datum=gte.${jahr}-01-01&datum=lt.${jahr + 1}-01-01&select=datum,brutto,ust_satz&limit=20000`),
+    db<BeZeile[]>(f.s, env, `belege?firma_id=eq.${firma}&storniert_am=is.null&datum=gte.${jahr}-01-01&datum=lt.${jahr + 1}-01-01&select=datum,brutto,ust_satz,brutto_7,beleg_mime&limit=20000`),
     db<{ kleinunternehmer: boolean }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=kleinunternehmer`),
   ]);
   const rechnungen = re.ok ? re.daten : [], ku = !!(pr.ok && pr.daten[0]?.kleinunternehmer);

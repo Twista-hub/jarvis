@@ -8,17 +8,19 @@
 //    ("Lohnarten"), which the payroll office provides. Without a wage type a value is not exported.
 // Berater- and Mandantennummer are entered by the firm; they are not secret.
 import SPALTEN from "./datev-spalten.json" with { type: "json" };
-import type { Beleg } from "./belege.ts";
+import { teile, type Beleg } from "./belege.ts";
 import type { Zeile } from "./lohn.ts";
 import type { Rechnung } from "./rechnungen.ts";
 
 export type DatevEinstellung = { berater: string; mandant: string; skr: "03" | "04"; wjBeginn: number; kleinunternehmer: boolean };
 export type Buchung = { cent: number; seite: "S" | "H"; konto: string; gegenkonto: string; bu?: string; datum: string; beleg1: string; text: string };
 
-/** Proposed accounts (DATEV-Kontenrahmen SKR03 / SKR04). Revenue 8400/4400 are automatic accounts (no BU key). */
+/** Proposed accounts (DATEV-Kontenrahmen SKR03 / SKR04). Revenue 8400/4400 are automatic accounts (no BU key).
+ *  Business meals (Rechtsprüfung S10) go to their own account, SKR03 4650 / SKR04 6640 "Bewirtungskosten"; splitting
+ *  into the deductible and non-deductible part (§ 4 Abs. 5 Nr. 2 EStG) is left to the tax adviser (proposal, please check). */
 export const KONTEN = {
-  "03": { debitor: "10000", kreditor: "70000", erloes: "8400", erloesKu: "8195", erloes13b: "8337", material: "3000", fahrzeug: "4530", buero: "4930", miete: "4210", versicherung: "4360", telefon: "4920", reise: "4670", personal: "3100", sonstiges: "4900" },
-  "04": { debitor: "10000", kreditor: "70000", erloes: "4400", erloesKu: "4185", erloes13b: "4337", material: "5000", fahrzeug: "6530", buero: "6815", miete: "6310", versicherung: "6400", telefon: "6805", reise: "6670", personal: "5900", sonstiges: "6300" },
+  "03": { debitor: "10000", kreditor: "70000", erloes: "8400", erloesKu: "8195", erloes13b: "8337", material: "3000", fahrzeug: "4530", buero: "4930", miete: "4210", versicherung: "4360", telefon: "4920", reise: "4670", bewirtung: "4650", personal: "3100", sonstiges: "4900" },
+  "04": { debitor: "10000", kreditor: "70000", erloes: "4400", erloesKu: "4185", erloes13b: "4337", material: "5000", fahrzeug: "6530", buero: "6815", miete: "6310", versicherung: "6400", telefon: "6805", reise: "6670", bewirtung: "6640", personal: "5900", sonstiges: "6300" },
 } as const;
 /** Input tax keys: 9 = 19 % Vorsteuer, 8 = 7 % Vorsteuer. */
 const BU_VORSTEUER: Record<number, string> = { 19: "9", 7: "8" };
@@ -30,7 +32,8 @@ const betrag = (cent: number) => `${Math.floor(cent / 100)},${String(cent % 100)
 const cent = (n: number | string) => Math.round(Number(n) * 100);
 const ymd = (d: string) => d.replace(/-/g, "");
 
-/** Postings for one month: outgoing invoices (gross, debtor to revenue) and receipts (expense to creditor, with input tax key). */
+/** Postings for one month: outgoing invoices (gross, debtor to revenue) and receipts (expense to creditor, with input tax key).
+ *  A mixed receipt (19 % and 7 %, Rechtsprüfung S20) becomes two postings with the same document number, one per rate. */
 export function buchungenAus(rechnungen: (Pick<Rechnung, "nummer" | "datum" | "netto" | "ust_satz"> & Partial<Pick<Rechnung, "ust_betrag" | "kleinunternehmer" | "art" | "bezug_nummer" | "reverse_charge">>)[], belege: Beleg[], e: DatevEinstellung, kundeName: (r: Pick<Rechnung, "nummer">) => string = () => ""): Buchung[] {
   const k = KONTEN[e.skr];
   const aus = rechnungen.map((r): Buchung => {
@@ -40,7 +43,7 @@ export function buchungenAus(rechnungen: (Pick<Rechnung, "nummer" | "datum" | "n
     const storno = r.art === "storno" || brutto < 0;
     return { cent: Math.abs(brutto), seite: storno ? "H" : "S", konto: k.debitor, gegenkonto: ku ? k.erloesKu : r.reverse_charge ? k.erloes13b : k.erloes, datum: r.datum, beleg1: r.nummer, text: `${storno ? `Storno ${r.bezug_nummer ?? ""}` : "Rechnung"} ${r.nummer} ${kundeName(r)}`.replace(/\s+/g, " ") };
   });
-  const ein = belege.map((b): Buchung => ({ cent: cent(b.brutto), seite: "S", konto: (k as Record<string, string>)[b.kategorie] ?? k.sonstiges, gegenkonto: k.kreditor, bu: e.kleinunternehmer ? "" : BU_VORSTEUER[Number(b.ust_satz)] ?? "", datum: b.datum, beleg1: `B${ymd(b.datum).slice(2)}${b.id.slice(0, 6)}`, text: `${b.lieferant}${b.notiz ? ` ${b.notiz}` : ""}` }));
+  const ein = belege.flatMap((b) => (e.kleinunternehmer ? [{ satz: 0, brutto: Number(b.brutto) }] : teile(b)).map((t): Buchung => ({ cent: cent(t.brutto), seite: "S", konto: (k as Record<string, string>)[b.kategorie] ?? k.sonstiges, gegenkonto: k.kreditor, bu: e.kleinunternehmer ? "" : BU_VORSTEUER[t.satz] ?? "", datum: b.datum, beleg1: `B${ymd(b.datum).slice(2)}${b.id.slice(0, 6)}`, text: `${b.lieferant}${b.notiz ? ` ${b.notiz}` : ""}` })));
   return [...aus, ...ein].filter((b) => b.cent > 0).sort((a, b) => a.datum.localeCompare(b.datum));
 }
 
