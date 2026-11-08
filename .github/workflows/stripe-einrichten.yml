@@ -100,9 +100,13 @@ jobs:
               api("prices", {"product": produkt, "currency": "eur", "lookup_key": k, "tax_behavior": "unspecified", "nickname": k, **werte})
               print(f"Zusatz {k}: angelegt")
           URL = "https://crewtender.eu/stripe/webhook"
-          EREIGNISSE = ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]
+          # invoice.paid (08.11.2026): referral commission from every paid invoice.
+          EREIGNISSE = ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid"]
           vorhanden = [w for w in api("webhook_endpoints?limit=100")["data"] if w["url"] == URL]
           if vorhanden and os.environ.get("WEBHOOK_NEU") != "ja":
+              w = vorhanden[0]
+              if sorted(w.get("enabled_events") or []) != sorted(EREIGNISSE):
+                  api(f"webhook_endpoints/{w['id']}", [("enabled_events[]", e) for e in EREIGNISSE]); print("Webhook-Ereignisse ergänzt:", ", ".join(EREIGNISSE))
               print("Webhook vorhanden (Secret liegt schon im Worker; mit webhook_neu=ja neu anlegen)")
           else:
               for w in vorhanden:

@@ -72,6 +72,7 @@ import { zeitkontoRoute } from "./zeitkonto.ts";
 import { kraefteEinladen } from "./kraefte.ts";
 import { betreiber } from "./loeschen.ts";
 import { betreiberRechnungen } from "./betreiber-rechnungen.ts";
+import { betreiberPartner, partnerOeffentlich } from "./partnerprogramm.ts";
 import { demo } from "./demo.ts";
 import { gewerke } from "./gewerke.ts";
 import { metiers } from "./gewerke-fr.ts";
@@ -306,7 +307,7 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     if (uw) return uw;
     const ps = await personalsuche(request, env);
     if (ps) return ps;
-    for (const route of [archiv, firmendaten, kundenlinkOeffentlich, kundenlinkErstellen, kundenportal, boerse, nachkalkulationRoute, umsatzsteuer, rechnungen, belege, rundgaenge, lohn, spesen, zeitkontoRoute, kraefteEinladen, betreiber, betreiberRechnungen, organisation, vertretung, aufgaben, betriebsmittel, kapazitaetSeiteRoute, ich, stundenRoute, schichtenRoute, brett, chat, personalfristen, kundenSeiteRoute, leistungsnachweis, psa, bewerber, checklisten, urlaub, bewertungen, personalauswertung]) {
+    for (const route of [archiv, firmendaten, kundenlinkOeffentlich, kundenlinkErstellen, kundenportal, boerse, nachkalkulationRoute, umsatzsteuer, rechnungen, belege, rundgaenge, lohn, spesen, zeitkontoRoute, kraefteEinladen, betreiber, betreiberRechnungen, betreiberPartner, organisation, vertretung, aufgaben, betriebsmittel, kapazitaetSeiteRoute, ich, stundenRoute, schichtenRoute, brett, chat, personalfristen, kundenSeiteRoute, leistungsnachweis, psa, bewerber, checklisten, urlaub, bewertungen, personalauswertung]) {
       const r = await route(request, env);
       if (r) return r;
     }
@@ -342,6 +343,8 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     if (url.pathname === "/stripe/webhook" && request.method === "POST") return stripeWebhook(request, env);
     const preisAntwort = await preise(request, env);
     if (preisAntwort) return preisAntwort;
+    const pp = await partnerOeffentlich(request, env);
+    if (pp) return pp;
     const kf = await kontakt(request, env, (t, i) => seite(t, i));
     if (kf) return kf;
     if (url.pathname === "/hochladen" && request.method === "POST") return hochladen(request, env);
