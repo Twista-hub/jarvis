@@ -110,6 +110,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108010000_ki_monatsbudget_90.sql
 \ir ../migrations/20261108030000_abo_meldungen.sql
 \ir ../migrations/20261108040000_ki_inaktiv.sql
+\ir ../migrations/20261108050000_willkommen_mails.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values

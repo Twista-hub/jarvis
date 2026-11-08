@@ -100,5 +100,22 @@ class PlanGrenzenTest(unittest.TestCase):
         self.assertEqual(mail.probe_erinnerungen(con, smtp, mittag), 0, "gleiche Stufe nur einmal")
         self.assertIn("'inhaber', 'admin'", Con.empfaenger_sql)
 
+    def test_willkommen_stufen_und_texte(self):
+        erstellt = datetime(2026, 11, 8, 10, tzinfo=BERLIN)
+        self.assertIsNone(mail.willkommen_stufe(erstellt, erstellt + timedelta(hours=20)))
+        self.assertEqual(mail.willkommen_stufe(erstellt, erstellt + timedelta(days=1, hours=1)), "tag1")
+        self.assertEqual(mail.willkommen_stufe(erstellt, erstellt + timedelta(days=3)), "tag3")
+        self.assertEqual(mail.willkommen_stufe(erstellt, erstellt + timedelta(days=10, hours=5)), "tag10")
+        self.assertIsNone(mail.willkommen_stufe(erstellt, erstellt + timedelta(days=5)), "verpasste Stufe kommt nicht später")
+        for sprache in mail.WT:
+            for stufe, _ in mail.WILLKOMMEN_STUFEN:
+                m = mail.willkommen_mail("chef@firma.example", "Maler <Test>", stufe, datetime.now(BERLIN) + timedelta(days=20), sprache)
+                text = m.get_body(("plain",)).get_content()
+                self.assertIn("https://crewtender.eu/konto/", text, (sprache, stufe))
+                self.assertNotIn("Maler <Test>", m.get_body(("html",)).get_content(), "HTML maskiert")
+        self.assertIn("Maler <Test> dabei", mail.willkommen_mail("a@b.example", "Maler <Test>", "tag1", None).get_body(("plain",)).get_content())
+        self.assertFalse(mail.WILLKOMMEN_AKTIV, "erst nach Benjamins OK einschalten")
+
+
 if __name__ == "__main__":
     unittest.main()
