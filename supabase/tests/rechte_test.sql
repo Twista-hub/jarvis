@@ -130,6 +130,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108210000_nachkalkulation_ausfall.sql
 \ir ../migrations/20261108220000_empfehlungsprogramm.sql
 \ir ../migrations/20261108230000_seo_seiten.sql
+\ir ../migrations/20261108240000_sitemap_json.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2142,6 +2143,7 @@ select pruefe((public.gewerk_land_statistik(array['90911','90919','90910'], 'A')
 select pruefe((public.gewerk_land_statistik(array['90911','90919','90910'], '2')->>'offen')::int = 0 and (public.gewerk_land_statistik(array['90911','90919','90910'], '2')->>'monat')::int >= 1, 'Bayern: abgelaufene zählt im Monat, nicht als offen');
 select pruefe((public.gewerk_land_statistik(array['90911'], 'C')->>'monat')::int = 0, 'Land ohne Ausschreibungen: leere Zahlen');
 select pruefe(exists (select 1 from public.sitemap_ausschreibungen() where id = 'bks:seo1') and not exists (select 1 from public.sitemap_ausschreibungen() where id = 'bks:seo2'), 'Sitemap nur mit offenen Ausschreibungen');
+select pruefe(public.sitemap_ausschreibungen_json() @> '[["bks:seo1"]]' and not public.sitemap_ausschreibungen_json() @> '[["bks:seo2"]]', 'Sitemap als JSON ohne Zeilengrenze');
 do $$ begin perform 1 from jarvis_intern.gewerk_land_cache; raise exception 'FEHLER: Länder-Cache ohne Login lesbar'; exception when insufficient_privilege then null; end $$;
 reset role;
 

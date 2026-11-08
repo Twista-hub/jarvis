@@ -18,7 +18,7 @@ test("Bundesland aus dem NUTS-Code, Gewerk aus dem CPV-Code", () => {
 
 test("Gewerk × Bundesland: Überschrift, Zahlen, Links zu Ausschreibungen, anderen Ländern und Gewerken, FAQ", () => {
   const html = gewerkLandSeite(reinigung, nrw, { monat: 12, offen: 7, beispiele: [{ id: "bks:x1", titel: "Unterhaltsreinigung Schulen", auftraggeber: "Stadt Köln", ort: "Köln", frist: "2026-12-01T10:00:00Z", link: "" }] });
-  assert.match(html, /<h1>Öffentliche Ausschreibungen Gebäudereinigung in Nordrhein-Westfalen \(NRW\)<\/h1>/);
+  assert.ok(html.startsWith("<h1>Öffentliche Ausschreibungen Gebäudereinigung in Nordrhein-Westfalen (NRW)</h1>"));
   assert.match(html, /<strong>12<\/strong>/);
   assert.match(html, /href="\/ausschreibung\/bks%3Ax1"/);
   assert.match(html, /href="\/ausschreibungen\/gebaeudereinigung\/bayern"/);
@@ -35,7 +35,7 @@ test("Ausschreibungsseite: offen indexierbar, abgelaufen mit Hinweis, Personen m
   assert.equal(istOffen({ ...e, frist: "2026-11-01T10:00:00Z" }, jetzt), false);
   assert.equal(istOffen({ ...e, status: "vergeben" }, jetzt), false);
   const html = ausschreibungSeite(e, jetzt);
-  assert.match(html, /<h1>Unterhaltsreinigung Schulen<\/h1>/);
+  assert.ok(html.startsWith("<h1>Unterhaltsreinigung Schulen</h1>"), "Überschrift zuerst (eine h1 auf der Seite)");
   assert.doesNotMatch(html, /Erika Mustermann/);
   assert.match(html, /href="\/ausschreibungen\/gebaeudereinigung\/nordrhein-westfalen"/);
   assert.match(html, /Lizenz CC0/);
@@ -54,6 +54,7 @@ test("Routen: Gewerk × Land, unbekanntes Land leitet um, Ausschreibung mit noin
   const echt = globalThis.fetch;
   const antworten: Record<string, unknown> = {
     gewerk_land_statistik: { monat: 3, offen: 2, beispiele: [] },
+    sitemap_ausschreibungen_json: Array.from({ length: 1500 }, (_, i) => [`bks:n${i}`, "2026-11-05"]),
     demo_eintrag: { id: "bks:x2", titel: "Wachdienst Rathaus", auftraggeber: "Stadt", ort: "DE300", frist: "2000-01-01T00:00:00Z", link: "", status: "offen", quelle: "bks", cpv: ["79713000"], steckbrief: null },
   };
   globalThis.fetch = (async (u: string) => new Response(JSON.stringify(antworten[String(u).split("/rpc/")[1]] ?? null), { status: 200 })) as typeof fetch;
@@ -71,5 +72,7 @@ test("Routen: Gewerk × Land, unbekanntes Land leitet um, Ausschreibung mit noin
     const a = await seoSeiten(new Request("https://crewtender.eu/ausschreibung/bks%3Ax2"), env, "https://crewtender.eu", html);
     assert.match(await a!.text(), /<meta name="robots" content="noindex, follow">/);
     assert.equal(await seoSeiten(new Request("https://crewtender.eu/ausschreibungen/sicherheitsdienst"), env, "https://crewtender.eu", html), null);
+    const sm = await (await seoSeiten(new Request("https://crewtender.eu/sitemap-ausschreibungen.xml"), env, "https://crewtender.eu", html))!.text();
+    assert.equal((sm.match(/<loc>/g) ?? []).length, 1500, "mehr als 1.000 Einträge");
   } finally { globalThis.fetch = echt; }
 });

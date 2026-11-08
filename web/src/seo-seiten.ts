@@ -27,8 +27,8 @@ export function gewerkLandSeite(g: (typeof GEWERKE)[number], l: Bundesland, s: S
   ];
   const jsonld = JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: fragen.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }).replace(/</g, "\\u003c");
   const beispiele = (s?.beispiele ?? []) as Beispiel[];
-  return `<p class="klein"><a href="/ausschreibungen">Ausschreibungen</a> › <a href="/ausschreibungen/${g.slug}">${escape(g.name)}</a> › ${escape(l.name)}</p>
-<h1>Öffentliche Ausschreibungen ${escape(g.name)} ${escape(l.im)}</h1>
+  return `<h1>Öffentliche Ausschreibungen ${escape(g.name)} ${escape(l.im)}</h1>
+<p class="klein"><a href="/ausschreibungen">Ausschreibungen</a> › <a href="/ausschreibungen/${g.slug}">${escape(g.name)}</a> › ${escape(l.name)}</p>
 <p>${escape(g.intro)}</p>
 ${n ? `<div class="gewerk-zahlen"><div><strong>${zahl(n)}</strong><span>Ausschreibungen ${escape(l.im)} in den letzten 30 Tagen</span></div>${s?.offen ? `<div><strong>${zahl(s.offen)}</strong><span>davon noch offen</span></div>` : ""}</div>` : `<p class="hinweis">Zurzeit gibt es ${escape(l.im)} keine neue Ausschreibung in diesem Gewerk. Crewtender meldet dir die nächste automatisch.</p>`}
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">Kostenlos passende Aufträge ${escape(l.im)} finden</a><a class="knopf zweit" href="/demo">🎬 Demo ansehen</a></div>
@@ -61,8 +61,8 @@ export function ausschreibungSeite(e: Eintrag, jetzt = Date.now()): string {
   const text = e.beschreibung ? `<h2>Beschreibung (aus der Bekanntmachung)</h2>${personenMaskieren(e.beschreibung).split(/\n{2,}/).slice(0, 8).map((x) => `<p>${escape(x)}</p>`).join("")}` : "";
   const brief = e.steckbrief ? `<h2>Steckbrief</h2><div class="steckbrief-karte" data-ki-erstellt="true" data-ki-anbieter="Anthropic Claude">${KI_KENNUNG}${markdown(personenMaskieren(e.steckbrief))}</div>` : "";
   const weiter = [g && `<a href="/ausschreibungen/${g.slug}">Alle Ausschreibungen ${escape(g.name)}</a>`, g && l && `<a href="/ausschreibungen/${g.slug}/${l.slug}">${escape(g.name)} ${escape(l.im)}</a>`].filter(Boolean).join("");
-  return `<p class="klein"><a href="/ausschreibungen">Ausschreibungen</a>${g ? ` › <a href="/ausschreibungen/${g.slug}">${escape(g.name)}</a>` : ""}${g && l ? ` › <a href="/ausschreibungen/${g.slug}/${l.slug}">${escape(l.name)}</a>` : ""}</p>
-<h1>${escape(e.titel)}</h1>
+  return `<h1>${escape(e.titel)}</h1>
+<p class="klein"><a href="/ausschreibungen">Ausschreibungen</a>${g ? ` › <a href="/ausschreibungen/${g.slug}">${escape(g.name)}</a>` : ""}${g && l ? ` › <a href="/ausschreibungen/${g.slug}/${l.slug}">${escape(l.name)}</a>` : ""}</p>
 ${offen ? "" : `<p class="hinweis">Die Angebotsfrist dieser Ausschreibung ist abgelaufen. Crewtender findet dir die nächsten passenden – <a href="/registrieren">kostenlos registrieren</a>.</p>`}
 <ul class="kopf-chips">${fakten}</ul>
 ${e.link ? `<p><a class="knopf zweit" href="${escape(e.link)}" rel="noopener nofollow" target="_blank">Zur Bekanntmachung beim Auftraggeber ↗</a></p>` : ""}
@@ -106,10 +106,10 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
     return r;
   };
   if (url.pathname === "/sitemap-ausschreibungen.xml") {
-    return gecacht("/sitemap-ausschreibungen.xml?v=1", async () => {
-      const z = await rpc<{ id: string; datum: string }[]>(env, "sitemap_ausschreibungen", {});
-      if (!z) return new Response("nicht erreichbar", { status: 503 });
-      return new Response(sitemapAusschreibungen(adresse, z), { headers: { "content-type": "application/xml; charset=utf-8" } });
+    return gecacht("/sitemap-ausschreibungen.xml?v=2", async () => {
+      const z = await rpc<[string, string][]>(env, "sitemap_ausschreibungen_json", {});
+      if (!Array.isArray(z)) return new Response("nicht erreichbar", { status: 503 });
+      return new Response(sitemapAusschreibungen(adresse, z.map(([id, datum]) => ({ id, datum }))), { headers: { "content-type": "application/xml; charset=utf-8" } });
     }, 21600);
   }
   const gl = url.pathname.match(/^\/ausschreibungen\/([a-z-]+)\/([a-z-]+)\/?$/);
@@ -117,7 +117,7 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
     const g = GEWERKE.find((x) => x.slug === gl[1]), l = BUNDESLAENDER.find((x) => x.slug === gl[2]);
     if (!g) return new Response(null, { status: 301, headers: { location: "/ausschreibungen" } });
     if (!l) return new Response(null, { status: 301, headers: { location: `/ausschreibungen/${g.slug}` } });
-    return gecacht(`/ausschreibungen/${g.slug}/${l.slug}?v=1`, async () => {
+    return gecacht(`/ausschreibungen/${g.slug}/${l.slug}?v=2`, async () => {
       const s = await rpc<Statistik>(env, "gewerk_land_statistik", { praefixe: g.cpv, land: l.nuts });
       const titel = `Ausschreibungen ${g.name} ${l.name}`;
       const beschreibung = `Öffentliche Ausschreibungen ${g.name} ${l.im}: ${s?.monat ? `${zahl(s.monat)} in den letzten 30 Tagen, ${zahl(s.offen ?? 0)} offen. ` : ""}Crewtender findet täglich die passenden Aufträge für deinen Betrieb.`;
@@ -130,7 +130,7 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
   if (!a) return null;
   let id = "";
   try { id = decodeURIComponent(a[1]).slice(0, 400); } catch { return null; }
-  return gecacht(`/ausschreibung/${encodeURIComponent(id)}?v=1`, async () => {
+  return gecacht(`/ausschreibung/${encodeURIComponent(id)}?v=2`, async () => {
     const e = await rpc<Eintrag | null>(env, "demo_eintrag", { i: id });
     if (!e) return new Response(seite("Nicht gefunden", `<p>Diese Ausschreibung gibt es nicht mehr. <a href="/ausschreibungen">Aktuelle Ausschreibungen nach Gewerk</a></p>`), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
     const r = antwort(meta(seite(e.titel, ausschreibungSeite(e)), beschreibungMeta(e), `${adresse}${ausschreibungLink(e.id)}`, istOffen(e) ? "" : "noindex, follow"));
