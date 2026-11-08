@@ -336,5 +336,6 @@
  "Weitere Einsatzkräfte gibt es in Pro und Business, Steckbrief-Pakete ab Basis. Wähle zuerst einen Plan.": "Kolejni pracownicy są dostępni w Pro i Business, pakiety kart od Basis. Najpierw wybierz plan.",
  "Bitte eine Zahl zwischen 0 und 2000 angeben.": "Podaj liczbę od 0 do 2000.",
  "Die # Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem Steckbrief-Paket oder einem größeren Plan (Plan-Seite).": "# kart przetargu z dokumentów w tym miesiącu zostało wykorzystanych. W przyszłym miesiącu można dalej, albo od razu z pakietem kart lub większym planem (strona planu).",
- "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "Dziękujemy! Pakiet kart jest opłacony. Karty będą dostępne za kilka sekund; faktura przyjdzie e-mailem."
+ "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "Dziękujemy! Pakiet kart jest opłacony. Karty będą dostępne za kilka sekund; faktura przyjdzie e-mailem.",
+ "Die KI-Bewertung war pausiert, weil sich 30 Tage niemand angemeldet hatte. Mit dieser Anmeldung läuft sie ab dem nächsten Suchlauf wieder.": "Ocena AI była wstrzymana, ponieważ nikt nie logował się przez 30 dni. Po tym logowaniu działa znowu od następnego wyszukiwania."
 }

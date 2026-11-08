@@ -336,5 +336,6 @@
  "Weitere Einsatzkräfte gibt es in Pro und Business, Steckbrief-Pakete ab Basis. Wähle zuerst einen Plan.": "Further field workers are available in Pro and Business, fact sheet packs from Basis. Please choose a plan first.",
  "Bitte eine Zahl zwischen 0 und 2000 angeben.": "Please enter a number between 0 and 2000.",
  "Die # Steckbriefe aus Unterlagen in diesem Monat sind aufgebraucht. Im nächsten Monat geht es weiter, oder sofort mit einem Steckbrief-Paket oder einem größeren Plan (Plan-Seite).": "The # fact sheets from documents for this month are used up. It continues next month, or right away with a fact sheet pack or a bigger plan (plan page).",
- "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "Thank you! The fact sheet pack is paid. The fact sheets will be available in a few seconds; the invoice comes by email."
+ "Danke! Das Steckbrief-Paket ist bezahlt. Die Steckbriefe stehen in wenigen Sekunden bereit; die Rechnung kommt per E-Mail.": "Thank you! The fact sheet pack is paid. The fact sheets will be available in a few seconds; the invoice comes by email.",
+ "Die KI-Bewertung war pausiert, weil sich 30 Tage niemand angemeldet hatte. Mit dieser Anmeldung läuft sie ab dem nächsten Suchlauf wieder.": "AI rating was paused because nobody had logged in for 30 days. With this login it runs again from the next search."
 }

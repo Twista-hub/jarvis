@@ -1,12 +1,13 @@
 export type KiFehlerart = "budget" | "verbindung" | "zeitlimit" | "dienst";
 
 /** Why AI is paused for a firm (jarvis_katalog.ki_sperrgrund, migration 20261106010000). */
-export type KiSperre = "demo" | "probe" | "plan" | "topf" | "anfrage" | "monat" | "tag";
+export type KiSperre = "demo" | "probe" | "plan" | "topf" | "inaktiv" | "anfrage" | "monat" | "tag";
 export const KI_SPERRE: Record<KiSperre, string> = {
   demo: "Demo-Modus: Crewtender arbeitet noch ohne KI. Die Probezeit mit KI startet, sobald ihr eure Firmenwebsite angebt.",
   probe: "Das KI-Kontingent der Probezeit ist aufgebraucht. Treffer nach Stichworten gibt es weiter; mit einem Plan geht es sofort mit KI weiter.",
   plan: "Das KI-Kontingent eures Plans ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem 1. wieder mit KI. Mehr Kontingent gibt es mit einem größeren Plan.",
   topf: "Das KI-Kontingent für Gratis-Konten ist für diesen Monat aufgebraucht. Treffer nach Stichworten gibt es weiter, ab dem 1. wieder mit KI; mit einem Plan sofort.",
+  inaktiv: "Die KI-Bewertung war pausiert, weil sich 30 Tage niemand angemeldet hatte. Mit dieser Anmeldung läuft sie ab dem nächsten Suchlauf wieder.",
   anfrage: "Diese Anfrage ist zu groß für die KI. Bitte weniger oder kleinere Dateien auf einmal hochladen.",
   monat: "Die KI von Crewtender ist für diesen Monat ausgelastet. Treffer nach Stichworten gibt es weiter; wir sind informiert und schalten so schnell wie möglich wieder frei.",
   tag: "Die KI von Crewtender ist für heute ausgelastet. Treffer nach Stichworten gibt es weiter, ab morgen wieder mit KI.",
