@@ -1,5 +1,5 @@
-// Writes three sample XRechnungen (regular VAT with IBAN, small business § 19 without IBAN, reverse charge § 13b) for the
-// KoSIT validator.
+// Writes sample XRechnungen for the KoSIT validator: regular VAT with IBAN, small business § 19 without IBAN, reverse
+// charge § 13b, a cancellation (credit note 381 referencing the invoice) and a customer abroad reached by e-mail.
 import { writeFileSync } from "node:fs";
 import { xrechnungXml } from "../src/xrechnung.ts";
 import type { Absender, Rechnung } from "../src/rechnungen.ts";
@@ -14,3 +14,7 @@ const a: Absender = { name: "Muster Reinigung GmbH", strasse: "Hauptstraße 1", 
 writeFileSync(process.argv[2] ?? "regel.xml", xrechnungXml(r, k, a, "05334-12345-67"));
 writeFileSync(process.argv[3] ?? "klein.xml", xrechnungXml({ ...r, nummer: "RE-2026-0008" }, k, { ...a, ustid: "", steuernummer: "203/123/45678", kleinunternehmer: true, zahlungshinweis: "Bitte überweisen Sie auf unser Konto." }));
 writeFileSync(process.argv[4] ?? "13b.xml", xrechnungXml({ ...r, nummer: "RE-2026-0009", ust_satz: 0, ust_betrag: 0, reverse_charge: true, empfaenger: { name: k.name, strasse: k.strasse, plz: k.plz, ort: k.ort, ustid: "DE987654321" } }, k, a, "05334-12345-67"));
+writeFileSync(process.argv[5] ?? "storno.xml", xrechnungXml({ ...r, nummer: "RE-2026-0010", art: "storno", bezug_nummer: "RE-2026-0007", netto: -4300, ust_betrag: -817,
+  positionen: r.positionen.map((p) => ({ ...p, menge: -p.menge, betrag: -p.betrag })) }, k, a, "05334-12345-67"));
+const wien = { ...k, name: "Facility Wien GmbH", strasse: "Ringstraße 5", plz: "1010", ort: "Wien", land: "AT", email: "rechnung@facility-wien.example", ustid: "ATU12345678" } as Kunde;
+writeFileSync(process.argv[6] ?? "ausland.xml", xrechnungXml({ ...r, nummer: "RE-2026-0011", empfaenger: { name: wien.name, strasse: wien.strasse, plz: wien.plz, ort: wien.ort, land: "AT", ustid: "ATU12345678" } }, wien, a));

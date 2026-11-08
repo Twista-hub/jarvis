@@ -9,11 +9,11 @@ import { escape, seite } from "./seite.ts";
 import { absatz, bild, bildMasse, tabelle, ueberschrift, wordAntwort, wordDokument } from "./word.ts";
 import { mitLand, einsatzLaender, dezimal, landDerFirma, minuten, naechsterMonat, type Eintrag } from "./stunden.ts";
 import { summe, zuschlag } from "./zuschlaege.ts";
-import { adresse, type Kunde } from "./kunden.ts";
+import { adresse, landZeile, type Kunde } from "./kunden.ts";
 import { fehlendFuerXRechnung, xrechnungXml } from "./xrechnung.ts";
 
 export type Position = { text: string; menge: number; einheit: string; preis: number; betrag: number };
-export type Empfaenger = { name: string; ansprechpartner?: string; strasse?: string; plz?: string; ort?: string; email?: string; leitweg?: string; ustid?: string };
+export type Empfaenger = { name: string; ansprechpartner?: string; strasse?: string; plz?: string; ort?: string; land?: string; email?: string; leitweg?: string; ustid?: string };
 export type Rechnung = { id: string; kunde_id: string | null; nummer: string; monat: string; datum: string; positionen: Position[]; netto: number | string; ust_satz: number | string; erstellt: string; bezahlt_am?: string | null; mahnstufe?: number; gemahnt_am?: string | null; zahlungsziel_tage?: number;
   status?: "entwurf" | "ausgestellt"; art?: "rechnung" | "storno"; bezug_nummer?: string; storniert_durch?: string | null; absender?: Omit<Absender, "kleinunternehmer"> | null; empfaenger?: Empfaenger | null; kleinunternehmer?: boolean | null; ust_betrag?: number | string | null; reverse_charge?: boolean };
 /** Columns the pages read. */
@@ -25,7 +25,7 @@ export const ustVon = (r: Rechnung, kleinunternehmer: boolean) => r.ust_betrag !
 export function beteiligte(r: Rechnung, kunde: Kunde | null, a: Absender): { a: Absender; kunde: Kunde | null } {
   if (istEntwurf(r) || !r.absender) return { a, kunde };
   const e = r.empfaenger;
-  return { a: { ...r.absender, kleinunternehmer: !!r.kleinunternehmer }, kunde: e ? { ...(kunde ?? {}), id: kunde?.id ?? "", bereich_id: kunde?.bereich_id ?? null, name: e.name, ansprechpartner: e.ansprechpartner ?? "", strasse: e.strasse ?? "", plz: e.plz ?? "", ort: e.ort ?? "", email: e.email ?? "", telefon: kunde?.telefon ?? "", notiz: e.leitweg ? `Leitweg-ID: ${e.leitweg}` : "" } as Kunde : kunde };
+  return { a: { ...r.absender, kleinunternehmer: !!r.kleinunternehmer }, kunde: e ? { ...(kunde ?? {}), id: kunde?.id ?? "", bereich_id: kunde?.bereich_id ?? null, name: e.name, ansprechpartner: e.ansprechpartner ?? "", strasse: e.strasse ?? "", plz: e.plz ?? "", ort: e.ort ?? "", land: e.land || kunde?.land || "DE", email: e.email ?? "", ustid: e.ustid ?? kunde?.ustid ?? "", leitweg_id: e.leitweg ?? "", telefon: kunde?.telefon ?? "", notiz: e.leitweg ? `Leitweg-ID: ${e.leitweg}` : "" } as Kunde : kunde };
 }
 export const KU_HINWEIS = "Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung nach § 19 Abs. 1 UStG.";
 /** § 14a Abs. 5 UStG: mandatory wording when the customer owes the VAT (§ 13b). */
@@ -57,7 +57,7 @@ export function positionen(l: Eintrag[], p: Preis, land: string, monat: string):
   return pos;
 }
 
-export type Absender = { name: string; strasse: string; plz: string; ort: string; telefon: string; email: string; steuernummer: string; ustid: string; kleinunternehmer: boolean; zahlungshinweis: string };
+export type Absender = { name: string; strasse: string; plz: string; ort: string; land?: string; telefon: string; email: string; steuernummer: string; ustid: string; kleinunternehmer: boolean; zahlungshinweis: string };
 export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeute: Absender, vorlage: Vorlage2 = {}): Uint8Array {
   const { a, kunde } = beteiligte(r, kundeHeute, absenderHeute);
   const entwurf = istEntwurf(r), storno = r.art === "storno";
@@ -70,7 +70,7 @@ export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeut
   const masse = vorlage.logo ? bildMasse(vorlage.logo.bytes) : null;
   const logoHoehe = 1.6, logoBreite = masse && masse.h ? Math.min(7, logoHoehe * masse.w / masse.h) : 4;
   return wordDokument((vorlage.logo ? bild(1, logoBreite, logoHoehe) : "") + absatz([a.name, adresse(a)].filter(Boolean).join(" · "), { grau: true, groesse: 16, abstand: 240 })
-    + absatz([kunde?.name ?? "", kunde?.ansprechpartner ? `z. Hd. ${kunde.ansprechpartner}` : "", kunde?.strasse ?? "", [kunde?.plz, kunde?.ort].filter(Boolean).join(" ")].filter(Boolean).join("\n"), { abstand: 400 })
+    + absatz([kunde?.name ?? "", kunde?.ansprechpartner ? `z. Hd. ${kunde.ansprechpartner}` : "", kunde?.strasse ?? "", [kunde?.plz, kunde?.ort].filter(Boolean).join(" "), landZeile(kunde)].filter(Boolean).join("\n"), { abstand: 400 })
     + ueberschrift(titel, 30)
     + (vorlage.einleitung && !storno ? absatz(vorlage.einleitung, { abstand: 200 }) : "")
     + tabelle(kopf, [3200, 6400])
@@ -109,7 +109,7 @@ export function mahnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeute
       ? `leider ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} trotz Zahlungserinnerung weiterhin offen. Wir bitten Sie, den Betrag bis spätestens ${frist} zu begleichen.`
       : `trotz Zahlungserinnerung und Mahnung ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} noch immer nicht bezahlt. Bitte überweisen Sie den Betrag bis spätestens ${frist}. Nach Ablauf dieser Frist behalten wir uns weitere Schritte vor, insbesondere Verzugszinsen (§ 288 BGB, gegenüber Unternehmern 9 Prozentpunkte über dem Basiszinssatz) und die Verzugspauschale von 40 € (§ 288 Abs. 5 BGB).`;
   return wordDokument(absatz([a.name, adresse(a)].filter(Boolean).join(" · "), { grau: true, groesse: 16, abstand: 240 })
-    + absatz([kunde?.name ?? "", kunde?.ansprechpartner ? `z. Hd. ${kunde.ansprechpartner}` : "", kunde?.strasse ?? "", [kunde?.plz, kunde?.ort].filter(Boolean).join(" ")].filter(Boolean).join("\n"), { abstand: 400 })
+    + absatz([kunde?.name ?? "", kunde?.ansprechpartner ? `z. Hd. ${kunde.ansprechpartner}` : "", kunde?.strasse ?? "", [kunde?.plz, kunde?.ort].filter(Boolean).join(" "), landZeile(kunde)].filter(Boolean).join("\n"), { abstand: 400 })
     + absatz(datum(heute), { abstand: 240 })
     + ueberschrift(`${MAHNSTUFE[stufe]} zur Rechnung ${r.nummer}`, 28)
     + absatz(`Sehr geehrte Damen und Herren,\n\n${text}`, { abstand: 240 })
@@ -175,7 +175,7 @@ export function rechnungenSeite(liste: Rechnung[], kunden: Kunde[], o: { fehlt: 
     const form = (feld: string, text: string, label: string) => `<form method="post" action="/konto/rechnungen"><input type="hidden" name="${feld}" value="${r.id}"><button class="zweit" ${label ? `aria-label="${label}"` : ""}>${text}</button></form>`;
     const word = `<a class="knopf zweit" href="/konto/rechnungen/${r.id}.docx" download>📄 Word${z.art === "entwurf" ? " (Entwurf)" : ""}</a>`;
     if (z.art === "entwurf") return `<form method="post" action="/konto/rechnungen"><input type="hidden" name="ausstellen" value="${r.id}"><button>✓ Ausstellen</button></form>${word}${form("loeschen", "✕", "Entwurf löschen")}`;
-    const xml = r.art === "storno" ? "" : `<a class="knopf zweit" href="/konto/rechnungen/${r.id}.xml" download title="E-Rechnung im Format XRechnung">🧾 E-Rechnung</a>`;
+    const xml = `<a class="knopf zweit" href="/konto/rechnungen/${r.id}.xml" download title="E-Rechnung im Format XRechnung">🧾 E-Rechnung</a>`;
     const storno = r.art !== "storno" && z.art !== "storniert" ? `<details class="storno"><summary class="knopf zweit">↩︎ Stornieren</summary><form method="post" action="/konto/rechnungen"><input type="hidden" name="stornieren" value="${r.id}"><p class="klein">Erstellt eine Stornorechnung mit eigener Nummer, die diese Rechnung vollständig aufhebt. Das lässt sich nicht rückgängig machen.</p><button>Ja, Stornorechnung erstellen</button></form></details>` : "";
     if (z.art === "storniert") return `${word}${xml}`;
     return (z.art === "bezahlt" ? form("offen", "↩︎", "Wieder als offen markieren")
@@ -205,10 +205,10 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
   const absender = async (): Promise<Absender> => {
     const [fi, pr] = await Promise.all([
       db<{ name: string; strasse: string | null; plz: string | null; ort: string | null; telefon: string | null }[]>(f.s, env, `firmen?id=eq.${firma}&select=name,strasse,plz,ort,telefon`),
-      db<{ email: string; ustid: string; steuernummer: string; kleinunternehmer: boolean; zahlungshinweis: string }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=email,ustid,steuernummer,kleinunternehmer,zahlungshinweis`),
+      db<{ email: string; ustid: string; steuernummer: string; kleinunternehmer: boolean; zahlungshinweis: string; land: string | null }[]>(f.s, env, `firmenprofil?firma_id=eq.${firma}&select=email,ustid,steuernummer,kleinunternehmer,zahlungshinweis,land`),
     ]);
     const a = fi.ok ? fi.daten[0] : undefined, p = pr.ok ? pr.daten[0] : undefined;
-    return { name: a?.name ?? "", strasse: a?.strasse ?? "", plz: a?.plz ?? "", ort: a?.ort ?? "", telefon: a?.telefon ?? "", email: p?.email ?? "", ustid: p?.ustid ?? "", steuernummer: p?.steuernummer ?? "", kleinunternehmer: !!p?.kleinunternehmer, zahlungshinweis: p?.zahlungshinweis ?? "" };
+    return { name: a?.name ?? "", strasse: a?.strasse ?? "", plz: a?.plz ?? "", ort: a?.ort ?? "", land: p?.land && p.land !== "XX" ? p.land : "DE", telefon: a?.telefon ?? "", email: p?.email ?? "", ustid: p?.ustid ?? "", steuernummer: p?.steuernummer ?? "", kleinunternehmer: !!p?.kleinunternehmer, zahlungshinweis: p?.zahlungshinweis ?? "" };
   };
   if (url.pathname === "/konto/rechnungen/vorschau.docx") {
     const beispiel: Rechnung = { id: "vorschau", kunde_id: null, nummer: "RE-2026-0001", monat: heute.slice(0, 7), datum: heute, netto: 1500, ust_satz: 19, erstellt: "", status: "ausgestellt",
@@ -220,7 +220,7 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     const r = await db<Rechnung[]>(f.s, env, `rechnungen?id=eq.${docx[1]}&firma_id=eq.${firma}&select=${RECHNUNG_SPALTEN}`);
     const x = r.ok ? r.daten[0] : undefined;
     if (!x) return new Response("Nicht gefunden", { status: 404 });
-    const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz,leitweg_id`) : null;
+    const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,land,ansprechpartner,telefon,email,notiz,leitweg_id,ustid`) : null;
     const kunde = k?.ok ? k.daten[0] ?? null : null;
     if (docx[2] === "mahnung.docx") {
       if (!x.mahnstufe) return new Response("Noch keine Mahnung", { status: 404 });
@@ -228,12 +228,11 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     }
     if (docx[2] === "xml") {
       if (istEntwurf(x)) return antwort(`<p>Eine E-Rechnung gibt es erst nach dem Ausstellen. <a href="/konto/rechnungen">Zurück</a></p>`, 409);
-      if (x.art === "storno") return antwort(`<p>Für Stornorechnungen gibt es noch keine E-Rechnung; bitte die Word-Fassung nutzen. <a href="/konto/rechnungen">Zurück</a></p>`, 409);
       const b = beteiligte(x, kunde, await absender());
-      const fehlt = fehlendFuerXRechnung(b.a, b.kunde);
-      if (fehlt.length) return antwort(`<p>Für eine gültige E-Rechnung fehlt: ${escape(fehlt.join(", "))}. <a href="/konto/rechnungen">Zurück</a></p>`, 409);
       // Leitweg-ID of public buyers (BT-10): frozen at issue time from the customer note ("Leitweg-ID: 05315-…").
       const leitweg = x.empfaenger?.leitweg || kunde?.leitweg_id || /Leitweg(?:-ID)?:?\s*([0-9A-Za-z-]{5,46})/i.exec(kunde?.notiz ?? "")?.[1] || "";
+      const fehlt = fehlendFuerXRechnung(b.a, b.kunde, leitweg);
+      if (fehlt.length) return antwort(`<p>Für eine gültige E-Rechnung fehlt:</p><ul>${fehlt.map((x) => `<li>${escape(x)}</li>`).join("")}</ul><p class="knopf-zeile"><a class="knopf zweit" href="/konto/firmenprofil">Firmenprofil</a> <a class="knopf zweit" href="/konto/kunden">Kunden &amp; Einsatzorte</a> <a class="knopf zweit" href="/konto/rechnungen">Zurück</a></p><p class="klein">Bei ausgestellten Rechnungen zählen Anschrift, E-Mail und USt-IdNr. des Kunden vom Ausstelltag.</p>`, 409);
       const h = new Headers({ "content-type": "application/xml; charset=utf-8", "content-disposition": `attachment; filename="${x.nummer}.xml"` });
       for (const c of f.s.cookies ?? []) h.append("set-cookie", c);
       return new Response(xrechnungXml(x, b.kunde, b.a, leitweg), { headers: h });

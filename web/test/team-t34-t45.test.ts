@@ -60,7 +60,7 @@ test("T34: Positionen mit Zuschlägen, Nummernkreis, Word-Rechnung", () => {
   assert.match(liste, /name="ausstellen"/);
   assert.match(liste, /name="stornieren"/);
   assert.match(liste, /Stornorechnung zu RE-2026-0008/);
-  assert.doesNotMatch(liste, /r3\.xml/, "keine E-Rechnung für Stornos");
+  assert.match(liste, /r3\.xml/, "Stornos gibt es auch als E-Rechnung (Gutschrift 381)");
   assert.equal((liste.match(/name="loeschen"/g) ?? []).length, 1, "nur der Entwurf ist löschbar");
 });
 
