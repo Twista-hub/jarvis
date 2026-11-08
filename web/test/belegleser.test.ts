@@ -12,6 +12,8 @@ test("Belegleser: Antwort prüfen", () => {
   assert.deepEqual([schlecht.datum, schlecht.brutto, schlecht.ust_satz, schlecht.kategorie, schlecht.sicher], ["", 0, 19, "sonstiges", false], "Zukunft, negativ, falscher Satz → leer bzw. unsicher");
   assert.equal(gelesenPruefen({ datum: "2020-01-01", brutto: 5, ust_satz: 7, kategorie: "buero", sicher: true }, "2026-11-03")!.datum, "", "älter als 2 Jahre");
   assert.equal(gelesenPruefen(null, "2026-11-03"), null);
+  assert.equal(gelesenPruefen({ datum: "2026-11-01", lieferant: "Restaurant", brutto: 80, ust_satz: 19, gemischt: false, kategorie: "bewirtung", sicher: true }, "2026-11-03")!.kategorie, "bewirtung", "Bewirtung als eigene Kategorie (S10)");
+  assert.match(LESER.system, /bewirtung \(Restaurant/);
 });
 
 test("Belegleser: Formular mit Vorschlag", () => {

@@ -36,8 +36,8 @@
 | # | Befund | Stelle | Stand |
 |---|---|---|---|
 | S8 | USt-Übersicht ordnet nach Rechnungsdatum statt Leistungsmonat (Soll-Versteuerung, § 13 Abs. 1 Nr. 1a UStG) | umsatzsteuer.ts:19 | ✅ Leistungsmonat; Storno im Monat des Stornos (§ 17) |
-| S9 | Vorsteuer auch aus Einträgen ohne Beleg; ab 250 € keine Prüfung der ordnungsgemäßen Rechnung | umsatzsteuer.ts:33, belege.ts:77 | ⏳ |
-| S10 | Bewirtung als Reisekosten gebucht, Anlass/Teilnehmer fehlen (§ 4 Abs. 5 Nr. 2 EStG) | belegleser.json, datev.ts | ⏳ |
+| S9 | Vorsteuer auch aus Einträgen ohne Beleg; ab 250 € keine Prüfung der ordnungsgemäßen Rechnung | umsatzsteuer.ts:33, belege.ts:77 | ✅ Vorsteuer (Belegseite, USt-Übersicht) nur aus nicht stornierten Belegen mit hochgeladener Datei; Einträge ohne Datei getrennt als „nicht als Vorsteuer gezählt (kein Beleg hochgeladen)“; über 250 € brutto Hinweis auf die Pflichtangaben nach § 14 Abs. 4 UStG (nur Hinweis, keine Sperre); CSV/DATEV unverändert |
+| S10 | Bewirtung als Reisekosten gebucht, Anlass/Teilnehmer fehlen (§ 4 Abs. 5 Nr. 2 EStG) | belegleser.json, datev.ts | ✅ eigene Kategorie „🍽️ Bewirtung (Geschäftsessen)“ mit Pflichtfeldern Anlass und Teilnehmer (Formular, Server, DB-Prüfung, Migration `20261108020000`), in Liste und CSV; DATEV-Vorschlag SKR03 4650 / SKR04 6640 (⚖️ Aufteilung abziehbar/nicht abziehbar macht das Steuerbüro); Belegleser schlägt bei Restaurant-Rechnungen „bewirtung“ vor |
 | S11 | E-Rechnungen (XML) lassen sich nicht als Beleg annehmen (Empfangspflicht seit 2025) | belege.ts:17 | ⏳ |
 | S12 | Hinweis „E-Rechnung für Behörden“ ab 2027 irreführend (B2B-Pflicht 2027/2028) | rechnungen.ts:121 | ✅ Hinweistext |
 | S13 | Kleinunternehmer-Wächter: Gründungsjahr, vereinnahmte Entgelte, Umsätze außerhalb Jarvis | umsatzsteuer.ts:42 | ⏳ ⚖️ |
@@ -47,7 +47,7 @@
 | S17 | Hinweis auf Aufbewahrungspflicht bei Leistungen an Privatpersonen fehlt (§ 14 Abs. 4 Nr. 9 UStG) | rechnungen.ts | ⏳ |
 | S18 | DATEV: alle Belege gegen Kreditor 70000 (auch bar), kein § 13b-Schlüssel für Auslandsbelege, Arbeitskleidung als Fremdleistung | datev.ts | ⏳ ⚖️ |
 | S19 | Spesen als eine Lohnart; Pauschalen/Kilometergeld fehlen | spesen.ts, datev.ts | ⏳ |
-| S20 | Belege mit mehreren Steuersätzen werden mit dem höchsten Satz gerechnet | belege.ts:71 | ⏳ |
+| S20 | Belege mit mehreren Steuersätzen werden mit dem höchsten Satz gerechnet | belege.ts:71 | ✅ optionales Feld „davon zu 7 %“ (Spalte `brutto_7`, nur bei 19 %, 0 < Anteil ≤ Brutto, Migration `20261108020000`); USt = 19 % aus dem Rest + 7 % aus dem Anteil in Summen, Steuersatz-Tabelle, CSV (neue Spalte), USt-Übersicht; DATEV zwei Buchungen (BU 9 und 8) mit derselben Belegnummer |
 
 ### Niedrig
 S21 Kleinunternehmer-Text nennt die Befreiung nicht ausdrücklich (✅) · S22 fehlende Steuernummer wird auf die Rechnung gedruckt statt zu sperren (✅ Ausstellen gesperrt) · S23 Verzugszinsen/40-€-Pauschale optional anbieten (✅ Vorbehalt in der 2. Mahnung, § 288 BGB) · S24 Rechnungsdatum = Erstellung des Entwurfs (✅ Datum beim Ausstellen) · S25 Leitweg-ID-Feld je Kunde (✅ Migration `20261103230000`, eigenes Feld, wird beim Ausstellen eingefroren und als BT-10 in die XRechnung geschrieben) · S26 Belegdateien gelöschter Firmen bleiben in R2 (✅ Ordner belege/ und rechnungen/ werden beim Kontolöschen mit entfernt) · S27 Nachkalkulation ohne Ausfallzeiten (⏳) · S28 LODAS-Schlüssel vom Lohnbüro bestätigen (⚖️; § 3b-Spalten n25/n40/so50/f125/f150 jetzt als eigene Lohnarten im LODAS-Export)

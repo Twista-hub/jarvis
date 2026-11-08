@@ -108,6 +108,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261107030000_probe_erinnerungen.sql
 \ir ../migrations/20261107040000_zusatzkaeufe.sql
 \ir ../migrations/20261108010000_ki_monatsbudget_90.sql
+\ir ../migrations/20261108020000_belege_rechtspruefung.sql
 \ir ../migrations/20261108030000_abo_meldungen.sql
 \ir ../migrations/20261108040000_ki_inaktiv.sql
 \ir ../migrations/20261108050000_willkommen_mails.sql
@@ -1969,5 +1970,27 @@ update public.firmen set paket = 'basis' where id = :'schlaefer';
 select pruefe(jarvis_katalog.ki_firmensperre(:'schlaefer', 0.01) is null, 'Zahlende Firma wird nie pausiert');
 insert into public.firmen (name, paket, ki_budget_usd) values ('Neu GmbH', 'kostenlos', 5.50) returning id as neu_inaktiv \gset
 select pruefe(jarvis_katalog.ki_firmensperre(:'neu_inaktiv', 0.01) is distinct from 'inaktiv', 'Neue Firma ohne Anmeldung: noch keine Pause');
+-- Rechtsprüfung S10/S20: business meals need occasion and participants; the 7 % part of a mixed receipt is checked
+-- (database checks, as owner; the owner of the firm was deleted above).
+insert into public.belege (firma_id, datum, lieferant, kategorie, brutto, anlass, teilnehmer) values (:'firma', current_date, 'Gasthaus', 'bewirtung', 120, 'Angebotsbesprechung', 'A. Kunde, B. Inhaber');
+insert into public.belege (firma_id, datum, lieferant, kategorie, brutto, ust_satz, brutto_7) values (:'firma', current_date, 'Supermarkt', 'material', 50, 19, 20);
+select pruefe((select count(*) = 1 from public.belege where kategorie = 'bewirtung' and anlass = 'Angebotsbesprechung') and (select count(*) = 1 from public.belege where brutto_7 = 20), 'Bewirtung mit Anlass/Teilnehmern und gemischter Beleg erfasst');
+do $$ begin
+  insert into public.belege (firma_id, datum, lieferant, kategorie, brutto, anlass) values (current_setting('test.firma')::uuid, current_date, 'Gasthaus', 'bewirtung', 80, 'Besprechung');
+  raise exception 'FEHLER: Bewirtung ohne Teilnehmer';
+exception when check_violation then null; end $$;
+do $$ begin
+  insert into public.belege (firma_id, datum, lieferant, kategorie, brutto, anlass, teilnehmer) values (current_setting('test.firma')::uuid, current_date, 'Gasthaus', 'bewirtung', 80, ' ', 'A. Kunde');
+  raise exception 'FEHLER: Bewirtung mit leerem Anlass';
+exception when check_violation then null; end $$;
+do $$ begin
+  insert into public.belege (firma_id, datum, brutto, ust_satz, brutto_7) values (current_setting('test.firma')::uuid, current_date, 50, 19, 60);
+  raise exception 'FEHLER: Anteil 7 %% größer als der Beleg';
+exception when check_violation then null; end $$;
+do $$ begin
+  insert into public.belege (firma_id, datum, brutto, ust_satz, brutto_7) values (current_setting('test.firma')::uuid, current_date, 50, 7, 10);
+  raise exception 'FEHLER: Anteil 7 %% ohne 19 %%';
+exception when check_violation then null; end $$;
+select pruefe(true, 'Bewirtung ohne Angaben und falscher Anteil zu 7 % abgelehnt');
 
 \echo ALLE TESTS OK
