@@ -220,3 +220,8 @@ Nur gelesen. Nichts gekauft, kein Limit geändert, nichts verknüpft.
 
 ### 03.11.2026 – Claude Code
 - Ordner angelegt. Auftrag: `docs/auftraege/crewtender-konten.md`.
+
+## Erledigt (08.11.2026): sitemap-auftraggeber.xml eingereicht
+- Status „Erfolgreich“, 47 erkannte Seiten – das war noch die erste Fassung mit `bks:`-Adressen (vor der Umstellung auf Namen). Erste Abfrage 503, danach 200.
+- URL geprüft: /auftraggeber/bks%3A1c39…2774 – „URL ist Google nicht bekannt“, Indexierung beantragt. (Adresse gibt inzwischen 404 + noindex; Google verwirft sie von selbst.)
+- Folgeauftrag: Sitemap erneut senden (jetzt 8.015 Adressen), siehe `docs/auftraege/crewtender-search-console-auftraggeber.md`.
