@@ -132,6 +132,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108230000_seo_seiten.sql
 \ir ../migrations/20261108240000_sitemap_json.sql
 \ir ../migrations/20261108250000_auftraggeber_oeffentlich.sql
+\ir ../migrations/20261108260000_auftraggeber_nach_name.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2153,14 +2154,18 @@ reset role;
 insert into public.vergabekatalog(id,quelle,quelle_id,version,quell_datum,titel,link,auftraggeber,auftraggeber_id,status,frist,cpv,ort,zuschlaege)
 values ('bks:seo3','bks','seo3','v1',now() - interval '200 days','Unterhaltsreinigung Rathaus 2026','https://example.test/seo3','Stadt Köln','buyer-seo','vergeben',now() - interval '150 days','{90911200}','50667 Köln DEA23',
         '[{"id":"z1","datum":null,"gewinner":["Max Mustermann Reinigung"],"wert":120000,"waehrung":"EUR","status":"active"}]');
+insert into public.vergabekatalog(id,quelle,quelle_id,version,quell_datum,titel,link,auftraggeber,auftraggeber_id,status,frist,cpv,ort)
+values ('bks:seo4','bks','seo4','v1',now() - interval '10 days','Fremde Ausschreibung','https://example.test/seo4','Gemeinde Anderswo','buyer-seo','offen',now() + interval '9 days','{90911200}','DE300');
+select pruefe(jarvis_intern.ag_slug('Stadt Köln – Amt für Gebäude') = 'stadt-koeln-amt-fuer-gebaeude', 'Slug aus dem Namen');
 set role anon;
-select pruefe(public.auftraggeber_oeffentlich('buyer-seo')->>'name' = 'Stadt Köln' and (public.auftraggeber_oeffentlich('buyer-seo')->>'offen_anzahl')::int = 1
-  and (public.auftraggeber_oeffentlich('buyer-seo')->>'gesamt')::int = 2, 'Auftraggeber-Seite: Name, offene und alle Ausschreibungen');
-select pruefe((public.auftraggeber_oeffentlich('buyer-seo')->'frueher'->0->>'zuschlag_wert')::numeric = 120000
-  and position('Mustermann' in public.auftraggeber_oeffentlich('buyer-seo')::text) = 0, 'Zuschlag nur als Wert, kein Gewinnername');
-select pruefe(public.auftraggeber_oeffentlich('gibt-es-nicht') is null, 'Unbekannter Auftraggeber: nichts');
-select pruefe(public.sitemap_auftraggeber_json() @> '[["buyer-seo"]]', 'Auftraggeber in der Sitemap');
-select pruefe(public.demo_eintrag('bks:seo1')->>'auftraggeber_id' = 'buyer-seo', 'Ausschreibung nennt die Auftraggeber-ID');
+select pruefe(public.auftraggeber_oeffentlich('stadt-koeln')->>'name' = 'Stadt Köln' and (public.auftraggeber_oeffentlich('stadt-koeln')->>'offen_anzahl')::int = 1
+  and (public.auftraggeber_oeffentlich('stadt-koeln')->>'gesamt')::int = 2, 'Auftraggeber-Seite: Name, offene und alle Ausschreibungen');
+select pruefe(position('Fremde Ausschreibung' in public.auftraggeber_oeffentlich('stadt-koeln')::text) = 0, 'Gleiche Auftraggeber-ID, anderer Name: nicht vermischt');
+select pruefe((public.auftraggeber_oeffentlich('stadt-koeln')->'frueher'->0->>'zuschlag_wert')::numeric = 120000
+  and position('Mustermann' in public.auftraggeber_oeffentlich('stadt-koeln')::text) = 0, 'Zuschlag nur als Wert, kein Gewinnername');
+select pruefe(public.auftraggeber_oeffentlich('gibt-es-nicht') is null and public.auftraggeber_oeffentlich('buyer-seo') is null, 'Unbekannter Auftraggeber: nichts');
+select pruefe(public.sitemap_auftraggeber_json() @> '[["stadt-koeln"]]' and public.sitemap_auftraggeber_json() @> '[["gemeinde-anderswo"]]', 'Auftraggeber in der Sitemap');
+select pruefe(public.demo_eintrag('bks:seo1')->>'auftraggeber_seite' = 'stadt-koeln', 'Ausschreibung nennt die Auftraggeber-Seite');
 reset role;
 
 \echo ALLE TESTS OK

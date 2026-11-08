@@ -1,6 +1,7 @@
 // Google pages (08.11.2026): /ausschreibungen/<gewerk>/<bundesland> (trade × federal state, live numbers from the
 // background cache) and /ausschreibung/<id> (one open public notice, indexable while it is open) with its own sitemap
-// /sitemap-ausschreibungen.xml, plus /auftraggeber/<id> (what an authority tenders, sitemap /sitemap-auftraggeber.xml).
+// /sitemap-ausschreibungen.xml, plus /auftraggeber/<id> (what an authority tenders, keyed by a slug of its name
+// because the buyer ids in the notices are not unique; sitemap /sitemap-auftraggeber.xml).
 // Facts only from the public notices (CC0); contact names are masked, winners are never named.
 import { escape, markdown, seite } from "./seite.ts";
 import { KI_KENNUNG } from "./ki-kennung.ts";
@@ -46,7 +47,7 @@ ${fragen.map(([q, a]) => `<details><summary>${escape(q)}</summary><p>${escape(a)
 <script type="application/ld+json">${jsonld}</script>`;
 }
 
-export type Eintrag = { id: string; titel: string; auftraggeber?: string; auftraggeber_id?: string | null; ort?: string; frist: string | null; link: string; status?: string; quelle?: string; quell_datum?: string; beschreibung?: string; cpv?: string[]; lose?: string[]; steckbrief: string | null };
+export type Eintrag = { id: string; titel: string; auftraggeber?: string; auftraggeber_id?: string | null; auftraggeber_seite?: string | null; ort?: string; frist: string | null; link: string; status?: string; quelle?: string; quell_datum?: string; beschreibung?: string; cpv?: string[]; lose?: string[]; steckbrief: string | null };
 
 /** Open while the deadline lies ahead (or is unknown for a fresh notice) and the status is open/unknown. */
 export function istOffen(e: Pick<Eintrag, "frist" | "status" | "quell_datum">, jetzt = Date.now()): boolean {
@@ -58,7 +59,7 @@ export function istOffen(e: Pick<Eintrag, "frist" | "status" | "quell_datum">, j
 export function ausschreibungSeite(e: Eintrag, jetzt = Date.now()): string {
   const offen = istOffen(e, jetzt);
   const l = landAusOrt(e.ort), g = gewerkAusCpv(e.cpv);
-  const fakten = [e.auftraggeber && `<li>🏛️ ${e.auftraggeber_id ? `<a href="${auftraggeberLink(e.auftraggeber_id)}">${escape(e.auftraggeber)}</a>` : escape(e.auftraggeber)}</li>`, e.ort && `<li>📍 ${escape(e.ort)}</li>`, e.frist && `<li>⏰ Angebotsfrist ${datum(e.frist)}</li>`, e.quell_datum && `<li>📅 veröffentlicht ${datum(e.quell_datum)}</li>`].filter(Boolean).join("");
+  const fakten = [e.auftraggeber && `<li>🏛️ ${e.auftraggeber_seite ? `<a href="${auftraggeberLink(e.auftraggeber_seite)}">${escape(e.auftraggeber)}</a>` : escape(e.auftraggeber)}</li>`, e.ort && `<li>📍 ${escape(e.ort)}</li>`, e.frist && `<li>⏰ Angebotsfrist ${datum(e.frist)}</li>`, e.quell_datum && `<li>📅 veröffentlicht ${datum(e.quell_datum)}</li>`].filter(Boolean).join("");
   const lose = e.lose?.filter(Boolean).length ? `<h2>Lose</h2><ul>${e.lose.filter(Boolean).map((x) => `<li>${escape(personenMaskieren(x))}</li>`).join("")}</ul>` : "";
   const text = e.beschreibung ? `<h2>Beschreibung (aus der Bekanntmachung)</h2>${personenMaskieren(e.beschreibung).split(/\n{2,}/).slice(0, 8).map((x) => `<p>${escape(x)}</p>`).join("")}` : "";
   const brief = e.steckbrief ? `<h2>Steckbrief</h2><div class="steckbrief-karte" data-ki-erstellt="true" data-ki-anbieter="Anthropic Claude">${KI_KENNUNG}${markdown(personenMaskieren(e.steckbrief))}</div>` : "";
@@ -151,7 +152,7 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
     }, 21600);
   }
   if (url.pathname === "/sitemap-auftraggeber.xml") {
-    return gecacht("/sitemap-auftraggeber.xml?v=1", async () => {
+    return gecacht("/sitemap-auftraggeber.xml?v=2", async () => {
       const z = await rpc<[string, string][]>(env, "sitemap_auftraggeber_json", {});
       if (!Array.isArray(z)) return new Response("nicht erreichbar", { status: 503 });
       return new Response(sitemapAuftraggeber(adresse, z), { headers: { "content-type": "application/xml; charset=utf-8" } });
@@ -173,9 +174,9 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
   }
   const ag = url.pathname.match(/^\/auftraggeber\/([^/]{1,600})$/);
   if (ag) {
-    let id = "";
-    try { id = decodeURIComponent(ag[1]).slice(0, 200); } catch { return null; }
-    return gecacht(`${auftraggeberLink(id)}?v=1`, async () => {
+    const id = ag[1];
+    if (!/^[a-z0-9-]{1,150}$/.test(id)) return new Response(seite("Nicht gefunden", `<p>Diesen Auftraggeber kennt Crewtender nicht. <a href="/ausschreibungen">Aktuelle Ausschreibungen nach Gewerk</a></p>`), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
+    return gecacht(`${auftraggeberLink(id)}?v=2`, async () => {
       const a = await rpc<Auftraggeber | null>(env, "auftraggeber_oeffentlich", { a: id });
       if (!a) return new Response(seite("Nicht gefunden", `<p>Diesen Auftraggeber kennt Crewtender nicht. <a href="/ausschreibungen">Aktuelle Ausschreibungen nach Gewerk</a></p>`), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
       const name = personenMaskieren(a.name);
@@ -189,7 +190,7 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
   if (!a) return null;
   let id = "";
   try { id = decodeURIComponent(a[1]).slice(0, 400); } catch { return null; }
-  return gecacht(`/ausschreibung/${encodeURIComponent(id)}?v=3`, async () => {
+  return gecacht(`/ausschreibung/${encodeURIComponent(id)}?v=4`, async () => {
     const e = await rpc<Eintrag | null>(env, "demo_eintrag", { i: id });
     if (!e) return new Response(seite("Nicht gefunden", `<p>Diese Ausschreibung gibt es nicht mehr. <a href="/ausschreibungen">Aktuelle Ausschreibungen nach Gewerk</a></p>`), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
     const r = antwort(meta(seite(e.titel, ausschreibungSeite(e)), beschreibungMeta(e), `${adresse}${ausschreibungLink(e.id)}`, istOffen(e) ? "" : "noindex, follow"));
