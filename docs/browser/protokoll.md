@@ -19,6 +19,10 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### Erledigt (08.11.2026) – sitemap.xml neu eingereicht
+- Neu eingereicht, Status weiter „Konnte nicht abgerufen werden“ („Sitemap konnte nicht gelesen werden“, zuletzt gelesen 08.11.26, 0 Seiten). Eigene Prüfung: 200, application/xml, ~22 KB, gültiges XML, auch als Googlebot; robots.txt nennt beide Sitemaps.
+- Claude Code: dieselbe Liste zusätzlich unter /sitemap-seiten.xml (robots.txt nennt jetzt diese); dort neu einreichen. Keine ungültigen Zeichen, keine doppelten Adressen gefunden.
+
 ### Erledigt (08.11.2026) – Search Console: Sitemap der Ausschreibungen (Auftrag `docs/auftraege/crewtender-search-console-sitemap.md`)
 1. sitemap-ausschreibungen.xml eingereicht: „Erfolgreich“, gelesen 08.11.2026, 5.526 erkannte Seiten.
 2. sitemap.xml (eingereicht 04.11.): „Konnte nicht abgerufen werden“, 0 Seiten, nie gelesen. (Claude Code 08.11.: liefert heute auch für Googlebot 200, gültiges XML, application/xml – vermutlich ein Fehler vom 04.11., als HEAD-Anfragen noch 404 gaben; erneut einreichen.)
