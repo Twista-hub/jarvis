@@ -19,6 +19,13 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### Erledigt (08.11.2026) – Software-Verzeichnisse (Auftrag `docs/auftraege/crewtender-verzeichnisse.md`)
+1. OMR Reviews: wartet auf Prüfung (Formular gesendet, Antwort per Mail an kontakt@wpdigitalranger.com).
+2. G2: eingetragen, Profil freigegeben („Profile Approved“), Link folgt per Mail. Ohne Admin-Zugang (G2 verlangt dafür eine Telefonnummer); Admin später auf dem Profil beantragen, erst dann Funktionen und Preise pflegbar.
+3. GetApp und Software Advice: wartet auf Prüfung (Ergebnis per Mail).
+4. Capterra: nicht eingetragen – dort wird pro Klick abgerechnet (PPC), gegen den Auftrag.
+Keine Bewertungen angefragt, keine Telefonnummer, nichts bezahlt, kein Abo.
+
 ### Erledigt (08.11.2026) – Stripe-Einstellungen Livebetrieb (Auftrag `docs/auftraege/crewtender-stripe-live.md`)
 Alles im Livebetrieb, Konto Crewtender (Stripe ist nur im Chrome-Hauptprofil angemeldet, nicht im Crewtender-Profil).
 1. Öffentliche Angaben: geändert, Support-E-Mail jetzt hello@crewtender.eu (vorher kontakt@wpdigitalranger.com). Name und Website waren richtig. Support-Telefon bleibt eingetragen (Pflichtfeld bei Stripe).
