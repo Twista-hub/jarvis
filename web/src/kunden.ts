@@ -4,14 +4,22 @@
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
+/** Countries a customer can be in (ISO 3166 codes, used for the address on invoices and in the XRechnung). */
+export const KUNDEN_LAENDER: Record<string, string> = { DE: "Deutschland", AT: "Österreich", CH: "Schweiz", NL: "Niederlande", BE: "Belgien", LU: "Luxemburg", FR: "Frankreich", DK: "Dänemark", PL: "Polen", CZ: "Tschechien", IT: "Italien", ES: "Spanien", GB: "Vereinigtes Königreich", US: "USA" };
+/** Postcode check per country: five digits in Germany, otherwise 3–10 letters, digits, spaces or hyphens. */
+export const plzPasst = (plz: string, land: string) => (land === "DE" ? /^\d{5}$/ : /^[0-9A-Za-z][0-9A-Za-z -]{1,8}[0-9A-Za-z]$/).test(plz);
+/** A VAT ID starts with the two-letter country prefix (BR-CO-9; Greece uses EL). */
+export const ustIdPasst = (u: string) => u === "" || /^[A-Z]{2}[0-9A-Z+*.]{2,13}$/.test(u);
 
-export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; email: string; notiz: string; bz_tarif?: string; bz_prozente?: (number | string)[]; ust_13b?: boolean; ustid?: string; leitweg_id?: string };
+export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; land?: string; ansprechpartner: string; telefon: string; email: string; notiz: string; bz_tarif?: string; bz_prozente?: (number | string)[]; ust_13b?: boolean; ustid?: string; leitweg_id?: string };
 export type Einsatzort = { id: string; kunde_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; treffpunkt: string; kleidung: string; hinweise: string };
 export type Preis = { kunde_id: string; satz: number | string; zuschlag_nacht?: number | string; zuschlag_sonntag?: number | string; zuschlag_feiertag?: number | string };
 // T38: sector surcharge agreements (temporary work). Only the metal/electrical preset is filled in; please check against the current agreement.
 export const BZ_VORLAGEN: Record<string, number[]> = { "Metall- und Elektroindustrie (TV BZ ME)": [15, 20, 30, 45, 50] };
 export const BZ_STUFEN = ["6 Wochen", "3 Monate", "5 Monate", "7 Monate", "9 Monate"];
 const euro = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+/** Country line of an address abroad (empty for Germany). */
+export const landZeile = (x: { land?: string } | null | undefined) => (x?.land && x.land !== "DE" ? KUNDEN_LAENDER[x.land] ?? x.land : "");
 export const adresse = (x: { strasse: string; plz: string; ort: string }) => [x.strasse, [x.plz, x.ort].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 /** Map link for an address (opens the phone's map app via OpenStreetMap search). */
 export const kartenLink = (x: { strasse: string; plz: string; ort: string; name?: string }) => `https://www.openstreetmap.org/search?query=${encodeURIComponent(adresse(x) || x.name || "")}`;
@@ -19,9 +27,10 @@ export const kartenLink = (x: { strasse: string; plz: string; ort: string; name?
 const kundeFelder = (k: Partial<Kunde>, bereiche: { id: string; name: string }[], preis: string | null, zuschlaege: [string, string, string] = ["", "", ""]) => `<div class="aueg-form">
 <label class="ganz">Name<input name="name" required maxlength="160" value="${escape(k.name ?? "")}"></label>
 <label class="ganz">Straße und Nr.<input name="strasse" maxlength="160" value="${escape(k.strasse ?? "")}"></label>
-<label>PLZ<input name="plz" maxlength="5" inputmode="numeric" pattern="\\d{5}" value="${escape(k.plz ?? "")}"></label><label>Ort<input name="ort" maxlength="100" value="${escape(k.ort ?? "")}"></label>
+<label>PLZ<input name="plz" maxlength="10" pattern="[0-9A-Za-z \\-]{3,10}" value="${escape(k.plz ?? "")}"></label><label>Ort<input name="ort" maxlength="100" value="${escape(k.ort ?? "")}"></label>
+<label>Land<select name="land">${Object.entries(KUNDEN_LAENDER).map(([c, n]) => `<option value="${c}"${(k.land || "DE") === c ? " selected" : ""}>${n}</option>`).join("")}</select><span class="klein">Kunde im Ausland: Ob deutsche Umsatzsteuer anfällt (Ort der Leistung, § 3a UStG), klärt bitte die Steuerberatung. Crewtender ändert den Steuersatz dafür nicht von selbst.</span></label>
 <label>Ansprechpartner<input name="ansprechpartner" maxlength="160" value="${escape(k.ansprechpartner ?? "")}"></label><label>Telefon<input name="telefon" type="tel" maxlength="60" value="${escape(k.telefon ?? "")}"></label>
-<label class="ganz">E-Mail<input name="email" type="email" maxlength="200" value="${escape(k.email ?? "")}"></label>
+<label class="ganz">E-Mail (auch für die E-Rechnung)<input name="email" type="email" maxlength="200" value="${escape(k.email ?? "")}"></label>
 ${bereiche.length ? `<label>Standort<select name="bereich"><option value="">ganze Firma</option>${bereiche.map((b) => `<option value="${b.id}"${k.bereich_id === b.id ? " selected" : ""}>${escape(b.name)}</option>`).join("")}</select></label>` : ""}
 ${preis !== null ? `<label>Verrechnungssatz (€/Std., netto)<input name="satz" inputmode="decimal" maxlength="9" value="${escape(preis)}" placeholder="z. B. 32,50"></label><fieldset class="ganz"><legend>Zuschläge auf der Rechnung (% vom Satz)</legend><div class="drei"><label>Nacht<input name="z_nacht" inputmode="decimal" maxlength="6" value="${escape(zuschlaege[0])}"></label><label>Sonntag<input name="z_sonntag" inputmode="decimal" maxlength="6" value="${escape(zuschlaege[1])}"></label><label>Feiertag<input name="z_feiertag" inputmode="decimal" maxlength="6" value="${escape(zuschlaege[2])}"></label></div></fieldset>` : ""}
 <details class="ganz bz-felder"${(k.bz_prozente ?? []).length ? " open" : ""}><summary class="klein">Branchenzuschläge Zeitarbeit (TV BZ)</summary><label>Tarif<input name="bz_tarif" maxlength="80" list="bz-vorlagen" value="${escape(k.bz_tarif ?? "")}" placeholder="z. B. Metall- und Elektroindustrie (TV BZ ME)"></label><datalist id="bz-vorlagen">${Object.keys(BZ_VORLAGEN).map((v) => `<option value="${v}">`).join("")}</datalist>
@@ -70,7 +79,7 @@ ${ohne.length ? `<h2>Einsatzorte ohne Kunde</h2><ul class="ort-liste">${ohne.map
 
 export async function kundenLaden(s: Parameters<typeof db>[0], env: KontoEnv, firma: string, finanzen: boolean) {
   const [k, o, p] = await Promise.all([
-    db<Kunde[]>(s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,ansprechpartner,telefon,email,notiz,bz_tarif,bz_prozente,ust_13b,ustid,leitweg_id&order=name&limit=1000`),
+    db<Kunde[]>(s, env, `kunden?firma_id=eq.${firma}&select=id,bereich_id,name,strasse,plz,ort,land,ansprechpartner,telefon,email,notiz,bz_tarif,bz_prozente,ust_13b,ustid,leitweg_id&order=name&limit=1000`),
     db<Einsatzort[]>(s, env, `einsatzorte?firma_id=eq.${firma}&select=id,kunde_id,name,strasse,plz,ort,ansprechpartner,telefon,treffpunkt,kleidung,hinweise&order=name&limit=3000`),
     finanzen ? db<Preis[]>(s, env, `kunden_preise?firma_id=eq.${firma}&select=kunde_id,satz,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag&limit=1000`) : Promise.resolve(null),
   ]);
@@ -104,12 +113,15 @@ export async function kunden(request: Request, env: KontoEnv): Promise<Response 
     }
     if (loeschen && id) { const r = await db<{ id: string }[]>(f.s, env, `kunden?id=eq.${id}&firma_id=eq.${firma}&select=id`, { method: "DELETE", headers: { prefer: "return=representation" } }); return zurueck(r.ok && r.daten.length ? "Kunde gelöscht." : "Löschen hat nicht geklappt."); }
     const bzTarif = t("bz_tarif", 80);
+    const land = Object.hasOwn(KUNDEN_LAENDER, t("land", 2)) ? t("land", 2) : "DE", plzKunde = t("plz", 10).toUpperCase();
     const pz = (k: string) => { const n = Number(t(k, 6).replace(",", ".")); return t(k, 6) && Number.isFinite(n) && n >= 0 && n <= 300 ? Math.round(n * 100) / 100 : null; };
     let bz = [0, 1, 2, 3, 4].map((i) => pz(`bz_${i}`));
     if (bz.every((x) => x === null) && BZ_VORLAGEN[bzTarif]) bz = BZ_VORLAGEN[bzTarif];
-    const zeile = { firma_id: firma, name: t("name", 160), strasse: t("strasse", 160), plz, ort: t("ort", 100), ansprechpartner: t("ansprechpartner", 160), telefon: t("telefon", 60), email: t("email", 200), notiz: t("notiz", 500), bereich_id: uuid("bereich") || null,
-      bz_tarif: bzTarif, bz_prozente: bz.some((x) => x !== null) ? bz.map((x) => x ?? 0) : [], ust_13b: form.get("ust_13b") === "on", ustid: t("ustid", 20).toUpperCase().replace(/\s/g, ""), leitweg_id: /^[0-9A-Za-z-]{5,46}$/.test(t("leitweg_id", 46).replace(/\s/g, "")) ? t("leitweg_id", 46).replace(/\s/g, "") : "" };
+    const zeile = { firma_id: firma, name: t("name", 160), strasse: t("strasse", 160), plz: plzPasst(plzKunde, land) ? plzKunde : "", ort: t("ort", 100), ansprechpartner: t("ansprechpartner", 160), telefon: t("telefon", 60), email: t("email", 200), notiz: t("notiz", 500), bereich_id: uuid("bereich") || null,
+      bz_tarif: bzTarif, bz_prozente: bz.some((x) => x !== null) ? bz.map((x) => x ?? 0) : [], ust_13b: form.get("ust_13b") === "on", ustid: t("ustid", 20).toUpperCase().replace(/[\s-]/g, ""), land, leitweg_id: /^[0-9A-Za-z-]{5,46}$/.test(t("leitweg_id", 46).replace(/\s/g, "")) ? t("leitweg_id", 46).replace(/\s/g, "") : "" };
     if (zeile.name.length < 2) return zurueck("Bitte einen Namen angeben.");
+    if (plzKunde && !zeile.plz) return zurueck(land === "DE" ? "Die PLZ in Deutschland hat 5 Ziffern." : "Bitte die Postleitzahl prüfen.");
+    if (!ustIdPasst(zeile.ustid)) return zurueck("Die USt-IdNr. beginnt mit dem Ländercode, z. B. DE123456789 oder ATU12345678.");
     const r = id ? await db<{ id: string }[]>(f.s, env, `kunden?id=eq.${id}&firma_id=eq.${firma}&select=id`, { method: "PATCH", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) })
       : await db<{ id: string }[]>(f.s, env, "kunden?select=id", { method: "POST", headers: { prefer: "return=representation" }, body: JSON.stringify(zeile) });
     if (!r.ok || !r.daten.length) return zurueck(r.ok ? "Speichern hat nicht geklappt." : /duplicate|23505/.test(r.fehler) ? "Diesen Kunden gibt es schon." : "Speichern hat nicht geklappt. Hast du Rechte für diesen Standort?");

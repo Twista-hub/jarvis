@@ -114,6 +114,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108050000_willkommen_mails.sql
 \ir ../migrations/20261108060000_gratistopf_20.sql
 \ir ../migrations/20261108070000_belege_erechnung.sql
+\ir ../migrations/20261108080000_rechnung_land.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1317,7 +1318,7 @@ set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000b');
 select public.rechnung_ausstellen(:'re1') as nr1 \gset
 select pruefe(:'nr1' = 'RE-' || extract(year from now() at time zone 'Europe/Berlin')::int || '-0001', 'Ausstellen vergibt die erste Nummer aus dem Zähler');
-select pruefe((select status = 'ausgestellt' and absender->>'steuernummer' = '12/345/67890' and empfaenger->>'name' is not null and ust_betrag = 19 from public.rechnungen where id = :'re1'), 'Ausgestellte Rechnung friert Absender, Empfänger und Steuer ein');
+select pruefe((select status = 'ausgestellt' and absender->>'steuernummer' = '12/345/67890' and empfaenger->>'name' is not null and empfaenger->>'land' = 'DE' and absender->>'land' ~ '^[A-Z]{2}$' and ust_betrag = 19 from public.rechnungen where id = :'re1'), 'Ausgestellte Rechnung friert Absender, Empfänger und Steuer ein');
 delete from public.rechnungen where id = :'re_weg';
 select pruefe((select count(*) = 0 from public.rechnungen where id = :'re_weg'), 'Entwurf lässt sich löschen');
 do $$ begin
