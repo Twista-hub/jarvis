@@ -104,6 +104,9 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 08.11.2026 nachmittags – Claude Code (Privatkunden auf Rechnungen, S17)
+- Kunden lassen sich als „Privatperson“ markieren (Migration `20261108090000_kunden_privat.sql`, Kennzeichen wird beim Ausstellen eingefroren). Rechnungen an Privatkunden tragen den Pflichthinweis zur zweijährigen Aufbewahrung (§ 14 Abs. 4 Nr. 9, § 14b Abs. 1 Satz 5 UStG). Die 2. Mahnung an Privatkunden nennt 5 Prozentpunkte Verzugszins (§ 288 Abs. 1 BGB) statt 9 Punkte und 40-€-Pauschale, Anrede „Guten Tag <Name>“. Privatperson und § 13b schließen sich aus. Nebenbei: Rechnungsentwürfe zeigen § 13b jetzt auch in der Word-Vorschau (Kundenabfrage las `ust_13b` nicht).
+
 ### 08.11.2026 nachmittags – Claude Code (XRechnung beim Versand, S14)
 - XRechnung: Land von Firma und Kunde statt fest DE (neues Feld „Land“ bei Kunden, PLZ-Prüfung je Land, Ländercode-Prüfung der USt-IdNr.; Land wird beim Ausstellen eingefroren, Migration `20261108080000_rechnung_land.sql`; Land steht bei Auslandskunden auch auf der Word-Rechnung). BT-48 immer, wenn der Kunde eine USt-IdNr. hat. BT-49: Leitweg-ID (0204) bzw. E-Mail des Kunden – vorher stand bei fehlender Kunden-Mail die eigene Mail drin. Telefon der Firma ist jetzt Pflicht (vorher Platzhalter „nicht angegeben“). Stornorechnungen gibt es als E-Rechnung (UBL-Gutschrift CreditNote 381 mit Bezug auf die Rechnung), auch im Archiv. „XRechnung prüfen“ holt den KoSIT-Validator jetzt von Maven Central (GitHub-Download lieferte 504). Hinweis bei Auslandskunden: Umsatzsteuer mit der Steuerberatung klären (⚖️ Reverse Charge/ZM nicht gebaut). „XRechnung prüfen“ (KoSIT) mit 5 Beispielen.
 

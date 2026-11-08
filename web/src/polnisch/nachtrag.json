@@ -427,5 +427,7 @@
  "E-Mail oder Leitweg-ID des Kunden (Empfangsadresse der E-Rechnung)": "E-mail lub Leitweg-ID klienta (adres odbioru e-faktury)",
  "USt-IdNr. des Kunden mit Ländercode": "NIP UE klienta z kodem kraju",
  "Kunde": "Klient",
- "Steuernummer oder USt-IdNr.": "Numer podatkowy lub NIP UE"
+ "Steuernummer oder USt-IdNr.": "Numer podatkowy lub NIP UE",
+ "Privatperson (kein Unternehmen): Rechnungen bekommen den Pflichthinweis zur Aufbewahrung (§ 14 Abs. 4 Nr. 9 UStG, z. B. bei Reinigung oder Arbeiten am Haus), Mahnungen die Verzugszinsen für Verbraucher.": "Osoba prywatna (nie firma): faktury otrzymują obowiązkową informację o przechowywaniu (§ 14 Abs. 4 Nr. 9 UStG, np. przy sprzątaniu lub pracach przy domu), upomnienia odsetki za zwłokę dla konsumentów.",
+ "Eine Privatperson kann die Umsatzsteuer nicht nach § 13b schulden. Bitte eines von beiden abwählen.": "Osoba prywatna nie może być dłużnikiem VAT według § 13b. Odznacz jedną z dwóch opcji."
 }

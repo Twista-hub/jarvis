@@ -427,5 +427,7 @@
  "E-Mail oder Leitweg-ID des Kunden (Empfangsadresse der E-Rechnung)": "Customer e-mail or Leitweg-ID (where the e-invoice is received)",
  "USt-IdNr. des Kunden mit Ländercode": "Customer VAT ID with country code",
  "Kunde": "Customer",
- "Steuernummer oder USt-IdNr.": "Tax number or VAT ID"
+ "Steuernummer oder USt-IdNr.": "Tax number or VAT ID",
+ "Privatperson (kein Unternehmen): Rechnungen bekommen den Pflichthinweis zur Aufbewahrung (§ 14 Abs. 4 Nr. 9 UStG, z. B. bei Reinigung oder Arbeiten am Haus), Mahnungen die Verzugszinsen für Verbraucher.": "Private person (not a business): invoices get the mandatory note on retention (§ 14 Abs. 4 Nr. 9 UStG, e.g. for cleaning or work on the house), reminders the default interest for consumers.",
+ "Eine Privatperson kann die Umsatzsteuer nicht nach § 13b schulden. Bitte eines von beiden abwählen.": "A private person cannot owe the VAT under § 13b. Please untick one of the two."
 }

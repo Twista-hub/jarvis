@@ -427,5 +427,7 @@
   "E-Mail oder Leitweg-ID des Kunden (Empfangsadresse der E-Rechnung)": "E-mail o Leitweg-ID del cliente (indirizzo di ricezione della fattura elettronica)",
   "USt-IdNr. des Kunden mit Ländercode": "Partita IVA UE del cliente con codice paese",
   "Kunde": "Cliente",
-  "Steuernummer oder USt-IdNr.": "Codice fiscale o partita IVA"
+  "Steuernummer oder USt-IdNr.": "Codice fiscale o partita IVA",
+  "Privatperson (kein Unternehmen): Rechnungen bekommen den Pflichthinweis zur Aufbewahrung (§ 14 Abs. 4 Nr. 9 UStG, z. B. bei Reinigung oder Arbeiten am Haus), Mahnungen die Verzugszinsen für Verbraucher.": "Privato (non un'azienda): le fatture riportano l'avviso obbligatorio sulla conservazione (§ 14 Abs. 4 Nr. 9 UStG, ad es. per pulizie o lavori in casa), i solleciti gli interessi di mora per i consumatori.",
+  "Eine Privatperson kann die Umsatzsteuer nicht nach § 13b schulden. Bitte eines von beiden abwählen.": "Un privato non può essere debitore dell'IVA ai sensi del § 13b. Deseleziona una delle due opzioni."
 }
