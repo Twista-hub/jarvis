@@ -105,6 +105,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Protokoll
 
 ### 08.11.2026 abends – Claude Code (S16, D2, Klickprüfung)
+- K9: Automatischer Abgleich des KI-Steckbriefs mit der Bekanntmachung (ohne KI): Angebotsfrist, Rückfragefrist und Zahl der Lose gegen den Katalog (eForms/OCDS), Kasten „🔎 Abgleich mit der amtlichen Bekanntmachung“ über dem Steckbrief (`web/src/abgleich.ts`). Offen aus der Rechtsprüfung: nur noch K11 (⚖️) und D7 (ab 2032).
 - Klickprüfung nach D1 (Personalakte für Leser): 566 Seiten, 0 Probleme, 0 Fehlermeldungen.
 - S16: Leistungstext je Kunde (bei Verrechnungssatz, Monat wird angehängt; Migration `20261108160000_leistungstext.sql`).
 - S27: Nachkalkulation mit Ausfallzeiten-Zuschlag (Urlaub, Feiertage, Krankheit; Standard 20 %, einstellbar).
