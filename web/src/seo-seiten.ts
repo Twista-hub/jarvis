@@ -176,7 +176,7 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
   if (ag) {
     const id = ag[1];
     if (!/^[a-z0-9-]{1,150}$/.test(id)) return new Response(seite("Nicht gefunden", `<p>Diesen Auftraggeber kennt Crewtender nicht. <a href="/ausschreibungen">Aktuelle Ausschreibungen nach Gewerk</a></p>`), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
-    return gecacht(`${auftraggeberLink(id)}?v=2`, async () => {
+    return gecacht(`${auftraggeberLink(id)}?v=3`, async () => {
       const a = await rpc<Auftraggeber | null>(env, "auftraggeber_oeffentlich", { a: id });
       if (!a) return new Response(seite("Nicht gefunden", `<p>Diesen Auftraggeber kennt Crewtender nicht. <a href="/ausschreibungen">Aktuelle Ausschreibungen nach Gewerk</a></p>`), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
       const name = personenMaskieren(a.name);
