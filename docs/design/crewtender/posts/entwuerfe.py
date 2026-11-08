@@ -53,7 +53,7 @@ p2 = BASE + f'''<div class="post" style="background:radial-gradient(800px 600px 
 <div style="padding:20px;border-radius:20px;background:#fff;border:1px solid #e3eef6"><div style="font-size:18px;color:#66665f">Lots</div><div style="font-size:32px;font-weight:800">4</div></div>
 <div style="padding:20px;border-radius:20px;background:#fff;border:1px solid #e3eef6"><div style="font-size:18px;color:#66665f">Deadline</div><div style="font-size:32px;font-weight:800">26 days</div></div>
 <div style="padding:20px;border-radius:20px;background:#fff;border:1px solid #e3eef6"><div style="font-size:18px;color:#66665f">Distance</div><div style="font-size:32px;font-weight:800">24 km</div></div></div></div>
-<div style="position:absolute;left:72px;right:72px;top:880px;font-size:44px;font-weight:800;line-height:1.18">Crewtender reads around 500 new public tenders every morning – and shows you the ones that fit.</div>
+<div style="position:absolute;left:72px;right:72px;top:880px;font-size:44px;font-weight:800;line-height:1.18">Over 1,000 new public tenders every week. Crewtender reads them all – and shows you the ones that fit.</div>
 <div class="fuss" style="color:#24506e"><span style="font-weight:700">crewtender.eu</span><span class="klein">Example tender for illustration</span></div></div></body></html>'''
 
 # 3 — index-card tabs (Registerkarten) with features

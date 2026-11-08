@@ -13,7 +13,7 @@ export type Statistik = { monat: number; offen: number; beispiele: { titel: stri
 
 const ALLGEMEIN: [string, string][] = [
   ["Was kostet Crewtender?", "Die Registrierung ist kostenlos. Du siehst sofort passende Ausschreibungen für deine Firma und kannst alles in Ruhe ausprobieren."],
-  ["Woher kommen die Ausschreibungen?", "Aus den amtlichen Bekanntmachungen (Bekanntmachungsservice des Bundes, EU-Amtsblatt TED). Crewtender liest täglich alle neuen Ausschreibungen in Deutschland, rund 500 am Tag."],
+  ["Woher kommen die Ausschreibungen?", "Aus den amtlichen Bekanntmachungen (Bekanntmachungsservice des Bundes, EU-Amtsblatt TED). Crewtender liest täglich alle neuen Ausschreibungen in Deutschland, über 1.000 pro Woche."],
 ];
 
 export const GEWERKE: Gewerk[] = [
