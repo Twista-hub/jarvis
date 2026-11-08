@@ -8,7 +8,8 @@ export type StripeEnv = DbEnv & { STRIPE_SECRET_KEY?: string; STRIPE_WEBHOOK_SEC
 export const BEZAHLPLAENE = ["basis", "pro", "business"] as const;
 export type Zahlweise = "monat" | "jahr";
 
-export const stripeLive = (env: StripeEnv) => !!env.STRIPE_SECRET_KEY?.startsWith("sk_live_");
+// Live with a secret key (sk_live_) or a restricted key (rk_live_, "full access except sensitive operations").
+export const stripeLive = (env: StripeEnv) => /^[sr]k_live_/.test(env.STRIPE_SECRET_KEY ?? "");
 /** Stripe buttons: always in live mode, in test mode only for the operator. */
 export const stripeSichtbar = (env: StripeEnv, betreiber: boolean) => !!env.STRIPE_SECRET_KEY && (stripeLive(env) || betreiber);
 export const preisSchluessel = (plan: string, zahlweise: Zahlweise) => `crewtender_${plan}_${zahlweise}`;
