@@ -256,6 +256,7 @@ ${grundTags(titel)}
   details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] > summary::after { transform: rotate(90deg); }
   details:where(:not(.hilfe, .seiten-hilfe, .nachweis-fehlt, .arbeit-dropdown, .qualifikationen-dropdown, .firmen-erkenntnisse))[open] > summary { margin-bottom: 6px; border-bottom: 1px solid var(--line); }
   .steckbrief-karte { min-width: 0; padding: 4px 16px 8px; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+  .abgleich { margin: 0 0 12px; padding: 8px 14px; border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 10px; background: var(--card); } .abgleich ul { margin: 4px 0; padding-left: 4px; list-style: none; } .abgleich li { margin: 4px 0; } .abgleich-warnung { border-left-color: var(--error); }
   .steckbrief-karte h2, .steckbrief-karte h3 { margin: 18px 0 6px; color: var(--accent); font-size: 1.02rem; }
   .steckbrief-karte p { margin: 0 0 10px; }
   /* Forms inside a fold-out are already in a box: no second frame. */

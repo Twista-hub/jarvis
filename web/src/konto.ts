@@ -47,6 +47,7 @@ import { appSprache, usSprache } from "./englisch.ts";
 import { usProfilLaden } from "./usprofil.ts";
 import { marktKasten, vergleichbare } from "./usaspending.ts";
 import { bewertung, daumen, eckdaten, filterLeiste, sortieren, SORTIERUNGEN, suchbegriff } from "./treffer.ts";
+import { abgleichen, abgleichKasten, amtlichAusKatalog } from "./abgleich.ts";
 
 export interface KontoEnv {
   SUPABASE_URL: string;
@@ -1064,6 +1065,10 @@ ${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}${hinweisText ? `<p ro
   const unterlagen = finanzen ? await Promise.all([db<FirmenDatei[]>(s, env, `firmenunterlagen?firma_id=eq.${v.firma_id}&select=*`), referenzenLaden(s, env, v.firma_id)]).then(([r, refs]) => r.ok ? { ok: true as const, daten: mitReferenzen(r.daten, refs, v.firma_id) } : r) : null;
   const heute = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
   const stichtag = v.frist && v.frist.slice(0, 10) > heute ? v.frist.slice(0, 10) : heute;
+  // Rechtsprüfung K9: deadlines and lots of the AI Steckbrief against the official notice in the catalog (no AI).
+  const katalogFakten = v.katalog_id ? await db<{ frist: string | null; lose: unknown; fragefrist: string | null }[]>(s, env, `vergabekatalog?id=eq.${encodeURIComponent(v.katalog_id)}&select=frist,lose,fragefrist:roh->tender->enquiryPeriod->>endDate&limit=1`) : null;
+  const amtlich = katalogFakten?.ok ? amtlichAusKatalog(katalogFakten.daten[0]) : null;
+  const abgleich = (md: string) => (amtlich ? abgleichKasten(abgleichen(md, amtlich)) : "");
   const brief = (md: string) => `<div class="steckbrief-karte" data-ki-erstellt="true" data-ki-anbieter="Anthropic Claude">${KI_KENNUNG}${briefInhalt(md)}</div>`;
   const briefInhalt = (md: string) => nachweiseMarkieren(markdown(md), unterlagen?.ok ? unterlagen.daten : null, stichtag, `/konto/firmenunterlagen?firma=${v.firma_id}`);
   const hochladen = rolle === "leser" ? "" : `<h2 id="unterlagen">📥 Vergabeunterlagen</h2>
@@ -1079,16 +1084,16 @@ ${portal ? `<nav class="aktionsleiste"><a class="zweit" href="${escape(portal)}"
 <p class="klein">Am Handy liegt die Datei unter „Downloads“. Crewtender schreibt daraus in 2 bis 5 Minuten einen ausführlichen Steckbrief und eine Kalkulation. Die Dateien werden nur dafür gelesen und nach 30 Tagen gelöscht.</p></details>`;
   let teil: string;
   if (aus?.text) {
-    teil = `<h2 id="steckbrief">Steckbrief aus den Vergabeunterlagen</h2>${brief(aus.text)}
+    teil = `<h2 id="steckbrief">Steckbrief aus den Vergabeunterlagen</h2>${abgleich(aus.text)}${brief(aus.text)}
 ${leiste}${hochladen.replace("📥 Vergabeunterlagen", "📥 Dateien nachreichen")}
 ${v.steckbrief ? `<details><summary>Kurz-Steckbrief aus der Bekanntmachung</summary>${brief(v.steckbrief)}</details>` : ""}`;
   } else if (aus) {
     return html(seite(v.titel, `${kopf}${await fortschritt(env, aus.auftrag)}
-${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${brief(v.steckbrief)}` : ""}${leiste}${kaufverantwortlich}`, 20, "treffer"), 200, s.cookies);
+${v.steckbrief ? `<h2>Steckbrief aus der Bekanntmachung</h2>${abgleich(v.steckbrief)}${brief(v.steckbrief)}` : ""}${leiste}${kaufverantwortlich}`, 20, "treffer"), 200, s.cookies);
   } else {
     const marken = frageMarken(v.steckbrief ? brief(v.steckbrief) : "");
     const frageKnopf = `<button type="button" class="frage-mini gross" popovertarget="unterlagen-frage" aria-label="Genaue Angaben in den Vergabeunterlagen" title="Genaue Angaben in den Vergabeunterlagen">${DL_ICON}</button>`;
-    teil = `<div class="steckbrief-kopf">${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${marken.anzahl ? "" : frageKnopf}</div>${marken.html}${unterlagenHinweis(v.steckbrief, portal, rolle !== "leser")}${leiste}${hochladen}`;
+    teil = `<div class="steckbrief-kopf">${v.steckbrief ? `<h2 id="steckbrief">Steckbrief aus der Bekanntmachung</h2>` : `<p class="klein" id="steckbrief">Noch kein Steckbrief.</p>`}${marken.anzahl ? "" : frageKnopf}</div>${v.steckbrief ? abgleich(v.steckbrief) : ""}${marken.html}${unterlagenHinweis(v.steckbrief, portal, rolle !== "leser")}${leiste}${hochladen}`;
   }
   // The sections are independent: load them at the same time (before: one after the other, ~30 requests in a row).
   const heuteBerlin = new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Berlin" });
