@@ -124,6 +124,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108150000_reverse_charge_eu.sql
 \ir ../migrations/20261108160000_leistungstext.sql
 \ir ../migrations/20261108170000_nachweise_ohne_kopie.sql
+\ir ../migrations/20261108180000_loeschfrist_personal.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1883,6 +1884,12 @@ select pruefe((select count(*) from public.stempel) = :stempel_vorher, 'Aktuelle
 select pruefe((select sum(geloescht) >= 0 from jarvis_intern.loeschfristen((current_date + interval '5 years')::date)), 'Löschfristen laufen in der Zukunft durch');
 select pruefe((select count(*) = 0 from public.stempel), 'Stempelzeiten nach Ablauf gelöscht');
 select pruefe((select count(*) = 0 from public.kunden_portale where aktiv), 'Abgelaufene Kundenportal-Links abgeschaltet');
+-- A2: staff who left more than 6 full calendar years ago are deleted, files onto the R2 deletion list.
+insert into public.personal (firma_id, vorname, austritt_am) values (:'firma', 'Ehemalig', current_date - interval '9 years') returning id as p_alt \gset
+insert into public.personal (firma_id, vorname, austritt_am) values (:'firma', 'Kürzlich', current_date - interval '1 year') returning id as p_neu \gset
+select pruefe((select count(*) = 1 from jarvis_intern.loeschfristen() where tabelle like 'personal%' and geloescht = 1), 'Ausgeschiedene Person nach Ablauf der Frist gelöscht');
+select pruefe(not exists (select 1 from public.personal where id = :'p_alt') and exists (select 1 from public.personal where id = :'p_neu'), 'Nur die alte Person, die kürzlich ausgeschiedene bleibt');
+select pruefe(exists (select 1 from jarvis_intern.r2_loeschen where schluessel like 'personal-fotos/%' || :'p_alt'), 'Foto der Person steht auf der Löschliste');
 set role authenticated;
 do $$ begin
   perform jarvis_intern.loeschfristen();
