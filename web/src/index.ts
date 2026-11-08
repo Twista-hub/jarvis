@@ -6,7 +6,7 @@ import { START_BESCHREIBUNG, START_JSONLD, ogErgaenzen, seoKopf } from "./seo.ts
 import kunden from "../kunden.json";
 import { BRANCHEN_VORLAGEN, euro, FELDER, losStunden, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
 import profile from "../../alarm/profile.json";
-import { CSP, statisch } from "./app";
+import { CSP_OEFFENTLICH as CSP, statisch } from "./app";
 import { unterlagenOhneTreffer } from "./unterlagen";
 import { angebote } from "./angebote";
 import { darfAuftrag } from "./auftragsrechte";
@@ -74,6 +74,7 @@ import { betreiber } from "./loeschen.ts";
 import { betreiberRechnungen } from "./betreiber-rechnungen.ts";
 import { betreiberPartner, partnerOeffentlich } from "./partnerprogramm.ts";
 import { seoSeiten } from "./seo-seiten.ts";
+import { herkunftWeitergeben } from "./herkunft.ts";
 import { demo } from "./demo.ts";
 import { gewerke } from "./gewerke.ts";
 import { metiers } from "./gewerke-fr.ts";
@@ -159,7 +160,7 @@ const worker = {
       await fehlerMelden(env, "app", `${request.method} ${alt.pathname.replace(/[0-9a-f-]{36}/g, ":id").slice(0, 80)} · ${fehlerText(e)}`);
       antwort = html(seite("Fehler", `<p>Da ist leider etwas schiefgegangen. Bitte versuche es gleich noch einmal.</p><p class="klein">Wir haben eine Nachricht bekommen und kümmern uns darum.</p><p><a href="/konto">Zur Übersicht</a></p>`), 500);
     }
-    const r = darstellen(request, antwort);
+    const r = await herkunftWeitergeben(request, darstellen(request, antwort));
     if (!new URL(request.url).pathname.startsWith("/auftrag/")) return r;
     const s = await sitzung(request,env);
     const headers = new Headers(r.headers);

@@ -3,6 +3,7 @@
 // to /anmelden/sitzung), so a link works in any browser and on any device, not only where it was requested.
 // After the e-mail is confirmed, /konto creates the firm in the free plan (registrierung_abschliessen).
 import { partnerCode, partnerName } from "./partnerprogramm.ts";
+import { herkunftAus, herkunftParsen, herkunftText } from "./herkunft.ts";
 import { COOKIE, html, sicherWeiter, sitzung, tokenCookies, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { websiteNormalisieren } from "./webseite.ts";
@@ -25,7 +26,7 @@ export async function anmeldung(request: Request, env: KontoEnv): Promise<Respon
     // Partner link /registrieren?p=<code>: the code is carried in the form only (no cookie), the name shown if it is valid.
     const code = partnerCode(url.searchParams.get("p"));
     const name = code ? await partnerName(env, code) : null;
-    return html(seite("Registrieren", registrierFormular({}, "", sicherWeiter(url.searchParams.get("weiter") ?? ""), name ? { code, name } : undefined)));
+    return html(seite("Registrieren", registrierFormular({}, "", sicherWeiter(url.searchParams.get("weiter") ?? ""), name ? { code, name } : undefined, herkunftAus(url, request.headers.get("referer")))));
   }
   if (p === "/passwort-vergessen") return post ? passwortVergessen(request, env) : html(seite("Passwort vergessen", vergessenFormular()));
   if (p === "/konto/passwort") return passwortSetzen(request, env, post);
@@ -59,13 +60,13 @@ export function anmeldeFormular(fehler = "", weiter = "/konto", hinweis = "", em
 export type Registrierung = Partial<Record<"vorname" | "nachname" | "firma" | "website" | "strasse" | "plz" | "ort" | "telefon" | "email", string>>;
 
 /** weiter=/einladung…: invited employees only need name, e-mail and password (the firm already exists). */
-export function registrierFormular(w: Registrierung, fehler = "", weiter = "/konto", partner?: { code: string; name?: string }): string {
+export function registrierFormular(w: Registrierung, fehler = "", weiter = "/konto", partner?: { code: string; name?: string }, herkunft = ""): string {
   const eingeladen = weiter.startsWith("/einladung");
   const feld = (name: keyof Registrierung, label: string, extra: string) =>
     `<label>${label} <input name="${name}" value="${escape(w[name] ?? "")}" ${extra}></label>`;
   return `<p>${eingeladen ? "Lege dein Konto an, danach nimmst du die Einladung an." : "Lege das Konto für deine Firma an. Du bist danach Inhaber und kannst Mitarbeiter einladen."}</p>${eingeladen ? "" : `<p class="hinweis">🎁 30 Tage alle Pro-Funktionen gratis, ohne Kreditkarte. Danach geht es mit Free weiter, ohne Kündigung.</p>`}
 ${partner?.name && !eingeladen ? `<p class="klein">🤝 Empfohlen von ${escape(partner.name)}</p>` : ""}<form method="post" action="/registrieren">
-  ${fehler ? `<p class="fehler" role="alert">${escape(fehler)}</p>` : ""}${partner?.code && !eingeladen ? `<input type="hidden" name="partner" value="${escape(partner.code)}">` : ""}
+  ${fehler ? `<p class="fehler" role="alert">${escape(fehler)}</p>` : ""}${partner?.code && !eingeladen ? `<input type="hidden" name="partner" value="${escape(partner.code)}">` : ""}${herkunft && !eingeladen ? `<input type="hidden" name="herkunft" value="${escape(herkunft)}">` : ""}
   <fieldset><legend>Du</legend>
     ${feld("vorname", "Vorname", `required maxlength="100" autocomplete="given-name"`)}
     ${feld("nachname", "Nachname", `required maxlength="100" autocomplete="family-name"`)}
@@ -207,16 +208,18 @@ async function registrieren(request: Request, env: KontoEnv): Promise<Response> 
   const passwort = String(form.get("passwort") ?? "");
   const fehler = registrierungPruefen(w, passwort, form.get("zustimmung") === "ja", eingeladen, form.get("unternehmer") === "ja");
   const partner = eingeladen ? "" : partnerCode(form.get("partner"));
-  if (fehler) return html(seite("Registrieren", registrierFormular(w, fehler, weiter, partner ? { code: partner } : undefined)), 400);
+  const herkunft = eingeladen ? null : herkunftParsen(form.get("herkunft"));
+  const hText = herkunft ? herkunftText(herkunft) : "";
+  if (fehler) return html(seite("Registrieren", registrierFormular(w, fehler, weiter, partner ? { code: partner } : undefined, hText)), 400);
   if (!eingeladen) w.website = websiteNormalisieren(w.website ?? "");
   const { email, ...daten } = w;
-  const r = await auth(env, `signup?redirect_to=${encodeURIComponent(zurueck(request, weiter))}`, { email, password: passwort, data: { ...daten, zustimmung: new Date().toISOString(), ...(eingeladen ? {} : { unternehmer: new Date().toISOString() }), ...(partner ? { partner } : {}) } });
+  const r = await auth(env, `signup?redirect_to=${encodeURIComponent(zurueck(request, weiter))}`, { email, password: passwort, data: { ...daten, zustimmung: new Date().toISOString(), ...(eingeladen ? {} : { unternehmer: new Date().toISOString() }), ...(partner ? { partner } : {}), ...(herkunft ? { herkunft } : {}) } });
   if (!r.ok) {
     const grund = r.code === "weak_password" ? "Das Passwort ist zu einfach. Bitte ein längeres oder anderes wählen."
       : r.code === "user_already_exists" || r.code === "email_exists" ? "Für diese E-Mail-Adresse gibt es schon ein Konto. Melde dich an oder nutze „Passwort vergessen“."
       : r.status === 429 ? "Gerade wurden zu viele Mails verschickt. Bitte in einer Stunde noch einmal versuchen."
       : "Die Registrierung hat nicht geklappt. Bitte später noch einmal versuchen.";
-    return html(seite("Registrieren", registrierFormular(w, grund, weiter, partner ? { code: partner } : undefined)), r.status === 429 ? 429 : 400);
+    return html(seite("Registrieren", registrierFormular(w, grund, weiter, partner ? { code: partner } : undefined, hText)), r.status === 429 ? 429 : 400);
   }
   if (typeof r.daten.access_token === "string") return weiterleiten(weiter, tokenCookies(r.daten as unknown as Tokens));
   return html(seite("Fast geschafft", `<p>Wir haben dir eine Mail an <strong>${escape(email!)}</strong> geschickt. Tippe auf den Link darin, um deine E-Mail-Adresse zu bestätigen. Danach bist du direkt angemeldet.</p>
