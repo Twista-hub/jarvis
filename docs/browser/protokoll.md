@@ -230,3 +230,10 @@ Nur gelesen. Nichts gekauft, kein Limit geändert, nichts verknüpft.
 - Vorabprüfung ok (8.015 Adressen mit Namen). Status „Erfolgreich“, 8.015 erkannte Seiten.
 - URL geprüft: /auftraggeber/db-infrago-ag-geschaeftsbereich-fahrweg-bukr-16 (200) – „URL ist Google nicht bekannt“, Indexierung beantragt.
 - 3 von 6 Abrufen gaben 503 nach ~3,1 s → von Claude behoben (Sitemaps vorberechnet, Reserve-Fassung im Worker).
+
+## Erledigt (08.11.2026): Links mit Herkunftsangabe (utm)
+- Facebook (Website), Bluesky (Beschreibung), Mastodon (Zusatzfeld Website): geändert, über die API geprüft.
+- Instagram @crew_tender: im Browser gesperrt; Benjamin hat den Link in der App eingetragen (Screenshot 08.11.).
+- LinkedIn: Browser-Chat nicht angemeldet. G2: „Access Denied“ ohne Admin (braucht geschäftliche Telefonnummer). OMR: Mailbestätigung offen (Benjamin). GetApp: noch keine Mail.
+- Search Console: sitemap.xml entfernt; übrig sitemap-auftraggeber.xml (8.015), sitemap-seiten.xml (271), sitemap-ausschreibungen.xml (5.526), alle „Erfolgreich“.
+- Benjamin: Der lange utm-Link sieht nicht gut aus → Claude hat Kurzlinks gebaut (crewtender.eu/instagram, /facebook, /linkedin, /bluesky, /mastodon, /g2, /omr, /getapp), Folgeauftrag in docs/auftraege/crewtender-utm-links.md.

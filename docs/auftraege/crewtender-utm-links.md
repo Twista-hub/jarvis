@@ -1,5 +1,11 @@
 # Auftrag an den Browser-Chat: Links mit Herkunftsangabe (utm) in Profilen und Verzeichnissen (08.11.2026)
 
+**Neu (2. Runde, 08.11. abends): Kurzlinks statt langer utm-Adressen.** `https://crewtender.eu/instagram`, `/facebook`,
+`/linkedin`, `/bluesky`, `/mastodon`, `/g2`, `/omr`, `/getapp` leiten auf die Startseite weiter und geben die Herkunft mit.
+Überall, wo schon ein langer utm-Link steht, durch den Kurzlink ersetzen (Facebook-Website, Bluesky-Beschreibung,
+Mastodon-Zusatzfeld). Instagram ändert Benjamin in der App (Link: `https://crewtender.eu/instagram`, Titel z. B. „Website“).
+Neue Einträge (LinkedIn, G2, OMR, GetApp) gleich mit dem Kurzlink. Die Tabelle unten bleibt gültig, falls ein Kurzlink nicht geht.
+
 Benjamins OK liegt vor (Auftrag „Messung einbauen und erste Klicks“, 08.11.2026). Nur Crewtender. Nichts posten, nichts kaufen,
 keine Werbung, keine Einladungen. Nur das Website-/Link-Feld ändern; wo das Feld keine Parameter annimmt (Fehlermeldung oder
 es wird abgeschnitten), den bisherigen Link lassen und „nicht möglich“ notieren.

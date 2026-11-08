@@ -51,3 +51,16 @@ export async function herkunftWeitergeben(request: Request, r: Response): Promis
   headers.delete("content-length");
   return new Response(linksMitHerkunft(await r.text(), h), { status: r.status, statusText: r.statusText, headers });
 }
+
+// Short, readable links for profiles and directories (crewtender.eu/instagram instead of a long utm address).
+export const KURZLINKS: Record<string, [string, string]> = {
+  "/instagram": ["instagram", "social"], "/facebook": ["facebook", "social"], "/linkedin": ["linkedin", "social"],
+  "/bluesky": ["bluesky", "social"], "/mastodon": ["mastodon", "social"],
+  "/g2": ["g2", "verzeichnis"], "/omr": ["omr", "verzeichnis"], "/getapp": ["getapp", "verzeichnis"], "/capterra": ["capterra", "verzeichnis"],
+};
+
+/** 302 to the start page with the origin of the short link; null for other paths. */
+export function kurzlink(url: URL): Response | null {
+  const k = KURZLINKS[url.pathname.replace(/\/$/, "").toLowerCase()];
+  return k ? new Response(null, { status: 302, headers: { location: `/?utm_source=${k[0]}&utm_medium=${k[1]}&utm_campaign=profil`, "cache-control": "no-store" } }) : null;
+}
