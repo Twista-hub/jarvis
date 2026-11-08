@@ -117,6 +117,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108080000_rechnung_land.sql
 \ir ../migrations/20261108090000_kunden_privat.sql
 \ir ../migrations/20261108100000_social_slots.sql
+\ir ../migrations/20261108110000_spesen_pauschalen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1380,6 +1381,21 @@ select pruefe(public.schicht_uebernehmen(current_setting('test.offen_koch')::uui
 select pruefe(public.schicht_uebernehmen(:'offen_ok') = 'ok', 'Einsatzkraft übernimmt offene Schicht');
 select pruefe(public.schicht_uebernehmen(:'offen_ok') = 'vergeben', 'Zweites Übernehmen geht nicht');
 insert into public.spesen (firma_id, personal_id, datum, art, betrag) values (:'firma', :'p_berlin', current_date, 'parken', 4.5);
+-- S19: flat rates – the amount must match the kilometres or the meal day; one meal flat rate per day.
+insert into public.spesen (firma_id, personal_id, datum, art, betrag, km, notiz) values (:'firma', :'p_berlin', current_date, 'km', 12.6, 42, 'Büro → Baustelle');
+insert into public.spesen (firma_id, personal_id, datum, art, betrag, vma, mahlzeiten) values (:'firma', :'p_berlin', current_date, 'vma', 16.8, '24h', 2);
+do $$ begin
+  insert into public.spesen (firma_id, personal_id, datum, art, betrag, km) values (current_setting('test.firma')::uuid, (select id from public.personal where user_id = auth.uid()), current_date, 'km', 50, 42);
+  raise exception 'FEHLER: Kilometergeld mit falschem Betrag';
+exception when check_violation then null; end $$;
+do $$ begin
+  insert into public.spesen (firma_id, personal_id, datum, art, betrag, vma) values (current_setting('test.firma')::uuid, (select id from public.personal where user_id = auth.uid()), current_date - 1, 'vma', 28, '8h');
+  raise exception 'FEHLER: Verpflegungspauschale zu hoch';
+exception when check_violation then null; end $$;
+do $$ begin
+  insert into public.spesen (firma_id, personal_id, datum, art, betrag, vma) values (current_setting('test.firma')::uuid, (select id from public.personal where user_id = auth.uid()), current_date, 'vma', 14, '8h');
+  raise exception 'FEHLER: zwei Verpflegungspauschalen am selben Tag';
+exception when unique_violation then null; end $$;
 do $$ begin
   insert into public.spesen (firma_id, personal_id, datum, betrag, status) values (current_setting('test.firma')::uuid, (select id from public.personal limit 1), current_date, 10, 'freigegeben');
   raise exception 'FEHLER: Einsatzkraft gibt eigene Spesen frei';

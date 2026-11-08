@@ -273,8 +273,11 @@ begin
   insert into public.spesen (firma_id, personal_id, datum, art, betrag, notiz, status, freigegeben_von, freigegeben_am) values
     (f, p[1], heute - 6, 'tanken', 68.40, 'Firmenwagen AC-RF 101', 'freigegeben', u, now() - interval '4 days'),
     (f, p[1], heute - 2, 'parken', 6.50, 'Parkhaus Markt', 'erfasst', null, null),
-    (f, p[7], heute - 9, 'verpflegung', 14.00, 'Messe-Nachtschicht', 'erfasst', null, null),
     (f, p[4], heute - 15, 'material', 23.89, 'Baumarkt: Ersatzteile Spender', 'abgelehnt', u, now() - interval '12 days');
+  -- S19: flat rates (meal allowance, mileage with the own car)
+  insert into public.spesen (firma_id, personal_id, datum, art, betrag, vma, km, notiz, status) values
+    (f, p[7], heute - 9, 'vma', 14.00, '8h', null, 'Messe-Nachtschicht Köln, 10 Stunden unterwegs', 'erfasst'),
+    (f, p[1], heute - 3, 'km', 12.60, null, 42, 'Büro → Grundschule am Weiher und zurück (Materiallieferung)', 'erfasst');
 
   -- ---------- Rechnungen, Belege ----------
   -- Issued invoices (GoBD since 03.11.2026): first into a temporary table, then frozen with sender/recipient snapshot.

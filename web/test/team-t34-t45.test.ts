@@ -5,7 +5,7 @@ import type { Eintrag } from "../src/stunden.ts";
 import { istPrivat, mahnungDocx, neueEntwurfsnummer, positionen, rechnungDocx, rechnungenSeite, type Absender, type Rechnung } from "../src/rechnungen.ts";
 import { lohnCsv, lohnExcel, lohnZeilen, stundennachweisDocx } from "../src/lohn.ts";
 import { hm, zeitkonto, zeitkontoSeite } from "../src/zeitkonto.ts";
-import { meineSpesenTeil, spesenSeite, type Spese } from "../src/spesen.ts";
+import { kmBetrag, meineSpesenTeil, spesenSeite, vmaBetrag, type Spese } from "../src/spesen.ts";
 import { bzStufe, bzText } from "../src/aueg.ts";
 import { abstandKm, auswerten, laufend, stempelTeil, type Stempel } from "../src/stempel.ts";
 import { inhaltAus, oeffentlicheSeite } from "../src/kundenlink.ts";
@@ -102,7 +102,9 @@ test("T36: Spesen für Einsatzkraft und Büro", () => {
   const l: Spese[] = [{ id: "s1", personal_id: "p1", datum: "2026-10-30", art: "tanken", betrag: "48.9", notiz: "Fahrt <b>", beleg_mime: "image/jpeg", status: "erfasst" }, { id: "s2", personal_id: "p1", datum: "2026-10-26", art: "parken", betrag: 12, notiz: "", beleg_mime: null, status: "freigegeben" }];
   const m = meineSpesenTeil(l, "2026-11-01");
   assert.match(m, /Meine Spesen[\s\S]*48,90/);
-  assert.match(m, /capture="environment"/);
+  assert.doesNotMatch(m, /capture=/, "kein Kamera-Zwang, damit am Handy auch PDFs wählbar sind");
+  assert.match(m, /<option value="km">🚗 Kilometergeld[\s\S]*<option value="vma">🍽️ Verpflegungspauschale/);
+  assert.doesNotMatch(m, /name="betrag"[^>]*required/, "Betrag nicht Pflicht (bei Pauschalen ausgeblendet)");
   assert.ok(!m.includes("<b>"), "Notiz wird escaped");
   const b = spesenSeite(l, [{ id: "p1", vorname: "Eva", nachname: "Muster" }] as never, { monat: "2026-10", darfAendern: true });
   assert.match(b, /name="id" value="s1"/);
@@ -292,4 +294,21 @@ test("S17: Privatkunden – Aufbewahrungshinweis auf der Rechnung (eingefroren),
   assert.match(m2, /Guten Tag Erika Muster,/);
   const m2Firma = docText(mahnungDocx({ ...aus, mahnstufe: 3, empfaenger: { name: "Firma GmbH" } }, null, a, "2026-12-20"));
   assert.match(m2Firma, /9 Prozentpunkte .*40 €/);
+});
+
+test("S19: Kilometergeld und Verpflegungspauschale, getrennt in der Lohnliste", () => {
+  assert.equal(kmBetrag(42), 12.6);
+  assert.equal(kmBetrag(12.5), 3.75);
+  assert.deepEqual([vmaBetrag("8h", 0), vmaBetrag("an_ab", 0), vmaBetrag("24h", 0)], [14, 14, 28]);
+  assert.equal(vmaBetrag("24h", 1), 22.4, "Frühstück − 5,60");
+  assert.equal(vmaBetrag("24h", 2 | 4), 5.6, "Mittag und Abend je − 11,20");
+  assert.equal(vmaBetrag("8h", 1 | 2), 0, "nie unter 0");
+  const personen = [{ id: "p1", vorname: "Eva", nachname: "Muster", personalnummer: "1001", status: "verfuegbar", wochenstunden: 40, eintritt: null }];
+  const sp = [{ personal_id: "p1", betrag: 12.5, status: "freigegeben", art: "parken" }, { personal_id: "p1", betrag: 14, status: "freigegeben", art: "vma" },
+    { personal_id: "p1", betrag: 12.6, status: "freigegeben", art: "km" }, { personal_id: "p1", betrag: 28, status: "erfasst", art: "vma" }];
+  const z = lohnZeilen(personen as never, [], [], sp as never, [], [], [], "2026-10", "");
+  assert.deepEqual([z[0].spesen, z[0].vma, z[0].km], [12.5, 14, 12.6], "nur freigegebene, je Lohnart getrennt");
+  const csv = lohnCsv(z);
+  assert.match(csv, /Auslagen mit Beleg \(€\);Verpflegungspauschale \(€\);Kilometergeld \(€\)/);
+  assert.match(csv, /;12,5;14;12,6;/);
 });
