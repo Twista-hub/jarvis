@@ -4,12 +4,11 @@
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
+import { ustIdPasst } from "./xrechnung.ts";
 /** Countries a customer can be in (ISO 3166 codes, used for the address on invoices and in the XRechnung). */
 export const KUNDEN_LAENDER: Record<string, string> = { DE: "Deutschland", AT: "Österreich", CH: "Schweiz", NL: "Niederlande", BE: "Belgien", LU: "Luxemburg", FR: "Frankreich", DK: "Dänemark", PL: "Polen", CZ: "Tschechien", IT: "Italien", ES: "Spanien", GB: "Vereinigtes Königreich", US: "USA" };
 /** Postcode check per country: five digits in Germany, otherwise 3–10 letters, digits, spaces or hyphens. */
 export const plzPasst = (plz: string, land: string) => (land === "DE" ? /^\d{5}$/ : /^[0-9A-Za-z][0-9A-Za-z -]{1,8}[0-9A-Za-z]$/).test(plz);
-/** A VAT ID starts with the two-letter country prefix (BR-CO-9; Greece uses EL). */
-export const ustIdPasst = (u: string) => u === "" || /^[A-Z]{2}[0-9A-Z+*.]{2,13}$/.test(u);
 
 export type Kunde = { id: string; bereich_id: string | null; name: string; strasse: string; plz: string; ort: string; land?: string; ansprechpartner: string; telefon: string; email: string; notiz: string; bz_tarif?: string; bz_prozente?: (number | string)[]; ust_13b?: boolean; ustid?: string; leitweg_id?: string };
 export type Einsatzort = { id: string; kunde_id: string | null; name: string; strasse: string; plz: string; ort: string; ansprechpartner: string; telefon: string; treffpunkt: string; kleidung: string; hinweise: string };
