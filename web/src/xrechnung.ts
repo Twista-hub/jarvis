@@ -37,9 +37,10 @@ export function fehlendFuerXRechnung(a: Absender, k: Kunde | null, leitweg = "")
 
 /** Without a VAT ID (e.g. small businesses, § 19 UStG) the tax number is also the seller identifier BT-29 (BR-CO-26). */
 export function xrechnungXml(r: Rechnung, k: Kunde | null, a: Absender, kaeuferReferenz = ""): string {
-  // A cancellation (Stornorechnung) is stored with negative amounts; as e-invoice it is a credit note (381) with positive
-  // amounts and a reference to the cancelled invoice (BT-25).
+  // A cancellation (Stornorechnung) is stored with negative amounts; as e-invoice it is a UBL CreditNote (type 381) with
+  // positive amounts and a reference to the cancelled invoice (BT-25). The UBL Invoice syntax does not allow 381 (BR-CL-01).
   const storno = r.art === "storno", v = storno ? -1 : 1;
+  const dok = storno ? "CreditNote" : "Invoice", zeile = storno ? "CreditNoteLine" : "InvoiceLine", mengeTag = storno ? "CreditedQuantity" : "InvoicedQuantity";
   const netto = v * Number(r.netto);
   const rc = !!r.reverse_charge; // § 13b: category AE, the buyer owes the VAT
   const satz = a.kleinunternehmer || rc ? 0 : Number(r.ust_satz);
@@ -57,18 +58,18 @@ export function xrechnungXml(r: Rechnung, k: Kunde | null, a: Absender, kaeuferR
     : `<cac:PaymentMeans><cbc:PaymentMeansCode>1</cbc:PaymentMeansCode></cac:PaymentMeans>`;
   const land = (c: string | undefined) => (/^[A-Z]{2}$/.test(c ?? "") && c !== "XX" ? c! : "DE");
   const adresse = (strasse: string, plz: string, ort: string, c: string | undefined) => `<cac:PostalAddress><cbc:StreetName>${x(strasse)}</cbc:StreetName><cbc:CityName>${x(ort)}</cbc:CityName><cbc:PostalZone>${x(plz)}</cbc:PostalZone><cac:Country><cbc:IdentificationCode>${land(c)}</cbc:IdentificationCode></cac:Country></cac:PostalAddress>`;
-  const zeilen = r.positionen.map((p, i) => `<cac:InvoiceLine><cbc:ID>${i + 1}</cbc:ID><cbc:InvoicedQuantity unitCode="${EINHEIT[p.einheit] ?? "C62"}">${menge(v * p.menge)}</cbc:InvoicedQuantity><cbc:LineExtensionAmount currencyID="EUR">${betrag(v * p.betrag)}</cbc:LineExtensionAmount><cac:Item><cbc:Name>${x(p.text)}</cbc:Name>${steuer("ClassifiedTaxCategory")}</cac:Item><cac:Price><cbc:PriceAmount currencyID="EUR">${betrag(Math.abs(p.preis))}</cbc:PriceAmount></cac:Price></cac:InvoiceLine>`).join("");
+  const zeilen = r.positionen.map((p, i) => `<cac:${zeile}><cbc:ID>${i + 1}</cbc:ID><cbc:${mengeTag} unitCode="${EINHEIT[p.einheit] ?? "C62"}">${menge(v * p.menge)}</cbc:${mengeTag}><cbc:LineExtensionAmount currencyID="EUR">${betrag(v * p.betrag)}</cbc:LineExtensionAmount><cac:Item><cbc:Name>${x(p.text)}</cbc:Name>${steuer("ClassifiedTaxCategory")}</cac:Item><cac:Price><cbc:PriceAmount currencyID="EUR">${betrag(Math.abs(p.preis))}</cbc:PriceAmount></cac:Price></cac:${zeile}>`).join("");
   // BT-49: public buyers receive via their Leitweg-ID (scheme 0204), everyone else by e-mail.
   const leitweg = kaeuferReferenz.trim();
   const kaeuferAdresse = /^[0-9A-Za-z-]{5,46}$/.test(leitweg) && /^\d/.test(leitweg) ? `<cbc:EndpointID schemeID="0204">${x(leitweg)}</cbc:EndpointID>` : `<cbc:EndpointID schemeID="EM">${x(k?.email ?? "")}</cbc:EndpointID>`;
   const kaeuferUst = r.empfaenger?.ustid || k?.ustid || "";
   return `<?xml version="1.0" encoding="UTF-8"?>
-<ubl:Invoice xmlns:ubl="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
+<ubl:${dok} xmlns:ubl="urn:oasis:names:specification:ubl:schema:xsd:${dok}-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2">
 <cbc:CustomizationID>urn:cen.eu:en16931:2017#compliant#urn:xeinkauf.de:kosit:xrechnung_3.0</cbc:CustomizationID>
 <cbc:ProfileID>urn:fdc:peppol.eu:2017:poacc:billing:01:1.0</cbc:ProfileID>
 <cbc:ID>${x(r.nummer)}</cbc:ID>
 <cbc:IssueDate>${r.datum}</cbc:IssueDate>
-${storno ? "" : `<cbc:DueDate>${faellig}</cbc:DueDate>\n`}<cbc:InvoiceTypeCode>${storno ? "381" : "380"}</cbc:InvoiceTypeCode>
+${storno ? "" : `<cbc:DueDate>${faellig}</cbc:DueDate>\n`}<cbc:${dok}TypeCode>${storno ? "381" : "380"}</cbc:${dok}TypeCode>
 ${storno ? `<cbc:Note>Stornorechnung: hebt die Rechnung ${x(r.bezug_nummer ?? "")} vollständig auf.</cbc:Note>\n` : ""}${a.kleinunternehmer ? "<cbc:Note>Umsatzsteuerfrei aufgrund der Kleinunternehmerregelung nach § 19 Abs. 1 UStG.</cbc:Note>\n" : ""}${rc ? "<cbc:Note>Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG).</cbc:Note>\n" : ""}<cbc:DocumentCurrencyCode>EUR</cbc:DocumentCurrencyCode>
 <cbc:BuyerReference>${x(kaeuferReferenz.trim() || r.nummer)}</cbc:BuyerReference>
 <cac:InvoicePeriod><cbc:StartDate>${r.monat}-01</cbc:StartDate><cbc:EndDate>${ende}</cbc:EndDate></cac:InvoicePeriod>${storno && r.bezug_nummer ? `\n<cac:BillingReference><cac:InvoiceDocumentReference><cbc:ID>${x(r.bezug_nummer)}</cbc:ID></cac:InvoiceDocumentReference></cac:BillingReference>\n` : ""}
@@ -79,6 +80,6 @@ ${zahlung}
 <cac:TaxTotal><cbc:TaxAmount currencyID="EUR">${betrag(ust)}</cbc:TaxAmount><cac:TaxSubtotal><cbc:TaxableAmount currencyID="EUR">${betrag(netto)}</cbc:TaxableAmount><cbc:TaxAmount currencyID="EUR">${betrag(ust)}</cbc:TaxAmount>${steuer("TaxCategory")}</cac:TaxSubtotal></cac:TaxTotal>
 <cac:LegalMonetaryTotal><cbc:LineExtensionAmount currencyID="EUR">${betrag(netto)}</cbc:LineExtensionAmount><cbc:TaxExclusiveAmount currencyID="EUR">${betrag(netto)}</cbc:TaxExclusiveAmount><cbc:TaxInclusiveAmount currencyID="EUR">${betrag(netto + ust)}</cbc:TaxInclusiveAmount><cbc:PayableAmount currencyID="EUR">${betrag(netto + ust)}</cbc:PayableAmount></cac:LegalMonetaryTotal>
 ${zeilen}
-</ubl:Invoice>
+</ubl:${dok}>
 `;
 }
