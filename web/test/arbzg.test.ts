@@ -79,3 +79,13 @@ test("A4: Bundesland je Standort, sonst Firmensitz (Feiertage für Urlaub und Ze
   const land = landResolver([{ id: "s1", parent_id: null, bundesland: "BY" }, { id: "t1", parent_id: "s1", bundesland: "" }, { id: "s2", parent_id: null, bundesland: "" }], "NW");
   assert.deepEqual([land("s1"), land("t1"), land("s2"), land(null)], ["BY", "BY", "NW", "NW"]);
 });
+
+test("A-M10: Bewachung nur mit § 34a und Bewacher-ID", async () => {
+  const { bewachungHinweis } = await import("../src/schichten.ts");
+  assert.equal(bewachungHinweis(["Reinigungskraft"], [], "2026-11-10"), null);
+  assert.equal(bewachungHinweis(["Luftsicherheitskontrollkraft"], [], "2026-11-10"), null, "Luftsicherheit hat eigene Regeln");
+  assert.match(bewachungHinweis(["Sicherheitskraft"], [], "2026-11-10")!, /§ 34a GewO und Bewacher-ID/);
+  assert.match(bewachungHinweis(["Sicherheitskraft"], [{ bezeichnung: "Unterrichtung § 34a GewO", gueltig_bis: null }], "2026-11-10")!, /fehlt Bewacher-ID/);
+  assert.equal(bewachungHinweis(["Sicherheitskraft"], [{ bezeichnung: "Sachkunde § 34a GewO", gueltig_bis: null }, { bezeichnung: "Bewacherregister (Bewacher-ID)", gueltig_bis: "2027-01-01" }], "2026-11-10"), null);
+  assert.match(bewachungHinweis(["Sicherheitskraft"], [{ bezeichnung: "Sachkunde § 34a GewO", gueltig_bis: null }, { bezeichnung: "Bewacherregister (Bewacher-ID)", gueltig_bis: "2026-01-01" }], "2026-11-10")!, /Bewacher-ID/, "abgelaufen zählt nicht");
+});

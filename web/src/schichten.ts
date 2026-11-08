@@ -65,6 +65,16 @@ export function arbzgHinweise(s: Pick<Schicht, "id" | "personal_id" | "datum" | 
   return h;
 }
 
+/** Rechtsprüfung A-M10: guarding staff (§ 34a GewO, § 16 BewachV) need instruction or the expert exam under § 34a and an
+ *  entry in the guard register (Bewacher-ID). Checked against the staff file when such a person is planned; Luftsicherheit
+ *  has its own rules and is left out. Returns a hint or null. */
+export function bewachungHinweis(berufe: string[], nachweise: { bezeichnung: string; gueltig_bis: string | null }[], datum: string): string | null {
+  if (!berufe.some((b) => /sicherheit|wach|objektschutz|ordner|werkschutz|revier|security|doorman|pf(ö|oe)rtner/i.test(b) && !/luftsicherheit/i.test(b))) return null;
+  const gueltig = (re: RegExp) => nachweise.some((n) => re.test(n.bezeichnung) && (!n.gueltig_bis || n.gueltig_bis >= datum));
+  const fehlt = [gueltig(/34\s*a/i) ? "" : "Unterrichtung oder Sachkunde nach § 34a GewO", gueltig(/bewacher/i) ? "" : "Bewacher-ID (Bewacherregister)"].filter(Boolean);
+  return fehlt.length ? `Bewachung: in der Personalakte fehlt ${fehlt.join(" und ")} (§ 34a GewO, § 16 BewachV)` : null;
+}
+
 /** Rechtsprüfung A1: yearly rules for one person – at least 15 free Sundays a year (§ 11 Abs. 1 ArbZG) and, for a Sunday
  *  shift, a compensatory weekday off within the two weeks around it (§ 11 Abs. 3). Only shifts already planned count,
  *  so days not planned yet are free. */
@@ -204,14 +214,17 @@ export async function schichtenRoute(request: Request, env: KontoEnv): Promise<R
     const zeilen = liste.map((d) => ({ firma_id: firma, bereich_id: bereich, personal_id: person || null, einsatzort_id: einsatzort, datum: d, beginn, ende, ort, notiz: t("notiz", 300), beruf: person ? "" : t("beruf", 120) }));
     if (person && form.get("arbzg_ok") !== "1") {
       // ArbZG: check against the person's other shifts around these days; warn first, save only after confirmation.
-      const [vorhanden, jahr, land] = await Promise.all([
+      const [vorhanden, jahr, land, wer, nachweise] = await Promise.all([
         db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&personal_id=eq.${person}&datum=gte.${plusTage(liste[0], -1)}&datum=lte.${plusTage(liste[liste.length - 1], 1)}&select=id,personal_id,bereich_id,datum,beginn,ende,ort,notiz,antwort&limit=2000`),
         db<Schicht[]>(f.s, env, `schichten?firma_id=eq.${firma}&personal_id=eq.${person}&datum=gte.${liste[0].slice(0, 4)}-01-01&datum=lte.${liste[liste.length - 1].slice(0, 4)}-12-31&select=datum,antwort&limit=5000`),
         landDerFirma(f.s, env, firma),
+        db<{ berufe: string[] }[]>(f.s, env, `personal?id=eq.${person}&firma_id=eq.${firma}&select=berufe`),
+        db<{ bezeichnung: string; gueltig_bis: string | null }[]>(f.s, env, `personal_nachweise?personal_id=eq.${person}&firma_id=eq.${firma}&select=bezeichnung,gueltig_bis&limit=200`),
       ]);
       const neu = zeilen.map((z, i) => ({ ...z, id: `neu-${i}`, antwort: "offen" }) as unknown as Schicht);
       const alle = [...(vorhanden.ok ? vorhanden.daten : []), ...neu];
-      const hinweise = [...new Set([...neu.flatMap((z) => arbzgHinweise(z, alle, land).map((h) => `${z.datum.slice(8, 10)}.${z.datum.slice(5, 7)}.: ${h}`)), ...arbzgJahr(neu, jahr.ok ? jahr.daten : [])])];
+      const hinweise = [...new Set([...neu.flatMap((z) => arbzgHinweise(z, alle, land).map((h) => `${z.datum.slice(8, 10)}.${z.datum.slice(5, 7)}.: ${h}`)), ...arbzgJahr(neu, jahr.ok ? jahr.daten : []),
+        ...[bewachungHinweis(wer.ok ? wer.daten[0]?.berufe ?? [] : [], nachweise.ok ? nachweise.daten : [], liste[liste.length - 1])].filter((x): x is string => !!x)])];
       if (hinweise.length) return zurueck(`⚠️ Arbeitszeitgesetz: ${hinweise.slice(0, 4).join(" · ")}${hinweise.length > 4 ? " …" : ""}. Nichts gespeichert. Bitte Zeiten prüfen oder „Hinweise gelesen, trotzdem speichern“ ankreuzen.`, montag(datum));
     }
     const r = await db(f.s, env, "schichten", { method: "POST", body: JSON.stringify(zeilen) });
