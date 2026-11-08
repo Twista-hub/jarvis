@@ -2,9 +2,11 @@
 // the format German public buyers require and that becomes mandatory between businesses from 2027/2028. Nothing is
 // sent: the firm downloads the XML and sends or uploads it itself. Checked with the official KoSIT validator in
 // .github/workflows/xrechnung-pruefen.yml.
-import { ustIdPasst, type Kunde } from "./kunden.ts";
+import type { Kunde } from "./kunden.ts";
 import type { Absender, Rechnung } from "./rechnungen.ts";
 
+/** A VAT ID starts with the two-letter country prefix (BR-CO-9; Greece uses EL). */
+export const ustIdPasst = (u: string) => u === "" || /^[A-Z]{2}[0-9A-Z+*.]{2,13}$/.test(u);
 const x = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const betrag = (n: number) => (Math.round(n * 100) / 100).toFixed(2);
 const menge = (n: number) => (Math.round(n * 10000) / 10000).toString();
