@@ -1,11 +1,15 @@
-# Automatic posts on Bluesky and Mastodon (alarm/social.py), Monday to Friday about 09:00 Berlin. Two start times
-# (07:05 and 08:05 UTC) cover summer and winter time; the script posts only between 09 and 11 Berlin and once per
-# day and network. Secrets: BLUESKY_APP_PASSWORD, MASTODON_TOKEN (a network without its secret is skipped).
+# Automatic posts on Bluesky and Mastodon (alarm/social.py): weekdays about 09, 13 and 17 Berlin, weekends about 11.
+# One UTC start per slot (winter 09/13/17, summer 10/14/18 Berlin; the script's windows cover both) on an off-peak minute,
+# plus a second start 30 minutes later in case GitHub drops a scheduled run (it dropped both starts on 07.11.2026); the
+# script posts once per day, slot and network. Secrets: BLUESKY_APP_PASSWORD, MASTODON_TOKEN (a network without its
+# secret is skipped).
 name: Social
 on:
   schedule:
-    - cron: "5 7 * * 1-5"
-    - cron: "5 8 * * 1-5"
+    - cron: "23 8,12,16 * * 1-5"
+    - cron: "53 8,12,16 * * 1-5"
+    - cron: "23 10 * * 0,6"
+    - cron: "53 10 * * 0,6"
   workflow_dispatch:
     inputs:
       modus:
