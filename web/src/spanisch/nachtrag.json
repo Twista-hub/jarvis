@@ -521,5 +521,12 @@
  "Vorsteuer (Kz. 66)": "IVA soportado (casilla 66)",
  "Zahllast": "A pagar",
  "Summe": "Total",
- "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "Para una factura del extranjero (§ 13b) elige IVA 0 %: el IVA lo calcula la asesoría fiscal o DATEV."
+ "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "Para una factura del extranjero (§ 13b) elige IVA 0 %: el IVA lo calcula la asesoría fiscal o DATEV.",
+ "Reverse Charge EU: Kunde ist ein Unternehmen in einem anderen EU-Land und die Leistung ist dort steuerbar (z. B. Personal für eine Firma in Österreich). Rechnungen dann ohne Umsatzsteuer mit Hinweis, Zusammenfassende Meldung nötig.": "Inversión del sujeto pasivo UE: el cliente es una empresa de otro país de la UE y el servicio tributa allí (p. ej. personal para una empresa en Austria). Facturas sin IVA con nota; hace falta la declaración recapitulativa.",
+ "Nicht": "No",
+ "für Arbeiten an Gebäuden in Deutschland – dort gilt deutsche Umsatzsteuer. Vorschlag, im Zweifel Steuerbüro fragen.": "para trabajos en edificios en Alemania: allí se aplica el IVA alemán. Propuesta, en caso de duda consulta a tu asesoría fiscal.",
+ "Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).": "La inversión del sujeto pasivo UE solo vale para una empresa de otro país de la UE con NIF-IVA (no junto con § 13b ni particular).",
+ "🇪🇺 Rechnungen mit Reverse Charge an Unternehmen in anderen EU-Ländern: Dafür ist zusätzlich die": "🇪🇺 Facturas con inversión del sujeto pasivo a empresas de otros países de la UE: además hace falta la",
+ "Zusammenfassende Meldung": "declaración recapitulativa",
+ "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "ante la Oficina Central Federal de Impuestos (por ELSTER, hasta el día # del mes o trimestre siguiente), con el NIF-IVA del cliente y el importe. Propuesta, revísalo con tu asesoría fiscal."
 }

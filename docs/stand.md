@@ -105,6 +105,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Protokoll
 
 ### 08.11.2026 abends – Claude Code (Standardlösungen statt Steuerbüro: S13, S18)
+- Reverse Charge EU: Kundenhäkchen (nur EU-Land ≠ DE mit USt-IdNr., nicht mit § 13b/Privat; ausdrücklich nicht für Arbeiten an Gebäuden in Deutschland), Rechnung 0 % mit Hinweis „Reverse charge (Art. 196 MwStSystRL)“ und beiden USt-IdNrn., XRechnung AE, DATEV-Erlöskonto 8338/4336, USt-Übersicht Kz. 21 und Hinweis auf die Zusammenfassende Meldung. Migration `20261108150000_reverse_charge_eu.sql`. Länderliste der Kunden um alle EU-Länder ergänzt.
 - S13 Kleinunternehmer-Wächter: Gründungsjahr (25.000 € im laufenden Jahr), Umsätze außerhalb Crewtender je Jahr (Migration `20261108130000_umsatz_extern.sql`), vorsichtige Zählung nach Rechnungsdatum mit „davon bezahlt“.
 - S18 DATEV: Belege mit „Bezahlt: bar“ gegen Kasse (1000/1600), Häkchen „Lieferant im Ausland (§ 13b)“ → BU 94 und Hinweis in der USt-Übersicht, neue Kategorie „Arbeitskleidung & Schutzausrüstung“ (4980/6850). Migration `20261108140000_belege_datev.sql`. USt-Übersicht in allen Sprachen.
 

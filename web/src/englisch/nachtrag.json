@@ -521,5 +521,12 @@
  "Vorsteuer (Kz. 66)": "Input VAT (box 66)",
  "Zahllast": "Payable",
  "Summe": "Total",
- "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "For an invoice from abroad (§ 13b) please choose 0 % VAT: the tax adviser or DATEV calculates the VAT."
+ "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "For an invoice from abroad (§ 13b) please choose 0 % VAT: the tax adviser or DATEV calculates the VAT.",
+ "Reverse Charge EU: Kunde ist ein Unternehmen in einem anderen EU-Land und die Leistung ist dort steuerbar (z. B. Personal für eine Firma in Österreich). Rechnungen dann ohne Umsatzsteuer mit Hinweis, Zusammenfassende Meldung nötig.": "Reverse charge EU: the customer is a business in another EU country and the service is taxable there (e.g. staff for a firm in Austria). Invoices then without VAT with a note; an EC sales list is needed.",
+ "Nicht": "Not",
+ "für Arbeiten an Gebäuden in Deutschland – dort gilt deutsche Umsatzsteuer. Vorschlag, im Zweifel Steuerbüro fragen.": "for work on buildings in Germany – German VAT applies there. Proposal, ask your tax adviser if in doubt.",
+ "Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).": "EU reverse charge only works for a business in another EU country with a VAT ID (not together with § 13b or private person).",
+ "🇪🇺 Rechnungen mit Reverse Charge an Unternehmen in anderen EU-Ländern: Dafür ist zusätzlich die": "🇪🇺 Invoices with reverse charge to businesses in other EU countries: these also require the",
+ "Zusammenfassende Meldung": "EC sales list",
+ "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "to the Federal Central Tax Office (via ELSTER, by the #th of the following month or quarter), with the customer's VAT ID and amount. Proposal, please check with your tax adviser."
 }

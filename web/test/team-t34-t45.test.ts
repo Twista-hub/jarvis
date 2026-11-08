@@ -312,3 +312,13 @@ test("S19: Kilometergeld und Verpflegungspauschale, getrennt in der Lohnliste", 
   assert.match(csv, /Auslagen mit Beleg \(€\);Verpflegungspauschale \(€\);Kilometergeld \(€\)/);
   assert.match(csv, /;12,5;14;12,6;/);
 });
+
+test("Reverse Charge EU auf der Rechnung: Hinweis und beide USt-IdNrn.", () => {
+  const a: Absender = { name: "Muster GmbH", strasse: "Hauptstr. 1", plz: "52531", ort: "Übach-Palenberg", telefon: "", email: "", steuernummer: "", ustid: "DE123456789", kleinunternehmer: false, zahlungshinweis: "" };
+  const r: Rechnung = { id: "r", kunde_id: "k", nummer: "RE-2026-0010", monat: "2026-10", datum: "2026-11-02", positionen: [{ text: "Personal", menge: 10, einheit: "Std.", preis: 30, betrag: 300 }], netto: 300, ust_satz: 0, erstellt: "", status: "ausgestellt",
+    absender: a, empfaenger: { name: "Wien GmbH", land: "AT", ustid: "ATU12345678" }, ust_betrag: 0, reverse_charge: true, reverse_charge_eu: true };
+  const t = docText(rechnungDocx(r, null, a));
+  assert.match(t, /Reverse charge \(Art\. 196 MwStSystRL\)\. USt-IdNr\. des Leistungsempfängers: ATU12345678 · Unsere USt-IdNr\.: DE123456789/);
+  assert.match(t, /Österreich/);
+  assert.doesNotMatch(t, /zzgl\. 19/);
+});

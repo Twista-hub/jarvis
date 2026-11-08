@@ -521,5 +521,12 @@
  "Vorsteuer (Kz. 66)": "TVA déductible (case 66)",
  "Zahllast": "Montant à payer",
  "Summe": "Total",
- "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "Pour une facture de l'étranger (§ 13b), choisissez 0 % de TVA : l'expert-comptable ou DATEV calcule la TVA."
+ "Bei einer Rechnung aus dem Ausland (§ 13b) bitte USt-Satz 0 % wählen: Die Umsatzsteuer berechnet das Steuerbüro bzw. DATEV.": "Pour une facture de l'étranger (§ 13b), choisissez 0 % de TVA : l'expert-comptable ou DATEV calcule la TVA.",
+ "Reverse Charge EU: Kunde ist ein Unternehmen in einem anderen EU-Land und die Leistung ist dort steuerbar (z. B. Personal für eine Firma in Österreich). Rechnungen dann ohne Umsatzsteuer mit Hinweis, Zusammenfassende Meldung nötig.": "Autoliquidation UE : le client est une entreprise d'un autre pays de l'UE et la prestation y est imposable (p. ex. personnel pour une entreprise en Autriche). Factures alors sans TVA avec mention ; état récapitulatif nécessaire.",
+ "Nicht": "Pas",
+ "für Arbeiten an Gebäuden in Deutschland – dort gilt deutsche Umsatzsteuer. Vorschlag, im Zweifel Steuerbüro fragen.": "pour des travaux sur des bâtiments en Allemagne – la TVA allemande s'y applique. Proposition, en cas de doute demandez à l'expert-comptable.",
+ "Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).": "L'autoliquidation UE ne s'applique qu'à une entreprise d'un autre pays de l'UE avec n° de TVA (pas avec § 13b ni particulier).",
+ "🇪🇺 Rechnungen mit Reverse Charge an Unternehmen in anderen EU-Ländern: Dafür ist zusätzlich die": "🇪🇺 Factures en autoliquidation à des entreprises d'autres pays de l'UE : il faut en plus l'",
+ "Zusammenfassende Meldung": "état récapitulatif",
+ "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "auprès de l'office fédéral des impôts (via ELSTER, avant le # du mois ou trimestre suivant), avec le n° de TVA du client et le montant. Proposition, à vérifier avec l'expert-comptable."
 }

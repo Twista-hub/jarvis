@@ -21,8 +21,8 @@ export type Buchung = { cent: number; seite: "S" | "H"; konto: string; gegenkont
  *  S18 (cautious defaults, proposal): cash receipts against Kasse (1000 / 1600), work clothes on "Sonstiger Betriebsbedarf"
  *  (4980 / 6850), invoices of suppliers abroad with the § 13b key 94 (19 % input VAT and 19 % VAT owed). */
 export const KONTEN = {
-  "03": { debitor: "10000", kreditor: "70000", erloes: "8400", erloesKu: "8195", erloes13b: "8337", kasse: "1000", arbeitskleidung: "4980", material: "3000", fahrzeug: "4530", buero: "4930", miete: "4210", versicherung: "4360", telefon: "4920", reise: "4670", bewirtung: "4650", personal: "3100", sonstiges: "4900" },
-  "04": { debitor: "10000", kreditor: "70000", erloes: "4400", erloesKu: "4185", erloes13b: "4337", kasse: "1600", arbeitskleidung: "6850", material: "5000", fahrzeug: "6530", buero: "6815", miete: "6310", versicherung: "6400", telefon: "6805", reise: "6670", bewirtung: "6640", personal: "5900", sonstiges: "6300" },
+  "03": { debitor: "10000", kreditor: "70000", erloes: "8400", erloesKu: "8195", erloes13b: "8337", erloesEu: "8338", kasse: "1000", arbeitskleidung: "4980", material: "3000", fahrzeug: "4530", buero: "4930", miete: "4210", versicherung: "4360", telefon: "4920", reise: "4670", bewirtung: "4650", personal: "3100", sonstiges: "4900" },
+  "04": { debitor: "10000", kreditor: "70000", erloes: "4400", erloesKu: "4185", erloes13b: "4337", erloesEu: "4336", kasse: "1600", arbeitskleidung: "6850", material: "5000", fahrzeug: "6530", buero: "6815", miete: "6310", versicherung: "6400", telefon: "6805", reise: "6670", bewirtung: "6640", personal: "5900", sonstiges: "6300" },
 } as const;
 /** Input tax keys: 9 = 19 % Vorsteuer, 8 = 7 % Vorsteuer; 94 = § 13b UStG, 19 % Vorsteuer and 19 % Umsatzsteuer. */
 const BU_VORSTEUER: Record<number, string> = { 19: "9", 7: "8" };
@@ -37,14 +37,14 @@ const ymd = (d: string) => d.replace(/-/g, "");
 
 /** Postings for one month: outgoing invoices (gross, debtor to revenue) and receipts (expense to creditor, with input tax key).
  *  A mixed receipt (19 % and 7 %, Rechtsprüfung S20) becomes two postings with the same document number, one per rate. */
-export function buchungenAus(rechnungen: (Pick<Rechnung, "nummer" | "datum" | "netto" | "ust_satz"> & Partial<Pick<Rechnung, "ust_betrag" | "kleinunternehmer" | "art" | "bezug_nummer" | "reverse_charge">>)[], belege: Beleg[], e: DatevEinstellung, kundeName: (r: Pick<Rechnung, "nummer">) => string = () => ""): Buchung[] {
+export function buchungenAus(rechnungen: (Pick<Rechnung, "nummer" | "datum" | "netto" | "ust_satz"> & Partial<Pick<Rechnung, "ust_betrag" | "kleinunternehmer" | "art" | "bezug_nummer" | "reverse_charge" | "reverse_charge_eu">>)[], belege: Beleg[], e: DatevEinstellung, kundeName: (r: Pick<Rechnung, "nummer">) => string = () => ""): Buchung[] {
   const k = KONTEN[e.skr];
   const aus = rechnungen.map((r): Buchung => {
     // Issued invoices carry their frozen small-business status and VAT amount (GoBD); a cancellation is posted on the credit side.
     const ku = r.kleinunternehmer ?? e.kleinunternehmer;
     const brutto = r.ust_betrag !== null && r.ust_betrag !== undefined ? cent(r.netto) + cent(r.ust_betrag) : Math.round(cent(r.netto) * (100 + (ku ? 0 : Number(r.ust_satz))) / 100);
     const storno = r.art === "storno" || brutto < 0;
-    return { cent: Math.abs(brutto), seite: storno ? "H" : "S", konto: k.debitor, gegenkonto: ku ? k.erloesKu : r.reverse_charge ? k.erloes13b : k.erloes, datum: r.datum, beleg1: r.nummer, text: `${storno ? `Storno ${r.bezug_nummer ?? ""}` : "Rechnung"} ${r.nummer} ${kundeName(r)}`.replace(/\s+/g, " ") };
+    return { cent: Math.abs(brutto), seite: storno ? "H" : "S", konto: k.debitor, gegenkonto: ku ? k.erloesKu : r.reverse_charge_eu ? k.erloesEu : r.reverse_charge ? k.erloes13b : k.erloes, datum: r.datum, beleg1: r.nummer, text: `${storno ? `Storno ${r.bezug_nummer ?? ""}` : "Rechnung"} ${r.nummer} ${kundeName(r)}`.replace(/\s+/g, " ") };
   });
   const ein = belege.flatMap((b) => (e.kleinunternehmer ? [{ satz: 0, brutto: Number(b.brutto) }] : teile(b)).map((t): Buchung => ({ cent: cent(t.brutto), seite: "S", konto: (k as Record<string, string>)[b.kategorie] ?? k.sonstiges, gegenkonto: b.zahlart === "bar" ? k.kasse : k.kreditor, bu: e.kleinunternehmer ? "" : b.reverse_charge ? BU_13B : BU_VORSTEUER[t.satz] ?? "", datum: b.datum, beleg1: `B${ymd(b.datum).slice(2)}${b.id.slice(0, 6)}`, text: `${b.lieferant}${b.notiz ? ` ${b.notiz}` : ""}` })));
   return [...aus, ...ein].filter((b) => b.cent > 0).sort((a, b) => a.datum.localeCompare(b.datum));

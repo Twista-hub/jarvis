@@ -161,7 +161,7 @@ export async function belege(request: Request, env: KontoEnv & Partial<KiEnv>): 
     const monat = monatWahl(url.searchParams.get("monat"));
     const [d, l, r, k] = await Promise.all([
       datevLaden(), laden(monat),
-      db<(Pick<Rechnung, "nummer" | "datum" | "netto" | "ust_satz" | "ust_betrag" | "kleinunternehmer" | "art" | "bezug_nummer" | "reverse_charge"> & { kunde_id: string | null })[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&status=eq.ausgestellt&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=nummer,datum,netto,ust_satz,ust_betrag,kleinunternehmer,art,bezug_nummer,reverse_charge,kunde_id&limit=5000`),
+      db<(Pick<Rechnung, "nummer" | "datum" | "netto" | "ust_satz" | "ust_betrag" | "kleinunternehmer" | "art" | "bezug_nummer" | "reverse_charge" | "reverse_charge_eu"> & { kunde_id: string | null })[]>(f.s, env, `rechnungen?firma_id=eq.${firma}&status=eq.ausgestellt&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=nummer,datum,netto,ust_satz,ust_betrag,kleinunternehmer,art,bezug_nummer,reverse_charge,reverse_charge_eu,kunde_id&limit=5000`),
       db<{ id: string; name: string }[]>(f.s, env, `kunden?firma_id=eq.${firma}&select=id,name&limit=1000`),
     ]);
     if (fehltDatev(d.e).length) return weiterleiten(`/konto/belege?monat=${monat}&hinweis=${encodeURIComponent("Bitte zuerst die DATEV-Einstellungen ausfüllen.")}`, f.s.cookies);
