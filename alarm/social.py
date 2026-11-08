@@ -230,7 +230,7 @@ def main() -> None:
     heute = jetzt.date()
     with verbinden() as con:
         if modus == "woche":  # data for the weekly Facebook/Instagram package (prints JSON, posts nothing)
-            bis = heute - timedelta(days=heute.isoweekday() - 1)  # Monday of this week (exclusive)
+            bis = heute  # the last seven full days up to yesterday (today exclusive)
             von = bis - timedelta(days=7)
             zaehl = """select count(*) from public.vergabekatalog where quelle = 'bks' and frist is not null
                        and (quell_datum at time zone 'Europe/Berlin')::date >= %s and (quell_datum at time zone 'Europe/Berlin')::date < %s"""
