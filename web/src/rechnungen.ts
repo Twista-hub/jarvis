@@ -55,10 +55,12 @@ const datum = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("de-D
 const monatName = (m: string) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString("de-DE", { month: "long", year: "numeric", timeZone: "UTC" });
 const tagePlus = (d: string, n: number) => new Date(Date.parse(`${d}T12:00:00Z`) + n * 86400_000).toISOString().slice(0, 10);
 
-/** Positions: hours × rate, plus surcharge lines (hours × rate × percent) when percentages are set. */
-export function positionen(l: Eintrag[], p: Preis, land: string, monat: string): Position[] {
+/** Positions: hours × rate, plus surcharge lines (hours × rate × percent) when percentages are set. The main line uses
+ *  the customer's service text with the month (Rechtsprüfung S16), otherwise "Leistungen <Monat> lt. Leistungsnachweis". */
+export function positionen(l: Eintrag[], p: Preis & { text?: string }, land: string, monat: string): Position[] {
   const min = l.reduce((n, e) => n + minuten(e), 0), z = summe(l.map((e) => zuschlag(e, land)));
-  const pos: Position[] = [{ text: `Leistungen ${monatName(monat)} lt. Leistungsnachweis`, menge: dezimal(min), einheit: "Std.", preis: p.satz, betrag: rund(dezimal(min) * p.satz) }];
+  const eigen = (p.text ?? "").replace(/\s+/g, " ").trim();
+  const pos: Position[] = [{ text: eigen ? `${eigen} ${monatName(monat)}` : `Leistungen ${monatName(monat)} lt. Leistungsnachweis`, menge: dezimal(min), einheit: "Std.", preis: p.satz, betrag: rund(dezimal(min) * p.satz) }];
   for (const [k, t] of [["nacht", "Nachtzuschlag"], ["sonntag", "Sonntagszuschlag"], ["feiertag", "Feiertagszuschlag"]] as const) {
     if (p[k] > 0 && z[k] > 0) { const preis = rund((p.satz * p[k]) / 100); pos.push({ text: `${t} ${zahl(p[k]).replace(",00", "")} %`, menge: dezimal(z[k]), einheit: "Std.", preis, betrag: rund(dezimal(z[k]) * preis) }); }
   }
@@ -314,14 +316,14 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     if (!/^[0-9a-f-]{36}$/.test(kid) || !/^\d{4}-(0[1-9]|1[0-2])$/.test(monat)) return zurueck("Kunde oder Monat fehlt.");
     const [l, pr, land] = await Promise.all([
       db<Eintrag[]>(f.s, env, `stundenzettel?firma_id=eq.${firma}&kunde_id=eq.${kid}&status=eq.freigegeben&datum=gte.${monat}-01&datum=lt.${naechsterMonat(monat)}-01&select=id,personal_id,datum,beginn,ende,pause_min,einsatz,notiz,status,kunde_id&limit=10000`),
-      db<{ satz: number | string; zuschlag_nacht: number | string; zuschlag_sonntag: number | string; zuschlag_feiertag: number | string }[]>(f.s, env, `kunden_preise?firma_id=eq.${firma}&kunde_id=eq.${kid}&select=satz,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag`),
+      db<{ satz: number | string; leistungstext?: string; zuschlag_nacht: number | string; zuschlag_sonntag: number | string; zuschlag_feiertag: number | string }[]>(f.s, env, `kunden_preise?firma_id=eq.${firma}&kunde_id=eq.${kid}&select=satz,leistungstext,zuschlag_nacht,zuschlag_sonntag,zuschlag_feiertag`),
       landDerFirma(f.s, env, firma),
     ]);
     if (l.ok) l.daten = mitLand(l.daten, await einsatzLaender(f.s, env, firma));
     const p = pr.ok ? pr.daten[0] : undefined;
     if (!p) return zurueck("Für diesen Kunden ist kein Verrechnungssatz hinterlegt (Kunden & Einsatzorte).");
     if (!l.ok || !l.daten.length) return zurueck("Keine freigegebenen Stunden für diesen Kunden und Monat.");
-    const pos = positionen(l.daten, { satz: Number(p.satz), nacht: Number(p.zuschlag_nacht), sonntag: Number(p.zuschlag_sonntag), feiertag: Number(p.zuschlag_feiertag) }, land, monat);
+    const pos = positionen(l.daten, { satz: Number(p.satz), nacht: Number(p.zuschlag_nacht), sonntag: Number(p.zuschlag_sonntag), feiertag: Number(p.zuschlag_feiertag), text: p.leistungstext }, land, monat);
     const r = await db<{ id: string }[]>(f.s, env, "rechnungen?select=id", { method: "POST", headers: { prefer: "return=representation" }, body: JSON.stringify({ firma_id: firma, kunde_id: kid, nummer: neueEntwurfsnummer(), monat, datum: heute, positionen: pos, netto: rund(pos.reduce((n, x) => n + x.betrag, 0)), ust_satz: 19 }) });
     return zurueck(r.ok && r.daten.length ? "Rechnungsentwurf erstellt. Bitte prüfen und dann „✓ Ausstellen“." : "Rechnung konnte nicht angelegt werden.");
   }

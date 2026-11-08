@@ -528,5 +528,7 @@
   "Reverse Charge EU geht nur bei einem Unternehmen in einem anderen EU-Land mit USt-IdNr. (nicht zusammen mit § 13b oder Privatperson).": "L'inversione contabile UE vale solo per un'azienda di un altro paese UE con partita IVA (non insieme al § 13b o a un privato).",
   "🇪🇺 Rechnungen mit Reverse Charge an Unternehmen in anderen EU-Ländern: Dafür ist zusätzlich die": "🇪🇺 Fatture con inversione contabile ad aziende di altri paesi UE: serve inoltre l'",
   "Zusammenfassende Meldung": "elenco riepilogativo",
-  "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "presso l'Ufficio centrale federale delle imposte (tramite ELSTER, entro il # del mese o trimestre successivo), con la partita IVA del cliente e l'importo. Proposta, verifica con il commercialista."
+  "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "presso l'Ufficio centrale federale delle imposte (tramite ELSTER, entro il # del mese o trimestre successivo), con la partita IVA del cliente e l'importo. Proposta, verifica con il commercialista.",
+  "Leistungstext auf der Rechnung": "Descrizione del servizio in fattura",
+  "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "ad es. pulizia ordinaria, sede Hauptstraße (il mese viene aggiunto)"
 }

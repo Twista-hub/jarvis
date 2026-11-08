@@ -104,6 +104,11 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
 ## Protokoll
 
+### 08.11.2026 abends – Claude Code (S16, D2, Klickprüfung)
+- Klickprüfung nach D1 (Personalakte für Leser): 566 Seiten, 0 Probleme, 0 Fehlermeldungen.
+- S16: Leistungstext je Kunde (bei Verrechnungssatz, Monat wird angehängt; Migration `20261108160000_leistungstext.sql`).
+- D2: Alte Dateikopien von Führungs-/Gesundheitszeugnissen: Datei-Verweise entfernt, Schlüssel in `jarvis_intern.r2_loeschen`, die „Datensicherung“ löscht sie nachts aus R2 (neuer Schritt); DB-Regel verhindert neue Kopien. Migration `20261108170000_nachweise_ohne_kopie.sql`.
+
 ### 08.11.2026 abends – Claude Code (Standardlösungen statt Steuerbüro: S13, S18)
 - S6 als Standardlösung abgeschlossen (Warnung + Archiv + Datenschutztext, keine Sperrfrist), K1 (AVV-Entwurf live) eingetragen. Lohnart-Nummern bewusst **nicht** vorbelegt (kanzleispezifisch; leere Lohnarten lässt der LODAS-Export aus).
 - Reverse Charge EU: Kundenhäkchen (nur EU-Land ≠ DE mit USt-IdNr., nicht mit § 13b/Privat; ausdrücklich nicht für Arbeiten an Gebäuden in Deutschland), Rechnung 0 % mit Hinweis „Reverse charge (Art. 196 MwStSystRL)“ und beiden USt-IdNrn., XRechnung AE, DATEV-Erlöskonto 8338/4336, USt-Übersicht Kz. 21 und Hinweis auf die Zusammenfassende Meldung. Migration `20261108150000_reverse_charge_eu.sql`. Länderliste der Kunden um alle EU-Länder ergänzt.

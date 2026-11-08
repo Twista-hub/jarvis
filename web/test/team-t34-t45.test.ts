@@ -322,3 +322,9 @@ test("Reverse Charge EU auf der Rechnung: Hinweis und beide USt-IdNrn.", () => {
   assert.match(t, /Österreich/);
   assert.doesNotMatch(t, /zzgl\. 19/);
 });
+
+test("S16: Leistungstext je Kunde mit Monat", () => {
+  const l = [e("1", "2026-10-06", "07:00", "15:30", 30)];
+  assert.equal(positionen(l, { satz: 30, nacht: 0, sonntag: 0, feiertag: 0, text: "Unterhaltsreinigung  Objekt Hauptstraße" }, "", "2026-10")[0].text, "Unterhaltsreinigung Objekt Hauptstraße Oktober 2026");
+  assert.equal(positionen(l, { satz: 30, nacht: 0, sonntag: 0, feiertag: 0, text: "" }, "", "2026-10")[0].text, "Leistungen Oktober 2026 lt. Leistungsnachweis");
+});

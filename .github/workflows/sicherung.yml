@@ -65,3 +65,15 @@ jobs:
           # Monthly backups are kept for one year (deleted data must not stay forever).
           JAHR=$(date -u -d "366 days ago" +%F)
           if [ "$(date -u -d "366 days ago" +%d)" = "01" ]; then npx wrangler r2 object delete "jarvis-auftraege/sicherung/jarvis-$JAHR.tar.enc" --remote --jurisdiction eu || true; fi
+      - name: Dateien von der Löschliste aus R2 entfernen (jarvis_intern.r2_loeschen, z. B. Rechtsprüfung D2)
+        run: |
+          set -euo pipefail
+          VERB="host=aws-1-eu-central-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.juuuifrcxmitkqudqngq sslmode=require"
+          cd repo/web
+          n=0
+          for k in $(/usr/lib/postgresql/17/bin/psql "$VERB" -tA -c "select schluessel from jarvis_intern.r2_loeschen order by erstellt limit 500"); do
+            npx wrangler r2 object delete "jarvis-auftraege/$k" --remote --jurisdiction eu >/dev/null 2>&1 || true
+            /usr/lib/postgresql/17/bin/psql "$VERB" -v ON_ERROR_STOP=1 -tA -c "delete from jarvis_intern.r2_loeschen where schluessel = '$k'" >/dev/null
+            n=$((n+1))
+          done
+          echo "Aus R2 gelöscht: $n"
