@@ -131,6 +131,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108220000_empfehlungsprogramm.sql
 \ir ../migrations/20261108230000_seo_seiten.sql
 \ir ../migrations/20261108240000_sitemap_json.sql
+\ir ../migrations/20261108250000_auftraggeber_oeffentlich.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2145,6 +2146,21 @@ select pruefe((public.gewerk_land_statistik(array['90911'], 'C')->>'monat')::int
 select pruefe(exists (select 1 from public.sitemap_ausschreibungen() where id = 'bks:seo1') and not exists (select 1 from public.sitemap_ausschreibungen() where id = 'bks:seo2'), 'Sitemap nur mit offenen Ausschreibungen');
 select pruefe(public.sitemap_ausschreibungen_json() @> '[["bks:seo1"]]' and not public.sitemap_ausschreibungen_json() @> '[["bks:seo2"]]', 'Sitemap als JSON ohne Zeilengrenze');
 do $$ begin perform 1 from jarvis_intern.gewerk_land_cache; raise exception 'FEHLER: Länder-Cache ohne Login lesbar'; exception when insufficient_privilege then null; end $$;
+reset role;
+
+-- Öffentliche Auftraggeber-Seiten (08.11.2026): offene und frühere Ausschreibungen, Zuschlag nur als Wert, keine Gewinnernamen.
+reset role;
+insert into public.vergabekatalog(id,quelle,quelle_id,version,quell_datum,titel,link,auftraggeber,auftraggeber_id,status,frist,cpv,ort,zuschlaege)
+values ('bks:seo3','bks','seo3','v1',now() - interval '200 days','Unterhaltsreinigung Rathaus 2026','https://example.test/seo3','Stadt Köln','buyer-seo','vergeben',now() - interval '150 days','{90911200}','50667 Köln DEA23',
+        '[{"id":"z1","datum":null,"gewinner":["Max Mustermann Reinigung"],"wert":120000,"waehrung":"EUR","status":"active"}]');
+set role anon;
+select pruefe(public.auftraggeber_oeffentlich('buyer-seo')->>'name' = 'Stadt Köln' and (public.auftraggeber_oeffentlich('buyer-seo')->>'offen_anzahl')::int = 1
+  and (public.auftraggeber_oeffentlich('buyer-seo')->>'gesamt')::int = 2, 'Auftraggeber-Seite: Name, offene und alle Ausschreibungen');
+select pruefe((public.auftraggeber_oeffentlich('buyer-seo')->'frueher'->0->>'zuschlag_wert')::numeric = 120000
+  and position('Mustermann' in public.auftraggeber_oeffentlich('buyer-seo')::text) = 0, 'Zuschlag nur als Wert, kein Gewinnername');
+select pruefe(public.auftraggeber_oeffentlich('gibt-es-nicht') is null, 'Unbekannter Auftraggeber: nichts');
+select pruefe(public.sitemap_auftraggeber_json() @> '[["buyer-seo"]]', 'Auftraggeber in der Sitemap');
+select pruefe(public.demo_eintrag('bks:seo1')->>'auftraggeber_id' = 'buyer-seo', 'Ausschreibung nennt die Auftraggeber-ID');
 reset role;
 
 \echo ALLE TESTS OK

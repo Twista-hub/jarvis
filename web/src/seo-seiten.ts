@@ -1,6 +1,7 @@
 // Google pages (08.11.2026): /ausschreibungen/<gewerk>/<bundesland> (trade × federal state, live numbers from the
 // background cache) and /ausschreibung/<id> (one open public notice, indexable while it is open) with its own sitemap
-// /sitemap-ausschreibungen.xml. Facts only from the public notice (CC0); contact names are masked.
+// /sitemap-ausschreibungen.xml, plus /auftraggeber/<id> (what an authority tenders, sitemap /sitemap-auftraggeber.xml).
+// Facts only from the public notices (CC0); contact names are masked, winners are never named.
 import { escape, markdown, seite } from "./seite.ts";
 import { KI_KENNUNG } from "./ki-kennung.ts";
 import { personenMaskieren } from "./datensparsam.ts";
@@ -14,6 +15,7 @@ export function gewerkAusCpv(cpv: string[] | null | undefined) {
 }
 
 export const ausschreibungLink = (id: string) => `/ausschreibung/${encodeURIComponent(id)}`;
+export const auftraggeberLink = (id: string) => `/auftraggeber/${encodeURIComponent(id)}`;
 const zahl = (n: number) => n.toLocaleString("de-DE");
 const datum = (d: string | null | undefined) => (d ? new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Berlin" }) : "–");
 
@@ -44,7 +46,7 @@ ${fragen.map(([q, a]) => `<details><summary>${escape(q)}</summary><p>${escape(a)
 <script type="application/ld+json">${jsonld}</script>`;
 }
 
-export type Eintrag = { id: string; titel: string; auftraggeber?: string; ort?: string; frist: string | null; link: string; status?: string; quelle?: string; quell_datum?: string; beschreibung?: string; cpv?: string[]; lose?: string[]; steckbrief: string | null };
+export type Eintrag = { id: string; titel: string; auftraggeber?: string; auftraggeber_id?: string | null; ort?: string; frist: string | null; link: string; status?: string; quelle?: string; quell_datum?: string; beschreibung?: string; cpv?: string[]; lose?: string[]; steckbrief: string | null };
 
 /** Open while the deadline lies ahead (or is unknown for a fresh notice) and the status is open/unknown. */
 export function istOffen(e: Pick<Eintrag, "frist" | "status" | "quell_datum">, jetzt = Date.now()): boolean {
@@ -56,7 +58,7 @@ export function istOffen(e: Pick<Eintrag, "frist" | "status" | "quell_datum">, j
 export function ausschreibungSeite(e: Eintrag, jetzt = Date.now()): string {
   const offen = istOffen(e, jetzt);
   const l = landAusOrt(e.ort), g = gewerkAusCpv(e.cpv);
-  const fakten = [e.auftraggeber && `<li>🏛️ ${escape(e.auftraggeber)}</li>`, e.ort && `<li>📍 ${escape(e.ort)}</li>`, e.frist && `<li>⏰ Angebotsfrist ${datum(e.frist)}</li>`, e.quell_datum && `<li>📅 veröffentlicht ${datum(e.quell_datum)}</li>`].filter(Boolean).join("");
+  const fakten = [e.auftraggeber && `<li>🏛️ ${e.auftraggeber_id ? `<a href="${auftraggeberLink(e.auftraggeber_id)}">${escape(e.auftraggeber)}</a>` : escape(e.auftraggeber)}</li>`, e.ort && `<li>📍 ${escape(e.ort)}</li>`, e.frist && `<li>⏰ Angebotsfrist ${datum(e.frist)}</li>`, e.quell_datum && `<li>📅 veröffentlicht ${datum(e.quell_datum)}</li>`].filter(Boolean).join("");
   const lose = e.lose?.filter(Boolean).length ? `<h2>Lose</h2><ul>${e.lose.filter(Boolean).map((x) => `<li>${escape(personenMaskieren(x))}</li>`).join("")}</ul>` : "";
   const text = e.beschreibung ? `<h2>Beschreibung (aus der Bekanntmachung)</h2>${personenMaskieren(e.beschreibung).split(/\n{2,}/).slice(0, 8).map((x) => `<p>${escape(x)}</p>`).join("")}` : "";
   const brief = e.steckbrief ? `<h2>Steckbrief</h2><div class="steckbrief-karte" data-ki-erstellt="true" data-ki-anbieter="Anthropic Claude">${KI_KENNUNG}${markdown(personenMaskieren(e.steckbrief))}</div>` : "";
@@ -81,6 +83,42 @@ export function sitemapAusschreibungen(adresse: string, zeilen: { id: string; da
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${zeilen.map((z) => `<url><loc>${adresse}${escape(ausschreibungLink(z.id))}</loc>${/^\d{4}-\d{2}-\d{2}$/.test(z.datum) ? `<lastmod>${z.datum}</lastmod>` : ""}</url>`).join("\n")}\n</urlset>\n`;
 }
 
+export type Auftraggeber = {
+  id: string; name: string; ort: string | null; offen_anzahl: number; jahr: number; gesamt: number;
+  offen: { id: string; titel: string; frist: string | null }[];
+  frueher: { id: string; titel: string; datum: string; status: string | null; laufzeit_ende: string | null; zuschlag_wert: number | null }[];
+  cpv: string[];
+};
+const euro = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR", maximumFractionDigits: 0 });
+const STATUS: Record<string, string> = { vergeben: "vergeben", aufgehoben: "aufgehoben", offen: "Frist abgelaufen", unbekannt: "Frist abgelaufen" };
+
+/** Public page of a contracting authority: open and past tenders, no winners' names, no contact persons. */
+export function auftraggeberSeite(a: Auftraggeber): string {
+  const name = personenMaskieren(a.name);
+  const l = landAusOrt(a.ort);
+  const gewerke = [...new Map(a.cpv.map((c) => gewerkAusCpv([c])).filter((g): g is (typeof GEWERKE)[number] => !!g).map((g) => [g.slug, g])).values()];
+  const ortText = a.ort?.replace(/\s*DE[0-9A-G][0-9A-Z]{0,3}\b/g, "").replace(/\s*\(Auftraggeberadresse; Einsatzort prüfen\)/, "").trim();
+  const offen = a.offen.length ? `<h2>Aktuelle Ausschreibungen (${zahl(a.offen_anzahl)})</h2><ul class="kontakt-liste gewerk-beispiele">${a.offen.map((x) => `<li><div><a href="${ausschreibungLink(x.id)}"><strong>${escape(personenMaskieren(x.titel))}</strong></a>${x.frist ? `<span class="klein">Frist ${datum(x.frist)}</span>` : ""}</div></li>`).join("")}</ul>`
+    : `<p class="hinweis">Zurzeit hat ${escape(name)} keine offene Ausschreibung. Crewtender meldet dir die nächste automatisch, wenn sie zu deiner Firma passt.</p>`;
+  const frueher = a.frueher.length ? `<h2>Frühere Ausschreibungen</h2><ul class="kontakt-liste gewerk-beispiele">${a.frueher.map((x) => {
+    const teile = [`veröffentlicht ${datum(x.datum)}`, x.status && STATUS[x.status], x.zuschlag_wert ? `Zuschlag ${euro(Number(x.zuschlag_wert))}` : "", x.laufzeit_ende ? `Vertrag bis ${datum(x.laufzeit_ende)}` : ""].filter(Boolean);
+    return `<li><div><a href="${ausschreibungLink(x.id)}"><strong>${escape(personenMaskieren(x.titel))}</strong></a><span class="klein">${escape(teile.join(" · "))}</span></div></li>`;
+  }).join("")}</ul><p class="klein">Läuft ein Vertrag aus, wird die Leistung oft neu ausgeschrieben. Crewtender erinnert dich rechtzeitig vor dem Vertragsende.</p>` : "";
+  const weiter = gewerke.flatMap((g) => [`<a href="/ausschreibungen/${g.slug}">${escape(g.name)}</a>`, ...(l ? [`<a href="/ausschreibungen/${g.slug}/${l.slug}">${escape(g.name)} ${escape(l.im)}</a>`] : [])]).join("");
+  return `<h1>${escape(name)}: öffentliche Ausschreibungen</h1>
+<p class="klein"><a href="/ausschreibungen">Ausschreibungen</a> › Auftraggeber${ortText ? ` · ${escape(ortText)}` : ""}</p>
+<div class="gewerk-zahlen"><div><strong>${zahl(a.offen_anzahl)}</strong><span>offene Ausschreibungen</span></div><div><strong>${zahl(a.jahr)}</strong><span>Ausschreibungen in den letzten 12 Monaten</span></div></div>
+${offen}
+<aside class="hinweis demo-ki">🏛️ <strong>Für ${escape(name)} arbeiten?</strong> Mit Crewtender folgst du einzelnen Auftraggebern: Jede neue Ausschreibung kommt am nächsten Morgen per Mail, mit Bewertung, Frist und Steckbrief. <a class="knopf" href="/registrieren">Kostenlos registrieren</a></aside>
+${frueher}
+${weiter ? `<h2>Passende Gewerke</h2><nav class="ordner-chips gewerk-liste" aria-label="Gewerke">${weiter}</nav>` : ""}
+<p class="klein">Quelle: Bekanntmachungsservice des Bundes (oeffentlichevergabe.de), Lizenz CC0. Crewtender nennt keine Bieter und keine Ansprechpersonen. Maßgeblich sind allein die Unterlagen der Vergabestelle.</p>`;
+}
+
+export function sitemapAuftraggeber(adresse: string, zeilen: [string, string][]): string {
+  return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${zeilen.map(([id, d]) => `<url><loc>${adresse}${escape(auftraggeberLink(id))}</loc>${/^\d{4}-\d{2}-\d{2}$/.test(d) ? `<lastmod>${d}</lastmod>` : ""}</url>`).join("\n")}\n</urlset>\n`;
+}
+
 type SeoEnv = { SUPABASE_URL: string; SUPABASE_KEY: string; WARTEN?: (p: Promise<unknown>) => void };
 async function rpc<T>(env: SeoEnv, name: string, body: Record<string, unknown>): Promise<T | null> {
   try {
@@ -90,7 +128,7 @@ async function rpc<T>(env: SeoEnv, name: string, body: Record<string, unknown>):
 }
 const meta = (html: string, beschreibung: string, url: string, robots = "") => html.replace("</title>", `</title>\n<meta name="description" content="${escape(beschreibung)}">\n<link rel="canonical" href="${escape(url)}">${robots ? `\n<meta name="robots" content="${robots}">` : ""}`);
 
-/** /ausschreibungen/<gewerk>/<land>, /ausschreibung/<id>, /sitemap-ausschreibungen.xml; null for other paths. */
+/** /ausschreibungen/<gewerk>/<land>, /ausschreibung/<id>, /auftraggeber/<id> and their sitemaps; null for other paths. */
 export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, antwort: (html: string) => Response): Promise<Response | null> {
   if (request.method !== "GET") return null;
   const url = new URL(request.url);
@@ -112,6 +150,13 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
       return new Response(sitemapAusschreibungen(adresse, z.map(([id, datum]) => ({ id, datum }))), { headers: { "content-type": "application/xml; charset=utf-8" } });
     }, 21600);
   }
+  if (url.pathname === "/sitemap-auftraggeber.xml") {
+    return gecacht("/sitemap-auftraggeber.xml?v=1", async () => {
+      const z = await rpc<[string, string][]>(env, "sitemap_auftraggeber_json", {});
+      if (!Array.isArray(z)) return new Response("nicht erreichbar", { status: 503 });
+      return new Response(sitemapAuftraggeber(adresse, z), { headers: { "content-type": "application/xml; charset=utf-8" } });
+    }, 21600);
+  }
   const gl = url.pathname.match(/^\/ausschreibungen\/([a-z-]+)\/([a-z-]+)\/?$/);
   if (gl) {
     const g = GEWERKE.find((x) => x.slug === gl[1]), l = BUNDESLAENDER.find((x) => x.slug === gl[2]);
@@ -126,11 +171,25 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
       return s ? r : null;
     }, 3600);
   }
+  const ag = url.pathname.match(/^\/auftraggeber\/([^/]{1,600})$/);
+  if (ag) {
+    let id = "";
+    try { id = decodeURIComponent(ag[1]).slice(0, 200); } catch { return null; }
+    return gecacht(`${auftraggeberLink(id)}?v=1`, async () => {
+      const a = await rpc<Auftraggeber | null>(env, "auftraggeber_oeffentlich", { a: id });
+      if (!a) return new Response(seite("Nicht gefunden", `<p>Diesen Auftraggeber kennt Crewtender nicht. <a href="/ausschreibungen">Aktuelle Ausschreibungen nach Gewerk</a></p>`), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
+      const name = personenMaskieren(a.name);
+      const beschreibung = `${name}: ${zahl(a.offen_anzahl)} offene und ${zahl(a.jahr)} Ausschreibungen in den letzten 12 Monaten. Frühere Aufträge, Zuschlagswerte und Vertragsenden. Neue Ausschreibungen mit Crewtender per Mail.`.slice(0, 300);
+      const r = antwort(meta(seite(`Ausschreibungen ${name}`, auftraggeberSeite(a)), beschreibung, `${adresse}${auftraggeberLink(a.id)}`, a.jahr ? "" : "noindex, follow"));
+      r.headers.delete("x-robots-tag");
+      return r;
+    }, 3600);
+  }
   const a = url.pathname.match(/^\/ausschreibung\/([^/]{1,1200})$/);
   if (!a) return null;
   let id = "";
   try { id = decodeURIComponent(a[1]).slice(0, 400); } catch { return null; }
-  return gecacht(`/ausschreibung/${encodeURIComponent(id)}?v=2`, async () => {
+  return gecacht(`/ausschreibung/${encodeURIComponent(id)}?v=3`, async () => {
     const e = await rpc<Eintrag | null>(env, "demo_eintrag", { i: id });
     if (!e) return new Response(seite("Nicht gefunden", `<p>Diese Ausschreibung gibt es nicht mehr. <a href="/ausschreibungen">Aktuelle Ausschreibungen nach Gewerk</a></p>`), { status: 404, headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
     const r = antwort(meta(seite(e.titel, ausschreibungSeite(e)), beschreibungMeta(e), `${adresse}${ausschreibungLink(e.id)}`, istOffen(e) ? "" : "noindex, follow"));
