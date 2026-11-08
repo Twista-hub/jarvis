@@ -105,6 +105,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 ## Protokoll
 
 ### 08.11.2026 abends – Claude Code (S16, D2, Klickprüfung)
+- **Stripe LIVE seit 08.11.2026 ~14:26 Uhr:** Browser-Chat hat die Live-Einstellungen gesetzt (Fußzeile § 19, Belege, Abo-Mails, Support hello@crewtender.eu). Benjamin hat einen eingeschränkten Live-Schlüssel (`rk_live_`, „Vollständiger Zugriff außer sensible Vorgänge“) als Repo-Secret gesetzt; Ablauf und `stripeLive` nehmen jetzt `sk_`/`rk_`. „Stripe einrichten“ (Lauf 42484863814): 6 Plan-Preise, 5 Zusatzpreise, Webhook angelegt, Schlüssel und Webhook-Secret im Worker. Webhook antwortet (400 ohne Signatur). Bezahl-Knöpfe jetzt für alle Kunden sichtbar. Offen: erster echter Kauf als Probe (Benjamin), Stripe-Support-Telefon prüfen.
 - Woche 46 Facebook/Instagram vom Browser-Chat geplant (8 Posts 10.–16.11., 18:00; Rückmeldung in `docs/browser/protokoll.md`). GH_DISPATCH_TOKEN in Cloudflare gesetzt (Benjamin), Telefon im Firmenprofil eingetragen (Benjamin). Erste Prüfung der angestoßenen Läufe 13:20 UTC.
 - K9: Automatischer Abgleich des KI-Steckbriefs mit der Bekanntmachung (ohne KI): Angebotsfrist, Rückfragefrist und Zahl der Lose gegen den Katalog (eForms/OCDS), Kasten „🔎 Abgleich mit der amtlichen Bekanntmachung“ über dem Steckbrief (`web/src/abgleich.ts`). Offen aus der Rechtsprüfung: nur noch K11 (⚖️) und D7 (ab 2032).
 - Klickprüfung nach D1 (Personalakte für Leser): 566 Seiten, 0 Probleme, 0 Fehlermeldungen.
