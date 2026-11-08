@@ -115,6 +115,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108060000_gratistopf_20.sql
 \ir ../migrations/20261108070000_belege_erechnung.sql
 \ir ../migrations/20261108080000_rechnung_land.sql
+\ir ../migrations/20261108090000_kunden_privat.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1351,6 +1352,18 @@ select test_als('00000000-0000-0000-0000-00000000000b');
 insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'k13b', 'ENTWURF-13b', '2026-11', current_date, 1000) returning id as re13b \gset
 select public.rechnung_ausstellen(:'re13b');
 select pruefe((select reverse_charge and ust_betrag = 0 and ust_satz = 0 and empfaenger->>'ustid' = 'DE111222333' from public.rechnungen where id = :'re13b'), '§ 13b: Rechnung ohne Umsatzsteuer mit USt-IdNr. des Kunden');
+-- S17: private customers – the flag is frozen into the invoice; § 13b and private together are refused.
+reset role;
+insert into public.kunden (firma_id, bereich_id, name, privat) select :'firma', bereich_id, 'Erika Muster', true from public.kunden where id = :'kunde_berlin' returning id as kprivat \gset
+do $$ begin
+  update public.kunden set ust_13b = true where name = 'Erika Muster';
+  raise exception 'FEHLER: privat und 13b';
+exception when check_violation then null; end $$;
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+insert into public.rechnungen (firma_id, kunde_id, nummer, monat, datum, netto) values (:'firma', :'kprivat', 'ENTWURF-privat', '2026-11', current_date, 100) returning id as reprivat \gset
+select public.rechnung_ausstellen(:'reprivat');
+select pruefe((select (empfaenger->>'privat')::boolean and ust_betrag = 19 from public.rechnungen where id = :'reprivat'), 'Privatkunde: Kennzeichen in der ausgestellten Rechnung eingefroren');
 insert into public.rechnungsvorlagen (firma_id, kunde_id, text, betrag) values (:'firma', :'kunde_berlin', 'Unterhaltsreinigung pauschal', 1200);
 insert into public.belege (firma_id, datum, lieferant, kategorie, brutto) values (:'firma', current_date, 'Tankstelle', 'fahrzeug', 80);
 select pruefe((select count(*) = 1 from public.belege), 'Beleg mit Finanzfreigabe erfassen');
@@ -1414,7 +1427,7 @@ update public.mitglieder set finanzen = true where user_id = '00000000-0000-0000
 update public.kunden_portale set rechnungen_zeigen = true;
 set role anon;
 select pruefe(public.portal_abrufen('falsch') is null, 'Portal nur mit richtigem Link');
-select pruefe((select (d->>'kunde') = 'Messe Berlin GmbH' and jsonb_array_length(d->'rechnungen') = 3 and d::text not like '%ENTWURF%' and (d->'rechnungen'->0->>'nummer') like 'RE-%-0004'
+select pruefe((select (d->>'kunde') = 'Messe Berlin GmbH' and jsonb_array_length(d->'rechnungen') = 3 and d::text not like '%ENTWURF%' and (d->'rechnungen'->0->>'nummer') like 'RE-%-0005'
   and jsonb_array_length(d->'nachweise') = 1 and (d->'nachweise'->0->'summe'->>'std') = '12.5' and d::text not like '%Protokoll Berlin%'
   and jsonb_array_length(d->'vorfaelle') = 1 and not (d->'vorfaelle'->0 ? 'text') and (d->'orte'->0->>'scans')::int = 1 from public.portal_abrufen('portal-geheim-1') d),
   'Portal zeigt nur Rechnungen, Summen und Berichte dieses Kunden, keine Namen');

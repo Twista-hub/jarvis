@@ -427,5 +427,7 @@
  "E-Mail oder Leitweg-ID des Kunden (Empfangsadresse der E-Rechnung)": "Correo o Leitweg-ID del cliente (dirección de recepción de la factura electrónica)",
  "USt-IdNr. des Kunden mit Ländercode": "NIF-IVA del cliente con código de país",
  "Kunde": "Cliente",
- "Steuernummer oder USt-IdNr.": "Número fiscal o NIF-IVA"
+ "Steuernummer oder USt-IdNr.": "Número fiscal o NIF-IVA",
+ "Privatperson (kein Unternehmen): Rechnungen bekommen den Pflichthinweis zur Aufbewahrung (§ 14 Abs. 4 Nr. 9 UStG, z. B. bei Reinigung oder Arbeiten am Haus), Mahnungen die Verzugszinsen für Verbraucher.": "Particular (no es una empresa): las facturas llevan la nota obligatoria sobre la conservación (§ 14 Abs. 4 Nr. 9 UStG, p. ej. limpieza u obras en la casa) y los recordatorios los intereses de demora para consumidores.",
+ "Eine Privatperson kann die Umsatzsteuer nicht nach § 13b schulden. Bitte eines von beiden abwählen.": "Un particular no puede adeudar el IVA según el § 13b. Desmarca una de las dos opciones."
 }

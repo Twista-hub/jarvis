@@ -427,5 +427,7 @@
  "E-Mail oder Leitweg-ID des Kunden (Empfangsadresse der E-Rechnung)": "E-mail ou Leitweg-ID du client (adresse de réception de la facture électronique)",
  "USt-IdNr. des Kunden mit Ländercode": "N° de TVA du client avec code pays",
  "Kunde": "Client",
- "Steuernummer oder USt-IdNr.": "Numéro fiscal ou n° de TVA"
+ "Steuernummer oder USt-IdNr.": "Numéro fiscal ou n° de TVA",
+ "Privatperson (kein Unternehmen): Rechnungen bekommen den Pflichthinweis zur Aufbewahrung (§ 14 Abs. 4 Nr. 9 UStG, z. B. bei Reinigung oder Arbeiten am Haus), Mahnungen die Verzugszinsen für Verbraucher.": "Particulier (pas une entreprise) : les factures portent la mention obligatoire sur la conservation (§ 14 Abs. 4 Nr. 9 UStG, p. ex. nettoyage ou travaux dans la maison), les relances les intérêts de retard applicables aux consommateurs.",
+ "Eine Privatperson kann die Umsatzsteuer nicht nach § 13b schulden. Bitte eines von beiden abwählen.": "Un particulier ne peut pas être redevable de la TVA selon le § 13b. Veuillez décocher l'une des deux options."
 }

@@ -13,7 +13,7 @@ import { adresse, landZeile, type Kunde } from "./kunden.ts";
 import { fehlendFuerXRechnung, xrechnungXml } from "./xrechnung.ts";
 
 export type Position = { text: string; menge: number; einheit: string; preis: number; betrag: number };
-export type Empfaenger = { name: string; ansprechpartner?: string; strasse?: string; plz?: string; ort?: string; land?: string; email?: string; leitweg?: string; ustid?: string };
+export type Empfaenger = { name: string; ansprechpartner?: string; strasse?: string; plz?: string; ort?: string; land?: string; privat?: boolean; email?: string; leitweg?: string; ustid?: string };
 export type Rechnung = { id: string; kunde_id: string | null; nummer: string; monat: string; datum: string; positionen: Position[]; netto: number | string; ust_satz: number | string; erstellt: string; bezahlt_am?: string | null; mahnstufe?: number; gemahnt_am?: string | null; zahlungsziel_tage?: number;
   status?: "entwurf" | "ausgestellt"; art?: "rechnung" | "storno"; bezug_nummer?: string; storniert_durch?: string | null; absender?: Omit<Absender, "kleinunternehmer"> | null; empfaenger?: Empfaenger | null; kleinunternehmer?: boolean | null; ust_betrag?: number | string | null; reverse_charge?: boolean };
 /** Columns the pages read. */
@@ -31,6 +31,10 @@ export const KU_HINWEIS = "Umsatzsteuerfrei aufgrund der Kleinunternehmerregelun
 /** § 14a Abs. 5 UStG: mandatory wording when the customer owes the VAT (§ 13b). */
 export const RC_HINWEIS = "Steuerschuldnerschaft des Leistungsempfängers (§ 13b UStG).";
 /** Reverse charge: frozen once issued; for a draft from today's customer setting (never for small businesses). */
+/** § 14 Abs. 4 Satz 1 Nr. 9 UStG: note on the private recipient's two-year retention duty (§ 14b Abs. 1 Satz 5 UStG). */
+export const PRIVAT_HINWEIS = "Sie sind als Privatperson gesetzlich verpflichtet, diese Rechnung, einen Zahlungsbeleg oder eine andere beweiskräftige Unterlage zwei Jahre lang aufzubewahren. Die Frist beginnt mit dem Schluss des Kalenderjahres, in dem die Rechnung ausgestellt wurde (§ 14b Abs. 1 Satz 5 UStG).";
+/** Private customer: frozen once issued, otherwise today's customer setting. */
+export const istPrivat = (r: Rechnung, kunde: Kunde | null) => (istEntwurf(r) || !r.empfaenger ? !!kunde?.privat : !!r.empfaenger.privat);
 export const istReverseCharge = (r: Rechnung, kunde: Kunde | null, kleinunternehmer: boolean) => istEntwurf(r) ? !!kunde?.ust_13b && !kleinunternehmer : !!r.reverse_charge;
 export const neueEntwurfsnummer = () => `ENTWURF-${crypto.randomUUID().slice(0, 8)}`;
 /** Invoice template from the firm profile (Rechnungsvorlage): logo, opening and closing text, footer lines. */
@@ -77,6 +81,7 @@ export function rechnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeut
     + tabelle([["Pos.", "Leistung", "Menge", "Einzelpreis", "Betrag"], ...r.positionen.map((p, i) => [String(i + 1), p.text, `${zahl(p.menge)} ${p.einheit}`, euro(p.preis), euro(p.betrag)]),
       ["", "Summe netto", "", "", euro(netto)], ...(a.kleinunternehmer || rc ? [] : [["", `zzgl. ${zahl(Number(r.ust_satz)).replace(",00", "")} % Umsatzsteuer`, "", "", euro(ust)]]), ["", "Rechnungsbetrag", "", "", euro(netto + ust)]], [600, 4300, 1400, 1600, 1700], true)
     + (a.kleinunternehmer ? absatz(KU_HINWEIS, { abstand: 160 }) : "")
+    + (istPrivat(r, kundeHeute) ? absatz(PRIVAT_HINWEIS, { abstand: 160 }) : "")
     + (rc ? absatz(`${RC_HINWEIS}${(r.empfaenger?.ustid || kundeHeute?.ustid) ? ` USt-IdNr. des Leistungsempfängers: ${r.empfaenger?.ustid || kundeHeute?.ustid}` : ""}`, { abstand: 160 }) : "")
     + (storno ? absatz(`Diese Stornorechnung hebt die Rechnung ${r.bezug_nummer ?? ""} vollständig auf.`, { abstand: 300 })
       : absatz(`Zahlbar ohne Abzug bis ${entwurf ? `${r.zahlungsziel_tage ?? 14} Tage nach Rechnungsdatum` : datum(faellig)}.${a.zahlungshinweis ? `\n${a.zahlungshinweis}` : ""}`, { abstand: 300 }))
@@ -103,16 +108,17 @@ export function mahnungDocx(r: Rechnung, kundeHeute: Kunde | null, absenderHeute
   const netto = Number(r.netto), betragGesamt = netto + ustVon(r, a.kleinunternehmer);
   const stufe = Math.min(3, Math.max(1, r.mahnstufe ?? 1));
   const frist = datum(tagePlus(heute, 7));
+  const privat = istPrivat(r, kundeHeute);
   const text = stufe === 1
     ? `sicher ist es Ihrer Aufmerksamkeit entgangen: Für unsere Rechnung ${r.nummer} vom ${datum(r.datum)} konnten wir noch keinen Zahlungseingang feststellen. Wir bitten Sie, den Betrag bis zum ${frist} zu überweisen. Sollten Sie inzwischen bezahlt haben, betrachten Sie dieses Schreiben bitte als gegenstandslos.`
     : stufe === 2
       ? `leider ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} trotz Zahlungserinnerung weiterhin offen. Wir bitten Sie, den Betrag bis spätestens ${frist} zu begleichen.`
-      : `trotz Zahlungserinnerung und Mahnung ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} noch immer nicht bezahlt. Bitte überweisen Sie den Betrag bis spätestens ${frist}. Nach Ablauf dieser Frist behalten wir uns weitere Schritte vor, insbesondere Verzugszinsen (§ 288 BGB, gegenüber Unternehmern 9 Prozentpunkte über dem Basiszinssatz) und die Verzugspauschale von 40 € (§ 288 Abs. 5 BGB).`;
+      : `trotz Zahlungserinnerung und Mahnung ist unsere Rechnung ${r.nummer} vom ${datum(r.datum)} noch immer nicht bezahlt. Bitte überweisen Sie den Betrag bis spätestens ${frist}. Nach Ablauf dieser Frist behalten wir uns weitere Schritte vor, insbesondere ${privat ? "Verzugszinsen in Höhe von 5 Prozentpunkten über dem Basiszinssatz (§ 288 Abs. 1 BGB)." : "Verzugszinsen (§ 288 BGB, gegenüber Unternehmern 9 Prozentpunkte über dem Basiszinssatz) und die Verzugspauschale von 40 € (§ 288 Abs. 5 BGB)."}`;
   return wordDokument(absatz([a.name, adresse(a)].filter(Boolean).join(" · "), { grau: true, groesse: 16, abstand: 240 })
     + absatz([kunde?.name ?? "", kunde?.ansprechpartner ? `z. Hd. ${kunde.ansprechpartner}` : "", kunde?.strasse ?? "", [kunde?.plz, kunde?.ort].filter(Boolean).join(" "), landZeile(kunde)].filter(Boolean).join("\n"), { abstand: 400 })
     + absatz(datum(heute), { abstand: 240 })
     + ueberschrift(`${MAHNSTUFE[stufe]} zur Rechnung ${r.nummer}`, 28)
-    + absatz(`Sehr geehrte Damen und Herren,\n\n${text}`, { abstand: 240 })
+    + absatz(`${privat && kunde?.name ? `Guten Tag ${kunde.name},` : "Sehr geehrte Damen und Herren,"}\n\n${text}`, { abstand: 240 })
     + tabelle([["Rechnung", r.nummer], ["Rechnungsdatum", datum(r.datum)], ["Fällig seit", datum(zahlstatus(r, heute).faellig)], ["Offener Betrag", euro(betragGesamt)], ["Zahlbar bis", frist]], [3200, 6400])
     + absatz(`${a.zahlungshinweis ? `${a.zahlungshinweis}\n\n` : ""}Mit freundlichen Grüßen\n${a.name}`, { abstand: 300 }));
 }
@@ -220,7 +226,7 @@ export async function rechnungen(request: Request, env: KontoEnv): Promise<Respo
     const r = await db<Rechnung[]>(f.s, env, `rechnungen?id=eq.${docx[1]}&firma_id=eq.${firma}&select=${RECHNUNG_SPALTEN}`);
     const x = r.ok ? r.daten[0] : undefined;
     if (!x) return new Response("Nicht gefunden", { status: 404 });
-    const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,land,ansprechpartner,telefon,email,notiz,leitweg_id,ustid`) : null;
+    const k = x.kunde_id ? await db<Kunde[]>(f.s, env, `kunden?id=eq.${x.kunde_id}&select=id,bereich_id,name,strasse,plz,ort,land,ansprechpartner,telefon,email,notiz,leitweg_id,ustid,ust_13b,privat`) : null;
     const kunde = k?.ok ? k.daten[0] ?? null : null;
     if (docx[2] === "mahnung.docx") {
       if (!x.mahnstufe) return new Response("Noch keine Mahnung", { status: 404 });

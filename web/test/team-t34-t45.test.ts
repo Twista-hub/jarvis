@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { strFromU8, unzipSync } from "fflate";
 import type { Eintrag } from "../src/stunden.ts";
-import { neueEntwurfsnummer, positionen, rechnungDocx, rechnungenSeite, type Absender, type Rechnung } from "../src/rechnungen.ts";
+import { istPrivat, mahnungDocx, neueEntwurfsnummer, positionen, rechnungDocx, rechnungenSeite, type Absender, type Rechnung } from "../src/rechnungen.ts";
 import { lohnCsv, lohnExcel, lohnZeilen, stundennachweisDocx } from "../src/lohn.ts";
 import { hm, zeitkonto, zeitkontoSeite } from "../src/zeitkonto.ts";
 import { meineSpesenTeil, spesenSeite, type Spese } from "../src/spesen.ts";
@@ -272,4 +272,24 @@ test("§ 13b: Rechnung ohne Umsatzsteuer mit Pflichthinweis, XRechnung Kategorie
   assert.match(x, /<cbc:ID>AE<\/cbc:ID>/);
   assert.match(x, /VATEX-EU-AE/);
   assert.match(x, /<cbc:CompanyID>DE111222333<\/cbc:CompanyID>/);
+});
+
+test("S17: Privatkunden – Aufbewahrungshinweis auf der Rechnung (eingefroren), Verbraucher-Verzugszins in der 2. Mahnung", () => {
+  const a: Absender = { name: "Muster GmbH", strasse: "Hauptstr. 1", plz: "52531", ort: "Übach-Palenberg", telefon: "", email: "", steuernummer: "202/123/45678", ustid: "", kleinunternehmer: false, zahlungshinweis: "" };
+  const pos = [{ text: "Fensterreinigung", menge: 4, einheit: "Std.", preis: 30, betrag: 120 }];
+  const entwurf: Rechnung = { id: "r", kunde_id: "k", nummer: "ENTWURF-1", monat: "2026-10", datum: "2026-11-02", positionen: pos, netto: 120, ust_satz: 19, erstellt: "", status: "entwurf" };
+  const privat = { id: "k", name: "Erika Muster", strasse: "Weg 1", plz: "52062", ort: "Aachen", privat: true } as never;
+  assert.match(docText(rechnungDocx(entwurf, privat, a)), /zwei Jahre lang aufzubewahren\..*§ 14b Abs\. 1 Satz 5 UStG/);
+  assert.doesNotMatch(docText(rechnungDocx(entwurf, { ...(privat as object), privat: false } as never, a)), /aufzubewahren/);
+  // Issued: the frozen recipient decides, not today's customer setting.
+  const aus: Rechnung = { ...entwurf, status: "ausgestellt", nummer: "RE-2026-0009", absender: a, empfaenger: { name: "Erika Muster", privat: true }, ust_betrag: 22.8 };
+  assert.match(docText(rechnungDocx(aus, { ...(privat as object), privat: false } as never, a)), /aufzubewahren/);
+  assert.doesNotMatch(docText(rechnungDocx({ ...aus, empfaenger: { name: "Firma GmbH" } }, privat, a)), /aufzubewahren/);
+  assert.equal(istPrivat({ ...aus, empfaenger: { name: "x", privat: true } }, null), true);
+  const m2 = docText(mahnungDocx({ ...aus, mahnstufe: 3 }, privat, a, "2026-12-20"));
+  assert.match(m2, /5 Prozentpunkten über dem Basiszinssatz \(§ 288 Abs\. 1 BGB\)/);
+  assert.doesNotMatch(m2, /40 €/);
+  assert.match(m2, /Guten Tag Erika Muster,/);
+  const m2Firma = docText(mahnungDocx({ ...aus, mahnstufe: 3, empfaenger: { name: "Firma GmbH" } }, null, a, "2026-12-20"));
+  assert.match(m2Firma, /9 Prozentpunkte .*40 €/);
 });
