@@ -4,7 +4,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { bereicheLaden, db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
 import { bereichOptionen } from "./bereiche.ts";
 import { escape, seite } from "./seite.ts";
-import { EINSATZ, STATUS, passt, waNummer, type Einsatz, type Kraft } from "./personal.ts";
+import { EINSATZ, KRAFT_SPALTEN, STATUS, passt, waNummer, type Einsatz, type Kraft } from "./personal.ts";
 
 const ID = /^[0-9a-f-]{36}$/;
 type Vorgang = { id: string; titel: string; frist: string | null; firma_id: string; bereich_id?: string | null };
@@ -98,7 +98,7 @@ export async function einsatzplan(request: Request, env: KontoEnv): Promise<Resp
     const vid = url.searchParams.get("vorgang") ?? "";
     const [bereiche, alle, vorgaenge] = await Promise.all([
       db<Bereich[]>(f.s, env, `bereiche?firma_id=eq.${f.m.firma_id}&select=id,name,art,parent_id`),
-      db<Kraft[]>(f.s, env, `personal?firma_id=eq.${f.m.firma_id}&select=*&order=vorname`),
+      db<Kraft[]>(f.s, env, `rpc/personal_sicht?f=${f.m.firma_id}&select=*&order=vorname`),
       db<Vorgang[]>(f.s, env, `vorgaenge?firma_id=eq.${f.m.firma_id}&status=not.in.(verworfen,verloren,abgegeben)&select=id,titel,frist,firma_id&order=erstellt.desc&limit=60`),
     ]);
     const pool = alle.ok ? alle.daten : [];
@@ -145,7 +145,7 @@ ${gewaehlt && darfAendern ? `<form method="post" action="/konto/rundnachricht"><
   }
   const [p, e] = await Promise.all([
     db<Plan[]>(f.s, env, `einsatzplaene?vorgang_id=eq.${vid}&select=*`),
-    db<(Einsatz & { personal: Kraft | null })[]>(f.s, env, `einsaetze?vorgang_id=eq.${vid}&select=id,personal_id,vorgang_id,status,personal(*)&order=erstellt`),
+    db<(Einsatz & { personal: Kraft | null })[]>(f.s, env, `einsaetze?vorgang_id=eq.${vid}&select=id,personal_id,vorgang_id,status,personal(${KRAFT_SPALTEN})&order=erstellt`),
   ]);
   const gespeichert = p.ok ? p.daten[0] ?? null : null;
   // New plan: the contact person of the tender's location (or its region) is suggested (G4).

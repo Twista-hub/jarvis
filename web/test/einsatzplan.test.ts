@@ -26,7 +26,7 @@ test("Rundnachricht: Verfügbare mit SMS an alle und WhatsApp pro Person", async
   t.mock.method(globalThis, "fetch", async (input: string | URL | Request) => {
     const pfad = new URL(String(input)).pathname.split("/rest/v1/")[1];
     const daten = pfad === "mitglieder" ? [{ firma_id: "f", rolle: "inhaber", finanzen: true, firmen: { name: "PerLease" } }]
-      : pfad === "personal" ? [k("a1111111-1111-4111-8111-111111111111", "Eva", "verfuegbar"), k("b2222222-2222-4222-8222-222222222222", "Tom", "einsatz")] : [];
+      : pfad === "personal" || pfad === "rpc/personal_sicht" ? [k("a1111111-1111-4111-8111-111111111111", "Eva", "verfuegbar"), k("b2222222-2222-4222-8222-222222222222", "Tom", "einsatz")] : [];
     return new Response(JSON.stringify(daten), { status: 200 });
   });
   const r = await einsatzplan(new Request("https://jarvis.test/konto/rundnachricht", { headers: { cookie: `jv_at=${token}` } }), { SUPABASE_URL: "https://sb.test", SUPABASE_KEY: "pk" });

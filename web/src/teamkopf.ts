@@ -81,7 +81,7 @@ export async function teamKopf(s: Sitzung, env: KontoEnv, firma: string, heute: 
     db<{ id: string }[]>(s, env, `personal_abwesenheiten?firma_id=eq.${firma}&status=eq.beantragt&bis=gte.${heute}&select=id&limit=1000`),
     db<{ id: string }[]>(s, env, `stundenzettel?firma_id=eq.${firma}&status=eq.erfasst&datum=gte.${plusTage(heute, -62)}&select=id&limit=2000`),
     db<{ id: string }[]>(s, env, `schichten?firma_id=eq.${firma}&antwort=eq.abgesagt&datum=gte.${heute}&datum=lte.${plusTage(heute, 14)}&select=id&limit=500`),
-    db<FristPerson[]>(s, env, `personal?firma_id=eq.${firma}&or=(probezeit_bis.not.is.null,befristet_bis.not.is.null,aufenthalt_bis.not.is.null,firmenwagen.is.true)&select=id,vorname,nachname,status,fuehrerschein,firmenwagen,probezeit_bis,befristet_bis,aufenthalt_bis&limit=3000`),
+    db<FristPerson[]>(s, env, `rpc/personal_sicht?f=${firma}&or=(probezeit_bis.not.is.null,befristet_bis.not.is.null,aufenthalt_bis.not.is.null,firmenwagen.is.true)&select=id,vorname,nachname,status,fuehrerschein,firmenwagen,probezeit_bis,befristet_bis,aufenthalt_bis&limit=3000`),
     db<Kontrolle[]>(s, env, `fuehrerschein_kontrollen?firma_id=eq.${firma}&datum=gte.${plusTage(heute, -200)}&select=id,personal_id,datum,klassen,notiz,geprueft_von&limit=5000`),
     db<{ id: string }[]>(s, env, `personal_abwesenheiten?firma_id=eq.${firma}&kurzfristig=is.true&von=lte.${plusTage(heute, 1)}&bis=gte.${heute}&select=id&limit=500`),
     db<{ id: string }[]>(s, env, `psa_ausgaben?firma_id=eq.${firma}&zurueck=is.null&austausch=lte.${plusTage(heute, 30)}&select=id&limit=1000`),
@@ -89,7 +89,7 @@ export async function teamKopf(s: Sitzung, env: KontoEnv, firma: string, heute: 
     db<{ personal_id: string }[]>(s, env, `checklisten_punkte?firma_id=eq.${firma}&erledigt=is.null&select=personal_id&limit=5000`),
     db<{ id: string }[]>(s, env, `spesen?firma_id=eq.${firma}&status=eq.erfasst&select=id&limit=2000`),
     db<{ id: string }[]>(s, env, `nachweis_freigaben?firma_id=eq.${firma}&rueckfrage=is.true&bestaetigt_am=gte.${plusTage(heute, -30)}&select=id&limit=200`),
-    db<{ vorname: string; nachname: string; status: string; geburtstag: string | null; eintritt: string | null }[]>(s, env, `personal?firma_id=eq.${firma}&or=(geburtstag.not.is.null,eintritt.not.is.null)&select=vorname,nachname,status,geburtstag,eintritt&limit=3000`),
+    db<{ vorname: string; nachname: string; status: string; geburtstag: string | null; eintritt: string | null }[]>(s, env, `rpc/personal_sicht?f=${firma}&or=(geburtstag.not.is.null,eintritt.not.is.null)&select=vorname,nachname,status,geburtstag,eintritt&limit=3000`),
   ]);
   const fp = pf.ok ? pf.daten : [];
   const nachweise = n.ok ? n.daten : [];

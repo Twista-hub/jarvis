@@ -118,6 +118,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108090000_kunden_privat.sql
 \ir ../migrations/20261108100000_social_slots.sql
 \ir ../migrations/20261108110000_spesen_pauschalen.sql
+\ir ../migrations/20261108120000_personal_sensibel.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1265,6 +1266,20 @@ update public.mitglieder set rolle = 'leser' where user_id = '00000000-0000-0000
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000b');
 select pruefe((select count(*) = 0 from public.bewerber) and (select count(*) = 0 from public.bewerber_dateien), 'Leser sieht keine Bewerber');
+-- D1: readers see names, not note, birthday or residence permit of the staff file.
+reset role;
+update public.personal set notiz = 'Nur Frühschicht', geburtstag = '1990-05-01', aufenthalt_bis = '2027-01-31' where id = :'p_berlin';
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000000b');
+do $$ begin
+  perform notiz from public.personal;
+  raise exception 'FEHLER: Leser liest Notiz der Personalakte';
+exception when insufficient_privilege then null; end $$;
+select pruefe((select count(*) > 0 and bool_and(notiz = '' and geburtstag is null and aufenthalt_bis is null) and bool_or(vorname <> '') from public.personal_sicht(current_setting('test.firma')::uuid)), 'Leser: Personalakte ohne Notiz, Geburtstag, Aufenthaltstitel');
+select pruefe((select count(*) > 0 from public.personal where vorname <> ''), 'Leser sieht weiter Namen und Personalnummern');
+select test_als('00000000-0000-0000-0000-0000000000e1');
+select pruefe((select count(*) = 1 and min(notiz) = 'Nur Frühschicht' and min(geburtstag) = '1990-05-01' from public.personal_sicht(current_setting('test.firma')::uuid)), 'Einsatzkraft sieht die eigene Akte vollständig, keine fremde');
+select test_als('00000000-0000-0000-0000-00000000000b');
 select test_als('00000000-0000-0000-0000-0000000000e1');
 select pruefe((select count(*) = 1 from public.psa_ausgaben) and (select count(*) = 1 and min(anspruch) = 26 from public.urlaubskonten), 'Einsatzkraft sieht eigene PSA und ihr Urlaubskonto');
 select pruefe((select count(*) = 0 from public.einsatz_bewertungen) and (select count(*) = 0 from public.bewerber) and (select count(*) = 0 from public.checklisten_punkte), 'Einsatzkraft sieht keine Bewertungen, Bewerber oder Checklisten');

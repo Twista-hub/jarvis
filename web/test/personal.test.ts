@@ -145,7 +145,7 @@ function mock(t: TestContext) {
     let daten: unknown = [];
     if (pfad === "mitglieder") daten = [{ firma_id: firma, rolle: "inhaber", finanzen: true, firmen: { name: "PerLease" } }];
     if (pfad === "bereiche") daten = [{ id: ort, name: "Hamburg", art: "standort", parent_id: null }];
-    if (pfad === "personal") daten = [eva];
+    if (pfad === "personal" || pfad === "rpc/personal_sicht") daten = [eva];
     if (pfad === "firmen_tarifvertraege") daten = [tarif];
     if (pfad === "vorgaenge") daten = [{ id: "44444444-4444-4444-8444-444444444444", titel: "Reinigung Rathaus", frist: null, status: "neu" }, { id: "55555555-5555-4555-8555-555555555555", titel: "Servicekräfte Bankett", frist: null, status: "neu" }];
     return new Response(init?.method === "POST" || init?.method === "PATCH" ? "" : JSON.stringify(daten), { status: 200 });
@@ -223,4 +223,20 @@ test("Ausschreibung: eingeplantes Personal mit Status und Auswahl, passende zuer
   assert.match(html, /<option value="zugesagt" selected>✅ Zugesagt/);
   assert.match(html, /<option value="">Bitte auswählen …<\/option><option value="77777777[^"]*">🟢 ⭐ Ina/);
   assert.doesNotMatch(html, new RegExp(`<option value="${pid}">`), "schon Eingeplante nicht noch einmal anbieten");
+});
+
+test("D1: Notiz, Geburtstag, Aufenthaltstitel nur über rpc/personal_sicht (für Leser ausgeblendet)", async () => {
+  const { readdirSync, readFileSync } = await import("node:fs");
+  const { KRAFT_SPALTEN } = await import("../src/personal.ts");
+  const geschuetzt = /\b(notiz|geburtstag|aufenthalt_bis)\b/;
+  assert.doesNotMatch(KRAFT_SPALTEN, geschuetzt);
+  for (const datei of readdirSync(new URL("../src/", import.meta.url)).filter((d) => d.endsWith(".ts"))) {
+    const text = readFileSync(new URL(`../src/${datei}`, import.meta.url), "utf8");
+    // Whole rest of the line after "personal?" (template strings can be nested), plus embedded personal(...).
+    for (const m of text.matchAll(/[`"]personal\?[^\n]*|personal\(([^)]*)\)/g)) {
+      assert.doesNotMatch(m[0], /select=\*|personal\(\*\)/, `${datei}: ${m[0]}`);
+      const abfrage = m[1] !== undefined ? m[0] : (/select=[^`"&]*/.exec(m[0])?.[0] ?? "");
+      assert.doesNotMatch(abfrage, geschuetzt, `${datei}: ${m[0]}`);
+    }
+  }
 });

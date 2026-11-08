@@ -499,7 +499,7 @@ async function uebersicht(request: Request, env: KontoEnv, hinweis: string, unte
       // Only one location: the personnel is shown right here, no extra page.
       const ort = b[0]?.id ?? null;
       const [pool, qualifikationen, einsaetze, abw, ueberlassungen, nachweise] = await Promise.all([
-        db<Kraft[]>(s, env, `personal?firma_id=eq.${m.firma_id}&bereich_id=${ort ? `eq.${ort}` : "is.null"}&select=*&order=status,vorname`),
+        db<Kraft[]>(s, env, `rpc/personal_sicht?f=${m.firma_id}&bereich_id=${ort ? `eq.${ort}` : "is.null"}&select=*&order=status,vorname`),
         db<{ id: string; name: string; bereich_id: string | null }[]>(s, env, `firmen_qualifikationen?firma_id=eq.${m.firma_id}&select=id,name,bereich_id&order=name`),
         einsaetzeLaden(s, env, m.firma_id),
         abwesenheitenLaden(s, env, m.firma_id),
