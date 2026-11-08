@@ -237,3 +237,8 @@ Nur gelesen. Nichts gekauft, kein Limit geändert, nichts verknüpft.
 - LinkedIn: Browser-Chat nicht angemeldet. G2: „Access Denied“ ohne Admin (braucht geschäftliche Telefonnummer). OMR: Mailbestätigung offen (Benjamin). GetApp: noch keine Mail.
 - Search Console: sitemap.xml entfernt; übrig sitemap-auftraggeber.xml (8.015), sitemap-seiten.xml (271), sitemap-ausschreibungen.xml (5.526), alle „Erfolgreich“.
 - Benjamin: Der lange utm-Link sieht nicht gut aus → Claude hat Kurzlinks gebaut (crewtender.eu/instagram, /facebook, /linkedin, /bluesky, /mastodon, /g2, /omr, /getapp), Folgeauftrag in docs/auftraege/crewtender-utm-links.md.
+
+## Erledigt (08.11.2026): Kurzlinks (2. Runde)
+- Alle Kurzlinks geprüft (302 mit richtiger Herkunft). Facebook → /facebook, Bluesky → /bluesky, Mastodon → /mastodon geändert, per API geprüft.
+- OMR, GetApp, G2: noch nicht möglich (Mail-Bestätigung Benjamin / keine Rückmeldung / Admin-Zugang).
+- Instagram: Kurzlink https://crewtender.eu/instagram existiert bereits (seit 08.11.); Benjamin trägt ihn in der App ein.
