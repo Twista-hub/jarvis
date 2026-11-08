@@ -112,7 +112,9 @@ export async function normalisieren(rel: any, tag: string, vorher?: any): Promis
   const docs = (t.documents ?? []).filter((d: any) => /^https?:\/\//.test(d.url ?? ""));
   const link = docs[0]?.url || `https://oeffentlichevergabe.de/ui/de/search?q=${encodeURIComponent(str(t.title, 100))}`;
   const auftraggeber = str(buyer.name, 500) || "Auftraggeber nicht angegeben";
-  // OCDS party IDs such as ORG-0001 are only local to a notice, never global buyer keys.
+  // OCDS party IDs such as ORG-0001 are only local to a notice, never global buyer keys. In German notices
+  // buyer.identifier.id is that local id too (diagnosis 08.11.2026), so the database trigger ag_schluessel
+  // (migration 20261108280000) replaces this value with bks:<name-slug>[:<plz>].
   const ident = buyer.identifier?.id ? `${buyer.identifier.scheme ?? ""}:${buyer.identifier.id}` : `${auftraggeber.toLowerCase()}|${a.postalCode ?? ""}|${a.locality ?? ""}`;
   const buyerId = await hash(ident);
   const vertragsende = (r.contracts ?? []).map((c: any) => zeit(c.period?.endDate)?.slice(0, 10)).filter(Boolean).sort().at(-1) || null;
