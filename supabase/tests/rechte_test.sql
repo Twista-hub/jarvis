@@ -112,6 +112,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108030000_abo_meldungen.sql
 \ir ../migrations/20261108040000_ki_inaktiv.sql
 \ir ../migrations/20261108050000_willkommen_mails.sql
+\ir ../migrations/20261108060000_gratistopf_20.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -827,8 +828,8 @@ update public.firmen set paket = 'business' where id = :'zahlt';
 select pruefe((select jarvis_katalog.ki_planbudget(paket) = 60 from public.firmen where id = :'zahlt'), 'Business mit eigenem Planwert, 60 $');
 insert into public.firmen (name, ki_budget_usd) values ('Gratis A', 5.50) returning id as gratis_a \gset
 insert into public.firmen (name, ki_budget_usd) values ('Gratis B', 5.50) returning id as gratis_b \gset
-insert into jarvis_katalog.ki_kosten (zweck, reserviert, verbraucht, firma_id) values ('test', 0, 4.8, :'gratis_a');
-select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'gratis_b') is null, 'Gratis-Topf (5 $ im Monat, alle Gratis-Firmen zusammen) ist leer');
+insert into jarvis_katalog.ki_kosten (zweck, reserviert, verbraucht, firma_id) values ('test', 0, 19.8, :'gratis_a');
+select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'gratis_b') is null, 'Gratis-Topf (20 $ im Monat, alle Gratis-Firmen zusammen) ist leer');
 select pruefe(jarvis_katalog.ki_sperrgrund(:'gratis_b', 0.3) = 'topf', 'Sperrgrund Gratis-Topf');
 select pruefe((select count(*) = 1 from jarvis_intern.fehler_meldungen where art = 'budget' and text like 'Gratis-KI-Topf%'), 'Betreiber bekommt eine Meldung zum leeren Gratis-Topf');
 select pruefe(jarvis_katalog.ki_reservieren_fuer(0.3, 'test', :'gratis_b') is null and (select count(*) = 1 from jarvis_intern.fehler_meldungen where art = 'budget' and text like 'Gratis-KI-Topf%'), 'Meldung zum Gratis-Topf nur einmal im Monat');
