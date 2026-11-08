@@ -530,5 +530,7 @@
   "Zusammenfassende Meldung": "elenco riepilogativo",
   "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "presso l'Ufficio centrale federale delle imposte (tramite ELSTER, entro il # del mese o trimestre successivo), con la partita IVA del cliente e l'importo. Proposta, verifica con il commercialista.",
   "Leistungstext auf der Rechnung": "Descrizione del servizio in fattura",
-  "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "ad es. pulizia ordinaria, sede Hauptstraße (il mese viene aggiunto)"
+  "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "ad es. pulizia ordinaria, sede Hauptstraße (il mese viene aggiunto)",
+  "Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)": "Land della sede (festività per ferie e conto ore)",
+  "wie Firmensitz": "come la sede"
 }

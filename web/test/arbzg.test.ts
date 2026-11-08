@@ -73,3 +73,9 @@ test("A1: Feiertagsarbeit, 15 freie Sonntage, Ersatzruhetag", () => {
   assert.ok(arbzgJahr([{ datum: "2026-11-15" }], voll).some((x) => x.startsWith("Ersatzruhetag für den Sonntag 15.11.")));
   assert.ok(!arbzgJahr([{ datum: "2026-11-15" }], voll.filter((x) => x.datum !== "2026-11-18")).some((x) => x.startsWith("Ersatzruhetag")));
 });
+
+test("A4: Bundesland je Standort, sonst Firmensitz (Feiertage für Urlaub und Zeitkonto)", async () => {
+  const { landResolver } = await import("../src/stunden.ts");
+  const land = landResolver([{ id: "s1", parent_id: null, bundesland: "BY" }, { id: "t1", parent_id: "s1", bundesland: "" }, { id: "s2", parent_id: null, bundesland: "" }], "NW");
+  assert.deepEqual([land("s1"), land("t1"), land("s2"), land(null)], ["BY", "BY", "NW", "NW"]);
+});

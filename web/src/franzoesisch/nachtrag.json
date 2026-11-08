@@ -530,5 +530,7 @@
  "Zusammenfassende Meldung": "état récapitulatif",
  "beim Bundeszentralamt für Steuern nötig (über ELSTER, bis zum # des Folgemonats bzw. Folgequartals), mit USt-IdNr. des Kunden und Betrag. Vorschlag, bitte mit dem Steuerbüro prüfen.": "auprès de l'office fédéral des impôts (via ELSTER, avant le # du mois ou trimestre suivant), avec le n° de TVA du client et le montant. Proposition, à vérifier avec l'expert-comptable.",
  "Leistungstext auf der Rechnung": "Libellé de la prestation sur la facture",
- "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "p. ex. nettoyage d'entretien, site Hauptstraße (le mois est ajouté)"
+ "z. B. Unterhaltsreinigung Objekt Hauptstraße (Monat wird angehängt)": "p. ex. nettoyage d'entretien, site Hauptstraße (le mois est ajouté)",
+ "Bundesland des Standorts (Feiertage für Urlaub und Zeitkonto)": "Land (État fédéral) du site (jours fériés pour congés et compte temps)",
+ "wie Firmensitz": "comme le siège"
 }

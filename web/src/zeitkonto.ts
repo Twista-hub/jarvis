@@ -4,9 +4,9 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 import { feiertag } from "./zuschlaege.ts";
-import { landDerFirma, minuten, type Eintrag } from "./stunden.ts";
+import { landDerFirma, landJeBereich, minuten, type Eintrag } from "./stunden.ts";
 
-export type ZPerson = { id: string; vorname: string; nachname: string; status: string; wochenstunden: number | string | null; eintritt: string | null };
+export type ZPerson = { id: string; vorname: string; nachname: string; status: string; wochenstunden: number | string | null; eintritt: string | null; bereich_id?: string | null };
 export type Start = { personal_id: string; ab: string; startsaldo_min: number };
 type Abw = { personal_id: string; von: string; bis: string; status?: string };
 type Std = Pick<Eintrag, "personal_id" | "datum" | "beginn" | "ende" | "pause_min" | "status">;
@@ -43,11 +43,11 @@ export function zeitkonto(p: ZPerson, start: Start | undefined, stunden: Std[], 
   return monate;
 }
 
-export function zeitkontoSeite(personen: ZPerson[], starts: Start[], stunden: Std[], abw: Abw[], o: { land: string; heute: string; darfAendern: boolean }): string {
+export function zeitkontoSeite(personen: ZPerson[], starts: Start[], stunden: Std[], abw: Abw[], o: { land: string; heute: string; darfAendern: boolean; landVon?: (bereich: string | null | undefined) => string }): string {
   const aktiv = personen.filter((p) => p.status !== "nicht");
   const ohne = aktiv.filter((p) => !Number(p.wochenstunden ?? 0));
   const karten = aktiv.filter((p) => Number(p.wochenstunden ?? 0)).map((p) => {
-    const st = starts.find((s) => s.personal_id === p.id), m = zeitkonto(p, st, stunden, abw, o.land, o.heute), jetzt = m.at(-1)?.stand ?? st?.startsaldo_min ?? 0;
+    const st = starts.find((s) => s.personal_id === p.id), m = zeitkonto(p, st, stunden, abw, o.landVon ? o.landVon(p.bereich_id) : o.land, o.heute), jetzt = m.at(-1)?.stand ?? st?.startsaldo_min ?? 0;
     return `<details class="psa-person zeitkonto"><summary><strong>${escape(`${p.vorname} ${p.nachname}`.trim())}</strong><span class="klein">${String(p.wochenstunden).replace(".", ",")} Std./Woche · Saldo <strong class="${jetzt < 0 ? "minus" : "plus"}">${hm(jetzt)} Std.</strong></span></summary>
 ${m.length ? `<table class="auswertung-tabelle zu-tabelle"><thead><tr><th>Monat</th><th>Soll</th><th>Ist</th><th>+/−</th><th>Stand</th></tr></thead><tbody>${[...m].reverse().slice(0, 12).map((x) => `<tr><td>${mName(x.monat)}</td><td>${hm(x.soll).slice(1)}</td><td>${hm(x.ist).slice(1)}</td><td class="${x.saldo < 0 ? "minus" : ""}">${hm(x.saldo)}</td><td><strong>${hm(x.stand)}</strong></td></tr>`).join("")}</tbody></table>` : `<p class="klein">Noch kein Startdatum und keine Stunden.</p>`}
 ${o.darfAendern ? `<form method="post" action="/konto/zeitkonto" class="zeile-form"><input type="hidden" name="person" value="${p.id}"><label>Konto ab<input type="date" name="ab" value="${escape(st?.ab ?? o.heute.slice(0, 8) + "01")}"></label><label>Startsaldo (Std.)<input name="saldo" inputmode="decimal" maxlength="7" value="${st ? String(Math.round((st.startsaldo_min / 60) * 100) / 100).replace(".", ",") : "0"}"></label><button class="zweit">Speichern</button></form>` : ""}</details>`;
@@ -58,14 +58,15 @@ ${karten || `<p class="treffer-leer">Noch niemand mit Wochenstunden.</p>`}${ohne
 
 export async function zeitkontoDaten(s: Parameters<typeof db>[0], env: KontoEnv, firma: string, heute: string, person?: string) {
   const f = person ? `&personal_id=eq.${person}` : "";
-  const [p, st, sz, a, land] = await Promise.all([
-    db<ZPerson[]>(s, env, `personal?firma_id=eq.${firma}${person ? `&id=eq.${person}` : ""}&select=id,vorname,nachname,status,wochenstunden,eintritt&order=vorname&limit=3000`),
+  const [p, st, sz, a, land, landVon] = await Promise.all([
+    db<ZPerson[]>(s, env, `personal?firma_id=eq.${firma}${person ? `&id=eq.${person}` : ""}&select=id,vorname,nachname,status,wochenstunden,eintritt,bereich_id&order=vorname&limit=3000`),
     db<Start[]>(s, env, `zeitkonten?firma_id=eq.${firma}${f}&select=personal_id,ab,startsaldo_min&limit=3000`),
     db<Std[]>(s, env, `stundenzettel?firma_id=eq.${firma}${f}&status=eq.freigegeben&datum=gte.${Number(heute.slice(0, 4)) - 1}-01-01&select=personal_id,datum,beginn,ende,pause_min,status&limit=100000`),
     db<Abw[]>(s, env, `personal_abwesenheiten?firma_id=eq.${firma}${f}&status=eq.bestaetigt&bis=gte.${Number(heute.slice(0, 4)) - 1}-01-01&select=personal_id,von,bis,status&limit=20000`),
     landDerFirma(s, env, firma),
+    landJeBereich(s, env, firma),
   ]);
-  return { personen: p.ok ? p.daten : [], starts: st.ok ? st.daten : [], stunden: sz.ok ? sz.daten : [], abw: a.ok ? a.daten : [], land };
+  return { personen: p.ok ? p.daten : [], starts: st.ok ? st.daten : [], stunden: sz.ok ? sz.daten : [], abw: a.ok ? a.daten : [], land, landVon };
 }
 
 export async function zeitkontoRoute(request: Request, env: KontoEnv): Promise<Response | null> {
@@ -89,5 +90,5 @@ export async function zeitkontoRoute(request: Request, env: KontoEnv): Promise<R
   }
   const d = await zeitkontoDaten(f.s, env, firma, heute);
   const hinweis = url.searchParams.get("hinweis");
-  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${zeitkontoSeite(d.personen, d.starts, d.stunden, d.abw, { land: d.land, heute, darfAendern })}`);
+  return antwort(`${hinweis ? `<p role="status"><strong>${escape(hinweis)}</strong></p>` : ""}${zeitkontoSeite(d.personen, d.starts, d.stunden, d.abw, { land: d.land, heute, darfAendern, landVon: d.landVon })}`);
 }
