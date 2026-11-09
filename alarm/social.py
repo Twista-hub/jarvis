@@ -3,7 +3,8 @@
 Weekdays three posts (about 09:00, 13:00 and 17:00 Berlin), weekends one (about 11:00), on both networks. The morning
 post rotates: a current public tender (title, place, deadline, estimated value, source), a number of the day, now and then
 a feature tip; the other posts are tenders (since 08.11.2026; before only one post on weekdays). English, link to crewtender.eu with
-utm_source=bluesky|mastodon and utm_medium=social. Only real public notices (oeffentlichevergabe.de, CC0); no names of
+utm_source=bluesky|mastodon and utm_medium=social. Since 09.11.2026 every post carries an image (social_bild.py) with alt text;
+if the upload fails (Mastodon needs the token scope write:media) the post goes out as text. Only real public notices (oeffentlichevergabe.de, CC0); no names of
 persons; no notice twice (jarvis_intern.social_posts); Bluesky at most 300 characters. Rather no post than an empty one.
 
 Secrets (GitHub → Settings → Secrets and variables → Actions): BLUESKY_APP_PASSWORD (app password of @crewtender.eu),
@@ -78,9 +79,13 @@ def datum_en(wert) -> str:
     return d.astimezone(BERLIN).strftime("%-d %b %Y")
 
 
+def ort_kurz(t: dict) -> str:
+    return re.sub(r"\s+", " ", NUTS.sub("", sauber(t.get("ort") or "").replace(" (Auftraggeberadresse; Einsatzort prüfen)", ""))).strip(" ·")
+
+
 def ausschreibung_text(t: dict, kanal: str) -> str:
     url = adresse("/demo/katalog/" + urllib.parse.quote(t["id"], safe=""), kanal)
-    ort = re.sub(r"\s+", " ", NUTS.sub("", sauber(t.get("ort") or "").replace(" (Auftraggeberadresse; Einsatzort prüfen)", ""))).strip(" ·")
+    ort = ort_kurz(t)
     zeilen = [f"📍 {kuerzen(ort, 60)}" if ort else "",
               f"⏰ Deadline {datum_en(t['frist'])}",
               f"💶 Est. value {t['wert']}" if t.get("wert") else "",
@@ -199,28 +204,67 @@ def anfrage(url: str, daten: dict | None = None, kopf: dict | None = None, form:
         return json.loads(r.read() or b"{}")
 
 
-def bluesky(text: str) -> str:
+def hochladen(url: str, daten: bytes, kopf: dict) -> dict:
+    req = urllib.request.Request(url, data=daten, headers={"User-Agent": UA, **kopf}, method="POST")
+    with urllib.request.urlopen(req, timeout=60) as r:
+        return json.loads(r.read() or b"{}")
+
+
+def bluesky(text: str, b: tuple[bytes, str] | None = None) -> str:
     s = anfrage("https://bsky.social/xrpc/com.atproto.server.createSession", {"identifier": BLUESKY_HANDLE, "password": os.environ["BLUESKY_APP_PASSWORD"]})
     rec = {"$type": "app.bsky.feed.post", "text": text, "createdAt": datetime.now(ZoneInfo("UTC")).isoformat(timespec="milliseconds").replace("+00:00", "Z"), "langs": ["en"], "facets": facetten(text)}
+    if b:
+        try:
+            blob = hochladen("https://bsky.social/xrpc/com.atproto.repo.uploadBlob", b[0], {"Content-Type": "image/png", "Authorization": f"Bearer {s['accessJwt']}"})["blob"]
+            rec["embed"] = {"$type": "app.bsky.embed.images", "images": [{"image": blob, "alt": b[1][:1000], "aspectRatio": {"width": 1200, "height": 675}}]}
+        except Exception as e:  # noqa: BLE001
+            print(f"bluesky: Bild nicht hochgeladen ({type(e).__name__}), nur Text.")
     r = anfrage("https://bsky.social/xrpc/com.atproto.repo.createRecord", {"repo": s["did"], "collection": "app.bsky.feed.post", "record": rec},
                 {"Authorization": f"Bearer {s['accessJwt']}"})
     return r.get("uri", "")
 
 
-def mastodon(text: str, schluessel: str) -> str:
-    r = anfrage(f"{MASTODON}/api/v1/statuses", {"status": text, "visibility": "public", "language": "en"},
+def mastodon(text: str, schluessel: str, b: tuple[bytes, str] | None = None) -> str:
+    daten = {"status": text, "visibility": "public", "language": "en"}
+    if b:
+        # Needs the token scope write:media; without it the post goes out as text (link preview from the page).
+        try:
+            grenze = "----crewtender" + schluessel.replace("-", "")
+            teile = (f"--{grenze}\r\nContent-Disposition: form-data; name=\"description\"\r\n\r\n{b[1][:1400]}\r\n"
+                     f"--{grenze}\r\nContent-Disposition: form-data; name=\"file\"; filename=\"crewtender.png\"\r\nContent-Type: image/png\r\n\r\n").encode() + b[0] + f"\r\n--{grenze}--\r\n".encode()
+            m = hochladen(f"{MASTODON}/api/v2/media", teile, {"Content-Type": f"multipart/form-data; boundary={grenze}", "Authorization": f"Bearer {os.environ['MASTODON_TOKEN']}"})
+            if m.get("id"):
+                daten["media_ids[]"] = m["id"]
+        except Exception as e:  # noqa: BLE001
+            print(f"mastodon: Bild nicht hochgeladen ({type(e).__name__}: {str(e)[:120]}), nur Text.")
+    r = anfrage(f"{MASTODON}/api/v1/statuses", daten,
                 {"Authorization": f"Bearer {os.environ['MASTODON_TOKEN']}", "Idempotency-Key": schluessel}, form=True)
     return r.get("url", "")
 
 
-def texte(con, art: str, heute: date) -> tuple[str, dict | None, dict]:
-    """(kind actually used, chosen notice, text per network); falls back to a tip, never to an empty post."""
+def bild(art: str, t: dict | None = None, z: dict | None = None, nr: int = 0) -> tuple[bytes, str] | None:
+    """Image and alt text for a post (social_bild.py); None when Pillow or the fonts are missing (then text only)."""
+    try:
+        import social_bild as sb
+        if art == "ausschreibung" and t:
+            return sb.ausschreibung_bild(sauber(t["titel"]), kuerzen(ort_kurz(t), 50), datum_en(t["frist"]), t.get("wert") or "", QUELLE.get(t.get("quelle"), "official notice"))
+        if art == "zahl" and z:
+            return sb.zahl_bild(z["neu"], f"new public tenders in Germany on {z['tag'].strftime('%A, %-d %b')}",
+                                f"{z['gewerk_n']} of them in {z['gewerk']}" if z.get("gewerk_n") else "")
+        return sb.tipp_bild(TIPPS[nr % len(TIPPS)][0])
+    except Exception as e:  # noqa: BLE001
+        print(f"Bild nicht erstellt ({type(e).__name__}: {str(e)[:120]}), nur Text.")
+        return None
+
+
+def texte(con, art: str, heute: date) -> tuple[str, dict | None, dict, tuple[bytes, str] | None]:
+    """(kind actually used, chosen notice, text per network, image); falls back to a tip, never to an empty post."""
     if art == "ausschreibung" and (t := ausschreibung_waehlen(con)):
-        return art, t, {k: ausschreibung_text(t, k) for k in GRENZE}
+        return art, t, {k: ausschreibung_text(t, k) for k in GRENZE}, bild(art, t=t)
     if art == "zahl" and (z := zahl_waehlen(con, heute)):
-        return art, None, {k: zahl_text(z, k) for k in GRENZE}
+        return art, None, {k: zahl_text(z, k) for k in GRENZE}, bild(art, z=z)
     nr = con.execute("select count(*) from jarvis_intern.social_posts where art = 'tipp' and kanal = 'mastodon'").fetchone()[0]
-    return "tipp", None, {k: tipp_text(nr, k) for k in GRENZE}
+    return "tipp", None, {k: tipp_text(nr, k) for k in GRENZE}, bild("tipp", nr=nr)
 
 
 def main() -> None:
@@ -242,9 +286,10 @@ def main() -> None:
             return
         if modus == "probe":
             for art in ("ausschreibung", "zahl", "tipp"):
-                benutzt, _, t = texte(con, art, heute)
+                benutzt, _, t, b = texte(con, art, heute)
                 for kanal, text in t.items():
                     print(f"--- {art} → {benutzt}, {kanal}, {len(text)} Zeichen (Grenze {GRENZE[kanal]})\n{text}\n")
+                print(f"Bild: {len(b[0]) // 1024} KB, Alt-Text: {b[1]}" if b else "Bild: keins")
             print(f"Heute ({heute:%A}): " + ", ".join(f"Termin {n} {art_fuer(heute, n)}" for n in ((1,) if heute.isoweekday() > 5 else (1, 2, 3))))
             return
         slot = slot_jetzt(jetzt)
@@ -255,7 +300,7 @@ def main() -> None:
         if not offen:
             print(f"Termin {slot} heute schon gepostet.")
             return
-        art, t, txt = texte(con, art_fuer(heute, slot), heute)
+        art, t, txt, b = texte(con, art_fuer(heute, slot), heute)
         for kanal, text in txt.items():
             if kanal not in offen:
                 print(f"{kanal}: Termin {slot} heute schon gepostet.")
@@ -268,7 +313,7 @@ def main() -> None:
                 print(f"{kanal}: kein gültiger Text, übersprungen.")
                 continue
             try:
-                ziel = bluesky(text) if kanal == "bluesky" else mastodon(text, f"crewtender-{heute}-{slot}")
+                ziel = bluesky(text, b) if kanal == "bluesky" else mastodon(text, f"crewtender-{heute}-{slot}", b)
             except Exception as e:  # noqa: BLE001
                 print(f"{kanal}: Posten fehlgeschlagen ({type(e).__name__}: {str(e)[:200]})")
                 continue

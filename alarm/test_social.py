@@ -64,6 +64,17 @@ class SocialTest(unittest.TestCase):
         f = s.facetten(text)[0]
         self.assertEqual(text.encode()[f["index"]["byteStart"]:f["index"]["byteEnd"]].decode(), "https://crewtender.eu/?utm_source=bluesky&utm_medium=social")
 
+    def test_bilder(self):
+        from datetime import datetime, timezone
+        t = {"id": "bks:x", "titel": "Unterhaltsreinigung von 6 Schulen, Ansprechpartner Frau Erika Mustermann", "ort": "72108 Rottenburg DE143",
+             "frist": datetime(2026, 11, 24, 10, tzinfo=timezone.utc), "quelle": "bks", "wert": "€210k"}
+        for b in (s.bild("ausschreibung", t=t), s.bild("zahl", z={"tag": date(2026, 11, 6), "neu": 512, "gewerk": "building cleaning", "gewerk_n": 23}), s.bild("tipp", nr=1)):
+            self.assertTrue(b and b[0].startswith(b"\x89PNG") and len(b[0]) < 900_000)
+        png, alt = s.bild("ausschreibung", t=t)
+        self.assertNotIn("Mustermann", alt)
+        self.assertNotIn("DE143", alt)
+        self.assertIn("Deadline 24 Nov 2026", alt)
+
 
 if __name__ == "__main__":
     unittest.main()
