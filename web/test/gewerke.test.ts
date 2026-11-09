@@ -15,9 +15,13 @@ test("Gewerke-Seiten: 10 Gewerke, Zahlen, Beispiele, FAQ, Sitemap", () => {
   assert.match(s, /href="\/registrieren"[\s\S]*href="\/demo"/);
   assert.doesNotMatch(s, /href="\/ausschreibungen\/elektro"/, "keine Verlinkung auf sich selbst");
   assert.doesNotMatch(gewerkSeite(GEWERKE[0], null), /gewerk-zahlen/, "ohne Zahlen keine leere Box");
+  assert.match(s, /<strong>119<\/strong><span>neue pro Woche/, "512 in 30 Tagen ≈ 119 pro Woche");
+  assert.match(s, /Und wenn der Auftrag da ist/);
+  assert.match(s, /href="\/stundensatz-rechner"/);
+  for (const g of GEWERKE) assert.ok((g.arten?.length ?? 0) >= 3, `${g.slug}: Unterkategorien`);
   assert.equal((uebersichtGewerke().match(/href="\/ausschreibungen\//g) ?? []).length, 10);
   const map = sitemap("https://app.example");
-  assert.equal((map.match(/<loc>/g) ?? []).length, 93 + 5 + 160 + ANLEITUNGEN.length); // + 10 Gewerke × 16 Bundesländer; 49 + je 11 französische, polnische, spanische, italienische Seiten + Preise, Kontakt, Partner, Partnerbedingungen, Hilfe-Center und Anleitungen
+  assert.equal((map.match(/<loc>/g) ?? []).length, 93 + 7 + 160 + ANLEITUNGEN.length); // + Stundensatz-Rechner, Vergleich; 10 Gewerke × 16 Bundesländer; 49 + je 11 französische, polnische, spanische, italienische Seiten + Preise, Kontakt, Partner, Partnerbedingungen, Hilfe-Center und Anleitungen
   assert.match(ROBOTS("https://app.example"), /Disallow: \/konto[\s\S]*Sitemap: https:\/\/app.example\/sitemap-seiten.xml/);
 });
 

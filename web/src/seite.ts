@@ -83,6 +83,13 @@ ${grundTags(titel)}
   .start-marke svg { width: 40px; height: 40px; border-radius: 11px; box-shadow: 0 6px 14px -6px rgba(21,50,75,.6); }
   .start-fuer { display: inline-block; margin: 0 0 12px; padding: 5px 12px; border-radius: 999px; background: rgba(255,255,255,.6); border: 1px solid rgba(255,255,255,.85); font-size: .82rem; font-weight: 650; color: #1f5f8b; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
   .start-held h1 { font-size: clamp(1.7rem, 6.4vw, 2.35rem); line-height: 1.15; letter-spacing: -.01em; margin: 0 0 12px; color: #102a40; }
+  .start-statt { margin: 18px 0 0; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+  .start-statt p { margin: 4px 0; }
+  .tabelle-scroll { overflow-x: auto; }
+  .vergleich-tabelle, .rechner-tabelle { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .vergleich-tabelle th, .vergleich-tabelle td, .rechner-tabelle td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+  .rechner-tabelle td:last-child { text-align: right; white-space: nowrap; }
+  .rechner-ergebnis { margin-top: 16px; }
   .start-unter { margin: 0 0 18px; font-size: 1.04rem; color: #2a4a63; }
   .start-knoepfe { display: grid; gap: 10px; }
   @media (min-width: 560px) { .start-knoepfe { grid-template-columns: auto auto; justify-content: start; } }

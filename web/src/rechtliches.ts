@@ -200,13 +200,14 @@ ${b?.id ? `<a class="start-live-beispiel" href="/ausschreibung/${encodeURICompon
 export function startseite(beispiel: string, zahlen: StartZahlen | null = null): string {
   return `<section class="start-held">
 <p class="start-fuer">Für Handwerk, Reinigung, Sicherheit, Zeitarbeit, Gastro und viele weitere Branchen</p>
-<h1>Öffentliche Aufträge finden. Angebote schreiben. Dein Team planen.</h1>
-<p class="start-unter">Jeden Morgen liest Crewtender alle neuen öffentlichen Ausschreibungen in Deutschland und zeigt dir nur die, die zu deiner Firma passen. Mit Steckbrief, Kalkulation und Personalplanung in einer App.</p>
+<h1>Ausschreibung finden. Mit Tariflohn kalkulieren. Team einplanen.</h1>
+<p class="start-unter">Jeden Morgen liest Crewtender alle neuen öffentlichen Ausschreibungen in Deutschland und zeigt dir nur die, die zu deiner Firma passen. Dann rechnest du mit deinen Löhnen den Preis, schreibst das Angebot und planst nach dem Zuschlag Schichten, Stunden und Rechnungen – alles in einer App.</p>
 <div class="start-knoepfe"><a class="start-knopf" href="/registrieren">30 Tage Pro gratis testen</a><a class="start-knopf glas" href="/demo">🎬 Demo ansehen</a></div>
 <p class="start-klein">Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
-<ul class="start-chips"><li>✓ Demo ohne Anmeldung</li><li>✓ 30 Tage alle Pro-Funktionen, danach Free</li><li>✓ Keine Kreditkarte nötig</li><li>✓ Daten in der EU</li><li>✓ Los geht's nach der E-Mail-Bestätigung</li></ul>
+<ul class="start-chips"><li>✓ Demo ohne Anmeldung</li><li>✓ 30 Tage alle Pro-Funktionen, danach Free</li><li>✓ Keine Kreditkarte nötig</li><li>✓ Datenbank in Frankfurt (EU)</li><li>✓ Monatlich kündbar</li><li>✓ Los geht's nach der E-Mail-Bestätigung</li></ul>
 </section>
 ${liveKasten(zahlen)}
+<section class="start-statt" aria-label="Eine App statt zwei"><p><strong>Statt Ausschreibungsportal und Dienstplan-Software:</strong> Suche, Bewertung, Kalkulation, Angebot, Schichtplan, Zeiterfassung, Lohnliste und Rechnung greifen in Crewtender ineinander. Nichts doppelt eintippen.</p><p><a href="/vergleich">Was ist anders? Zum Vergleich →</a> · <a href="/stundensatz-rechner">🧮 Kostenloser Stundensatz-Rechner →</a></p></section>
 ${diaShow()}
 <h2 class="start-h2">So funktioniert's</h2>
 <div class="start-raster">${karte("🔎", "Treffer jeden Morgen", "Jede Ausschreibung bekommt 1 bis 10 Punkte und einen Satz, warum sie passt oder nicht, sortiert nach deinen Standorten.")}${karte("📋", "Steckbrief auf einen Blick", "Fristen, Lose, Mengen, geforderte Nachweise und Referenzen, Zuschlagskriterien und eine klare Empfehlung.")}${karte("🧮", "Kalkulieren und anbieten", "Vergabeunterlagen hochladen, Crewtender liest alles und rechnet mit deinen Löhnen den Preis pro Stunde und pro Los.")}</div>

@@ -1,4 +1,5 @@
 // Crewtender upload page: customers upload tender documents, a Workflow writes the Steckbrief.
+import { rechner } from "./rechner.ts";
 import { textSymbole } from "./symbole.ts";
 import { stripeWebhook } from "./stripe.ts";
 import { preise } from "./preise.ts";
@@ -262,6 +263,8 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     }
     const seo = await seoSeiten(request, env, ADRESSE, (h) => html(h));
     if (seo) return seo;
+    const rn = rechner(request, ADRESSE, (h) => html(h));
+    if (rn) return rn;
     const gw = await gewerke(request, env, ADRESSE, (h) => html(h));
     if (gw) return gw;
     const fr = await metiers(request, env, ADRESSE, (h) => html(h));
@@ -726,7 +729,7 @@ async function landesStart(request: Request, url: URL, ausAdresse: string | unde
   const zusatz = deutsch ? startseite(markdown(MUSTER.replace(/^>.*\n/m, "")), await startZahlen(env)) : "";
   const l = landesSeite(b, ADRESSE, "");
   const body = deutsch ? `${zusatz}${landWahl(b, false)}<p class="klein">${keineBehoerde("de")}</p>` : l.inhalt;
-  const titel = deutsch ? "Crewtender – Öffentliche Aufträge finden, Angebote schreiben, Team planen" : l.titel;
+  const titel = deutsch ? "Crewtender – Ausschreibungen finden, mit Tariflohn kalkulieren, Team planen" : l.titel;
   const beschreibung = deutsch ? START_BESCHREIBUNG : l.beschreibung;
   const r = html(kopfZeile(seite(titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}${seoKopf({ beschreibung, url: kanonisch(b, ADRESSE), jsonld: START_JSONLD })}`));
   r.headers.delete("x-robots-tag");

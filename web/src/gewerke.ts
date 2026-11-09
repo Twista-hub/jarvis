@@ -9,7 +9,11 @@ import { LAND_PFADE } from "./gewerke-land.ts";
 import { alternativen } from "./gewerke-sprachen.ts";
 import { BUNDESLAENDER } from "./nuts.ts";
 
-type Gewerk = { slug: string; name: string; h1: string; cpv: string[]; intro: string; vorteile: string[]; fragen: [string, string][] };
+/** arten: sub-categories shown as chips; danach: what the app does once the contract is won (default DANACH). */
+type Gewerk = { slug: string; name: string; h1: string; cpv: string[]; intro: string; vorteile: string[]; fragen: [string, string][]; arten?: string[]; danach?: string[] };
+
+/** After the award: the part no tender service offers (competitor check 09.11.2026, docs/wettbewerb.md). */
+const DANACH = ["Schichten oder Einsätze planen, Zusagen sehen, Lücken füllen", "Stunden per Handy erfassen, im Büro freigeben, Lohnliste für DATEV", "Leistungsnachweis zum Unterschreiben und Rechnung, auch als XRechnung"];
 export type Statistik = { monat: number; offen: number; beispiele: { id?: string; titel: string; auftraggeber: string; ort: string; frist: string | null; link: string }[]; stand?: string };
 
 const ALLGEMEIN: [string, string][] = [
@@ -18,43 +22,43 @@ const ALLGEMEIN: [string, string][] = [
 ];
 
 export const GEWERKE: Gewerk[] = [
-  { slug: "elektro", name: "Elektro", h1: "Öffentliche Ausschreibungen für Elektroarbeiten", cpv: ["45311", "45315", "45317", "45310"],
+  { slug: "elektro", name: "Elektro", h1: "Öffentliche Ausschreibungen für Elektroarbeiten", cpv: ["45311", "45315", "45317", "45310"], arten: ["Elektroinstallation", "Beleuchtung", "Photovoltaik", "Brandmelde- und Sicherheitstechnik", "Blitzschutz", "Wartung und Prüfung"],
     intro: "Schulen, Kitas, Rathäuser und Wohnungsbaugesellschaften vergeben laufend Elektroinstallation, Beleuchtung, PV-Anlagen und Wartung. Crewtender findet die Aufträge, die zu deinem Betrieb und Einzugsgebiet passen, und sagt in einem Satz, warum.",
     vorteile: ["Elektroinstallation, Sicherheitsbeleuchtung, PV und Wartung getrennt erkannt", "Steckbrief mit Losen, Mengen, Fristen und geforderten Nachweisen (z. B. Eintragung Installateurverzeichnis)", "Kalkulation pro Los mit deinen Stundensätzen"],
     fragen: [["Lohnen sich öffentliche Aufträge für kleine Elektrobetriebe?", "Ja. Viele Ausschreibungen sind in Lose geteilt oder betreffen einzelne Gebäude. Crewtender zeigt dir Größe, Entfernung und Frist auf einen Blick, damit du schnell entscheidest."]] },
-  { slug: "sanitaer-heizung-lueftung", name: "Sanitär, Heizung, Lüftung", h1: "Öffentliche Ausschreibungen für Sanitär, Heizung und Lüftung", cpv: ["4533"],
+  { slug: "sanitaer-heizung-lueftung", name: "Sanitär, Heizung, Lüftung", h1: "Öffentliche Ausschreibungen für Sanitär, Heizung und Lüftung", cpv: ["4533"], arten: ["Heizung und Wärmepumpe", "Lüftung und Klima", "Sanitärinstallation", "Kälteanlagen", "Wartung"],
     intro: "Heizungstausch, Lüftungsanlagen, Sanitärsanierung in Schulen und Verwaltungsgebäuden: SHK gehört zu den am häufigsten ausgeschriebenen Gewerken. Crewtender sortiert die passenden Aufträge nach deinem Standort.",
     vorteile: ["SHK-Leistungen aus Neubau und Sanierung, auch wenn sie in großen Bauvorhaben stecken", "Fristen im Kalender, Erinnerung vor Ablauf", "Steckbrief mit Leistungsumfang und Nachweisen"],
     fragen: [["Wie finde ich SHK-Aufträge in meiner Region?", "Bei der Einrichtung gibst du deinen Firmensitz und Umkreis an. Crewtender zeigt dann nur Ausschreibungen in diesem Gebiet, mit Entfernung in Kilometern."]] },
-  { slug: "tischler-schreiner", name: "Tischler und Schreiner", h1: "Öffentliche Ausschreibungen für Tischler- und Schreinerarbeiten", cpv: ["45421"],
+  { slug: "tischler-schreiner", name: "Tischler und Schreiner", h1: "Öffentliche Ausschreibungen für Tischler- und Schreinerarbeiten", cpv: ["45421"], arten: ["Türen und Fenster", "Innenausbau", "Einbaumöbel", "Bautischlerei"],
     intro: "Türen, Fenster, Innenausbau und Einbaumöbel werden bei fast jedem öffentlichen Bau einzeln vergeben. Crewtender findet die Lose, die zu deiner Werkstatt passen.",
     vorteile: ["Tischlerlose aus großen Bauvorhaben herausgefiltert", "Leistungsverzeichnis (GAEB) direkt einlesen und Einheitspreise eintragen", "Hinweis auf geforderte Referenzen"],
     fragen: [["Kann ich ein GAEB-Leistungsverzeichnis mit Crewtender bearbeiten?", "Ja. Crewtender liest GAEB-Dateien, du trägst die Einheitspreise ein und lädst die Datei für die Abgabe wieder herunter."]] },
-  { slug: "gebaeudereinigung", name: "Gebäudereinigung", h1: "Öffentliche Ausschreibungen für Gebäudereinigung und Glasreinigung", cpv: ["90911", "90919", "90910"],
+  { slug: "gebaeudereinigung", name: "Gebäudereinigung", h1: "Öffentliche Ausschreibungen für Gebäudereinigung und Glasreinigung", cpv: ["90911", "90919", "90910"], arten: ["Unterhaltsreinigung", "Glasreinigung", "Grundreinigung", "Sonderreinigung", "Bauendreinigung", "Winterdienst"], danach: ["Objekte mit Einsatzort, Treffpunkt und Arbeitskleidung, Einsatzkräfte fest zuordnen", "Stunden per Handy, Leistungsnachweis mit Unterschrift des Kunden", "Lohnliste mit Tariflohn Gebäudereinigung für DATEV, Rechnung je Objekt"],
     intro: "Unterhaltsreinigung, Glasreinigung und Grundreinigung für Schulen, Kitas und Verwaltung werden oft in Lose aufgeteilt – ideal auch für kleinere Reinigungsfirmen. Crewtender zeigt dir passende Lose mit Flächen, Intervallen und Laufzeit.",
     vorteile: ["Unterhalts-, Glas- und Sonderreinigung getrennt erkannt", "Kalkulation mit Leistungswerten, Tariflohn Gebäudereinigung und Zuschlägen", "Schichtplan, Stundenzettel und Leistungsnachweis für die Objekte gleich mit dabei"],
     fragen: [["Rechnet Crewtender mit dem Branchenmindestlohn Gebäudereinigung?", "Ja. Die Lohngruppen des Rahmentarifvertrags sind hinterlegt; du kannst eigene Löhne und Zuschläge eintragen."]] },
-  { slug: "maler-trockenbau", name: "Maler und Trockenbau", h1: "Öffentliche Ausschreibungen für Maler-, Putz- und Trockenbauarbeiten", cpv: ["45442", "45441", "45410", "45324"],
+  { slug: "maler-trockenbau", name: "Maler und Trockenbau", h1: "Öffentliche Ausschreibungen für Maler-, Putz- und Trockenbauarbeiten", cpv: ["45442", "45441", "45410", "45324"], arten: ["Malerarbeiten", "Innenputz", "Fassade", "Trockenbau", "Wärmedämmung"],
     intro: "Malerarbeiten, Putz und Trockenbau stecken in nahezu jeder Sanierung öffentlicher Gebäude. Crewtender findet die einzelnen Gewerke, auch wenn sie Teil eines großen Bauvorhabens sind.",
     vorteile: ["Maler-, Putz- und Trockenbaulose einzeln erkannt", "Entfernung und Frist auf einen Blick", "Steckbrief mit Mengen und Ausführungszeitraum"],
     fragen: [["Sind das nur große Bauprojekte?", "Nein. Viele Vergaben betreffen einzelne Schulen, Kitas oder Wohnungen und sind für Handwerksbetriebe mit wenigen Mitarbeitern machbar."]] },
-  { slug: "dach-zimmerer", name: "Dach und Zimmerer", h1: "Öffentliche Ausschreibungen für Dachdecker- und Zimmererarbeiten", cpv: ["45261", "45422"],
+  { slug: "dach-zimmerer", name: "Dach und Zimmerer", h1: "Öffentliche Ausschreibungen für Dachdecker- und Zimmererarbeiten", cpv: ["45261", "45422"], arten: ["Dachdeckerarbeiten", "Dachabdichtung", "Zimmererarbeiten", "Holzbau", "Klempnerarbeiten"],
     intro: "Dachsanierungen, Aufstockungen und Holzbau für Kitas und Schulen: Crewtender findet die passenden Ausschreibungen in deinem Umkreis und zeigt Frist, Umfang und Nachweise.",
     vorteile: ["Dach-, Zimmerer- und Holzbaulose erkannt", "Fristen und Bieterfragen im Kalender", "Steckbrief mit Zuschlagskriterien"],
     fragen: [["Muss ich für jede Ausschreibung die Unterlagen lesen?", "Nein. Crewtender fasst die Bekanntmachung zusammen. Wenn du Unterlagen hochlädst, liest Crewtender alle Dokumente und schreibt einen ausführlichen Steckbrief."]] },
-  { slug: "garten-landschaftsbau-winterdienst", name: "Garten- und Landschaftsbau", h1: "Öffentliche Ausschreibungen für Grünpflege, Garten- und Landschaftsbau und Winterdienst", cpv: ["77310", "77311", "77313", "77314", "90620", "90630"],
+  { slug: "garten-landschaftsbau-winterdienst", name: "Garten- und Landschaftsbau", h1: "Öffentliche Ausschreibungen für Grünpflege, Garten- und Landschaftsbau und Winterdienst", cpv: ["77310", "77311", "77313", "77314", "90620", "90630"], arten: ["Grünflächenpflege", "Mahd", "Baumpflege", "Spielplätze", "Winterdienst", "Straßenbegleitgrün"], danach: ["Kolonnen und Touren planen, Einsätze per Handy bestätigen", "Stunden und Maschinen je Objekt erfassen", "Lohnliste für DATEV und Rechnung je Auftraggeber"],
     intro: "Grünflächenpflege, Baumpflege und Winterdienst werden von Kommunen und Wohnungsgesellschaften regelmäßig und oft in Losen vergeben. Crewtender zeigt dir die Aufträge in deinem Gebiet.",
     vorteile: ["Grünpflege, Baumpflege und Winterdienst getrennt erkannt", "Neuausschreibungs-Radar: Verträge, die bald auslaufen", "Schichtplan und Stundenzettel für die Kolonnen"],
     fragen: [["Was ist das Neuausschreibungs-Radar?", "Crewtender merkt sich, wann laufende Verträge enden, und erinnert dich rechtzeitig, bevor dieselbe Leistung neu ausgeschrieben wird."]] },
-  { slug: "sicherheitsdienst", name: "Sicherheitsdienst", h1: "Öffentliche Ausschreibungen für Sicherheits- und Bewachungsdienste", cpv: ["79710", "79713", "79714", "79715"],
+  { slug: "sicherheitsdienst", name: "Sicherheitsdienst", h1: "Öffentliche Ausschreibungen für Sicherheits- und Bewachungsdienste", cpv: ["79710", "79713", "79714", "79715"], arten: ["Objektschutz", "Pforten- und Empfangsdienst", "Streifendienst", "Veranstaltungsschutz", "Unterkunftsbewachung", "Zugangskontrolle"], danach: ["Dienstplan mit Nacht-, Sonntags- und Feiertagszuschlägen, offene Schichten zum Übernehmen", "§ 34a-Sachkunde und Unterrichtungen mit Ablauf-Warnung, Wachbuch", "Stunden per Handy, Lohnliste für DATEV, Rechnung je Objekt"],
     intro: "Objektschutz, Empfangsdienst, Streifendienst und Veranstaltungsschutz für Behörden, Kliniken und Unterkünfte. Crewtender findet die Ausschreibungen und prüft die geforderten Nachweise wie Sachkunde § 34a GewO.",
     vorteile: ["Bewachung, Empfang und Veranstaltungsschutz erkannt", "Personalsuche nach Qualifikation (z. B. § 34a) für die Besetzung", "Schichtplan mit offenen Schichten zum Selbst-Übernehmen"],
     fragen: [["Hilft Crewtender bei der Personalplanung?", "Ja. Du siehst, wer frei ist und welche Nachweise gültig sind, planst Schichten und lässt Einsatzkräfte offene Schichten per App übernehmen."]] },
-  { slug: "bodenbelaege-fliesen", name: "Bodenbeläge und Fliesen", h1: "Öffentliche Ausschreibungen für Bodenbelags- und Fliesenarbeiten", cpv: ["45432", "45431"],
+  { slug: "bodenbelaege-fliesen", name: "Bodenbeläge und Fliesen", h1: "Öffentliche Ausschreibungen für Bodenbelags- und Fliesenarbeiten", cpv: ["45432", "45431"], arten: ["Bodenbeläge", "Fliesen", "Estrich", "Beschichtungen", "Parkett"],
     intro: "Bodenbeläge, Beschichtungen und Fliesenarbeiten werden bei Sanierungen und Neubauten einzeln vergeben. Crewtender findet die passenden Lose in deinem Umkreis.",
     vorteile: ["Boden- und Fliesenlose aus Bauvorhaben herausgefiltert", "Leistungsverzeichnis (GAEB) einlesen und bepreisen", "Erinnerung an Fristen und Bieterfragen"],
     fragen: [["Wie schnell sehe ich neue Ausschreibungen?", "Jeden Morgen. Auf Wunsch per Mail oder Handy-Nachricht zu deiner Uhrzeit."]] },
-  { slug: "zeitarbeit-personaldienstleister", name: "Zeitarbeit und Personaldienstleister", h1: "Öffentliche Ausschreibungen für Zeitarbeit und Arbeitnehmerüberlassung", cpv: ["79620", "79621", "79622", "79624", "79625"],
+  { slug: "zeitarbeit-personaldienstleister", name: "Zeitarbeit und Personaldienstleister", h1: "Öffentliche Ausschreibungen für Zeitarbeit und Arbeitnehmerüberlassung", cpv: ["79620", "79621", "79622", "79624", "79625"], arten: ["Arbeitnehmerüberlassung", "Leihpersonal Gastronomie", "Reinigungskräfte", "Bürokräfte", "Pflegekräfte", "Rahmenverträge"], danach: ["AÜG-Wächter: Equal Pay, Höchstüberlassungsdauer, Branchenzuschläge", "Einsätze beim Kunden planen, Stunden per Handy, Bestätigung durch den Kunden", "Lohnliste und Rechnung je Kunde"],
     intro: "Behörden, Kliniken und Kantinen suchen Leihpersonal für Gastronomie, Reinigung, Büro und Pflege – oft als mehrjähriger Rahmenvertrag. Viele dieser Aufträge laufen nicht unter „Arbeitnehmerüberlassung“, sondern unter der eigentlichen Tätigkeit. Crewtender findet sie trotzdem.",
     vorteile: ["Erkennt Personalbedarf auch in Gastro-, Reinigungs- und Büroausschreibungen", "AÜG-Wächter: Equal Pay, Höchstüberlassungsdauer, Branchenzuschläge", "Stunden, Leistungsnachweis mit Online-Bestätigung durch den Kunden, Lohnliste"],
     fragen: [["Was macht der AÜG-Wächter?", "Er rechnet pro Leiharbeitskraft und Kunde, ab wann Equal Pay und welche Branchenzuschlagsstufe gilt und wann die Höchstüberlassungsdauer endet."]] },
@@ -71,11 +75,16 @@ export function gewerkSeite(g: Gewerk, s: Statistik | null): string {
   const jsonld = JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: fragen.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }).replace(/</g, "\\u003c");
   return `<h1>${escape(g.h1)}</h1>
 <p>${escape(g.intro)}</p>
-${s ? `<div class="gewerk-zahlen"><div><strong>${zahl(s.monat)}</strong><span>Ausschreibungen in den letzten 30 Tagen</span></div>${s.offen ? `<div><strong>${zahl(s.offen)}</strong><span>davon noch offen</span></div>` : ""}</div>` : ""}
+${s ? `<div class="gewerk-zahlen"><div><strong>${zahl(s.monat)}</strong><span>Ausschreibungen in den letzten 30 Tagen</span></div>${s.monat >= 8 ? `<div><strong>${zahl(Math.round(s.monat * 7 / 30))}</strong><span>neue pro Woche im Schnitt</span></div>` : ""}${s.offen ? `<div><strong>${zahl(s.offen)}</strong><span>davon noch offen</span></div>` : ""}</div>` : ""}
+${g.arten?.length ? `<ul class="start-chips gewerk-arten" aria-label="Typische Leistungen">${g.arten.map((a) => `<li>${escape(a)}</li>`).join("")}</ul>` : ""}
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">Kostenlos passende Aufträge finden</a><a class="knopf zweit" href="/demo">🎬 Demo ansehen</a></div>
 ${s?.beispiele.length ? `<h2>Aktuelle Ausschreibungen (Auswahl)</h2><ul class="kontakt-liste gewerk-beispiele">${s.beispiele.map((b) => `<li><div>${b.id ? `<a href="/ausschreibung/${encodeURIComponent(b.id)}"><strong>${escape(b.titel)}</strong></a>` : `<strong>${escape(b.titel)}</strong>`}<span class="klein">${escape([b.auftraggeber, b.ort].filter(Boolean).join(" · "))} ${b.frist ? ` · Frist ${datum(b.frist)}` : ""}</span></div></li>`).join("")}</ul><p class="klein">Quelle: amtliche Bekanntmachungen. In Crewtender bekommst du nur die Ausschreibungen, die zu deiner Firma und deinem Gebiet passen, mit Bewertung und Steckbrief.</p>` : ""}
 <h2>So hilft Crewtender ${escape(g.name === "Elektro" ? "Elektrobetrieben" : `im Bereich ${g.name}`)}</h2>
 <ul>${g.vorteile.map((v) => `<li>${escape(v)}</li>`).join("")}<li>Jeden Morgen die neuen Treffer mit Punkten von 1 bis 10 und einem Satz, warum sie passen</li></ul>
+<h2>Und wenn der Auftrag da ist</h2>
+<p>Ausschreibungsdienste hören beim Zuschlag auf. In Crewtender geht es in derselben App weiter:</p>
+<ul>${(g.danach ?? DANACH).map((v) => `<li>${escape(v)}</li>`).join("")}</ul>
+<p><a href="/stundensatz-rechner">🧮 Stundensatz kostenlos berechnen</a> · <a href="/vergleich">Vergleich: Ausschreibungsdienst plus Dienstplan-Software oder Crewtender?</a></p>
 ${laenderChips(g.slug)}
 <h2>Häufige Fragen</h2>
 ${fragen.map(([q, a]) => `<details><summary>${escape(q)}</summary><p>${escape(a)}</p></details>`).join("")}
@@ -93,7 +102,7 @@ export function uebersichtGewerke(): string {
 const meta = (html: string, beschreibung: string, url: string, paar = "") => html.replace("</title>", `</title>\n<meta name="description" content="${escape(beschreibung)}">\n<link rel="canonical" href="${escape(url)}">${paar ? `\n${paar}` : ""}`);
 
 export function sitemap(adresse: string): string {
-  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...LAENDER_PFADE_DE(), ...FR_PFADE, ...LAND_PFADE, "/demo", "/preise", "/us/sam-registration", "/datenschutz", "/impressum", "/kontakt", "/partner", "/partner/bedingungen", "/hilfe", ...ANLEITUNGEN.map((x) => `/hilfe/${x.slug}`)];
+  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...LAENDER_PFADE_DE(), ...FR_PFADE, ...LAND_PFADE, "/demo", "/preise", "/stundensatz-rechner", "/vergleich", "/us/sam-registration", "/datenschutz", "/impressum", "/kontakt", "/partner", "/partner/bedingungen", "/hilfe", ...ANLEITUNGEN.map((x) => `/hilfe/${x.slug}`)];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pfade.map((p) => `<url><loc>${adresse}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
 }
 export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /portal/\nDisallow: /einladung\nDisallow: /auftrag/\nSitemap: ${adresse}/sitemap-seiten.xml\nSitemap: ${adresse}/sitemap-ausschreibungen.xml\nSitemap: ${adresse}/sitemap-auftraggeber.xml\n`;
