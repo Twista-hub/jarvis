@@ -3,25 +3,25 @@ import assert from "node:assert/strict";
 import { test } from "node:test";
 import { GEWERKE, gewerkSeite, ROBOTS, sitemap, uebersichtGewerke } from "../src/gewerke.ts";
 
-test("Gewerke-Seiten: 10 Gewerke, Zahlen, Beispiele, FAQ, Sitemap", () => {
-  assert.equal(GEWERKE.length, 10);
-  assert.equal(new Set(GEWERKE.map((g) => g.slug)).size, 10);
+test("Gewerke-Seiten: 26 Gewerke, Zahlen, Beispiele, FAQ, Sitemap", () => {
+  assert.equal(GEWERKE.length, 26);
+  assert.equal(new Set(GEWERKE.map((g) => g.slug)).size, 26);
   for (const g of GEWERKE) assert.ok(g.cpv.every((c) => /^\d{2,8}$/.test(c)) && g.cpv.length <= 12, g.slug);
-  const s = gewerkSeite(GEWERKE[0], { monat: 512, offen: 140, beispiele: [{ titel: "Elektro <Schule>", auftraggeber: "Stadt X", ort: "Aachen", frist: "2026-11-20T10:00:00Z", link: "https://x" }] });
+  const s = gewerkSeite(GEWERKE.find((g) => g.slug === "elektro")!, { monat: 512, offen: 140, beispiele: [{ titel: "Elektro <Schule>", auftraggeber: "Stadt X", ort: "Aachen", frist: "2026-11-20T10:00:00Z", link: "https://x" }] });
   assert.match(s, /<h1>Öffentliche Ausschreibungen für Elektroarbeiten<\/h1>/);
   assert.match(s, /<strong>512<\/strong><span>Ausschreibungen in den letzten 30 Tagen/);
   assert.ok(!s.includes("<Schule>"));
   assert.match(s, /"@type":"FAQPage"/);
   assert.match(s, /href="\/registrieren"[\s\S]*href="\/demo"/);
   assert.doesNotMatch(s, /href="\/ausschreibungen\/elektro"/, "keine Verlinkung auf sich selbst");
-  assert.doesNotMatch(gewerkSeite(GEWERKE[0], null), /gewerk-zahlen/, "ohne Zahlen keine leere Box");
+  assert.doesNotMatch(gewerkSeite(GEWERKE.find((g) => g.slug === "elektro")!, null), /gewerk-zahlen/, "ohne Zahlen keine leere Box");
   assert.match(s, /<strong>119<\/strong><span>neue pro Woche/, "512 in 30 Tagen ≈ 119 pro Woche");
   assert.match(s, /Und wenn der Auftrag da ist/);
   assert.match(s, /href="\/stundensatz-rechner"/);
   for (const g of GEWERKE) assert.ok((g.arten?.length ?? 0) >= 3, `${g.slug}: Unterkategorien`);
-  assert.equal((uebersichtGewerke().match(/href="\/ausschreibungen\//g) ?? []).length, 10);
+  assert.equal((uebersichtGewerke().match(/href="\/ausschreibungen\//g) ?? []).length, 26);
   const map = sitemap("https://app.example");
-  assert.equal((map.match(/<loc>/g) ?? []).length, 93 + 7 + 160 + ANLEITUNGEN.length); // + Stundensatz-Rechner, Vergleich; 10 Gewerke × 16 Bundesländer; 49 + je 11 französische, polnische, spanische, italienische Seiten + Preise, Kontakt, Partner, Partnerbedingungen, Hilfe-Center und Anleitungen
+  assert.equal((map.match(/<loc>/g) ?? []).length, 93 + 7 + 16 + 26 * 16 + ANLEITUNGEN.length); // + Stundensatz-Rechner, Vergleich, 16 neue Gewerke; 26 Gewerke × 16 Bundesländer; 49 + je 11 französische, polnische, spanische, italienische Seiten + Preise, Kontakt, Partner, Partnerbedingungen, Hilfe-Center und Anleitungen
   assert.match(ROBOTS("https://app.example"), /Disallow: \/konto[\s\S]*Sitemap: https:\/\/app.example\/sitemap-seiten.xml/);
 });
 
