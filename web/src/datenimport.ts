@@ -144,10 +144,11 @@ const ART: Record<Art, { titel: string; zurueck: string; einheit: [string, strin
     spaltenText: "Vorname und Nachname (oder eine Spalte „Name“), Nachweis (Bezeichnung), Ausgestellt und Gültig bis (Datum wie 31.12.2027). Die Person muss schon im Personal stehen; Namen werden genau verglichen." },
 };
 
-function uploadSeite(art: Art, bereiche: Bereich[], fehler = ""): string {
+export function uploadSeite(art: Art, bereiche: Bereich[], fehler = "", gefunden: string[] = []): string {
   const a = ART[art];
   const orte = bereiche.filter((b) => b.art === "standort");
-  return `${fehler ? `<p class="fehler">${escape(fehler)}</p>` : ""}<p>Lade eine Excel-Datei (.xlsx) oder CSV hoch, zum Beispiel einen Export aus deinem bisherigen Programm. Crewtender erkennt die Spalten selbst und zeigt dir vor dem Import eine Vorschau.</p>
+  // The column names of the file stay apart from the message, so the message itself can be translated.
+  return `${fehler ? `<p class="fehler">${escape(fehler)}${gefunden.length ? `<br><span class="klein"><span>Gefunden:</span> ${escape(gefunden.join(", "))}</span>` : ""}</p>` : ""}<p>Lade eine Excel-Datei (.xlsx) oder CSV hoch, zum Beispiel einen Export aus deinem bisherigen Programm. Crewtender erkennt die Spalten selbst und zeigt dir vor dem Import eine Vorschau.</p>
 <form method="post" action="/konto/import/${art}" enctype="multipart/form-data" class="upload-felder">
 ${art === "kunden" && orte.length ? `<label class="ganz">Standort der Kunden<select name="bereich"><option value="firma">Ohne Standort (ganze Firma)</option>${orte.map((b) => `<option value="${b.id}">${escape(b.name)}</option>`).join("")}</select></label>` : ""}
 <label class="ganz">Datei (.xlsx oder .csv, höchstens 2 MB und ${MAX_ZEILEN} Zeilen)<input type="file" name="datei" accept=".xlsx,.csv,text/csv" required></label>
@@ -162,10 +163,12 @@ export function vorschau(art: Art, zeilen: (KundeZeile | NachweisZeile)[], spalt
   const a = ART[art];
   const gut = zeilen.filter((z) => !z.problem);
   const text = (z: KundeZeile | NachweisZeile) => art === "kunden"
-    ? (() => { const k = z as KundeZeile; return [`<strong>${escape(k.name || "(ohne Namen)")}</strong>`, `<span class="klein">${escape([k.einsatzort ? `Einsatzort: ${k.einsatzort}` : "", [k.strasse, [k.plz, k.ort].filter(Boolean).join(" ")].filter(Boolean).join(", "), k.ansprechpartner].filter(Boolean).join(" · "))}${!k.problem && k.einsatzort && !k.neu ? " · weiteres Objekt dieses Kunden" : ""}`]; })()
-    : (() => { const n = z as NachweisZeile; return [`<strong>${escape(n.person || "(ohne Namen)")}</strong>`, `<span class="klein">${escape([n.bezeichnung, n.erworben ? `ausgestellt ${datumDe(n.erworben)}` : "", n.gueltig_bis ? `gültig bis ${datumDe(n.gueltig_bis)}` : "ohne Ablauf"].filter(Boolean).join(" · "))}`]; })();
-  return `<p><strong>${escape(dateiname)}</strong>: ${zeilen.length} ${zeilen.length === 1 ? "Zeile" : "Zeilen"} gelesen, <strong>${gut.length}</strong> ${gut.length === 1 ? a.einheit[0] : a.einheit[1]} ${gut.length === 1 ? "wird" : "werden"} übernommen${zeilen.length - gut.length ? `, ${zeilen.length - gut.length} übersprungen` : ""}.</p>
-<p class="klein">Erkannte Spalten: ${Object.entries(spalten).map(([k, v]) => `${FELDER[k] ?? k} ← „${escape(v)}“`).join(" · ") || "keine"}</p>
+    ? (() => { const k = z as KundeZeile; return [k.name ? `<strong>${escape(k.name)}</strong>` : "<strong>(ohne Namen)</strong>", `<span class="klein">${[k.einsatzort ? `<span>Einsatzort:</span> ${escape(k.einsatzort)}` : "", escape([[k.strasse, [k.plz, k.ort].filter(Boolean).join(" ")].filter(Boolean).join(", "), k.ansprechpartner].filter(Boolean).join(" · ")), !k.problem && k.einsatzort && !k.neu ? "<span>weiteres Objekt dieses Kunden</span>" : ""].filter(Boolean).join(" · ")}`]; })()
+    : (() => { const n = z as NachweisZeile; return [n.person ? `<strong>${escape(n.person)}</strong>` : "<strong>(ohne Namen)</strong>", `<span class="klein">${[escape(n.bezeichnung), n.erworben ? `<span>ausgestellt ${datumDe(n.erworben)}</span>` : "", n.gueltig_bis ? `<span>gültig bis ${datumDe(n.gueltig_bis)}</span>` : "<span>ohne Ablauf</span>"].filter(Boolean).join(" · ")}`]; })();
+  const erkannt = Object.entries(spalten).map(([k, v]) => `<span>${FELDER[k] ?? k}</span> ← „${escape(v)}“`).join(" · ");
+  return `<p><strong>${escape(dateiname)}</strong></p>
+<p>Gelesen: ${zeilen.length} · übernommen: ${gut.length}${zeilen.length - gut.length ? ` · übersprungen: ${zeilen.length - gut.length}` : ""}</p>
+${erkannt ? `<p class="klein"><span>Erkannte Spalten:</span> ${erkannt}</p>` : ""}
 <ul class="import-liste">${zeilen.slice(0, 200).map((z) => { const [t1, t2] = text(z); return `<li class="${z.problem ? "uebersprungen" : ""}"><span aria-hidden="true">${z.problem ? "⚠️" : "✅"}</span><span>${t1}${t2}${z.problem ? ` · <b>${escape(z.problem)}</b>` : ""}</span></span></li>`; }).join("")}</ul>
 ${zeilen.length > 200 ? `<p class="klein">Es werden die ersten 200 Zeilen gezeigt; übernommen werden alle ${gut.length} gültigen.</p>` : ""}
 ${gut.length ? `<form method="post" action="/konto/import/${art}/bestaetigen"><input type="hidden" name="schluessel" value="${escape(schluessel)}"><button>✅ ${gut.length} ${gut.length === 1 ? a.einheit[0] : a.einheit[1]} übernehmen</button></form>` : `<p class="fehler">Keine Zeile kann übernommen werden.</p>`}
@@ -251,7 +254,9 @@ export async function datenImport(request: Request, env: KontoEnv): Promise<Resp
         const r = await db(f.s, env, "einsatzorte", { method: "POST", body: JSON.stringify(orte.slice(i, i + 100)) });
         if (r.ok) okOrte += Math.min(100, orte.length - i);
       }
-      const hinweis = `${ok} ${ok === 1 ? "Kunde" : "Kunden"}${orte.length ? ` und ${okOrte} ${okOrte === 1 ? "Einsatzort" : "Einsatzorte"}` : ""} übernommen.${ok < alle || okOrte < orte.length ? " Manche Zeilen konnten nicht gespeichert werden." : ""}`;
+      // Fixed wording with numbers only, so the dictionary (englisch.ts) can translate the notice.
+      const fehlt = alle - ok + orte.length - okOrte;
+      const hinweis = `Übernommen: Kunden ${ok}${orte.length ? ` · Einsatzorte ${okOrte}` : ""}${fehlt ? ` · nicht gespeichert: ${fehlt}` : ""}`;
       return weiterleiten(`/konto/kunden?hinweis=${encodeURIComponent(hinweis)}`, f.s.cookies);
     }
     const neu = (g.zeilen as NachweisZeile[]).filter((z) => !z.problem && z.personal_id).map((z) => ({ firma_id: firma, personal_id: z.personal_id, bezeichnung: z.bezeichnung, erworben: z.erworben || null, gueltig_bis: z.gueltig_bis || null }));
@@ -259,7 +264,7 @@ export async function datenImport(request: Request, env: KontoEnv): Promise<Resp
       const r = await db(f.s, env, "personal_nachweise", { method: "POST", body: JSON.stringify(neu.slice(i, i + 100)) });
       if (r.ok) ok += Math.min(100, neu.length - i);
     }
-    return weiterleiten(`/konto/daten-uebernehmen?hinweis=${encodeURIComponent(`${ok} von ${neu.length} Nachweisen übernommen.`)}`, f.s.cookies);
+    return weiterleiten(`/konto/daten-uebernehmen?hinweis=${encodeURIComponent(`Übernommen: Nachweise ${ok} von ${neu.length}`)}`, f.s.cookies);
   }
 
   if (programmSeite) {
@@ -273,7 +278,7 @@ export async function datenImport(request: Request, env: KontoEnv): Promise<Resp
     let tabelle: string[][];
     try { tabelle = await PROGRAMME[p].laden(apiSchluessel); }
     catch (e) { return antwort(programmFormular(bereiche, e instanceof Error ? e.message : "Das Programm war nicht erreichbar."), 502); }
-    if (tabelle.length < 2) return antwort(programmFormular(bereiche, `In ${PROGRAMME[p].name} wurden keine Kunden gefunden.`), 400);
+    if (tabelle.length < 2) return antwort(programmFormular(bereiche, PROGRAMME[p].keineKunden), 400);
     const [k, o] = await Promise.all([
       db<{ name: string }[]>(f.s, env, `kunden?firma_id=eq.${firma}&select=name&limit=5000`),
       db<{ name: string; kunden: { name: string } | null }[]>(f.s, env, `einsatzorte?firma_id=eq.${firma}&select=name,kunden(name)&limit=5000`),
@@ -303,14 +308,14 @@ export async function datenImport(request: Request, env: KontoEnv): Promise<Resp
       db<{ name: string; kunden: { name: string } | null }[]>(f.s, env, `einsatzorte?firma_id=eq.${firma}&select=name,kunden(name)&limit=5000`),
     ]);
     erg = kundenLesen(tabelle, k.ok ? k.daten : [], (o.ok ? o.daten : []).map((x) => ({ name: x.name, kunde: x.kunden?.name ?? "" })));
-    if (!erg.spalten.name) return antwort(uploadSeite(art, bereiche, `Keine Spalte „Kunde“, „Firma“ oder „Name“ gefunden. Gefunden: ${tabelle[0]?.filter(Boolean).slice(0, 8).join(", ") ?? "nichts"}.`), 400);
+    if (!erg.spalten.name) return antwort(uploadSeite(art, bereiche, "Keine Spalte „Kunde“, „Firma“ oder „Name“ gefunden.", (tabelle[0] ?? []).filter(Boolean).slice(0, 8)), 400);
   } else {
     const [p, v] = await Promise.all([
       db<{ id: string; vorname: string; nachname: string }[]>(f.s, env, `personal?firma_id=eq.${firma}&select=id,vorname,nachname&limit=5000`),
       db<{ personal_id: string; bezeichnung: string; gueltig_bis: string | null }[]>(f.s, env, `personal_nachweise?firma_id=eq.${firma}&select=personal_id,bezeichnung,gueltig_bis&limit=20000`),
     ]);
     erg = nachweiseLesen(tabelle, p.ok ? p.daten : [], v.ok ? v.daten : []);
-    if (!erg.spalten.bezeichnung) return antwort(uploadSeite(art, bereiche, `Keine Spalte „Nachweis“ oder „Bezeichnung“ gefunden. Gefunden: ${tabelle[0]?.filter(Boolean).slice(0, 8).join(", ") ?? "nichts"}.`), 400);
+    if (!erg.spalten.bezeichnung) return antwort(uploadSeite(art, bereiche, "Keine Spalte „Nachweis“ oder „Bezeichnung“ gefunden.", (tabelle[0] ?? []).filter(Boolean).slice(0, 8)), 400);
   }
   if (!erg.zeilen.length) return antwort(uploadSeite(art, bereiche, "In der Datei stehen keine Daten. Die erste Zeile muss die Spaltennamen enthalten."), 400);
   const alt = await env.DATEN.list({ prefix: `importe/${firma}/` });

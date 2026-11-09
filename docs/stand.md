@@ -103,6 +103,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 6. ~~Anthropic-Ausgabenlimit 20 $~~ (von Benjamin gesetzt).
 
 ## Protokoll
+- **Übersetzungen Daten übernehmen** (09.11.): Übersicht, Excel/CSV-Import (Kunden, Nachweise), Lexware/sevDesk-Formular, Vorschau, Fehler und Hinweise in EN/FR/PL/ES/IT (je 95 Einträge in `*/nachtrag.json`). Vorschau trennt feste Texte von Kundendaten (eigene `<span>`), Hinweise nur mit Zahlen („Übernommen: Kunden # · Einsatzorte #“), damit das Wörterbuch greift. Startseite braucht keine Übersetzung (nur DE-Besucher). Test in `datenimport.test.ts`.
 
 ### 08.11.2026 abends – Claude Code (S16, D2, Klickprüfung)
 - Search Console 08.11.: sitemap-seiten.xml (271) und sitemap-ausschreibungen.xml (5.526) „Erfolgreich“; alte sitemap.xml hängt bei „Konnte nicht abgerufen werden“ (Google-seitig, Datei ok). Ausgangswerte 03.–06.11.: 0 Klicks, 4 Impressionen. **Nächster Blick ~15.11.** (Indexierung, Impressionen).
