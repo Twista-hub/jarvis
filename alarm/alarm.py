@@ -127,7 +127,7 @@ def link(rel: dict) -> str:
             return d["url"]
     # The notice's own page (release id = notice id); the title search often showed other tenders (09.11.2026).
     nid = str(rel.get("id") or "").lower()
-    if re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", nid):
+    if re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]{6,12}", nid):
         return f"https://oeffentlichevergabe.de/ui/de/notices/{nid}"
     return f"https://oeffentlichevergabe.de/ui/de/search?q={urllib.request.quote((rel.get('tender') or {}).get('title', '')[:80])}"
 
@@ -158,7 +158,7 @@ def item(nr: int, rel: dict) -> dict:
             "ort": place(rel), "beschreibung": re.sub(r"\s+", " ", t.get("description", ""))[:1500], "cpv": cpv_codes(t)}
 
 
-UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"
+UUID = r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]{6,12}"
 _EFORMS_TAGE: dict[str, list[tuple[str, str, bytes]]] = {}  # pubDay -> [(file name, ContractFolderID, XML)], per run
 
 
