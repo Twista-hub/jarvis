@@ -127,12 +127,12 @@ const FR_EXTRA = `<h2>Pour les artisans et entreprises de services</h2>
 <p>Voir les <a href="/fr/appels-d-offres">appels d'offres publics par métier</a>.</p>`;
 
 /** Country and language links (shown at the bottom of the public start page). */
-export function landWahl(b: Besucher): string {
+export function landWahl(b: Besucher, mitSprache = true): string {
   const t = T[b.sprache];
   const kurz = (l: string) => b.sprache === "de" ? landName(l, "de") : regionName(l, b.sprache) ?? landName(l, b.sprache).replace(/^the /, "");
   const laender = Object.keys(ISO2).sort((x, y) => kurz(x).localeCompare(kurz(y)));
-  return `<nav class="land-wahl" aria-label="${escape(t.landWechseln)}">🌍 ${escape(t.landWechseln)}: ${laender.map((l) => `<a href="/${l.toLowerCase()}"${l === b.land ? ' aria-current="true"' : ""}>${escape(kurz(l))}</a>`).join(" · ")}</nav>
-<nav class="land-wahl" aria-label="${escape(t.sprache)}">🌐 ${escape(t.sprache)}: ${SPRACHEN_OEFFENTLICH.map((s) => `<a href="/${b.iso3 ? b.land.toLowerCase() : ""}?sprache=${s}" lang="${s}"${s === b.sprache ? ' aria-current="true"' : ""}>${s.toUpperCase()}</a>`).join(" · ")}</nav>`;
+  const land = `<nav class="land-wahl" aria-label="${escape(t.landWechseln)}">🌍 ${escape(t.landWechseln)}: ${laender.map((l) => `<a href="/${l.toLowerCase()}"${l === b.land ? ' aria-current="true"' : ""}>${escape(kurz(l))}</a>`).join(" · ")}</nav>`;
+  return mitSprache ? `${land}\n<nav class="land-wahl" aria-label="${escape(t.sprache)}">🌐 ${escape(t.sprache)}: ${SPRACHEN_OEFFENTLICH.map((s) => `<a href="/${b.iso3 ? b.land.toLowerCase() : ""}?sprache=${s}" lang="${s}"${s === b.sprache ? ' aria-current="true"' : ""}>${s.toUpperCase()}</a>`).join(" · ")}</nav>` : land;
 }
 
 export const keineBehoerde = (s: Sprache) => T[s].keineBehoerde;
@@ -167,12 +167,14 @@ export function landesSeite(b: Besucher, adresse: string, zusatzDe: string): { t
   const land = landName(b.land, b.sprache);
   const wahl = landWahl(b);
   const intro = international ? INTERNATIONAL : abgedeckt ? t.intro(land) : "";
-  const inhalt = `${landHinweis(b)}<h1>${escape(t.titel)}</h1>
+  // The heading first: seite() moves a leading h1 into the page header (before, the country hint came first and the
+  // title appeared twice).
+  const inhalt = `<h1>${escape(t.titel)}</h1>${landHinweis(b)}
 ${international ? `<p>${escape(INTERNATIONAL)}</p><p class="klein">${escape(t.quelle)}: TED (EU), national procurement portals, SAM.gov (US)</p>` : abgedeckt ? `<p>${escape(intro)}</p><p class="klein">${escape(t.quelle)}: ${escape(quelle(b.land))}</p>` : `<p class="hinweis">${escape(t.nichtAbgedeckt)}</p>`}
 <ol>${t.schritte.map(([k, v]) => `<li><strong>${escape(k)}:</strong> ${escape(v)}</li>`).join("")}</ol>
 ${b.land === "US" && b.sprache === "en" && !international ? US_EXTRA : ""}
 ${b.land === "FR" && b.sprache === "fr" ? FR_EXTRA : ""}
-<div class="knopf-zeile"><a class="knopf" href="/registrieren">${escape(t.registrieren)}</a><a class="knopf zweit" href="/demo">${escape(t.demo)}</a></div><p class="klein">🎁 ${escape(t.probe)}</p>
+<div class="knopf-zeile start-knoepfe"><a class="knopf" href="/registrieren">${escape(t.registrieren)}</a><a class="knopf zweit" href="/demo">${escape(t.demo)}</a></div><p class="klein">🎁 ${escape(t.probe)}</p>
 <p>${escape(t.konto)} <a href="/anmelden">${escape(t.anmelden)}</a></p>
 ${t.hinweisApp ? `<p class="klein">${escape(t.hinweisApp)}</p>` : ""}
 ${b.land === "DE" && b.sprache === "de" ? zusatzDe : ""}

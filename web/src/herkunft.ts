@@ -28,7 +28,7 @@ export function herkunftParsen(h: unknown): Herkunft | null {
 }
 
 // Internal pages whose links carry the origin; never the account area, files or the API.
-const OHNE = /^\/(konto|abmelden|anmelden\/|api|nachweis|portal|einladung|auftrag\/|partner\/u\/|[^"?#]*\.(css|js|png|jpe?g|svg|ico|webmanifest|xml|txt|pdf))/;
+const OHNE = /^\/(konto|abmelden|anmelden\/|api|nachweis|portal|einladung|auftrag\/|partner\/u\/|[^"?#]*\.(css|js|png|jpe?g|webp|svg|ico|webmanifest|xml|txt|pdf))/;
 
 /** Writes h into the internal links of an HTML page. */
 export function linksMitHerkunft(htmlText: string, h: string): string {

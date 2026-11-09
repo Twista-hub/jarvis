@@ -101,6 +101,23 @@ ${grundTags(titel)}
   .start-karte h3 { margin: 8px 0 4px; font-size: 1.04rem; }
   .start-karte p { margin: 0; color: var(--muted); font-size: .95rem; }
   .start-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-size: 1.3rem; background: rgba(79,179,234,.18); }
+  .start-live { margin: 18px 0 0; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+  .start-live p { margin: 0; }
+  .start-live-punkt { display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; background: #2fb36d; box-shadow: 0 0 0 4px rgba(47, 179, 109, .18); vertical-align: middle; }
+  .start-live-beispiel { display: grid; gap: 2px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--bg, rgba(255,255,255,.5)); border: 1px dashed var(--line); text-decoration: none; color: inherit; }
+  .start-live-beispiel strong { color: var(--accent); }
+  .start-dia { display: grid; gap: 18px; align-items: center; margin: 28px 0 8px; }
+  @media (min-width: 640px) { .start-dia { grid-template-columns: 290px 1fr; gap: 32px; } }
+  .dia-handy { position: relative; width: 260px; max-width: 72vw; aspect-ratio: 520 / 960; margin: 0 auto; border-radius: 34px; border: 8px solid #15324b; background: #15324b; overflow: hidden; box-shadow: 0 30px 60px -25px rgba(15, 58, 90, .6); }
+  .dia-handy img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; object-position: top; opacity: 0; animation: dia 20s infinite; }
+  .dia-texte { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 8px; }
+  .dia-texte li { padding: 10px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); opacity: .55; animation: dia-text 20s infinite; }
+  .dia-texte strong { display: block; }
+  .dia-2 { animation-delay: 5s !important; } .dia-3 { animation-delay: 10s !important; } .dia-4 { animation-delay: 15s !important; }
+  @keyframes dia { 0% { opacity: 0; } 3% { opacity: 1; } 25% { opacity: 1; } 28% { opacity: 0; } 100% { opacity: 0; } }
+  @keyframes dia-text { 0%, 28%, 100% { opacity: .55; border-color: var(--line); } 3%, 25% { opacity: 1; border-color: var(--accent); } }
+  @media (prefers-reduced-motion: reduce) { .dia-handy img, .dia-texte li { animation: none; } .dia-handy img.dia-1, .dia-texte li { opacity: 1; } }
+  .start-preise { margin: 24px 0 0; }
   .feld-paar { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   .feld-paar.feld-plz { grid-template-columns: minmax(90px, 1fr) 2fr; }
   .start-mehr { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
