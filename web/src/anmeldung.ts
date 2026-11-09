@@ -67,27 +67,23 @@ export function registrierFormular(w: Registrierung, fehler = "", weiter = "/kon
   return `<p>${eingeladen ? "Lege dein Konto an, danach nimmst du die Einladung an." : "Lege das Konto für deine Firma an. Du bist danach Inhaber und kannst Mitarbeiter einladen."}</p>${eingeladen ? "" : `<p class="hinweis">🎁 30 Tage alle Pro-Funktionen gratis, ohne Kreditkarte. Danach geht es mit Free weiter, ohne Kündigung.</p>`}
 ${partner?.name && !eingeladen ? `<p class="klein">🤝 Empfohlen von ${escape(partner.name)}</p>` : ""}<form method="post" action="/registrieren">
   ${fehler ? `<p class="fehler" role="alert">${escape(fehler)}</p>` : ""}${partner?.code && !eingeladen ? `<input type="hidden" name="partner" value="${escape(partner.code)}">` : ""}${herkunft && !eingeladen ? `<input type="hidden" name="herkunft" value="${escape(herkunft)}">` : ""}
-  <fieldset><legend>Du</legend>
+  <div class="feld-paar">
     ${feld("vorname", "Vorname", `required maxlength="100" autocomplete="given-name"`)}
     ${feld("nachname", "Nachname", `required maxlength="100" autocomplete="family-name"`)}
-  </fieldset>
-  ${eingeladen ? "" : `<fieldset><legend>Firma</legend>
-    ${feld("firma", "Name der Firma", `required minlength="2" maxlength="200" autocomplete="organization" placeholder="z. B. Muster GmbH"`)}
-    ${feld("website", "Firmenwebsite – für bessere Ergebnisse empfohlen", `type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" aria-describedby="website-empfehlung"`)}
-    <p class="klein" id="website-empfehlung">Mit eurer Website erkennt Crewtender eure Leistungen und Standorte genauer und findet passendere Ausschreibungen. Nach der E-Mail-Bestätigung startet die Firmenprüfung automatisch. Ohne Website ist die Registrierung auch möglich.</p>
-    ${feld("strasse", "Straße und Hausnummer", `required maxlength="200" autocomplete="street-address"`)}
+  </div>
+  ${eingeladen ? "" : `${feld("firma", "Name der Firma", `required minlength="2" maxlength="200" autocomplete="organization" placeholder="z. B. Muster GmbH"`)}
+  <div class="feld-paar feld-plz">
     ${feld("plz", "PLZ", `required pattern="[0-9]{5}" inputmode="numeric" maxlength="5" autocomplete="postal-code"`)}
     ${feld("ort", "Ort", `required maxlength="100" autocomplete="address-level2"`)}
-    ${feld("telefon", "Telefon (freiwillig)", `type="tel" maxlength="40" autocomplete="tel"`)}
-  </fieldset>`}
-  <fieldset><legend>Zugang</legend>
-    ${feld("email", "E-Mail-Adresse", `type="email" required autocomplete="email"`)}
-    <label>Passwort (mindestens ${MIN_PASSWORT} Zeichen) <input type="password" name="passwort" required minlength="${MIN_PASSWORT}" autocomplete="new-password"></label>
-  </fieldset>
+  </div>
+  ${feld("website", "Firmenwebsite – für bessere Ergebnisse empfohlen", `type="text" inputmode="url" maxlength="300" autocomplete="url" placeholder="www.beispiel.de" aria-describedby="website-empfehlung"`)}
+  <p class="klein" id="website-empfehlung">Mit eurer Website erkennt Crewtender eure Leistungen und Standorte genauer und findet passendere Ausschreibungen. Nach der E-Mail-Bestätigung startet die Firmenprüfung automatisch. Ohne Website ist die Registrierung auch möglich.</p>`}
+  ${feld("email", "E-Mail-Adresse", `type="email" required autocomplete="email"`)}
+  <label>Passwort (mindestens ${MIN_PASSWORT} Zeichen) <input type="password" name="passwort" required minlength="${MIN_PASSWORT}" autocomplete="new-password"></label>
   ${eingeladen ? "" : `<label class="zeile"><input type="checkbox" name="unternehmer" value="ja" required> <span>Ich handle für ein Unternehmen (gewerblich oder selbstständig beruflich), nicht als Verbraucher.</span></label>`}
   <label class="zeile"><input type="checkbox" name="zustimmung" value="ja" required> <span>Ich akzeptiere die <a href="/nutzungsbedingungen">Nutzungsbedingungen</a> und habe die <a href="/datenschutz">Datenschutzerklärung</a> gelesen.</span></label>
   <input type="hidden" name="weiter" value="${escape(weiter)}">
-  <button>Registrieren</button>
+  <button>Kostenlos registrieren</button>
   <p class="klein">Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
 </form>`;
 }
@@ -184,7 +180,7 @@ export function registrierungPruefen(w: Registrierung, passwort: string, zustimm
   if (!w.vorname || !w.nachname) return "Bitte Vor- und Nachnamen angeben.";
   if (!eingeladen) {
     if (!w.firma || w.firma.length < 2) return "Bitte den Namen der Firma angeben.";
-    if (!w.strasse || !w.ort) return "Bitte die Anschrift der Firma angeben.";
+    if (!w.ort) return "Bitte den Ort der Firma angeben.";
     if (!/^\d{5}$/.test(w.plz ?? "")) return "Bitte eine fünfstellige Postleitzahl angeben.";
     if (w.website?.trim() && !websiteNormalisieren(w.website)) return "Bitte eine gültige Website-Adresse mit https:// angeben.";
   }
