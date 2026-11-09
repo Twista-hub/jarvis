@@ -155,6 +155,7 @@ jobs:
           # Link targets by domain (catalog and firm records), one sample each, for a click check of every portal.
           psql "$DB_URL" -X -c "select substring(link from '^https?://([^/]+)') as domain, count(*), min(link) as beispiel from public.vergabekatalog group by 1 order by 2 desc limit 60"
           psql "$DB_URL" -X -c "select substring(link from '^https?://([^/]+)') as domain, count(*), min(link) as beispiel from public.vorgaenge where link is not null and link <> '' group by 1 order by 2 desc limit 60"
+          psql "$DB_URL" -X -c "select land, substring(link from '^https?://([^/]+)') as domain, count(*), count(distinct link) as verschieden, max(link) as beispiel from jarvis_intern.ausland_avis group by 1, 2 order by 1, 3 desc"
       - name: CPV-Häufigkeit (nur lesen)
         if: inputs.aktion == 'cpv_haeufigkeit'
         run: |
