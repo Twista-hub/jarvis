@@ -11,7 +11,7 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose, abos, beispielfirma_test, auftraggeber_diagnose]
+        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose, abos, beispielfirma_test, auftraggeber_diagnose, cpv_haeufigkeit]
         default: anzeigen
       bestaetigung:
         description: "Zum Einspielen hier EINSPIELEN eintippen"
@@ -144,8 +144,16 @@ jobs:
           psql "$DB_URL" -X -c "select jsonb_object_keys(coalesce(v.roh->'buyer', '{}'::jsonb)) as buyer_feld, count(*) from public.vergabekatalog v where v.quelle = 'bks' and v.quell_datum > now() - interval '30 days' group by 1 order by 2 desc"
           psql "$DB_URL" -X -c "select left((p->'identifier')::text, 200) as identifier, left((p->'additionalIdentifiers')::text, 200) as weitere from public.vergabekatalog v, jsonb_array_elements(v.roh->'parties') p where v.quelle = 'bks' and p->>'id' = v.roh->'buyer'->>'id' and v.quell_datum > now() - interval '3 days' limit 8"
           psql "$DB_URL" -X -c "select count(*) as abos, count(distinct auftraggeber_id) from public.auftraggeber_abos"
+      - name: CPV-Häufigkeit (nur lesen)
+        if: inputs.aktion == 'cpv_haeufigkeit'
+        run: |
+          # Which services are tendered most (bks, last 90 days): one count per notice and CPV prefix.
+          for n in 3 4 5; do
+            psql "$DB_URL" -X -c "with z as (select distinct v.id, left(c, $n) as k from public.vergabekatalog v, unnest(v.cpv) c where v.quelle = 'bks' and v.quell_datum > now() - interval '90 days') select k as cpv, count(*) as ausschreibungen, (select left(v2.titel, 70) from public.vergabekatalog v2 where v2.quelle = 'bks' and exists (select 1 from unnest(v2.cpv) c2 where left(c2, $n) = z.k) order by v2.quell_datum desc limit 1) as beispiel from z group by k order by 2 desc limit 70"
+          done
+          psql "$DB_URL" -X -c "select count(*) as gesamt_90_tage, count(*) filter (where frist > now()) as offen from public.vergabekatalog where quelle = 'bks' and quell_datum > now() - interval '90 days'"
       - name: Migrationen
-        if: inputs.aktion != 'anmeldungen' && inputs.aktion != 'auftraggeber_diagnose'
+        if: inputs.aktion != 'anmeldungen' && inputs.aktion != 'auftraggeber_diagnose' && inputs.aktion != 'cpv_haeufigkeit'
         run: |
           set -o pipefail
           # Output (also errors) through a filter that removes credentials from connection strings.
