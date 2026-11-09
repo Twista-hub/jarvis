@@ -1,10 +1,10 @@
 import { Unzip, UnzipInflate } from "fflate";
 import { BERUFE, BERUF_SYNONYME } from "./berufe.ts";
 
-/** Page of one notice on oeffentlichevergabe.de; only for a notice id (UUID), otherwise the title search as before. */
+/** Page of one notice on oeffentlichevergabe.de; only for a notice id (UUID for EU notices, a number for national ones), otherwise the title search as before. */
 export function bekanntmachungsLink(noticeId: unknown, titel: unknown): string {
   const id = String(noticeId ?? "").toLowerCase();
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
+  return /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]{6,12})$/.test(id)
     ? `https://oeffentlichevergabe.de/ui/de/notices/${id}`
     : `https://oeffentlichevergabe.de/ui/de/search?q=${encodeURIComponent(String(titel ?? "").replace(/\s+/g, " ").trim().slice(0, 100))}`;
 }

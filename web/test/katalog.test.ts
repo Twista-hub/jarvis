@@ -113,6 +113,7 @@ test("Fristen aus eForms: Export-Zip lesen und in die OCDS-Bekanntmachung einset
 test("Link ohne Unterlagen: Seite der Bekanntmachung statt Titelsuche", async () => {
   const { bekanntmachungsLink } = await import("../src/katalog-daten.ts");
   assert.equal(bekanntmachungsLink("D5136A41-BFCF-46A5-BCFF-C296BBFE34C6", "Umzug"), "https://oeffentlichevergabe.de/ui/de/notices/d5136a41-bfcf-46a5-bcff-c296bbfe34c6");
+  assert.equal(bekanntmachungsLink("25960800", "x"), "https://oeffentlichevergabe.de/ui/de/notices/25960800");
   assert.equal(bekanntmachungsLink(undefined, "Umzugsleistungen"), "https://oeffentlichevergabe.de/ui/de/search?q=Umzugsleistungen");
 });
 
