@@ -150,6 +150,8 @@ jobs:
           psql "$DB_URL" -X -c "select quelle, count(*) filter (where link like '%/ui/de/search?q=%') as suchlinks, count(*) filter (where link like '%/ui/de/notices/%') as bekanntmachung, count(*) as alle from public.vergabekatalog group by 1"
           psql "$DB_URL" -X -c "select id, left(coalesce(roh->>'id','–'), 60) as roh_id, left(coalesce(roh->>'ocid','–'), 40) as roh_ocid, quell_datum::date, (select string_agg(k, ',') from jsonb_object_keys(roh) k) as felder from public.vergabekatalog where link like '%/ui/de/search?q=%' order by quell_datum desc limit 12"
           psql "$DB_URL" -X -c "select left(quelle_id, 20) as form, count(*) from public.vergabekatalog where link like '%/ui/de/search?q=%' group by left(quelle_id, 20) ~ '^ocds-mnwr74-[0-9]+$', 1 order by 2 desc limit 5"
+          psql "$DB_URL" -X -c "select id, quelle_id, left(link, 90) as link, left(coalesce(roh->>'id','–'), 40) as roh_id, abgerufen, geaendert from public.vergabekatalog where id in ('bks:ocds-mnwr74-25960800', 'bks:ocds-mnwr74-25838348') or quelle_id in ('ocds-mnwr74-25960800', 'ocds-mnwr74-25838348')"
+          psql "$DB_URL" -X -c "select version from supabase_migrations.schema_migrations where version >= '20261109000000' order by 1"
       - name: CPV-Häufigkeit (nur lesen)
         if: inputs.aktion == 'cpv_haeufigkeit'
         run: |
