@@ -75,6 +75,7 @@ ${o.darfAendern ? `<details class="termin-neu"><summary>➕ Einsatzort</summary>
   };
   const ohne = orte.filter((x) => !x.kunde_id);
   return `<p class="klein">Kunden und ihre Einsatzorte. Beim Planen einer Schicht wählst du den Einsatzort; die Einsatzkraft sieht dann Adresse mit Karte, Ansprechpartner, Treffpunkt und Kleidung. Stunden werden dem Kunden zugeordnet, wenn der Einsatz so heißt wie Kunde oder Einsatzort.${o.finanzen ? "" : " Verrechnungssätze sehen nur Personen mit Finanzfreigabe."}</p>
+${o.darfAendern ? `<p class="klein"><a href="/konto/import/kunden">⬆ Kunden und Einsatzorte aus Excel oder CSV übernehmen</a></p>` : ""}
 ${o.darfAendern ? `<details class="termin-neu"${kunden.length ? "" : " open"}><summary>➕ Kunde anlegen</summary><form method="post" action="/konto/kunden"><input type="hidden" name="aktion" value="kunde">${kundeFelder({}, o.bereiche, o.finanzen ? "" : null)}<button>Kunde speichern</button></form></details>` : ""}
 ${kunden.length ? kunden.map(karte).join("") : `<p class="treffer-leer">Noch keine Kunden.</p>`}
 ${ohne.length ? `<h2>Einsatzorte ohne Kunde</h2><ul class="ort-liste">${ohne.map(ortZeile).join("")}</ul>` : ""}`;
