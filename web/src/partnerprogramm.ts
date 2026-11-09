@@ -92,7 +92,7 @@ export function partnerBedingungen(k: Konditionen): string {
 <h2>10. Schluss</h2><p>Es gilt deutsches Recht.</p>`;
 }
 
-export type Uebersicht = { name: string; code: string | null; status: string; satz: number; monate: number; kunden: number; zahlende: number; offen_cent: number; bezahlt_cent: number; monatlich: { monat: string; zahlungen: number; provision_cent: number; offen_cent: number }[] };
+export type Uebersicht = { name: string; code: string | null; status: string; satz: number; monate: number; kunden: number; zahlende: number; offen_cent: number; bezahlt_cent: number; storniert_cent?: number; monatlich: { monat: string; zahlungen: number; provision_cent: number; offen_cent: number }[] };
 
 export function uebersichtSeite(u: Uebersicht): string {
   const link = u.code ? `${BASIS}/registrieren?p=${u.code}` : "";
@@ -100,7 +100,7 @@ export function uebersichtSeite(u: Uebersicht): string {
   return `<p>Partner: <strong>${escape(u.name)}</strong>${u.status === "aktiv" ? "" : u.status === "neu" ? " · <em>wird noch geprüft</em>" : " · <em>gesperrt</em>"}</p>
 ${link ? `<h2>Dein Partner-Link</h2><p><input readonly value="${escape(link)}" aria-label="Partner-Link" onfocus="this.select()"></p><p class="klein">Wer sich über diesen Link registriert und eine Firma anlegt, gehört zu dir. Provision: ${prozent(u.satz)} der Zahlungen in den ersten ${u.monate} Monaten.</p>` : ""}
 <h2>Deine Zahlen</h2>
-<ul class="kennzahlen"><li><strong>${u.kunden}</strong> geworbene Firmen</li><li><strong>${u.zahlende}</strong> davon zahlend</li><li><strong>${euro(u.offen_cent)}</strong> Provision offen</li><li><strong>${euro(u.bezahlt_cent)}</strong> ausgezahlt</li></ul>
+<ul class="kennzahlen"><li><strong>${u.kunden}</strong> geworbene Firmen</li><li><strong>${u.zahlende}</strong> davon zahlend</li><li><strong>${euro(u.offen_cent)}</strong> Provision offen</li><li><strong>${euro(u.bezahlt_cent)}</strong> ausgezahlt</li>${u.storniert_cent ? `<li><strong>${euro(u.storniert_cent)}</strong> entfallen wegen Erstattungen</li>` : ""}</ul>${u.offen_cent < 0 ? `<p class="klein">Der negative Betrag stammt aus Erstattungen bereits ausgezahlter Provisionen und wird mit der nächsten Provision verrechnet.</p>` : ""}
 ${zeilen ? `<table><thead><tr><th>Monat</th><th>Zahlungen</th><th>Provision</th><th>Stand</th></tr></thead><tbody>${zeilen}</tbody></table>` : `<p class="klein">Noch keine Zahlungen.</p>`}
 <p class="klein">Ausgezahlt wird monatlich ab 25 € offen. Bitte diesen Link nicht weitergeben – er zeigt deine Zahlen ohne Anmeldung. <a href="/partner/bedingungen">Partnerbedingungen</a></p>`;
 }
@@ -165,7 +165,7 @@ Crewtender · WP Digital Ranger
   };
 }
 
-type BetreiberPartner = { id: string; name: string; firma: string | null; email: string; website: string | null; zielgruppe: string | null; code: string | null; token: string; status: string; satz: number | null; erstellt: string; freigeschaltet: string | null; firmen: { name: string; paket: string; seit: string }[]; umsatz_cent: number; offen_cent: number; bezahlt_cent: number };
+type BetreiberPartner = { id: string; name: string; firma: string | null; email: string; website: string | null; zielgruppe: string | null; code: string | null; token: string; status: string; satz: number | null; erstellt: string; freigeschaltet: string | null; firmen: { name: string; paket: string; seit: string }[]; umsatz_cent: number; offen_cent: number; bezahlt_cent: number; storniert_cent?: number };
 
 export function betreiberPartnerSeite(d: { einstellungen: Konditionen; partner: BetreiberPartner[] }, hinweis = ""): string {
   const tag = (s: string | null) => (s ? new Date(s).toLocaleDateString("de-DE") : "–");
@@ -173,7 +173,7 @@ export function betreiberPartnerSeite(d: { einstellungen: Konditionen; partner: 
 <span class="klein">${escape(p.name)} · <a href="mailto:${escape(p.email)}">${escape(p.email)}</a>${p.website ? ` · ${escape(p.website)}` : ""}</span>
 ${p.zielgruppe ? `<span class="klein">Zielgruppe: ${escape(p.zielgruppe)}</span>` : ""}
 ${p.code ? `<span class="klein">Link: ${escape(`${BASIS}/registrieren?p=${p.code}`)} · <a href="/partner/u/${escape(p.token)}" rel="noreferrer">Übersicht des Partners</a></span>` : ""}
-<span class="klein">${p.firmen.length} Firmen${p.firmen.length ? ` (${p.firmen.slice(0, 5).map((f) => `${escape(f.name)}: ${escape(f.paket)}`).join(", ")}${p.firmen.length > 5 ? " …" : ""})` : ""} · Umsatz ${euro(p.umsatz_cent)} · Provision offen <strong>${euro(p.offen_cent)}</strong> · ausgezahlt ${euro(p.bezahlt_cent)}${p.satz !== null ? ` · eigener Satz ${prozent(p.satz)}` : ""}</span>
+<span class="klein">${p.firmen.length} Firmen${p.firmen.length ? ` (${p.firmen.slice(0, 5).map((f) => `${escape(f.name)}: ${escape(f.paket)}`).join(", ")}${p.firmen.length > 5 ? " …" : ""})` : ""} · Umsatz ${euro(p.umsatz_cent)} · Provision offen <strong>${euro(p.offen_cent)}</strong> · ausgezahlt ${euro(p.bezahlt_cent)}${p.storniert_cent ? ` · entfallen (Erstattungen) ${euro(p.storniert_cent)}` : ""}${p.satz !== null ? ` · eigener Satz ${prozent(p.satz)}` : ""}</span>
 <form method="post" action="/konto/betreiber/partner" class="zeile-form"><input type="hidden" name="partner" value="${escape(p.id)}">
 ${p.status !== "aktiv" ? `<label>Code<input name="code" value="${escape(p.code ?? "")}" maxlength="30" placeholder="leer = aus dem Namen"></label><button name="aktion" value="freischalten">Freischalten${p.status === "neu" ? " und Mail schicken" : ""}</button>` : `<button name="aktion" value="sperren" class="zweit">Sperren</button>`}
 ${p.offen_cent > 0 ? `<button name="aktion" value="ausgezahlt" class="zweit">${euro(p.offen_cent)} als ausgezahlt abhaken</button>` : ""}

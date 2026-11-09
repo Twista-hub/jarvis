@@ -100,8 +100,9 @@ jobs:
               api("prices", {"product": produkt, "currency": "eur", "lookup_key": k, "tax_behavior": "unspecified", "nickname": k, **werte})
               print(f"Zusatz {k}: angelegt")
           URL = "https://crewtender.eu/stripe/webhook"
-          # invoice.paid (08.11.2026): referral commission from every paid invoice.
-          EREIGNISSE = ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid"]
+          # invoice.paid (08.11.2026): referral commission from every paid invoice; charge.refunded and
+          # charge.dispute.funds_withdrawn (09.11.2026): the commission of a refunded or charged-back payment is cancelled.
+          EREIGNISSE = ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted", "invoice.paid", "charge.refunded", "charge.dispute.funds_withdrawn"]
           vorhanden = [w for w in api("webhook_endpoints?limit=100")["data"] if w["url"] == URL]
           if vorhanden and os.environ.get("WEBHOOK_NEU") != "ja":
               w = vorhanden[0]

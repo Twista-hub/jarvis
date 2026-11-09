@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { antragPruefen, betreiberPartnerSeite, euro, freischaltMail, partnerBedingungen, partnerCode, partnerSeite, uebersichtSeite } from "../src/partnerprogramm.ts";
-import { zahlungAusEreignis } from "../src/stripe.ts";
+import { erstattungAusCharge, zahlungAusEreignis } from "../src/stripe.ts";
 import { registrierFormular } from "../src/anmeldung.ts";
 
 const K = { satz: 20, monate: 12 };
@@ -75,4 +75,13 @@ test("Webhook: bezahlte Rechnung für die Provision lesen", () => {
   assert.equal(paket?.firma, "11111111-2222-3333-4444-555555555555");
   assert.equal(zahlungAusEreignis({ id: "evt_3", type: "invoice.paid", data: { object: { id: "in_987654321", currency: "usd", amount_paid: 100 } } }), null);
   assert.equal(zahlungAusEreignis({ id: "evt_4", type: "customer.subscription.updated", data: { object: {} } }), null);
+});
+
+test("Erstattung: Charge mit Rechnung oder nur Kunde, ohne Betrag nichts", () => {
+  const r = erstattungAusCharge("evt_123456789", { id: "ch_123456789", currency: "eur", amount_refunded: 2000, customer: "cus_123456789", invoice: "in_123456789", created: 1762000000 });
+  assert.deepEqual(r, { ereignis: "evt_123456789", zahlung: "ch_123456789", rechnung: "in_123456789", kunde: "cus_123456789", erstattet_cent: 2000, zeit: new Date(1762000000 * 1000).toISOString() });
+  assert.equal(erstattungAusCharge("evt_1", { id: "ch_123456789", currency: "eur", amount_refunded: 0 }), null);
+  assert.equal(erstattungAusCharge("evt_1", { id: "ch_123456789", currency: "usd", amount_refunded: 100 }), null);
+  assert.equal(erstattungAusCharge("evt_1", { id: "ch_123456789", currency: "eur", amount_refunded: 100 })?.rechnung, null);
+  assert.equal(erstattungAusCharge("evt_1", { id: "ch_123456789", currency: "eur", amount_refunded: 0 }, 5900)?.erstattet_cent, 5900, "Rückbuchung mit eigenem Betrag");
 });
