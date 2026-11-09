@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       modus:
-        description: "probe, schreiben, stand (Datenbankgröße), schlank-probe oder schlank (Rohdaten alter Bekanntmachungen verkleinern)"
+        description: "probe, schreiben, stand (Datenbankgröße), schlank-probe, schlank (Rohdaten alter Bekanntmachungen verkleinern), links-probe oder links (Suchlinks durch die Seite der Bekanntmachung ersetzen)"
         default: "probe"
 permissions:
   contents: read
@@ -32,6 +32,8 @@ jobs:
             schlank) python katalog_schlank.py schreiben ;;
             schlank-probe) python katalog_schlank.py probe ;;
             schreiben) python katalog_fristen.py ;;
+            links) python katalog_links.py ;;
+            links-probe) python katalog_links.py --probe ;;
             stand) python katalog_fristen.py --stand ;;
             *) python katalog_fristen.py --probe ;;
           esac
