@@ -109,3 +109,19 @@ test("Fristen aus eForms: Export-Zip lesen und in die OCDS-Bekanntmachung einset
   assert.equal(fristenEinsetzen(schon, karte).tender.tenderPeriod.endDate, "2027-01-01T00:00:00Z", "vorhandene Frist bleibt");
   assert.equal(fristenEinsetzen(rel, new Map()), rel);
 });
+
+test("Link ohne Unterlagen: Seite der Bekanntmachung statt Titelsuche", async () => {
+  const { bekanntmachungsLink } = await import("../src/katalog-daten.ts");
+  assert.equal(bekanntmachungsLink("D5136A41-BFCF-46A5-BCFF-C296BBFE34C6", "Umzug"), "https://oeffentlichevergabe.de/ui/de/notices/d5136a41-bfcf-46a5-bcff-c296bbfe34c6");
+  assert.equal(bekanntmachungsLink(undefined, "Umzugsleistungen"), "https://oeffentlichevergabe.de/ui/de/search?q=Umzugsleistungen");
+});
+
+test("Version bleibt gleich, wenn nur die neue Bekanntmachungsseite als Link dazukommt", async () => {
+  const { bekanntmachungsLink } = await import("../src/katalog-daten.ts");
+  const ohneDocs = { ...notice, tender: { ...(notice as any).tender, documents: [] }, id: "7115ab0c-47ab-4401-91bc-76b316afaadd" };
+  const n = (await normalisieren(ohneDocs, "2026-10-29"))!;
+  assert.equal(n.link, "https://oeffentlichevergabe.de/ui/de/notices/7115ab0c-47ab-4401-91bc-76b316afaadd");
+  const alt = (await normalisieren({ ...ohneDocs, id: undefined }, "2026-10-29"))!;
+  assert.equal(alt.link, bekanntmachungsLink(null, (notice as any).tender.title));
+  assert.equal(n.version, alt.version);
+});

@@ -1,6 +1,14 @@
 import { Unzip, UnzipInflate } from "fflate";
 import { BERUFE, BERUF_SYNONYME } from "./berufe.ts";
 
+/** Page of one notice on oeffentlichevergabe.de; only for a notice id (UUID), otherwise the title search as before. */
+export function bekanntmachungsLink(noticeId: unknown, titel: unknown): string {
+  const id = String(noticeId ?? "").toLowerCase();
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(id)
+    ? `https://oeffentlichevergabe.de/ui/de/notices/${id}`
+    : `https://oeffentlichevergabe.de/ui/de/search?q=${encodeURIComponent(String(titel ?? "").replace(/\s+/g, " ").trim().slice(0, 100))}`;
+}
+
 // Source data only. No customer profiles, contact lists or private documents are shared.
 export type Bedarf = { art: "beruf" | "qualifikation" | "nachweis"; name: string; fundstelle: string; los: string; menge?: number };
 export type Bekanntmachung = {
@@ -110,7 +118,9 @@ export async function normalisieren(rel: any, tag: string, vorher?: any): Promis
   const cpv = [...new Set<string>((t.items ?? []).flatMap((i: any) => [i.classification, ...(i.additionalClassifications ?? [])]).filter((x: any) => x?.scheme?.toUpperCase() === "CPV").map((x: any) => str(x.id, 30).split("-")[0]))];
   const adresse = liefer.length ? liefer : [a];
   const docs = (t.documents ?? []).filter((d: any) => /^https?:\/\//.test(d.url ?? ""));
-  const link = docs[0]?.url || `https://oeffentlichevergabe.de/ui/de/search?q=${encodeURIComponent(str(t.title, 100))}`;
+  // Without a documents link: the notice's own page on the federal publication service (release id = notice id). The
+  // former title search often showed other tenders (Benjamin, 09.11.2026).
+  const link = docs[0]?.url || bekanntmachungsLink(rel.id, t.title);
   const auftraggeber = str(buyer.name, 500) || "Auftraggeber nicht angegeben";
   // OCDS party IDs such as ORG-0001 are only local to a notice, never global buyer keys. In German notices
   // buyer.identifier.id is that local id too (diagnosis 08.11.2026), so the database trigger ag_schluessel
@@ -122,7 +132,9 @@ export async function normalisieren(rel: any, tag: string, vorher?: any): Promis
   // (BT-701): the full eForms notice is only found under it, the UUID in the OCID is the procedure id (BT-04).
   const roh = { ocid: quelleId, id: str(rel.id, 200) || undefined, date: datum, buyer, tender: { ...t, description: beschreibung, documents: docs.slice(0, 20), items: (t.items ?? []).slice(0, 100), lots: (t.lots ?? []).slice(0, 50) }, awards: (r.awards ?? []).slice(0, 30), contracts: (r.contracts ?? []).slice(0, 30) };
   const data = { id: `bks:${quelleId}`, quelle: "bks", quelle_id: quelleId, quell_datum: datum, titel: str(t.title, 1000), beschreibung, link: str(link, 3000), auftraggeber, auftraggeber_id: `bks:${buyerId}`, ort: adresse.map((x: any) => [x.postalCode, x.locality, x.region].filter(Boolean).join(" ")).filter(Boolean).join(" · ") + (liefer.length ? "" : " (Auftraggeberadresse; Einsatzort prüfen)"), plz: [...new Set<string>(adresse.map((x: any) => str(x.postalCode, 15)).filter(Boolean))], cpv, frist, status, lose, bedarf, zuschlaege, vertragsende };
-  const { quell_datum: _datum, ...inhalt } = data;
+  // The version hash keeps the former link form, so the switch to notice pages (and a new release id alone) is not
+  // reported as a change of the tender.
+  const { quell_datum: _datum, ...inhalt } = { ...data, link: str(docs[0]?.url || bekanntmachungsLink(null, t.title), 3000) };
   return { ...data, version: await hash(JSON.stringify(inhalt)), roh };
 }
 
