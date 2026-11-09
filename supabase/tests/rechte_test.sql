@@ -144,6 +144,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261109050000_gewerke_neu.sql
 \ir ../migrations/20261109060000_pro_30_einsatzkraefte.sql
 \ir ../migrations/20261109070000_provision_storno.sql
+\ir ../migrations/20261109080000_katalog_statistik_cache.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2140,6 +2141,11 @@ reset role;
 select jarvis_intern.zahlung_erfasst('evt_TEST000006', 'in_TEST000006', null, :'empf_firma', 5900, now());
 select pruefe((select count(*) = 2 from jarvis_intern.provisionen where partner_id = :'partner_id'), 'Gesperrter Partner bekommt keine neue Provision');
 
+-- Marktübersicht aus dem Cache (09.11.2026): nur angemeldete Büro-Rollen, ohne Login gesperrt.
+set role anon;
+do $$ begin perform public.katalog_statistik(gen_random_uuid()); raise exception 'FEHLER: Marktstatistik ohne Login'; exception when insufficient_privilege then null; end $$;
+reset role;
+select pruefe((select daten ? 'wiederkehrend' from jarvis_intern.sitemap_cache where name = 'katalog'), 'Marktstatistik im Cache');
 -- Erstattungen (09.11.2026): Provision entfällt, ausgezahlte wird mit der nächsten Auszahlung verrechnet.
 set role authenticated;
 do $$ begin perform jarvis_intern.erstattung_erfasst('evt_TEST000009', 'ch_TEST000009', 'in_TEST000002', null, 100, now()); raise exception 'FEHLER: Erstattung ohne Login erfasst'; exception when insufficient_privilege then null; end $$;
