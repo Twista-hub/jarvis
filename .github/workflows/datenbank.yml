@@ -172,6 +172,9 @@ jobs:
           psql "$DB_URL" -c "select monat, limit_usd, reserviert from jarvis_katalog.ki_budget order by monat desc limit 2"
           psql "$DB_URL" -c "select zweck, count(*) as aufrufe, count(*) filter(where verbraucht is null) as offen, round(sum(reserviert),3) as reserviert, round(sum(verbraucht),3) as verbraucht from jarvis_katalog.ki_kosten where zeit>=date_trunc('day',now()) group by zweck"
           psql "$DB_URL" -c "select zeit, zweck, reserviert, verbraucht from jarvis_katalog.ki_kosten order by zeit desc limit 10"
+          # Monat: wofür (Zweck, Modell, Firma) und an welchen Tagen.
+          psql "$DB_URL" -c "select k.zweck, coalesce(k.modell, '–') as modell, coalesce(f.name, '(ohne Firma)') as firma, count(*) as aufrufe, round(sum(coalesce(k.verbraucht, k.reserviert)), 2) as usd from jarvis_katalog.ki_kosten k left join public.firmen f on f.id = k.firma_id where k.zeit >= date_trunc('month', now()) group by 1, 2, 3 order by 5 desc limit 30"
+          psql "$DB_URL" -c "select (k.zeit at time zone 'Europe/Berlin')::date as tag, k.zweck, count(*) as aufrufe, round(sum(coalesce(k.verbraucht, k.reserviert)), 2) as usd from jarvis_katalog.ki_kosten k where k.zeit >= date_trunc('month', now()) group by 1, 2 order by 1, 2"
 
       - name: KI-Budget-Funktion testen (Rollback, speichert nichts)
         run: |
