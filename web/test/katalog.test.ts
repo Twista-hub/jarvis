@@ -126,3 +126,16 @@ test("Version bleibt gleich, wenn nur die neue Bekanntmachungsseite als Link daz
   assert.equal(alt.link, bekanntmachungsLink(null, (notice as any).tender.title));
   assert.equal(n.version, alt.version);
 });
+
+test("Unterlagen-Link nur mit Portal-Startseite: Seite der Bekanntmachung (Klickprüfung 09.11.2026)", async () => {
+  const { nurPortal } = await import("../src/katalog-daten.ts");
+  for (const u of ["http://www.evergabe-online.de", "https://www.staatsanzeiger-eservices.de/", "https://vergabekooperation.berlin/NetServer/", "https://www.swm.de/einkauf", "https://www.bsr.de/veroeffentlichungen-und-ausschreibungen"]) assert.ok(nurPortal(u), u);
+  for (const u of ["https://www.subreport.de/E12537398", "https://www.dtvp.de/Satellite/notice/CXP4D0AMPFH/documents", "https://vergabeplattform.charite.de?tid=dd8a937c17f51a7775f0b41ec24cf680", "https://www.vergabe24.de/vergabeunterlagen/54321-Tender-1a1", "https://www.volksbund.de/ausschreibungen/baumfaellarbeiten-niederlande-2026"]) assert.ok(!nurPortal(u), u);
+  const id = "7115ab0c-47ab-4401-91bc-76b316afaadd";
+  const startseite = { ...notice, id, tender: { ...(notice as any).tender, documents: [{ url: "http://www.evergabe-online.de" }] } };
+  assert.equal((await normalisieren(startseite, "2026-10-29"))!.link, `https://oeffentlichevergabe.de/ui/de/notices/${id}`);
+  const beide = { ...startseite, tender: { ...startseite.tender, documents: [{ url: "http://www.evergabe-online.de" }, { url: "https://www.evergabe-online.de/tenderdetails.html?id=904214" }] } };
+  assert.equal((await normalisieren(beide, "2026-10-29"))!.link, "https://www.evergabe-online.de/tenderdetails.html?id=904214");
+  const ohneId = { ...startseite, id: undefined };
+  assert.equal((await normalisieren(ohneId, "2026-10-29"))!.link, "http://www.evergabe-online.de", "ohne Kennung bleibt das Portal besser als die Titelsuche");
+});

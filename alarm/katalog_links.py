@@ -6,7 +6,8 @@ shows thousands of other notices (Benjamin: "Digitales Kulturwerk Lübeck" opene
 20261110000000 fixes those in the database). For EU notices the OCDS id carries the procedure UUID, not the notice
 UUID, and older rows did not keep the release id; this script reads the public daily OCDS exports (CC0) of those days and
 takes the release id from there. Only the link of the catalog row and of firm records still holding the old search link
-is changed.
+is changed. Since the click check of 09.11.2026 also links that only name a portal (no number after the host, e.g.
+http://www.evergabe-online.de): they opened the portal's start page.
 
 CLI: python3 katalog_links.py [--probe]
 """
@@ -23,6 +24,8 @@ from profile_db import verbinden
 
 UA = "Crewtender-Katalog/1.0 (public procurement index)"
 SUCHE = "https://oeffentlichevergabe.de/ui/de/search?q=%"
+# Title search or a link without any number after the host (only the portal's start or list page).
+ERSETZEN = "(link like 'https://oeffentlichevergabe.de/ui/de/search?q=%%' or substring(link from '^https?://[^/?#]+(.*)$') !~ '[0-9]')"
 SEITE = "https://oeffentlichevergabe.de/ui/de/notices/"
 KENNUNG = re.compile(r"^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]{6,12})$")
 
@@ -83,8 +86,8 @@ def main() -> None:
     probe = "--probe" in sys.argv
     with verbinden() as con:
         zeilen = con.execute("""select id, quelle_id, quell_datum, (quell_datum at time zone 'UTC')::date from public.vergabekatalog
-                                where quelle = 'bks' and link like %s""", (SUCHE,)).fetchall()
-    print(f"{len(zeilen)} Bekanntmachungen mit Suchlink")
+                                where quelle = 'bks' and """ + ERSETZEN).fetchall()
+    print(f"{len(zeilen)} Bekanntmachungen mit Suchlink oder nur Portal-Startseite")
     tage = sorted({d + timedelta(days=k) for *_, d in zeilen for k in (-1, 0, 1)} - {date.today(), date.today() + timedelta(days=1)})
     karte: dict[str, list[tuple[str, str]]] = {}
     fehlt = []
@@ -112,14 +115,15 @@ def main() -> None:
     with verbinden() as con:
         for i in range(0, len(neu), 500):
             with con.cursor() as c:
-                c.executemany("update public.vergabekatalog set link = %s where id = %s and link like 'https://oeffentlichevergabe.de/ui/de/search?q=%%'", neu[i:i + 500])
+                c.executemany("update public.vergabekatalog set link = %s where id = %s and " + ERSETZEN, neu[i:i + 500])
             con.commit()
         n = con.execute("""update public.vorgaenge v set link = k.link from public.vergabekatalog k
-                           where v.link like %s and k.quelle = 'bks' and k.link like %s
+                           where (v.link like %s or substring(v.link from '^https?://[^/?#]+(.*)$') !~ '[0-9]')
+                             and k.quelle = 'bks' and k.link like %s
                              and (v.katalog_id = k.id or v.quelle_id = k.quelle_id or v.quelle_id = k.id)""", (SUCHE, SEITE + "%")).rowcount
         con.commit()
-        rest = con.execute("select count(*) from public.vergabekatalog where quelle = 'bks' and link like %s", (SUCHE,)).fetchone()[0]
-    print(f"Geschrieben. Vorgänge der Firmen: {n} Links ersetzt. Mit Suchlink bleiben {rest} Bekanntmachungen.")
+        rest = con.execute("select count(*) from public.vergabekatalog where quelle = 'bks' and " + ERSETZEN).fetchone()[0]
+    print(f"Geschrieben. Vorgänge der Firmen: {n} Links ersetzt. Mit Suchlink oder Portal-Startseite bleiben {rest} Bekanntmachungen.")
 
 
 if __name__ == "__main__":

@@ -122,7 +122,9 @@ def als_release(a: dict, tag: str) -> dict:
             "description": beschreibung[:4000],
             "items": [{"classification": {"scheme": "CPV", "id": c}} for c in a["cpv"]] + [{"deliveryLocation": {"description": ort}, "deliveryAddress": {"postalCode": a["plz"], "locality": a["ort"]}}],
             "tenderPeriod": {"endDate": a["frist"].replace("Z", "+00:00")} if a["frist"] else {},
-            "documents": [{"url": a["link"] or "https://ezamowienia.gov.pl/mo-client-board/bzp/list"}],
+            # Without the buyer's platform: the procedure page on e-Zamówienia (the general list showed every notice).
+            "documents": [{"url": a["link"] or (f"https://ezamowienia.gov.pl/mp-client/search/list/{a['tender_id']}" if a["tender_id"].startswith("ocds-")
+                                                else "https://ezamowienia.gov.pl/mo-client-board/bzp/list")}],
         },
         "buyer": {"name": a["auftraggeber"], "address": {"countryName": "Polen", "postalCode": a["plz"], "locality": a["ort"]}},
         "_land": "POL",
