@@ -88,7 +88,7 @@ import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
 import MUSTER from "./muster-steckbrief.md";
-import { avv, datenschutz, impressum, nutzungsbedingungen, startseite } from "./rechtliches";
+import { avv, datenschutz, impressum, nutzungsbedingungen, startseite, type StartZahlen } from "./rechtliches";
 import { kontakt } from "./kontakt.ts";
 import { hilfecenter } from "./hilfecenter.ts";
 import { usProfil, usRadar } from "./usprofil.ts";
@@ -340,7 +340,7 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     if (request.method === "GET") {
       const titel = url.searchParams.get("titel");
       const lp = url.pathname.match(/^\/([a-z]{2})\/?$/);
-      if ((url.pathname === "/" && titel === null) || (lp && ISO2[lp[1].toUpperCase()])) return landesStart(request, url, lp?.[1]);
+      if ((url.pathname === "/" && titel === null) || (lp && ISO2[lp[1].toUpperCase()])) return landesStart(request, url, lp?.[1], env);
       if (url.pathname === "/" || url.pathname === "/hochladen") return html(formular("", titel ?? ""));
       const recht = RECHT[url.pathname];
       const rs = appSprache(request);
@@ -700,14 +700,29 @@ function formular(fehler = "", titel = ""): string {
 }
 
 /** Public start page for the visitor's country and language (see besucher.ts). */
-function landesStart(request: Request, url: URL, ausAdresse?: string): Response {
+/** Live numbers of the start page (public.start_zahlen, cached in the database every 6 h, here one hour at the edge). */
+async function startZahlen(env: Env): Promise<StartZahlen | null> {
+  const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+  const k = new Request(`${ADRESSE}/__start-zahlen?v=1`);
+  const alt = await cache?.match(k).catch(() => undefined);
+  if (alt) return (await alt.json().catch(() => null)) as StartZahlen | null;
+  try {
+    const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/start_zahlen`, { method: "POST", headers: { apikey: env.SUPABASE_KEY, "content-type": "application/json" }, body: "{}" });
+    if (!r.ok) return null;
+    const z = (await r.json()) as StartZahlen | null;
+    if (z && cache) env.WARTEN?.(cache.put(k, new Response(JSON.stringify(z), { headers: { "content-type": "application/json", "cache-control": "public, max-age=3600" } })).catch(() => undefined));
+    return z;
+  } catch { return null; }
+}
+
+async function landesStart(request: Request, url: URL, ausAdresse: string | undefined, env: Env): Promise<Response> {
   const b = besucher(request, ausAdresse);
   const gewaehlt = url.searchParams.get("sprache");
   if (gewaehlt && (SPRACHEN_OEFFENTLICH as readonly string[]).includes(gewaehlt)) b.sprache = gewaehlt as Sprache;
   const deutsch = b.land === "DE" && b.sprache === "de";
-  const zusatz = startseite(markdown(MUSTER.replace(/^>.*\n/m, "")));
+  const zusatz = deutsch ? startseite(markdown(MUSTER.replace(/^>.*\n/m, "")), await startZahlen(env)) : "";
   const l = landesSeite(b, ADRESSE, "");
-  const body = deutsch ? `${zusatz}${landWahl(b)}<p class="klein">${keineBehoerde("de")}</p>` : l.inhalt;
+  const body = deutsch ? `${zusatz}${landWahl(b, false)}<p class="klein">${keineBehoerde("de")}</p>` : l.inhalt;
   const titel = deutsch ? "Crewtender – Öffentliche Aufträge finden, Angebote schreiben, Team planen" : l.titel;
   const beschreibung = deutsch ? START_BESCHREIBUNG : l.beschreibung;
   const r = html(kopfZeile(seite(titel, body), b.sprache).replace('<html lang="de"', `<html lang="${b.sprache}"`).replace("</title>", `</title>${l.kopf}${seoKopf({ beschreibung, url: kanonisch(b, ADRESSE), jsonld: START_JSONLD })}`));

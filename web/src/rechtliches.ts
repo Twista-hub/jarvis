@@ -168,7 +168,36 @@ ${dienstleisterTabelle()}
 const karte = (icon: string, titel: string, text: string) => `<div class="start-karte"><span class="start-icon" aria-hidden="true">${icon}</span><h3>${titel}</h3><p>${text}</p></div>`;
 
 /** Public landing page (German visitors): light blue hero with glass cards, stacked buttons on phones. */
-export function startseite(beispiel: string): string {
+export type StartZahlen = { woche?: number; offen?: number; beispiel?: { id: string; titel: string; ort?: string; frist?: string } | null };
+
+const DIA: [string, string, string][] = [
+  ["Guten Morgen", "Neue Treffer, nächste Frist und laufende Angebote auf einen Blick.", "Startseite der App mit neuen Treffern und der nächsten Frist"],
+  ["Treffer mit Punkten", "Jede Ausschreibung mit 1 bis 10 Punkten, Losen, Stunden und Entfernung.", "Trefferliste mit Punkten, Losen und Entfernung"],
+  ["Steckbrief", "Was gesucht ist, warum es passt, Fristen und geforderte Nachweise.", "Steckbrief einer Ausschreibung mit Bewertung"],
+  ["Schichtplan", "Wenn der Auftrag da ist: Schichten planen, Zusagen sehen, Lücken füllen.", "Schichtplan mit Zusagen der Einsatzkräfte"],
+];
+
+/** Slideshow of the app (pure CSS, changes every 5 seconds; still for visitors who prefer less motion). */
+export function diaShow(): string {
+  return `<section class="start-dia" aria-label="So sieht Crewtender aus">
+<div class="dia-handy">${DIA.map(([, , alt], i) => `<img class="dia dia-${i + 1}" src="/bilder/dia-${i + 1}-v1.webp" width="260" height="480" alt="${alt}"${i ? ' loading="lazy"' : ""}>`).join("")}</div>
+<div><h2 class="start-h2">So sieht Crewtender aus</h2><ol class="dia-texte">${DIA.map(([t, x], i) => `<li class="dia-${i + 1}"><strong>${t}</strong> ${x}</li>`).join("")}</ol>
+<p class="klein">Beispieldaten aus der <a href="/demo">Demo</a>, die du ohne Anmeldung ausprobieren kannst.</p></div>
+</section>`;
+}
+
+const zahlDe = (n: number) => n.toLocaleString("de-DE");
+const datumDe = (d: string) => new Date(d).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: "Europe/Berlin" });
+
+/** Live numbers from the catalogue (cached every 6 hours); nothing when they are missing. */
+export function liveKasten(z: StartZahlen | null): string {
+  if (!z?.woche) return "";
+  const b = z.beispiel;
+  return `<section class="start-live" aria-label="Aktuelle Zahlen"><p><span class="start-live-punkt" aria-hidden="true"></span><strong>${zahlDe(z.woche)}</strong> neue öffentliche Ausschreibungen in Deutschland in den letzten 7 Tagen${z.offen ? ` · <strong>${zahlDe(z.offen)}</strong> mit offener Frist` : ""}</p>
+${b?.id ? `<a class="start-live-beispiel" href="/ausschreibung/${encodeURIComponent(b.id)}"><span class="klein">Gerade neu</span><strong>${escape(b.titel)}</strong><span class="klein">${escape([b.ort, b.frist ? `Frist ${datumDe(b.frist)}` : ""].filter(Boolean).join(" · "))}</span></a>` : ""}</section>`;
+}
+
+export function startseite(beispiel: string, zahlen: StartZahlen | null = null): string {
   return `<section class="start-held">
 <p class="start-fuer">Für Handwerk, Reinigung, Sicherheit, Zeitarbeit, Gastro und viele weitere Branchen</p>
 <h1>Öffentliche Aufträge finden. Angebote schreiben. Dein Team planen.</h1>
@@ -177,14 +206,17 @@ export function startseite(beispiel: string): string {
 <p class="start-klein">Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
 <ul class="start-chips"><li>✓ Demo ohne Anmeldung</li><li>✓ 30 Tage alle Pro-Funktionen, danach Free</li><li>✓ Keine Kreditkarte nötig</li><li>✓ Daten in der EU</li><li>✓ Los geht's nach der E-Mail-Bestätigung</li></ul>
 </section>
+${liveKasten(zahlen)}
+${diaShow()}
 <h2 class="start-h2">So funktioniert's</h2>
 <div class="start-raster">${karte("🔎", "Treffer jeden Morgen", "Jede Ausschreibung bekommt 1 bis 10 Punkte und einen Satz, warum sie passt oder nicht, sortiert nach deinen Standorten.")}${karte("📋", "Steckbrief auf einen Blick", "Fristen, Lose, Mengen, geforderte Nachweise und Referenzen, Zuschlagskriterien und eine klare Empfehlung.")}${karte("🧮", "Kalkulieren und anbieten", "Vergabeunterlagen hochladen, Crewtender liest alles und rechnet mit deinen Löhnen den Preis pro Stunde und pro Los.")}</div>
 <h2 class="start-h2">Und wenn der Auftrag da ist</h2>
 <div class="start-raster">${karte("📅", "Schichten planen", "Schichtplan mit Prüfung des Arbeitszeitgesetzes, offene Schichten fürs Team und Ersatz bei Ausfall.")}${karte("⏱️", "Stunden und Stempeluhr", "Einsatzkräfte erfassen Stunden im Handy, das Büro gibt frei und lädt die Lohnliste für DATEV.")}${karte("🧾", "Nachweis und Rechnung", "Leistungsnachweis zum Unterschreiben, Rechnung mit eigenem Logo und XRechnung für Behörden.")}</div>
 <h2 class="start-h2">Und noch viel mehr</h2>
-<ul class="start-mehr"><li><span aria-hidden="true">🗂️</span>Personalakte und Nachweise mit Ablauf-Warnung</li><li><span aria-hidden="true">🌴</span>Urlaub, Abwesenheiten und Teamkalender</li><li><span aria-hidden="true">🧑‍💼</span>Bewerber verwalten</li><li><span aria-hidden="true">⚖️</span>AÜG-Wächter für Zeitarbeit (Equal Pay, Höchstdauer)</li><li><span aria-hidden="true">🛡️</span>Rundgänge mit QR-Codes und Wachbuch</li><li><span aria-hidden="true">🤝</span>Kundenportal und Stundenbestätigung per Link</li><li><span aria-hidden="true">📸</span>Belege fotografieren und an DATEV geben</li><li><span aria-hidden="true">📡</span>Neuausschreibungs-Radar</li><li><span aria-hidden="true">💶</span>Förderprogramme passend zur Firma</li><li><span aria-hidden="true">🔧</span>Nachunternehmer anfragen</li><li><span aria-hidden="true">📐</span>GAEB-Leistungsverzeichnisse</li><li><span aria-hidden="true">🦺</span>Schutzausrüstung, Fahrzeuge und Prüftermine</li><li><span aria-hidden="true">💬</span>Team-Chat und Schwarzes Brett</li><li><span aria-hidden="true">🌍</span>In 6 Sprachen, für Einsatzkräfte in 7</li></ul>
-<p class="start-mehr-link"><a href="/demo">Alles in der Demo ansehen →</a> · <a href="/preise">Preise ansehen →</a></p>
-<section class="start-held start-schluss"><h2>Bereit für den ersten Auftrag?</h2><p class="start-unter">In zwei Minuten eingerichtet. Crewtender liest deine Website und schlägt das Suchprofil vor.</p><div class="start-knoepfe"><a class="start-knopf" href="/registrieren">30 Tage Pro gratis testen</a><a class="start-knopf glas" href="/hilfe">📚 Anleitungen ansehen</a></div><p class="start-klein">Fragen an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a> oder über das <a href="/kontakt">Kontaktformular</a>.</p></section>
+<ul class="start-mehr"><li><span aria-hidden="true">🗂️</span>Personalakte und Nachweise mit Ablauf-Warnung</li><li><span aria-hidden="true">🌴</span>Urlaub, Abwesenheiten und Teamkalender</li><li><span aria-hidden="true">📸</span>Belege fotografieren und an DATEV geben</li><li><span aria-hidden="true">🤝</span>Kundenportal und Stundenbestätigung per Link</li><li><span aria-hidden="true">💶</span>Förderprogramme passend zur Firma</li><li><span aria-hidden="true">🌍</span>In 6 Sprachen, für Einsatzkräfte in 7</li></ul>
+<p class="start-mehr-link"><a href="/demo">Alle Funktionen in der Demo ansehen →</a></p>
+<section class="start-preise" aria-label="Preise"><h2 class="start-h2">Was kostet es?</h2><p><strong>Free</strong> für immer kostenlos · <strong>Basis</strong> 59 € · <strong>Pro</strong> 149 € · <strong>Business</strong> 399 € im Monat, monatlich kündbar. Die ersten 30 Tage hast du alle Pro-Funktionen gratis, ohne Kreditkarte.</p><p><a href="/preise">Alle Preise und Leistungen →</a></p></section>
+<section class="start-held start-schluss"><h2>Bereit für den ersten Auftrag?</h2><p class="start-unter">In zwei Minuten eingerichtet. Crewtender liest deine Website und schlägt das Suchprofil vor.</p><div class="start-knoepfe"><a class="start-knopf" href="/registrieren">30 Tage Pro gratis testen</a><a class="start-knopf glas" href="/hilfe">📚 Anleitungen ansehen</a></div><p class="start-klein">Fragen an <a href="mailto:hello@crewtender.eu">hello@crewtender.eu</a> oder über das <a href="/kontakt">Kontaktformular</a>.</p></section>
 <h2>Ausschreibungen nach Gewerk</h2>
 <p><a href="/ausschreibungen/elektro">Elektro</a> · <a href="/ausschreibungen/sanitaer-heizung-lueftung">Sanitär, Heizung, Lüftung</a> · <a href="/ausschreibungen/tischler-schreiner">Tischler</a> · <a href="/ausschreibungen/gebaeudereinigung">Gebäudereinigung</a> · <a href="/ausschreibungen/maler-trockenbau">Maler und Trockenbau</a> · <a href="/ausschreibungen/dach-zimmerer">Dach und Zimmerer</a> · <a href="/ausschreibungen/garten-landschaftsbau-winterdienst">Garten- und Landschaftsbau</a> · <a href="/ausschreibungen/sicherheitsdienst">Sicherheitsdienst</a> · <a href="/ausschreibungen/bodenbelaege-fliesen">Bodenbeläge und Fliesen</a> · <a href="/ausschreibungen/zeitarbeit-personaldienstleister">Zeitarbeit</a> · <a href="/ausschreibungen">alle</a></p>
 <h2>Beispiel-Steckbrief</h2>

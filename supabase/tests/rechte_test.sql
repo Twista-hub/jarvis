@@ -137,6 +137,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261108280000_auftraggeber_schluessel.sql
 \ir ../migrations/20261108290000_sitemap_cache.sql
 \ir ../migrations/20261108300000_herkunft.sql
+\ir ../migrations/20261109010000_start_zahlen.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2189,6 +2190,13 @@ reset role;
 
 set role anon;
 do $$ begin perform 1 from jarvis_intern.sitemap_cache; raise exception 'FEHLER: Sitemap-Cache ohne Login lesbar'; exception when insufficient_privilege then null; end $$;
+reset role;
+
+-- Live-Zahlen der Startseite (09.11.2026): aus dem Cache, ohne Login lesbar.
+reset role;
+select jarvis_intern.sitemaps_aktualisieren();
+set role anon;
+select pruefe((public.start_zahlen()->>'woche')::int >= 1 and (public.start_zahlen()->>'offen')::int >= 1, 'Startseite: Zahlen der Woche und offene Ausschreibungen');
 reset role;
 
 -- Herkunft der Anmeldung (08.11.2026): aus den Anmeldedaten in die Firma, danach nicht mehr änderbar.

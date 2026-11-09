@@ -2,6 +2,7 @@
 // notifications, and the service worker that shows them and opens the right page on tap.
 // Served from our own origin, so the content security policy only needs script-src 'self'.
 import { OG_BILD } from "./og-bild.ts";
+import { DIA_BILDER } from "./dia-bilder.ts";
 import { ICON_192, ICON_512 } from "./icons.ts";
 import { ARBEITSAUSWAHL_JS } from "./arbeitsauswahl-browser.ts";
 import { SUCH_AKTION_JS } from "./suchaktionen.ts";
@@ -389,6 +390,8 @@ const DATEIEN: Record<string, [string, string | (() => Uint8Array)]> = {
   // New file names for the Crewtender mark (03.11.2026), so phones do not keep the cached old "J" icon.
   // Link preview image (Open Graph), see seo.ts.
   "/og-v1.jpg": ["image/jpeg", () => Uint8Array.from(atob(OG_BILD), (c) => c.charCodeAt(0))],
+  // Slides of the start page (rechtliches.ts diaShow); new file name when the pictures change.
+  ...Object.fromEntries(Object.entries(DIA_BILDER).map(([pfad, b64]) => [pfad, ["image/webp", () => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))] as [string, () => Uint8Array]])),
   "/icon-v2-192.png": ["image/png", () => Uint8Array.from(atob(ICON_192), (c) => c.charCodeAt(0))],
   "/icon-v2-512.png": ["image/png", () => Uint8Array.from(atob(ICON_512), (c) => c.charCodeAt(0))],
   "/icon-192.png": ["image/png", () => Uint8Array.from(atob(ICON_192), (c) => c.charCodeAt(0))],
@@ -401,7 +404,7 @@ export function statisch(pfad: string): Response | null {
   if (!d) return null;
   const inhalt = typeof d[1] === "string" ? d[1] : d[1]();
   // Scripts and manifest: always check for the newest version; icons may be cached.
-  const cache = /\.(png|jpg)$/.test(pfad) ? "public, max-age=86400" : "no-cache";
+  const cache = /\.(png|jpg|webp)$/.test(pfad) ? "public, max-age=86400" : "no-cache";
   return new Response(inhalt, { headers: { "content-type": d[0], "cache-control": cache, "x-content-type-options": "nosniff" } });
 }
 
