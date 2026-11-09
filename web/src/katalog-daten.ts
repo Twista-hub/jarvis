@@ -1,10 +1,19 @@
 import { Unzip, UnzipInflate } from "fflate";
 import { BERUFE, BERUF_SYNONYME } from "./berufe.ts";
 
+const KENNUNG = /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]{6,12})$/;
+export const gueltigeKennung = (noticeId: unknown): boolean => KENNUNG.test(String(noticeId ?? "").toLowerCase());
+
+/** True if a link names only a portal or a list page: no digit after the host (a tender page always carries an id). */
+export function nurPortal(url: unknown): boolean {
+  const m = /^https?:\/\/[^/?#]+(.*)$/i.exec(String(url ?? "").trim());
+  return !m || !/[0-9]/.test(m[1]);
+}
+
 /** Page of one notice on oeffentlichevergabe.de; only for a notice id (UUID for EU notices, a number for national ones), otherwise the title search as before. */
 export function bekanntmachungsLink(noticeId: unknown, titel: unknown): string {
   const id = String(noticeId ?? "").toLowerCase();
-  return /^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]{6,12})$/.test(id)
+  return KENNUNG.test(id)
     ? `https://oeffentlichevergabe.de/ui/de/notices/${id}`
     : `https://oeffentlichevergabe.de/ui/de/search?q=${encodeURIComponent(String(titel ?? "").replace(/\s+/g, " ").trim().slice(0, 100))}`;
 }
@@ -120,7 +129,10 @@ export async function normalisieren(rel: any, tag: string, vorher?: any): Promis
   const docs = (t.documents ?? []).filter((d: any) => /^https?:\/\//.test(d.url ?? ""));
   // Without a documents link: the notice's own page on the federal publication service (release id = notice id). The
   // former title search often showed other tenders (Benjamin, 09.11.2026).
-  const link = docs[0]?.url || bekanntmachungsLink(rel.id, t.title);
+  // A documents link that only names the portal (no number in path or query, e.g. http://www.evergabe-online.de or
+  // …/NetServer/) opens the portal's start page; then the notice page is the better target (click check 09.11.2026).
+  const genau = docs.find((d: any) => !nurPortal(d.url))?.url;
+  const link = genau || (gueltigeKennung(rel.id) ? bekanntmachungsLink(rel.id, t.title) : docs[0]?.url || bekanntmachungsLink(rel.id, t.title));
   const auftraggeber = str(buyer.name, 500) || "Auftraggeber nicht angegeben";
   // OCDS party IDs such as ORG-0001 are only local to a notice, never global buyer keys. In German notices
   // buyer.identifier.id is that local id too (diagnosis 08.11.2026), so the database trigger ag_schluessel

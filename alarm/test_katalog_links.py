@@ -26,5 +26,15 @@ class KatalogLinksTest(unittest.TestCase):
         self.assertIsNone(waehlen([], "2026-11-02T10:00:00+00:00"))
 
 
+class AlarmLinkTest(unittest.TestCase):
+    def test_portal_startseite_wird_bekanntmachung(self):
+        from alarm import alarm
+        rel = {"id": "25960800", "tender": {"title": "x", "documents": [{"url": "http://www.evergabe-online.de"}]}}
+        self.assertEqual(alarm.link(rel), "https://oeffentlichevergabe.de/ui/de/notices/25960800")
+        rel["tender"]["documents"].append({"url": "https://www.subreport.de/E12537398"})
+        self.assertEqual(alarm.link(rel), "https://www.subreport.de/E12537398")
+        self.assertEqual(alarm.link({"tender": {"title": "x", "documents": [{"url": "https://www.tender24.de"}]}}), "https://www.tender24.de")
+
+
 if __name__ == "__main__":
     unittest.main()

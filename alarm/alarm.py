@@ -121,14 +121,24 @@ def frist(tender: dict) -> str | None:
     return max(filter(None, [ende, *lose]), default=None)
 
 
+def nur_portal(url: str) -> bool:
+    """True if a link names only a portal or a list page: no digit after the host (a tender page carries an id)."""
+    m = re.match(r"^https?://[^/?#]+(.*)$", (url or "").strip(), re.I)
+    return not m or not re.search(r"[0-9]", m.group(1))
+
+
 def link(rel: dict) -> str:
-    for d in (rel.get("tender") or {}).get("documents") or []:
-        if d.get("url"):
-            return d["url"]
-    # The notice's own page (release id = notice id); the title search often showed other tenders (09.11.2026).
+    urls = [d["url"] for d in (rel.get("tender") or {}).get("documents") or [] if str(d.get("url") or "").startswith("http")]
+    genau = next((u for u in urls if not nur_portal(u)), "")
+    if genau:
+        return genau
+    # The notice's own page (release id = notice id); the title search often showed other tenders, and a documents link
+    # without a number only opens the portal's start page (09.11.2026).
     nid = str(rel.get("id") or "").lower()
     if re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|[0-9]{6,12}", nid):
         return f"https://oeffentlichevergabe.de/ui/de/notices/{nid}"
+    if urls:
+        return urls[0]
     return f"https://oeffentlichevergabe.de/ui/de/search?q={urllib.request.quote((rel.get('tender') or {}).get('title', '')[:80])}"
 
 
