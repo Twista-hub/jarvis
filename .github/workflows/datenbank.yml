@@ -152,6 +152,9 @@ jobs:
           psql "$DB_URL" -X -c "select left(quelle_id, 20) as form, count(*) from public.vergabekatalog where link like '%/ui/de/search?q=%' group by left(quelle_id, 20) ~ '^ocds-mnwr74-[0-9]+$', 1 order by 2 desc limit 5"
           psql "$DB_URL" -X -c "select id, quelle_id, left(link, 90) as link, left(coalesce(roh->>'id','–'), 40) as roh_id, abgerufen, geaendert from public.vergabekatalog where id in ('bks:ocds-mnwr74-25960800', 'bks:ocds-mnwr74-25838348') or quelle_id in ('ocds-mnwr74-25960800', 'ocds-mnwr74-25838348')"
           psql "$DB_URL" -X -c "select version from supabase_migrations.schema_migrations where version >= '20261109000000' order by 1"
+          # Link targets by domain (catalog and firm records), one sample each, for a click check of every portal.
+          psql "$DB_URL" -X -c "select substring(link from '^https?://([^/]+)') as domain, count(*), min(link) as beispiel from public.vergabekatalog group by 1 order by 2 desc limit 60"
+          psql "$DB_URL" -X -c "select substring(link from '^https?://([^/]+)') as domain, count(*), min(link) as beispiel from public.vorgaenge where link is not null and link <> '' group by 1 order by 2 desc limit 60"
       - name: CPV-Häufigkeit (nur lesen)
         if: inputs.aktion == 'cpv_haeufigkeit'
         run: |
