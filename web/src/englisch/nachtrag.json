@@ -639,5 +639,9 @@
  "PLZ Ort": "Postcode and town",
  "Einsatzort": "Site",
  "Nachweis": "Certificate",
- "Ausgestellt": "Issued"
+ "Ausgestellt": "Issued",
+ "Neuausschreibungs-Radar, Auftraggeber beobachten, Förderprogramme, GAEB-Leistungsverzeichnis": "Re-tender radar, follow contracting authorities, funding programmes, GAEB bills of quantities",
+ "# Steckbriefe aus Unterlagen pro Monat": "# fact sheets from documents per month",
+ "Kalkulation mit Tariflohn und Preisvergleich mit früheren Zuschlägen": "Pricing with collective wages and comparison with earlier contract awards",
+ "Firmenunterlagen und Nachweise mit Ablauf-Warnung": "Company documents and certificates with expiry warning"
 }

@@ -639,5 +639,9 @@
  "PLZ Ort": "Kod pocztowy i miejscowość",
  "Einsatzort": "Miejsce pracy",
  "Nachweis": "Zaświadczenie",
- "Ausgestellt": "Wydano"
+ "Ausgestellt": "Wydano",
+ "Neuausschreibungs-Radar, Auftraggeber beobachten, Förderprogramme, GAEB-Leistungsverzeichnis": "Radar ponownych przetargów, obserwowanie zamawiających, programy dotacji, przedmiary GAEB",
+ "# Steckbriefe aus Unterlagen pro Monat": "# kart przetargu z dokumentów miesięcznie",
+ "Kalkulation mit Tariflohn und Preisvergleich mit früheren Zuschlägen": "Kalkulacja ze stawkami układowymi i porównanie z wcześniejszymi rozstrzygnięciami",
+ "Firmenunterlagen und Nachweise mit Ablauf-Warnung": "Dokumenty firmy i zaświadczenia z ostrzeżeniem o wygaśnięciu"
 }

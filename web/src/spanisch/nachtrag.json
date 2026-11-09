@@ -639,5 +639,9 @@
  "PLZ Ort": "Código postal y localidad",
  "Einsatzort": "Centro",
  "Nachweis": "Certificado",
- "Ausgestellt": "Expedido"
+ "Ausgestellt": "Expedido",
+ "Neuausschreibungs-Radar, Auftraggeber beobachten, Förderprogramme, GAEB-Leistungsverzeichnis": "Radar de nuevas licitaciones, seguir a órganos de contratación, ayudas públicas, mediciones GAEB",
+ "# Steckbriefe aus Unterlagen pro Monat": "# fichas a partir de los pliegos al mes",
+ "Kalkulation mit Tariflohn und Preisvergleich mit früheren Zuschlägen": "Cálculo con salarios de convenio y comparación con adjudicaciones anteriores",
+ "Firmenunterlagen und Nachweise mit Ablauf-Warnung": "Documentos de la empresa y certificados con aviso de caducidad"
 }

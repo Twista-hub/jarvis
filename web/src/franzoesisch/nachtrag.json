@@ -639,5 +639,9 @@
  "PLZ Ort": "Code postal et ville",
  "Einsatzort": "Site",
  "Nachweis": "Justificatif",
- "Ausgestellt": "Délivré"
+ "Ausgestellt": "Délivré",
+ "Neuausschreibungs-Radar, Auftraggeber beobachten, Förderprogramme, GAEB-Leistungsverzeichnis": "Radar des renouvellements, suivi des acheteurs, aides publiques, bordereaux GAEB",
+ "# Steckbriefe aus Unterlagen pro Monat": "# fiches synthèse à partir des documents par mois",
+ "Kalkulation mit Tariflohn und Preisvergleich mit früheren Zuschlägen": "Calcul avec salaires conventionnels et comparaison avec les attributions passées",
+ "Firmenunterlagen und Nachweise mit Ablauf-Warnung": "Documents de l'entreprise et justificatifs avec alerte d'expiration"
 }

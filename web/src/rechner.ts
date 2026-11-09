@@ -83,7 +83,7 @@ export function vergleichSeite(): string {
 <ul>
 <li><strong>Ausschreibungsdienste:</strong> laut öffentlichen Preisseiten meist zwischen 0 € (Basis-Suche) und rund 500 € im Monat, KI-Funktionen oft erst in höheren Tarifen; manche nennen Preise nur auf Anfrage.</li>
 <li><strong>Dienstplan- und Branchensoftware:</strong> je nach Anbieter pro Mitarbeiter oder als Pauschale, nach öffentlichen Angaben häufig ab rund 90 bis 200 € im Monat; viele Preise nur auf Anfrage.</li>
-<li><strong>Crewtender:</strong> Free 0 €, Basis 59 €, Pro 149 € (mit Personal, Schichtplan, Zeiterfassung und Abrechnung für 25 Einsatzkräfte), Business 399 € im Monat. 30 Tage alle Pro-Funktionen gratis, ohne Kreditkarte, monatlich kündbar. <a href="/preise">Alle Preise</a></li>
+<li><strong>Crewtender:</strong> Free 0 €, Basis 59 €, Pro 149 € (mit Personal, Schichtplan, Zeiterfassung und Abrechnung für 30 Einsatzkräfte), Business 399 € im Monat. 30 Tage alle Pro-Funktionen gratis, ohne Kreditkarte, monatlich kündbar. <a href="/preise">Alle Preise</a></li>
 </ul>
 <p class="klein">Stand ${VERGLEICH_STAND}. Die Spannen beruhen auf öffentlich einsehbaren Preisseiten verschiedener Anbieter in Deutschland; Funktionen und Preise anderer Anbieter können sich ändern und unterscheiden sich je Anbieter. „teils“ heißt: bei einigen Anbietern oder Tarifen vorhanden.</p>
 <h2>Für wen ist Crewtender gemacht?</h2>

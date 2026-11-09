@@ -11,9 +11,9 @@ export type Plan = { id: string; name: string; monat: number; fuer: string; punk
 export type Grenzen = { suchprofile: number | null; laender: number | null; nutzer: number | null; einsatzkraefte: number | null; steckbriefe_monat: number | null; ki_euro_monat: number | null; arbeitsoberflaeche: boolean; taeglich: boolean };
 
 export const PLAENE: Plan[] = [
-  { id: "kostenlos", name: "Free", monat: 0, fuer: "Zum Ausprobieren", punkte: ["Ausschreibungen passend zu deiner Firma (1 Suchprofil, 1 Land)", "Kurzüberblick zu jeder Ausschreibung", "Wöchentliche Zusammenfassung"] },
-  { id: "basis", name: "Basis", monat: 59, fuer: "Für kleine Firmen", punkte: ["Alles aus Free", "Tägliche Nachricht per Mail und Handy", "3 Suchprofile, 3 Nutzer", "5 Steckbriefe aus Unterlagen pro Monat, Kalkulation"] },
-  { id: "pro", name: "Pro", monat: 149, fuer: "Für Dienstleister mit eigenem Personal", punkte: ["Alles aus Basis", "Angebote vorbereiten und freigeben", "Personal, Einsatzplanung, Zeiterfassung, Abrechnung", "5 Büro-Nutzer, 25 Einsatzkräfte, alle Länder, 30 Steckbriefe"] },
+  { id: "kostenlos", name: "Free", monat: 0, fuer: "Zum Ausprobieren", punkte: ["Ausschreibungen passend zu deiner Firma (1 Suchprofil, 1 Land)", "Kurzüberblick zu jeder Ausschreibung", "Wöchentliche Zusammenfassung", "Neuausschreibungs-Radar, Auftraggeber beobachten, Förderprogramme, GAEB-Leistungsverzeichnis"] },
+  { id: "basis", name: "Basis", monat: 59, fuer: "Für kleine Firmen", punkte: ["Alles aus Free", "Tägliche Nachricht per Mail und Handy", "3 Suchprofile, 3 Nutzer", "5 Steckbriefe aus Unterlagen pro Monat", "Kalkulation mit Tariflohn und Preisvergleich mit früheren Zuschlägen", "Firmenunterlagen und Nachweise mit Ablauf-Warnung"] },
+  { id: "pro", name: "Pro", monat: 149, fuer: "Für Dienstleister mit eigenem Personal", punkte: ["Alles aus Basis", "Angebote vorbereiten und freigeben", "Personal, Einsatzplanung, Zeiterfassung, Abrechnung", "5 Büro-Nutzer, 30 Einsatzkräfte, alle Länder, 30 Steckbriefe"] },
   { id: "business", name: "Business", monat: 399, fuer: "Für Firmen mit vielen Standorten", punkte: ["Alles aus Pro", "Standorte unbegrenzt", "15 Büro-Nutzer, 100 Einsatzkräfte, 100 Steckbriefe", "Bevorzugter Support"] },
 ];
 /** Yearly payment: 12 months for the price of 10 (Benjamin, 06.11.2026). */
@@ -25,7 +25,7 @@ export const preisText = (p: Plan, jaehrlich = false) => p.monat === 0 ? "0 €"
 export const GRENZEN: Record<string, Grenzen> = {
   kostenlos: { suchprofile: 1, laender: 1, nutzer: 1, einsatzkraefte: 0, steckbriefe_monat: 0, ki_euro_monat: 1, arbeitsoberflaeche: false, taeglich: false },
   basis: { suchprofile: 3, laender: 2, nutzer: 3, einsatzkraefte: 0, steckbriefe_monat: 5, ki_euro_monat: 10, arbeitsoberflaeche: false, taeglich: true },
-  pro: { suchprofile: 10, laender: null, nutzer: 5, einsatzkraefte: 25, steckbriefe_monat: 30, ki_euro_monat: 25, arbeitsoberflaeche: true, taeglich: true },
+  pro: { suchprofile: 10, laender: null, nutzer: 5, einsatzkraefte: 30, steckbriefe_monat: 30, ki_euro_monat: 25, arbeitsoberflaeche: true, taeglich: true },
   business: { suchprofile: null, laender: null, nutzer: 15, einsatzkraefte: 100, steckbriefe_monat: 100, ki_euro_monat: 60, arbeitsoberflaeche: true, taeglich: true },
   test: { suchprofile: null, laender: null, nutzer: null, einsatzkraefte: null, steckbriefe_monat: null, ki_euro_monat: null, arbeitsoberflaeche: true, taeglich: true },
 };

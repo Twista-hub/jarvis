@@ -142,6 +142,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261109030000_start_beispiel_lesbar.sql
 \ir ../migrations/20261109040000_alarm_pause_vorschau.sql
 \ir ../migrations/20261109050000_gewerke_neu.sql
+\ir ../migrations/20261109060000_pro_30_einsatzkraefte.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1996,7 +1997,7 @@ select set_config('test.uid', '', false);
 update public.firmen set paket = 'pro', zusatz_einsatzkraefte = 2 where id = :'gfirma';
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000aa01');
-select pruefe((public.plan_stand(:'gfirma')->'grenzen'->>'einsatzkraefte')::int = 27, 'Pro + 2 Einsatzkräfte = 27');
+select pruefe((public.plan_stand(:'gfirma')->'grenzen'->>'einsatzkraefte')::int = 32, 'Pro + 2 Einsatzkräfte = 32');
 do $$ begin update public.firmen set zusatz_einsatzkraefte = 500 where id = current_setting('test.gfirma')::uuid; raise exception 'FEHLER: Kunde bucht Einsatzkräfte selbst'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 do $$ begin update public.firmen set steckbrief_guthaben = 500 where id = current_setting('test.gfirma')::uuid; raise exception 'FEHLER: Kunde schreibt sich Steckbriefe gut'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 do $$ begin perform public.betreiber_zusatz(current_setting('test.gfirma')::uuid, 99, 99); raise exception 'FEHLER: Kunde nutzt Betreiber-Zusatz'; exception when insufficient_privilege then null; end $$;
