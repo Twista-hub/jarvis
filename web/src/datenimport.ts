@@ -5,6 +5,7 @@ import { aktiveFirma } from "./firmenunterlagen.ts";
 import { bereicheLaden, db, html, weiterleiten, type Bereich, type KontoEnv } from "./konto.ts";
 import { csvLesen, textAus, xlsxLesen } from "./personalimport.ts";
 import { escape, seite } from "./seite.ts";
+import { PROGRAMME, type Programm } from "./programmimport.ts";
 
 const MAX_ZEILEN = 500;
 export const norm = (s: string) => s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ß/g, "ss").replace(/[^a-z0-9]/g, "");
@@ -171,6 +172,18 @@ ${gut.length ? `<form method="post" action="/konto/import/${art}/bestaetigen"><i
 <p><a href="${a.zurueck}">Abbrechen</a></p>`;
 }
 
+/** Form for the direct transfer from Lexware Office or sevDesk; the key is only used for this request. */
+export function programmFormular(bereiche: Bereich[], fehler = ""): string {
+  const orte = bereiche.filter((b) => b.art === "standort");
+  return `${fehler ? `<p class="fehler" role="alert">${escape(fehler)}</p>` : ""}<p>Crewtender liest die Kunden direkt aus deinem Rechnungsprogramm und zeigt sie dir vor dem Übernehmen. Der Schlüssel wird nur für diesen einen Abruf benutzt und nicht gespeichert; Crewtender liest nur, es ändert nichts in deinem Programm.</p>
+<form method="post" action="/konto/import/programm" class="upload-felder" autocomplete="off">
+<label class="ganz">Programm<select name="programm">${Object.entries(PROGRAMME).map(([id, p]) => `<option value="${id}">${escape(p.name)}</option>`).join("")}</select></label>
+${orte.length ? `<label class="ganz">Standort der Kunden<select name="bereich"><option value="firma">Ohne Standort (ganze Firma)</option>${orte.map((b) => `<option value="${b.id}">${escape(b.name)}</option>`).join("")}</select></label>` : ""}
+<label class="ganz">API-Schlüssel<input type="password" name="api_schluessel" required minlength="10" maxlength="300" autocomplete="off" spellcheck="false"></label>
+<button class="ganz">Kunden abrufen und Vorschau zeigen</button></form>
+<details class="klein-hilfe"><summary>Wo finde ich den Schlüssel?</summary>${Object.values(PROGRAMME).map((p) => `<p><strong>${escape(p.name)}:</strong> ${escape(p.hilfe)}</p>`).join("")}<p>Nach dem Übernehmen kannst du den Schlüssel im Programm wieder löschen.</p></details>`;
+}
+
 /** Overview of all ways to bring existing data in. */
 export function uebersichtSeite(): string {
   const weg = (icon: string, titel: string, text: string, link: string, knopf: string) => `<li class="uebernahme-weg"><span aria-hidden="true">${icon}</span><div><strong>${titel}</strong><p class="klein">${text}</p>${link ? `<a class="knopf zweit" href="${link}">${knopf}</a>` : ""}</div></li>`;
@@ -178,6 +191,7 @@ export function uebersichtSeite(): string {
 <ul class="uebernahme-liste">
 ${weg("🧑‍🔧", "Personal", "Mitarbeiterliste aus Excel, deinem Lohnprogramm oder vom Steuerberater (DATEV-Stammdatenexport als CSV): Name, Telefon, E-Mail, Berufe, Qualifikationen, Standort.", "/konto/personal/import", "Personal importieren")}
 ${weg("🏢", "Kunden und Einsatzorte", "Kundenliste aus Excel oder deinem Rechnungsprogramm (z. B. lexoffice, sevDesk: „Kontakte exportieren“): Name, Anschrift, Ansprechpartner, USt-IdNr., dazu die Objekte.", "/konto/import/kunden", "Kunden importieren")}
+${weg("🔌", "Direkt aus Lexware Office oder sevDesk", "Kunden mit einem Klick aus deinem Rechnungsprogramm holen: API-Schlüssel dort erzeugen, hier einfügen, Vorschau prüfen. Der Schlüssel wird nicht gespeichert.", "/konto/import/programm", "Rechnungsprogramm verbinden")}
 ${weg("🎓", "Nachweise und Schulungen", "Erste Hilfe, Sachkunde § 34a, Gesundheitszeugnis, Staplerschein … mit Ablaufdatum. Crewtender erinnert dann rechtzeitig.", "/konto/import/nachweise", "Nachweise importieren")}
 ${weg("📄", "Firmenunterlagen", "Zertifikate, Versicherungen, Referenzen und Eigenerklärungen als PDF hochladen; sie stehen dann für jedes Angebot bereit.", "/konto/firmenunterlagen", "Unterlagen hochladen")}
 ${weg("✉️", "Wir helfen beim Umzug", "Du hast eine Liste, die nicht passt? Schick sie an hello@crewtender.eu, wir schauen sie uns an.", "", "")}
@@ -190,13 +204,14 @@ const ROLLEN_IMPORT = ["inhaber", "admin", "bearbeiter", "standortleitung"];
 export async function datenImport(request: Request, env: KontoEnv): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname !== "/konto/daten-uebernehmen" && !url.pathname.startsWith("/konto/import/")) return null;
+  const programmSeite = url.pathname === "/konto/import/programm";
   const m = url.pathname.match(/^\/konto\/import\/(kunden|nachweise)(\/vorlage\.csv|\/bestaetigen)?$/);
-  if (url.pathname !== "/konto/daten-uebernehmen" && !m) return null;
+  if (url.pathname !== "/konto/daten-uebernehmen" && !m && !programmSeite) return null;
   const art = (m?.[1] ?? "kunden") as Art;
   if (m?.[2] === "/vorlage.csv") return new Response(ART[art].vorlage, { headers: { "content-type": "text/csv; charset=utf-8", "content-disposition": `attachment; filename="${art === "kunden" ? "Kunden" : "Nachweise"}-Vorlage.csv"` } });
   const f = await aktiveFirma(request, env);
   if (!f) return weiterleiten("/konto");
-  const titel = url.pathname === "/konto/daten-uebernehmen" ? "Daten übernehmen" : ART[art].titel;
+  const titel = url.pathname === "/konto/daten-uebernehmen" ? "Daten übernehmen" : programmSeite ? "Kunden aus dem Rechnungsprogramm" : ART[art].titel;
   const zurueck = url.pathname === "/konto/daten-uebernehmen" ? "/konto" : "/konto/daten-uebernehmen";
   const antwort = (text: string, status = 200) => html(seite(titel, `<p class="konto-zurueck"><a href="${zurueck}" aria-label="Zurück">←</a></p>${text}`, 0, "team"), status, f.s.cookies);
   if (!ROLLEN_IMPORT.includes(f.m.rolle)) return antwort("<p>Daten übernehmen können Inhaber, Admins, Bearbeiter und Standortleitungen.</p>", 403);
@@ -247,6 +262,27 @@ export async function datenImport(request: Request, env: KontoEnv): Promise<Resp
     return weiterleiten(`/konto/daten-uebernehmen?hinweis=${encodeURIComponent(`${ok} von ${neu.length} Nachweisen übernommen.`)}`, f.s.cookies);
   }
 
+  if (programmSeite) {
+    if (request.method !== "POST") return antwort(programmFormular(bereiche));
+    const form = await request.formData();
+    const p = String(form.get("programm") ?? "") as Programm;
+    const apiSchluessel = String(form.get("api_schluessel") ?? "").trim();
+    const wahl = String(form.get("bereich") ?? "firma");
+    const bereich = bereiche.some((b) => b.id === wahl) ? wahl : null;
+    if (!(p in PROGRAMME) || apiSchluessel.length < 10 || apiSchluessel.length > 300 || /\s/.test(apiSchluessel)) return antwort(programmFormular(bereiche, "Bitte das Programm wählen und den API-Schlüssel vollständig einfügen."), 400);
+    let tabelle: string[][];
+    try { tabelle = await PROGRAMME[p].laden(apiSchluessel); }
+    catch (e) { return antwort(programmFormular(bereiche, e instanceof Error ? e.message : "Das Programm war nicht erreichbar."), 502); }
+    if (tabelle.length < 2) return antwort(programmFormular(bereiche, `In ${PROGRAMME[p].name} wurden keine Kunden gefunden.`), 400);
+    const [k, o] = await Promise.all([
+      db<{ name: string }[]>(f.s, env, `kunden?firma_id=eq.${firma}&select=name&limit=5000`),
+      db<{ name: string; kunden: { name: string } | null }[]>(f.s, env, `einsatzorte?firma_id=eq.${firma}&select=name,kunden(name)&limit=5000`),
+    ]);
+    const erg = kundenLesen(tabelle, k.ok ? k.daten : [], (o.ok ? o.daten : []).map((x) => ({ name: x.name, kunde: x.kunden?.name ?? "" })));
+    const key = crypto.randomUUID();
+    await env.DATEN.put(ablage(key), JSON.stringify({ user: f.s.userId, erstellt: Date.now(), zeilen: erg.zeilen, bereich }));
+    return antwort(vorschau("kunden", erg.zeilen, {}, key, PROGRAMME[p].name));
+  }
   if (request.method !== "POST") return antwort(uploadSeite(art, bereiche));
   const form = await request.formData();
   const wahl = String(form.get("bereich") ?? "firma");
