@@ -176,12 +176,36 @@ export function zahlungAusEreignis(e: { id: string; type: string; data: { object
     gezahlt: zeit(o.status_transitions?.paid_at) ?? zeit(o.created) ?? new Date().toISOString() };
 }
 
+export type Erstattung = { ereignis: string; zahlung: string; rechnung: string | null; kunde: string | null; erstattet_cent: number; zeit: string | null };
+/** Refunded charge (charge.refunded, amount_refunded is cumulative) or chargeback (charge.dispute.funds_withdrawn, the
+ *  charge is fetched for customer and invoice): the referral commission of that payment is cancelled (09.11.2026). */
+export function erstattungAusCharge(ereignis: string, c: any, betrag?: number): Erstattung | null {
+  if (!c || typeof c.id !== "string" || !/^(ch|py)_[A-Za-z0-9]{6,80}$/.test(c.id) || String(c.currency ?? "eur").toLowerCase() !== "eur") return null;
+  const cent = Math.max(0, Math.floor(Number(betrag ?? c.amount_refunded) || 0));
+  if (!cent) return null;
+  const rechnung = typeof c.invoice === "string" && /^in_[A-Za-z0-9]{6,80}$/.test(c.invoice) ? c.invoice : typeof c.invoice?.id === "string" ? c.invoice.id : null;
+  return { ereignis, zahlung: c.id, rechnung, kunde: typeof c.customer === "string" ? c.customer : null, erstattet_cent: cent, zeit: zeit(c.created) };
+}
+
 /** POST /stripe/webhook */
 export async function stripeWebhook(request: Request, env: StripeEnv): Promise<Response> {
   const body = await request.text();
   if (!env.STRIPE_WEBHOOK_SECRET || !(await signaturGueltig(body, request.headers.get("stripe-signature") ?? "", env.STRIPE_WEBHOOK_SECRET))) return new Response("Signatur ungültig", { status: 400 });
   let e: { id: string; type: string; data: { object: unknown } };
   try { e = JSON.parse(body); } catch { return new Response("kein JSON", { status: 400 }); }
+  if (e.type === "charge.refunded" || e.type === "charge.dispute.funds_withdrawn") {
+    const o = (e.data?.object ?? {}) as any;
+    let r: Erstattung | null = null;
+    if (e.type === "charge.refunded") r = erstattungAusCharge(e.id, o);
+    else if (typeof o.charge === "string") {
+      // The dispute carries only the charge id; customer and creation time come from the charge (read-only request).
+      const c = await stripe<any>(env, `charges/${encodeURIComponent(o.charge)}`).catch(() => null);
+      // Cumulative like amount_refunded: earlier refunds of the same charge plus the disputed amount.
+      r = erstattungAusCharge(e.id, c, (Number(o.amount) || 0) + (Number(c?.amount_refunded) || 0));
+    }
+    if (r) await katalogDb(env, (sql) => sql`select jarvis_intern.erstattung_erfasst(${r!.ereignis}, ${r!.zahlung}, ${r!.rechnung}, ${r!.kunde}, ${r!.erstattet_cent}::int, ${r!.zeit}::timestamptz)`);
+    return Response.json({ ok: true });
+  }
   const z = zahlungAusEreignis(e as never);
   if (z) {
     await katalogDb(env, (sql) => sql`select jarvis_intern.zahlung_erfasst(${z.ereignis}, ${z.rechnung}, ${z.kunde}, ${z.firma}::uuid, ${z.betrag_cent}::int, ${z.gezahlt}::timestamptz)`);

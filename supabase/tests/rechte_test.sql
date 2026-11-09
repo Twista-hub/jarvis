@@ -143,6 +143,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261109040000_alarm_pause_vorschau.sql
 \ir ../migrations/20261109050000_gewerke_neu.sql
 \ir ../migrations/20261109060000_pro_30_einsatzkraefte.sql
+\ir ../migrations/20261109070000_provision_storno.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2138,6 +2139,27 @@ select public.betreiber_partner_setzen(:'partner_id', 'sperren');
 reset role;
 select jarvis_intern.zahlung_erfasst('evt_TEST000006', 'in_TEST000006', null, :'empf_firma', 5900, now());
 select pruefe((select count(*) = 2 from jarvis_intern.provisionen where partner_id = :'partner_id'), 'Gesperrter Partner bekommt keine neue Provision');
+
+-- Erstattungen (09.11.2026): Provision entfällt, ausgezahlte wird mit der nächsten Auszahlung verrechnet.
+set role authenticated;
+do $$ begin perform jarvis_intern.erstattung_erfasst('evt_TEST000009', 'ch_TEST000009', 'in_TEST000002', null, 100, now()); raise exception 'FEHLER: Erstattung ohne Login erfasst'; exception when insufficient_privilege then null; end $$;
+reset role;
+select pruefe(jarvis_intern.erstattung_erfasst('evt_TEST000010', 'ch_TEST000010', 'in_TEST000002', null, 5900, now() - interval '1 day'), 'Volle Erstattung über die Rechnung erfasst');
+select pruefe(not jarvis_intern.erstattung_erfasst('evt_TEST000010', 'ch_TEST000010', 'in_TEST000002', null, 5900, now()), 'Dasselbe Erstattungs-Ereignis zählt nur einmal');
+select jarvis_intern.erstattung_erfasst('evt_TEST000011', 'ch_TEST000011', null, 'cus_TEST1234567', 2000, now());
+select jarvis_intern.erstattung_erfasst('evt_TEST000012', 'ch_TEST000011', null, 'cus_TEST1234567', 2000, now());
+select jarvis_intern.erstattung_erfasst('evt_TEST000013', 'ch_TEST000011', null, 'cus_TEST1234567', 5900, now());
+select jarvis_intern.erstattung_erfasst('evt_TEST000014', 'ch_TEST000014', null, 'cus_UNBEKANNT99', 100, now());
+select pruefe((select count(*) = 3 and sum(provision_cent) = 2360 from jarvis_intern.provision_storno where partner_id = :'partner_id'), 'Teil-Erstattungen über die Stripe-Kundennummer, gleicher Stand zählt nicht doppelt, nie mehr als die Provision');
+select pruefe((select count(*) = 0 from jarvis_intern.provision_storno where zahlung = 'ch_TEST000014'), 'Zahlung ohne Provision ändert nichts');
+set role anon;
+select pruefe((public.partner_uebersicht(:'partner_token')->>'offen_cent')::int = -2360 and (public.partner_uebersicht(:'partner_token')->>'storniert_cent')::int = 2360, 'Bereits ausgezahlte Provision wird verrechnet');
+reset role;
+set role authenticated;
+select test_als('00000000-0000-0000-0000-00000000aab1');
+select public.betreiber_partner_setzen(:'partner_id', 'ausgezahlt');
+select pruefe((public.betreiber_partner()->'partner'->0->>'offen_cent')::int = 0 and (public.betreiber_partner()->'partner'->0->>'bezahlt_cent')::int = 0, 'Verrechnung mit der Auszahlung abgehakt');
+reset role;
 
 -- Google-Seiten (08.11.2026): Bundesland aus dem NUTS-Code, Zahlen je Gewerk und Land aus dem Cache, Sitemap offener
 -- Bekanntmachungen; ohne Login nur über die Funktionen.
