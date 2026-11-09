@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { datumLesen, kundenLesen, nachweiseLesen, uebersichtSeite, vorschau } from "../src/datenimport.ts";
+import { datumLesen, kundenLesen, nachweiseLesen, programmFormular, uebersichtSeite, uploadSeite, vorschau } from "../src/datenimport.ts";
+import { uebersetzen, wort } from "../src/englisch.ts";
 import { csvLesen } from "../src/personalimport.ts";
 
 test("Datum aus deutschen, ISO- und Excel-Werten", () => {
@@ -24,7 +25,7 @@ test("Kunden aus einem Rechnungsprogramm-Export: Spalten erkannt, PLZ Ort getren
   assert.equal(zeilen[1].plz, "04109", "führende Null ergänzt");
   assert.equal(zeilen[0].neu, true);
   assert.equal(zeilen[1].neu, false, "zweites Objekt zum selben neuen Kunden");
-  assert.match(vorschau("kunden", zeilen, spalten, "00000000-0000-0000-0000-000000000000", "kunden.csv"), /<strong>2<\/strong> Zeilen werden übernommen/);
+  assert.match(vorschau("kunden", zeilen, spalten, "00000000-0000-0000-0000-000000000000", "kunden.csv"), /Gelesen: 4 · übernommen: 2 · übersprungen: 2/);
 });
 
 test("Nachweise: Person per Name, Daten gelesen, unbekannte Personen und Doppelte markiert", () => {
@@ -40,4 +41,21 @@ test("Nachweise: Person per Name, Daten gelesen, unbekannte Personen und Doppelt
 test("Übersicht „Daten übernehmen“ zeigt alle Wege", () => {
   const h = uebersichtSeite();
   for (const l of ["/konto/personal/import", "/konto/import/kunden", "/konto/import/nachweise", "/konto/firmenunterlagen"]) assert.match(h, new RegExp(`href="${l}"`));
+});
+
+test("Daten übernehmen in allen Sprachen: feste Texte übersetzt, Kundendaten bleiben", () => {
+  const b = [{ id: "s1", art: "standort", name: "Köln" }] as never;
+  const t = csvLesen("Kunde;Objekt;PLZ Ort\nMuster GmbH;Nord;50667 Köln\nMuster GmbH;Süd;50667 Köln\n;;\n");
+  const k = kundenLesen(t, [], []);
+  const n = nachweiseLesen(csvLesen("Name;Nachweis;Ausgestellt;Gültig bis\nEva Muster;EH;15.03.2025;15.03.2027\nEva Muster;S;;\n"), [{ id: "p", vorname: "Eva", nachname: "Muster" }], []);
+  const seiten = [uebersichtSeite(), uploadSeite("kunden", b, "Keine Spalte „Kunde“, „Firma“ oder „Name“ gefunden.", ["Spalte A"]), uploadSeite("nachweise", b), programmFormular(b, "Das Programm war nicht erreichbar."),
+    vorschau("kunden", k.zeilen, k.spalten, "k", "a.csv"), vorschau("nachweise", n.zeilen, n.spalten, "k", "a.csv")].join("");
+  for (const sp of ["en", "fr", "pl", "es", "it"] as const) {
+    const x = uebersetzen(seiten, sp);
+    for (const de of ["Vorschau anzeigen", "Erkannte Spalten", "Gelesen:", "übernehmen", "Rechnungsprogramm", "Einsatzort:", "ohne Ablauf", "gültig bis", "Kein Kundenname", "Gefunden:"]) assert.ok(!x.includes(de), `${sp}: „${de}“ nicht übersetzt`);
+    assert.ok(x.includes("Muster GmbH") && x.includes("Spalte A"), "Daten bleiben unverändert");
+  }
+  for (const h of ["Übernommen: Kunden 3 · Einsatzorte 4 · nicht gespeichert: 1", "Übernommen: Nachweise 3 von 4", "Das Programm hat mit Fehler 500 geantwortet. Bitte später noch einmal versuchen."])
+    for (const sp of ["en", "fr", "pl", "es", "it"] as const) assert.notEqual(wort(h, sp), null, `${sp}: ${h}`);
+  assert.equal(wort("Übernommen: Kunden 3 · Einsatzorte 4", "en"), "Imported: customers 3 · sites 4");
 });

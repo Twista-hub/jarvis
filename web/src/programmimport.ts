@@ -86,7 +86,7 @@ export async function sevdeskKunden(schluessel: string, holen: Holen = fetch): P
 }
 
 export const PROGRAMME = {
-  lexware: { name: "Lexware Office (früher lexoffice)", hilfe: "In Lexware Office: https://app.lexware.de/addons/public-api öffnen, „Schlüssel erzeugen“, die Nutzungsbedingungen bestätigen und den Schlüssel kopieren.", laden: lexwareKunden },
-  sevdesk: { name: "sevDesk", hilfe: "In sevDesk: Einstellungen → Benutzer → dein Benutzer → API-Token kopieren.", laden: sevdeskKunden },
+  lexware: { name: "Lexware Office (früher lexoffice)", keineKunden: "In Lexware Office wurden keine Kunden gefunden.", hilfe: "In Lexware Office: https://app.lexware.de/addons/public-api öffnen, „Schlüssel erzeugen“, die Nutzungsbedingungen bestätigen und den Schlüssel kopieren.", laden: lexwareKunden },
+  sevdesk: { name: "sevDesk", keineKunden: "In sevDesk wurden keine Kunden gefunden.", hilfe: "In sevDesk: Einstellungen → Benutzer → dein Benutzer → API-Token kopieren.", laden: sevdeskKunden },
 } as const;
 export type Programm = keyof typeof PROGRAMME;
