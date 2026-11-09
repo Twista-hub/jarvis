@@ -8,7 +8,7 @@ if the upload fails (Mastodon needs the token scope write:media) the post goes o
 persons; no notice twice (jarvis_intern.social_posts); Bluesky at most 300 characters. Rather no post than an empty one.
 
 Secrets (GitHub → Settings → Secrets and variables → Actions): BLUESKY_APP_PASSWORD (app password of @crewtender.eu),
-MASTODON_TOKEN (access token of @crewtender@mastodon.social, scope write:statuses). A network without its secret is skipped.
+MASTODON_TOKEN (access token of @crewtender@mastodon.social, scopes write:statuses and write:media). A network without its secret is skipped.
 
 CLI: python3 social.py probe   – show today's texts for every kind, post nothing, write nothing
      python3 social.py woche   – numbers of last week per trade and the best current tender as JSON (weekly FB/IG package)
@@ -290,6 +290,14 @@ def main() -> None:
                 for kanal, text in t.items():
                     print(f"--- {art} → {benutzt}, {kanal}, {len(text)} Zeichen (Grenze {GRENZE[kanal]})\n{text}\n")
                 print(f"Bild: {len(b[0]) // 1024} KB, Alt-Text: {b[1]}" if b else "Bild: keins")
+            if os.environ.get("MASTODON_TOKEN"):  # read-only: which scopes the token has (write:media needed for images)
+                try:
+                    req = urllib.request.Request(f"{MASTODON}/api/v1/apps/verify_credentials", headers={"User-Agent": UA, "Authorization": f"Bearer {os.environ['MASTODON_TOKEN']}"})
+                    with urllib.request.urlopen(req, timeout=30) as r:
+                        rechte = json.loads(r.read()).get("scopes") or []
+                    print(f"Mastodon-Rechte: {' '.join(rechte) or 'unbekannt'} → Bilder {'möglich' if {'write', 'write:media'} & set(rechte) else 'NICHT möglich (write:media fehlt)'}")
+                except Exception as e:  # noqa: BLE001
+                    print(f"Mastodon-Rechte nicht lesbar ({type(e).__name__})")
             print(f"Heute ({heute:%A}): " + ", ".join(f"Termin {n} {art_fuer(heute, n)}" for n in ((1,) if heute.isoweekday() > 5 else (1, 2, 3))))
             return
         slot = slot_jetzt(jetzt)
