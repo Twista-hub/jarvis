@@ -125,6 +125,10 @@ def link(rel: dict) -> str:
     for d in (rel.get("tender") or {}).get("documents") or []:
         if d.get("url"):
             return d["url"]
+    # The notice's own page (release id = notice id); the title search often showed other tenders (09.11.2026).
+    nid = str(rel.get("id") or "").lower()
+    if re.fullmatch(r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", nid):
+        return f"https://oeffentlichevergabe.de/ui/de/notices/{nid}"
     return f"https://oeffentlichevergabe.de/ui/de/search?q={urllib.request.quote((rel.get('tender') or {}).get('title', '')[:80])}"
 
 
