@@ -118,6 +118,10 @@ ${grundTags(titel)}
   @keyframes dia-text { 0%, 28%, 100% { opacity: .55; border-color: var(--line); } 3%, 25% { opacity: 1; border-color: var(--accent); } }
   @media (prefers-reduced-motion: reduce) { .dia-handy img, .dia-texte li { animation: none; } .dia-handy img.dia-1, .dia-texte li { opacity: 1; } }
   .start-preise { margin: 24px 0 0; }
+  .uebernahme-liste { list-style: none; margin: 16px 0; padding: 0; display: grid; gap: 10px; }
+  .uebernahme-weg { display: flex; gap: 12px; align-items: flex-start; padding: 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); }
+  .uebernahme-weg > span { font-size: 1.6rem; line-height: 1; }
+  .uebernahme-weg p { margin: 4px 0 10px; }
   .feld-paar { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
   .feld-paar.feld-plz { grid-template-columns: minmax(90px, 1fr) 2fr; }
   .start-mehr { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }

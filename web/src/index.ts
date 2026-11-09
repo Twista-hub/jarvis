@@ -17,6 +17,7 @@ import { darf, planBanner, planBereich, planSperre, planStand, steckbriefBuchen 
 import { referenzen } from "./referenzen";
 import { protokoll } from "./protokoll";
 import { personalImport } from "./personalimport";
+import { datenImport } from "./datenimport.ts";
 import { suchfilter } from "./suchfilter";
 import { kontoEinstellungen } from "./kontoeinstellungen";
 import { angebotsUebersicht } from "./angebotsuebersicht";
@@ -279,6 +280,8 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     if (rf) return rf;
     const pr = await protokoll(request, env);
     if (pr) return pr;
+    const di = await datenImport(request, env);
+    if (di) return di;
     const pi = await personalImport(request, env);
     if (pi) return pi;
     const sf = await suchfilter(request, env);
