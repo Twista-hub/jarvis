@@ -127,6 +127,10 @@ test("T37: Arbeitszeitkonto Soll/Ist ohne Feiertage und Urlaub", () => {
   assert.equal(ohne[0].monat, "2026-10");
   assert.equal(ohne[0].soll, 480);
   assert.equal(zeitkonto({ ...p, wochenstunden: null }, undefined, [], [], "", "2026-10-31").length, 0);
+  // Part-time Mon, Wed, Fri with 15 h: 5 h per working day. October 2026: Mondays 5, 12, 19, 26; Wednesdays 7, 14,
+  // 21, 28; Fridays 2, 9, 16, 23, 30 = 13 days.
+  const teil = zeitkonto({ ...p, wochenstunden: 15, arbeitstage: [1, 3, 5] }, { personal_id: "p1", ab: "2026-10-01", startsaldo_min: 0 }, [], [], "", "2026-10-31");
+  assert.equal(teil[0].soll, 13 * 300);
   const html = zeitkontoSeite([p, { ...p, id: "p2", vorname: "Max", wochenstunden: null }], [], [], [], { land: "", heute: "2026-11-01", darfAendern: true });
   assert.match(html, /Ohne Wochenstunden[\s\S]*Max/);
   assert.doesNotMatch(html, /Werktag/);
