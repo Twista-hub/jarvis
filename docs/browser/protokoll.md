@@ -242,3 +242,10 @@ Nur gelesen. Nichts gekauft, kein Limit geändert, nichts verknüpft.
 - Alle Kurzlinks geprüft (302 mit richtiger Herkunft). Facebook → /facebook, Bluesky → /bluesky, Mastodon → /mastodon geändert, per API geprüft.
 - OMR, GetApp, G2: noch nicht möglich (Mail-Bestätigung Benjamin / keine Rückmeldung / Admin-Zugang).
 - Instagram: Kurzlink https://crewtender.eu/instagram existiert bereits (seit 08.11.); Benjamin trägt ihn in der App ein.
+
+## Erledigt (09.11.2026) – Wettbewerb geprüft
+- 15 Anbieter direkt auf ihren öffentlichen Seiten geprüft (nur lesen, keine Registrierung, keine Demo, keine Formulare, nur notwendige Cookies).
+- Ergebnis in docs/browser/wettbewerb-2026-11.md: Preistabelle, Funktionstabelle, je Anbieter Versprechen und Auffälliges.
+- Kein Anbieter kann Ausschreibungen und Personal/Schichtplan zusammen.
+- auftrag.ai heißt jetzt Auftrag One (auftragone.com). BSS.SERVICES = bss-it.de. Darkbird = darkbird.io.
+- Nichts gekauft, keine Passwörter, keine Kundendaten.
