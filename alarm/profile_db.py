@@ -356,7 +356,7 @@ def plaene(con) -> dict:
 def laden() -> dict:
     profile = json.loads((ROOT / "profile.json").read_text(encoding="utf-8"))
     if not os.environ.get("SUPABASE_DB_PASSWORD"):
-        return profile
+        return {k: p for k, p in profile.items() if not p.get("pausiert")}
     try:
         with verbinden() as con:
             rows = con.execute(
@@ -383,5 +383,7 @@ def laden() -> dict:
             p["beobachtete_auftraggeber"] = [] if p.get("zusatz") else [buyer for f, buyer in abos if f == p.get("firma_id")]
     except Exception:
         print("Auftraggeber-Beobachtungen vorübergehend nicht geladen", file=sys.stderr)
+    # Paused hand-made profiles (profile.json "pausiert") take no part in the daily paid search either.
+    profile = {k: p for k, p in profile.items() if not p.get("pausiert") or os.environ.get("FIRMA") == p.get("firma_id")}
     print(f"Suchprofile: {len(profile)} ({len(rows)} aus der App)", file=sys.stderr)
     return profile
