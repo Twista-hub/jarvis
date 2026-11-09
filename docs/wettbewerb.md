@@ -1,6 +1,7 @@
 # Wettbewerb Crewtender (Stand 09.11.2026)
 
 Recherche per Websuche (Seiten der Anbieter selbst waren aus der Arbeitsumgebung nicht abrufbar). Viele Zahlen stammen
+**Update 09.11.: Anbieterseiten direkt geprüft, Ergebnis in `docs/browser/wettbewerb-2026-11.md` (gilt vor den Zahlen unten).**
 aus Vergleichsseiten von Wettbewerbern oder Verzeichnissen und sind Richtwerte. Ältere Preistabelle: `docs/abos.md`.
 
 ## Kernbefund
@@ -16,7 +17,7 @@ Das ist Crewtenders Lücke: „vom Auftrag bis zum Team“.
 | evergabe.de | 59–107 € | Plattform + Bieterzugang |
 | TendiGo | 0 / 39 / 230 € | 800+ Quellen, eigene Seite Gebäudereinigung, KI-Analyse |
 | VergabePilot | Free, ca. 60 € (1 Nutzer), 125 € (5) | günstiger KI-Einstieg |
-| auftrag.ai | ab 49 €, 30 Tage gratis ohne Karte | KI, offene Preise, viele „Alternative zu …“-Seiten |
+| Auftrag One (früher auftrag.ai) | Lokal 59 € (49 jährlich), Pro 119, Team 239, Business 479; 30 Tage gratis | KI, offene Preise, viele „Alternative zu …“-Seiten |
 | Patterno | ab ca. 89–99 € | Suche + KI-Chat fürs Angebot |
 | BidFix | Free, Premium ab ca. 79 € | Unterlagenanalyse, Angebotserstellung |
 | Tendit | ca. 300 € (Schätzung) | IT-Dienstleister, Bid-Management |
