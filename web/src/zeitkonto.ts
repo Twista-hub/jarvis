@@ -1,4 +1,5 @@
-// T37: Arbeitszeitkonto. Target hours from the weekly hours (Mon–Fri, without public holidays and confirmed absences)
+// T37: Arbeitszeitkonto. Target hours from the weekly hours spread over the person's working days (Mon–Fri without an
+// own setting; part-time from personal.arbeitstage, 09.11.2026), without public holidays and confirmed absences,
 // against approved hours from the time sheets; plus/minus per month and the running balance from a start date.
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
@@ -6,7 +7,7 @@ import { escape, seite } from "./seite.ts";
 import { feiertag } from "./zuschlaege.ts";
 import { landDerFirma, landJeBereich, minuten, type Eintrag } from "./stunden.ts";
 
-export type ZPerson = { id: string; vorname: string; nachname: string; status: string; wochenstunden: number | string | null; eintritt: string | null; bereich_id?: string | null };
+export type ZPerson = { id: string; vorname: string; nachname: string; status: string; wochenstunden: number | string | null; eintritt: string | null; bereich_id?: string | null; arbeitstage?: number[] | null };
 export type Start = { personal_id: string; ab: string; startsaldo_min: number };
 type Abw = { personal_id: string; von: string; bis: string; status?: string };
 type Std = Pick<Eintrag, "personal_id" | "datum" | "beginn" | "ende" | "pause_min" | "status">;
@@ -23,14 +24,15 @@ export function zeitkonto(p: ZPerson, start: Start | undefined, stunden: Std[], 
   const erster = stunden.filter((s) => s.personal_id === p.id).map((s) => s.datum).sort()[0];
   const ab = start?.ab ?? (erster && p.eintritt && p.eintritt > erster ? p.eintritt : erster);
   if (!woche || !ab || ab > bis) return [];
-  const proTag = Math.round((woche * 60) / 5);
+  const tage = p.arbeitstage?.length ? p.arbeitstage : [1, 2, 3, 4, 5];
+  const proTag = Math.round((woche * 60) / tage.length);
   const monate: Monat[] = [];
   let stand = start?.startsaldo_min ?? 0, soll = 0, ist = 0, monat = ab.slice(0, 7);
   const abschluss = () => { stand += ist - soll; monate.push({ monat, soll, ist, saldo: ist - soll, stand }); soll = 0; ist = 0; };
   for (let d = ab; d <= bis; d = plus(d, 1)) {
     if (d.slice(0, 7) !== monat) { abschluss(); monat = d.slice(0, 7); }
-    const w = new Date(`${d}T12:00:00Z`).getUTCDay();
-    if (w !== 0 && w !== 6 && !feiertag(d, land) && !abw.some((a) => a.personal_id === p.id && a.status !== "beantragt" && a.von <= d && a.bis >= d)) soll += proTag;
+    const w = new Date(`${d}T12:00:00Z`).getUTCDay() || 7;
+    if (tage.includes(w) && !feiertag(d, land) && !abw.some((a) => a.personal_id === p.id && a.status !== "beantragt" && a.von <= d && a.bis >= d)) soll += proTag;
   }
   ist = 0;
   for (const s of stunden) if (s.personal_id === p.id && s.status === "freigegeben" && s.datum >= ab && s.datum <= bis) {
@@ -52,14 +54,14 @@ export function zeitkontoSeite(personen: ZPerson[], starts: Start[], stunden: St
 ${m.length ? `<table class="auswertung-tabelle zu-tabelle"><thead><tr><th>Monat</th><th>Soll</th><th>Ist</th><th>+/−</th><th>Stand</th></tr></thead><tbody>${[...m].reverse().slice(0, 12).map((x) => `<tr><td>${mName(x.monat)}</td><td>${hm(x.soll).slice(1)}</td><td>${hm(x.ist).slice(1)}</td><td class="${x.saldo < 0 ? "minus" : ""}">${hm(x.saldo)}</td><td><strong>${hm(x.stand)}</strong></td></tr>`).join("")}</tbody></table>` : `<p class="klein">Noch kein Startdatum und keine Stunden.</p>`}
 ${o.darfAendern ? `<form method="post" action="/konto/zeitkonto" class="zeile-form"><input type="hidden" name="person" value="${p.id}"><label>Konto ab<input type="date" name="ab" value="${escape(st?.ab ?? o.heute.slice(0, 8) + "01")}"></label><label>Startsaldo (Std.)<input name="saldo" inputmode="decimal" maxlength="7" value="${st ? String(Math.round((st.startsaldo_min / 60) * 100) / 100).replace(".", ",") : "0"}"></label><button class="zweit">Speichern</button></form>` : ""}</details>`;
   }).join("");
-  return `<p class="klein">Soll = Wochenstunden ÷ 5 pro Arbeitstag Mo–Fr (ohne Feiertage, Urlaub und andere bestätigte Abwesenheit). Ist = freigegebene Stunden; offene Stundenzettel zählen erst nach der Freigabe. Ohne eigenes Startdatum zählt das Konto ab dem ersten Stundenzettel in Crewtender. Überstunden aus der Zeit davor trägst du als Startsaldo ein.</p>
+  return `<p class="klein">Soll = Wochenstunden verteilt auf die Arbeitstage der Person (ohne Angabe Mo–Fr, bei Teilzeit in der Personalakte einstellbar), ohne Feiertage, Urlaub und andere bestätigte Abwesenheit. Ist = freigegebene Stunden; offene Stundenzettel zählen erst nach der Freigabe. Ohne eigenes Startdatum zählt das Konto ab dem ersten Stundenzettel in Crewtender. Überstunden aus der Zeit davor trägst du als Startsaldo ein.</p>
 ${karten || `<p class="treffer-leer">Noch niemand mit Wochenstunden.</p>`}${ohne.length ? `<p class="klein">Ohne Wochenstunden (in der Personalakte eintragen): ${ohne.map((p) => escape(`${p.vorname} ${p.nachname}`.trim())).join(", ")}</p>` : ""}`;
 }
 
 export async function zeitkontoDaten(s: Parameters<typeof db>[0], env: KontoEnv, firma: string, heute: string, person?: string) {
   const f = person ? `&personal_id=eq.${person}` : "";
   const [p, st, sz, a, land, landVon] = await Promise.all([
-    db<ZPerson[]>(s, env, `personal?firma_id=eq.${firma}${person ? `&id=eq.${person}` : ""}&select=id,vorname,nachname,status,wochenstunden,eintritt,bereich_id&order=vorname&limit=3000`),
+    db<ZPerson[]>(s, env, `personal?firma_id=eq.${firma}${person ? `&id=eq.${person}` : ""}&select=id,vorname,nachname,status,wochenstunden,eintritt,bereich_id,arbeitstage&order=vorname&limit=3000`),
     db<Start[]>(s, env, `zeitkonten?firma_id=eq.${firma}${f}&select=personal_id,ab,startsaldo_min&limit=3000`),
     db<Std[]>(s, env, `stundenzettel?firma_id=eq.${firma}${f}&status=eq.freigegeben&datum=gte.${Number(heute.slice(0, 4)) - 1}-01-01&select=personal_id,datum,beginn,ende,pause_min,status&limit=100000`),
     db<Abw[]>(s, env, `personal_abwesenheiten?firma_id=eq.${firma}${f}&status=eq.bestaetigt&bis=gte.${Number(heute.slice(0, 4)) - 1}-01-01&select=personal_id,von,bis,status&limit=20000`),

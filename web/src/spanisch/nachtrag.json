@@ -643,5 +643,6 @@
  "Neuausschreibungs-Radar, Auftraggeber beobachten, Förderprogramme, GAEB-Leistungsverzeichnis": "Radar de nuevas licitaciones, seguir a órganos de contratación, ayudas públicas, mediciones GAEB",
  "# Steckbriefe aus Unterlagen pro Monat": "# fichas a partir de los pliegos al mes",
  "Kalkulation mit Tariflohn und Preisvergleich mit früheren Zuschlägen": "Cálculo con salarios de convenio y comparación con adjudicaciones anteriores",
- "Firmenunterlagen und Nachweise mit Ablauf-Warnung": "Documentos de la empresa y certificados con aviso de caducidad"
+ "Firmenunterlagen und Nachweise mit Ablauf-Warnung": "Documentos de la empresa y certificados con aviso de caducidad",
+ "Soll = Wochenstunden verteilt auf die Arbeitstage der Person (ohne Angabe Mo–Fr, bei Teilzeit in der Personalakte einstellbar), ohne Feiertage, Urlaub und andere bestätigte Abwesenheit. Ist = freigegebene Stunden; offene Stundenzettel zählen erst nach der Freigabe. Ohne eigenes Startdatum zählt das Konto ab dem ersten Stundenzettel in Crewtender. Überstunden aus der Zeit davor trägst du als Startsaldo ein.": "Previstas = horas semanales repartidas entre los días laborables de la persona (lun.–vie. si no se indica; a tiempo parcial, ajustable en la ficha de personal), sin festivos, vacaciones ni otras ausencias confirmadas. Realizadas = horas aprobadas; los registros de horas abiertos cuentan solo tras su aprobación. Sin fecha de inicio propia, la bolsa cuenta desde el primer registro de horas en Crewtender. Las horas extra anteriores se introducen como saldo inicial."
 }
