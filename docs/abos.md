@@ -12,7 +12,7 @@
 |---|---:|---:|---|---|
 | **Free** | 0 € | – | Ausprobieren, Einzelbetrieb | 1 Suchprofil, 1 Land, 1 Nutzer, Treffer mit Kurzüberblick, Wochenmail |
 | **Basis** | **59 €** | 590 € (≈ 49 €/Monat) | Kleiner Betrieb, 1 Standort, will Aufträge finden | Täglicher Alarm per Mail und Handy, 3 Suchprofile, 3 Nutzer, 5 Steckbriefe aus Unterlagen/Monat, Kalkulation |
-| **Pro** | **149 €** | 1.490 € (≈ 124 €/Monat) | Reinigung, Sicherheit, Handwerk, Zeitarbeit mit 10–50 Kräften | Alles aus Basis + Angebotsmappe mit Freigabe + Arbeitsoberfläche (Personal, Einsatzplanung, Zeiterfassung, Abrechnung), 5 Büro-Nutzer, 25 Einsatzkräfte, alle Länder, 30 Steckbriefe |
+| **Pro** | **149 €** | 1.490 € (≈ 124 €/Monat) | Reinigung, Sicherheit, Handwerk, Zeitarbeit mit 10–50 Kräften | Alles aus Basis + Angebotsmappe mit Freigabe + Arbeitsoberfläche (Personal, Einsatzplanung, Zeiterfassung, Abrechnung), 5 Büro-Nutzer, 30 Einsatzkräfte (seit 09.11.2026, vorher 25), alle Länder, 30 Steckbriefe |
 | **Business** | **399 €** | 3.990 € (≈ 333 €/Monat) | Mehrere Standorte und Regionen (z. B. PerLease) | Alles aus Pro, Standorte unbegrenzt, 15 Büro-Nutzer, 100 Einsatzkräfte, 100 Steckbriefe, bevorzugter Support |
 | *Erfolg (Option)* | *später* | – | Skeptische Firmen | Niedrige Grundgebühr + Anteil bei Zuschlag. Erst nach 6–12 Monaten prüfen (Abschnitt 5) |
 
