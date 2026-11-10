@@ -387,7 +387,11 @@ export const MANIFEST = JSON.stringify({
  *  the app opens without an address bar. SHA-256 fingerprints of the signing certificates (public information): the app
  *  signing key from the Play Console (Test und Veröffentlichung → App-Integrität) and the upload key for test builds. */
 export const APP_PAKET = "eu.crewtender.app";
-export const APP_FINGERABDRUECKE: string[] = [];
+export const APP_FINGERABDRUECKE: string[] = [
+  // Upload key "crewtender-upload" (created 10.11.2026, android.yml). The app signing key from the Play Console comes
+  // on top as soon as the app exists there; only with that one the store version opens without an address bar.
+  "C2:62:D8:F8:A8:A3:61:C7:76:10:C8:92:F5:EA:9C:98:AD:E5:9E:4D:B2:C3:FF:39:89:C1:D0:5A:3A:B0:29:17",
+];
 export const ASSETLINKS = JSON.stringify(APP_FINGERABDRUECKE.length
   ? [{ relation: ["delegate_permission/common.handle_all_urls"], target: { namespace: "android_app", package_name: APP_PAKET, sha256_cert_fingerprints: APP_FINGERABDRUECKE } }]
   : []);
