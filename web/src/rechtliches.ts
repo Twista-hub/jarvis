@@ -208,6 +208,32 @@ export function startSuche(): string {
 <p class="start-suche-schnell">${schnell.map((w) => `<a href="/demo/suche?q=${encodeURIComponent(w)}">${escape(w)}</a>`).join(" ")}</p></section>`;
 }
 
+/** Public page on deleting the account and its data (Google Play asks every app with accounts for such an address). */
+export function kontoLoeschen(sprache: "de" | "en" = "de"): string {
+  if (sprache === "en") return `<p>How to delete your Crewtender account and your data – the same in the Android app and in the browser:</p>
+<h2>Delete it yourself</h2>
+<ol><li>Sign in and tap your profile at the top right (“My profile”).</li><li>Choose “Delete account” at the bottom and confirm.</li></ol>
+<p>As the owner you can also delete the whole company with all its data. Before that, everything can be downloaded as a ZIP file.</p>
+<h2>Have it deleted</h2>
+<p>You can no longer sign in? Write to <a href="mailto:${FIRMA.email}">${FIRMA.email}</a> from the address of your account. We delete the account within 30 days and confirm it to you.</p>
+<h2>What is deleted and what is kept</h2>
+<ul><li><strong>Deleted:</strong> your login, your profile, your settings and notifications. With the company also its tenders, documents, staff, shifts, hours and invoices.</li>
+<li><strong>Kept for the statutory period:</strong> our own invoices to the company (8 years, German tax law). Timesheets and clock-in times of a worker are kept by the company for at least 2 years (German Minimum Wage Act); during that time the company cannot delete the person.</li>
+<li>If you are only a member of a company, the company's data stays; your login and your personal details are removed.</li></ul>
+<p>More in the <a href="/datenschutz">privacy policy</a>.</p>`;
+  return `<p>So löschst du dein Crewtender-Konto und deine Daten – in der Android-App und im Browser gleich:</p>
+<h2>Selbst löschen</h2>
+<ol><li>Melde dich an und tippe oben rechts auf dein Profil („Mein Profil“).</li><li>Wähle ganz unten „Konto löschen“ und bestätige.</li></ol>
+<p>Als Inhaber kannst du dabei auch die ganze Firma mit allen Daten löschen. Vorher lässt sich alles als ZIP-Datei herunterladen.</p>
+<h2>Löschen lassen</h2>
+<p>Du kommst nicht mehr ins Konto? Schreib von der Adresse deines Kontos an <a href="mailto:${FIRMA.email}">${FIRMA.email}</a>. Wir löschen das Konto innerhalb von 30 Tagen und bestätigen es dir.</p>
+<h2>Was gelöscht wird und was bleibt</h2>
+<ul><li><strong>Gelöscht:</strong> dein Zugang, dein Profil, deine Einstellungen und Benachrichtigungen. Mit der Firma auch Ausschreibungen, Unterlagen, Personal, Schichten, Stunden und Rechnungen der Firma.</li>
+<li><strong>Bleibt für die gesetzliche Frist:</strong> unsere eigenen Rechnungen an die Firma (8 Jahre, § 147 AO). Stundenzettel und Stempelzeiten einer Einsatzkraft hält die Firma mindestens 2 Jahre vor (§ 17 MiLoG); so lange kann die Firma die Person nicht löschen.</li>
+<li>Bist du nur Mitglied einer Firma, bleiben die Daten der Firma bestehen; dein Zugang und deine persönlichen Angaben werden entfernt.</li></ul>
+<p>Mehr dazu in der <a href="/datenschutz">Datenschutzerklärung</a>.</p>`;
+}
+
 export function startseite(beispiel: string, zahlen: StartZahlen | null = null): string {
   return `<section class="start-held">
 <p class="start-fuer">Für Handwerk, Reinigung, Sicherheit, Zeitarbeit, Gastro und viele weitere Branchen</p>
