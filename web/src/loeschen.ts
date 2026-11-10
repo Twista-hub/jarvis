@@ -1,6 +1,7 @@
 // Removing all stored files of deleted firms (R2), used by the own account deletion and by the operator page
 // /konto/betreiber (look up a customer login by e-mail and delete it, optionally with the firms it owns alone; list all
 // firms and set their AI limit and plan without SQL).
+import { betriebKasten, type Betrieb } from "./betrieb.ts";
 import { db, html, sitzung, weiterleiten, type KontoEnv } from "./konto.ts";
 import { escape, seite } from "./seite.ts";
 
@@ -154,6 +155,6 @@ export async function betreiber(request: Request, env: KontoEnv): Promise<Respon
     const t = await db<Treffer[]>(s, env, "rpc/betreiber_konto_suchen", { method: "POST", body: JSON.stringify({ mail }) });
     loeschen = `${hinweis ? `<p class="hinweis" role="status">${escape(hinweis)}</p>` : ""}${betreiberSeite(mail, t.ok ? t.daten : [])}`;
   }
-  const f = await db<BetreiberFirma[]>(s, env, "rpc/betreiber_firmen", { method: "POST", body: "{}" });
-  return antwort(`<p><a href="/konto/betreiber/rechnungen">🧾 Kundenrechnungen (WP Digital Ranger an Crewtender-Kunden)</a> · <a href="/konto/betreiber/partner">🤝 Partnerprogramm</a></p><h2>Zugang löschen</h2>${loeschen}<h2>Firmen${f.ok ? ` (${f.daten.length})` : ""}</h2><p class="klein">KI-Grenze: „ohne Grenze“ für zahlende Kunden und Tester, „Probe 5,50 $“ für neue Firmen mit eigener Website, „Demo“ ohne KI. Der Plan wird später von der Abrechnung gesetzt.</p>${f.ok ? firmenListe(f.daten) : `<p class="hinweis">Firmenliste konnte nicht geladen werden.</p>`}`);
+  const [f, b] = await Promise.all([db<BetreiberFirma[]>(s, env, "rpc/betreiber_firmen", { method: "POST", body: "{}" }), db<Betrieb>(s, env, "rpc/betreiber_betrieb", { method: "POST", body: "{}" })]);
+  return antwort(`<p><a href="/konto/betreiber/rechnungen">🧾 Kundenrechnungen (WP Digital Ranger an Crewtender-Kunden)</a> · <a href="/konto/betreiber/partner">🤝 Partnerprogramm</a></p>${betriebKasten(b.ok ? b.daten : null)}<h2>Zugang löschen</h2>${loeschen}<h2>Firmen${f.ok ? ` (${f.daten.length})` : ""}</h2><p class="klein">KI-Grenze: „ohne Grenze“ für zahlende Kunden und Tester, „Probe 5,50 $“ für neue Firmen mit eigener Website, „Demo“ ohne KI. Der Plan wird später von der Abrechnung gesetzt.</p>${f.ok ? firmenListe(f.daten) : `<p class="hinweis">Firmenliste konnte nicht geladen werden.</p>`}`);
 }
