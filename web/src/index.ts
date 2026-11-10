@@ -75,6 +75,7 @@ import { kraefteEinladen } from "./kraefte.ts";
 import { betreiber } from "./loeschen.ts";
 import { betreiberRechnungen } from "./betreiber-rechnungen.ts";
 import { betreiberPartner, partnerOeffentlich } from "./partnerprogramm.ts";
+import { suchAbo } from "./suchabo.ts";
 import { seoSeiten } from "./seo-seiten.ts";
 import { herkunftWeitergeben, kurzlink } from "./herkunft.ts";
 import { demo } from "./demo.ts";
@@ -273,6 +274,8 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     if (lg) return lg;
     const sam = samAnleitungSeite(request, ADRESSE, (h) => html(h));
     if (sam) return sam;
+    const ab = await suchAbo(request, env);
+    if (ab) return ab;
     const dm = await demo(request, MUSTER.replace(/^>.*\n/m, ""), env);
     if (dm) return dm;
     const am = await angebote(request, env);

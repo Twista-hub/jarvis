@@ -14,6 +14,7 @@ import sys
 from datetime import datetime, timedelta
 from email.message import EmailMessage
 from email.utils import formataddr, make_msgid
+from urllib.parse import quote, urlencode
 from zoneinfo import ZoneInfo
 
 import push
@@ -671,6 +672,74 @@ def willkommen(con, smtp, jetzt: datetime | None = None) -> int:
     return gesendet
 
 
+def abo_name(suche: str, gebiet: str) -> str:
+    """How a subscribed search is named in the mail, e.g. „Gebäudereinigung“ in 52."""
+    return " ".join(x for x in (f"„{suche}“" if suche else "", f"in {gebiet}" if gebiet else "") if x) or "alle Ausschreibungen"
+
+
+def abo_mail(an: str, suche: str, gebiet: str, treffer: list, token: str) -> EmailMessage:
+    """Weekly mail of a search subscription (web/src/suchabo.ts): the new public notices, how to get more out of them, and
+    the unsubscribe link (also as List-Unsubscribe header for the mail program's own button)."""
+    name = abo_name(suche, gebiet)
+    ab = f"{APP}/abo/abmelden/{token}"
+    such_link = f"{APP}/demo/suche?" + urlencode({k: v for k, v in (("q", suche), ("ort", gebiet)) if v})
+    zeile = lambda t: " · ".join(x for x in (t[2], t[3], f"Frist {t[4].astimezone(BERLIN).strftime('%d.%m.%Y')}" if t[4] else "") if x)  # noqa: E731
+    link = lambda t: f"{APP}/ausschreibung/{quote(t[0], safe='')}"  # noqa: E731
+    n = len(treffer)
+    m = EmailMessage()
+    m["From"] = formataddr(ABSENDER)
+    m["To"] = an
+    m["Subject"] = f"{n} neue {'Ausschreibung' if n == 1 else 'Ausschreibungen'} für {name}"[:160]
+    m["Message-ID"] = make_msgid(domain="wpdigitalranger.com")
+    m["List-Unsubscribe"] = f"<{ab}>"
+    m["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
+    mehr = "Crewtender bewertet jede Ausschreibung mit 1 bis 10 Punkten für deine Firma, schreibt den Steckbrief und rechnet mit deinen Löhnen den Preis."
+    grund = f"Du bekommst diese Mail, weil du auf crewtender.eu die Suche {name} abonniert hast."
+    m.set_content(f"Hallo,\n\nneue öffentliche Ausschreibungen für {name}:\n\n"
+                  + "\n\n".join(f"{t[1]}\n{zeile(t)}\n{link(t)}" for t in treffer)
+                  + f"\n\nAlle Treffer: {such_link}\n\n{mehr}\n30 Tage Pro gratis testen: {APP}/registrieren\n\n"
+                  + f"{grund}\nAbmelden: {ab}\n\nCrewtender · WP Digital Ranger · Rochusstraße 19, 52531 Übach-Palenberg · {APP}/impressum\n")
+    m.add_alternative(f"""<div style="font-family:system-ui,sans-serif;max-width:640px">
+<p>Hallo,</p><p>neue öffentliche Ausschreibungen für <strong>{html.escape(name)}</strong>:</p>
+<ul style="padding-left:18px">{''.join(f'<li style="margin-bottom:10px"><a href="{html.escape(link(t))}"><strong>{html.escape(t[1])}</strong></a><br><span style="color:#555">{html.escape(zeile(t))}</span></li>' for t in treffer)}</ul>
+<p><a href="{html.escape(such_link)}">Alle Treffer ansehen</a></p>
+<p>{html.escape(mehr)}</p>
+<p><a href="{APP}/registrieren" style="display:inline-block;padding:10px 16px;background:#1d4ed8;color:#fff;border-radius:8px;text-decoration:none">30 Tage Pro gratis testen</a></p>
+<p style="color:#666;font-size:13px">{html.escape(grund)} <a href="{html.escape(ab)}">Abmelden</a><br>Crewtender · WP Digital Ranger · Rochusstraße 19, 52531 Übach-Palenberg · <a href="{APP}/impressum">Impressum</a></p></div>""", subtype="html")
+    return m
+
+
+def such_abos_senden(con, smtp, jetzt: datetime | None = None, grenze: int = 40) -> int:
+    """Weekly mails of confirmed search subscriptions: between 8 and 18 o'clock, at most `grenze` per hourly run, no AI.
+    A subscription is checked once a week; a mail goes out only when there are new notices since the last check."""
+    if not 8 <= (jetzt or datetime.now(BERLIN)).astimezone(BERLIN).hour <= 18:
+        return 0
+    try:
+        faellige = con.execute("""select id::text, email, suche, gebiet, token, coalesce(geprueft, bestaetigt - interval '7 days'), geprueft
+            from jarvis_intern.such_abos where bestaetigt is not null and (geprueft is null or geprueft < now() - interval '6 days 20 hours')
+            order by geprueft nulls first, bestaetigt limit %s""", (grenze,)).fetchall()
+    except Exception as e:  # noqa: BLE001 - before the migration: no subscription mails, the rest runs
+        print(f"Such-Abos übersprungen: {e}", file=sys.stderr)
+        return 0
+    gesendet = 0
+    for abo_id, email, suche, gebiet, token, seit, vorher in faellige:
+        # Claim first: better one mail too few than the same one twice.
+        if not con.execute("update jarvis_intern.such_abos set geprueft = now() where id = %s and geprueft is not distinct from %s returning id", (abo_id, vorher)).fetchone():
+            continue
+        treffer = con.execute("select id, titel, auftraggeber, ort, frist from jarvis_intern.such_abo_treffer(%s, %s, %s)", (suche, gebiet, seit)).fetchall()
+        if not treffer:
+            continue
+        try:
+            smtp.send_message(abo_mail(email, suche, gebiet, treffer, token))
+        except Exception as e:  # noqa: BLE001 - try again in the next hour, the others still get theirs
+            print(f"Such-Abo-Mail nicht verschickt: {type(e).__name__}", file=sys.stderr)
+            con.execute("update jarvis_intern.such_abos set geprueft = %s where id = %s", (vorher, abo_id))
+            continue
+        con.execute("update jarvis_intern.such_abos set letzte_mail = now(), mails = mails + 1 where id = %s", (abo_id,))
+        gesendet += 1
+    return gesendet
+
+
 def main() -> None:
     args = sys.argv[1:]
     test = args[1] if args[:1] == ["--test"] and len(args) > 1 else None
@@ -708,6 +777,7 @@ def main() -> None:
         if not (test or sofort):
             mails += probe_erinnerungen(con, smtp)
             mails += willkommen(con, smtp)
+            mails += such_abos_senden(con, smtp)
             pushs += warteschlange(con, schl)
             # Deadline-day message at 7, or at the end of the person's quiet hours when 7 falls into them (I2).
             for firma_id, user_id, von, bis in con.execute("""select b.firma_id::text, b.user_id::text, b.ruhe_von, b.ruhe_bis from public.benachrichtigungen b

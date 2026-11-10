@@ -110,6 +110,9 @@ ${grundTags(titel)}
   .start-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-size: 1.3rem; background: rgba(79,179,234,.18); }
   .start-live { margin: 18px 0 0; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
   .start-live p { margin: 0; }
+  .abo-kasten { margin: 18px 0; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); } .abo-kasten h2 { margin: 0 0 4px; font-size: 1.1rem; } .abo-kasten p { margin: 0 0 8px; }
+  .abo-kasten form { display: grid; gap: 10px; } .abo-kasten .haken { display: flex; gap: 8px; align-items: flex-start; font-weight: normal; font-size: .9rem; } .abo-kasten .haken input { width: auto; margin-top: 3px; } .abo-kasten button { justify-self: start; }
+  .abo-falle { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
   .start-suche { margin: 18px 0 0; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
   .start-suche h2 { margin: 0 0 2px; font-size: 1.15rem; } .start-suche > p { margin: 0 0 6px; } .start-suche .demo-suche { margin-bottom: 8px; } .start-suche .demo-suche button { grid-column: 1 / -1; }
   .start-suche-schnell { display: flex; flex-wrap: wrap; gap: 6px; } .start-suche-schnell a { padding: 6px 12px; min-height: 32px; display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid var(--line); text-decoration: none; font-size: .9rem; }
