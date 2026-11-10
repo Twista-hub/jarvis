@@ -41,13 +41,12 @@ Konto WP Digital Ranger (Organisationskonto), App-ID 4972724087261729148. Nichts
 - Zielgruppe und Inhalte: „Du musst den Abschnitt mit den Anmeldedaten ausfüllen, bevor du die Fragen zu Zielgruppe und Inhalten beantworten kannst“
 
 **Offen für Benjamin** (Reihenfolge einhalten)
-1. **Anmeldedaten (Prüfkonto)**: „Ja, Teil der App ist zugangsbeschränkt“ → „Details hinzufügen“: Name, Nutzername und Passwort des Prüfkontos selbst eintragen. Unter „Sonstige Informationen“ (Englisch): „The app can also be explored without an account at https://crewtender.eu/demo (sample data). Subscriptions are not sold inside the Android app.“ → Speichern.
-   https://play.google.com/console/u/0/developers/7892927649553841249/app/4972724087261729148/app-content/testing-credentials
+1. ~~Anmeldedaten~~ **erledigt (10.11.2026, Benjamin)**: Prüfkonto der „Crewtender Testfirma (E2E-Test)“ eingetragen (Zugangsdaten nur in der Console).
 2. ~~Altersfreigabe~~ **erledigt (10.11.2026, 20:40)** nach Benjamins Ja zu den IARC-Nutzungsbedingungen. Kategorie „Alle anderen App-Typen“. Antworten: heruntergeladene Inhalte (Gewalt, Sexualität, Sprache, Drogen, Glücksspiel) nein; Nutzerinhalte teilen ja (Team-Chat), freigaberelevante Nutzerinhalte als Hauptquelle nein, Nacktheit/Gewalt teilen nein, Blockieren nein, Melden nein (gibt es im Chat nicht, laut web/src/chat.ts), Chatmoderation ja (Admins löschen Nachrichten), nur Eingeladene ja (Chat nur in der eigenen Firma); Online-Inhalte ja (Ausschreibungen, KI-Texte), dort Gewalt/Sexualität/Sprache/Drogen nein; altersbeschränkte Produkte nein; Standort teilen nein; digitale Käufe nein; Geldauszahlungen/Krypto nein; Webbrowser nein; Nachrichten/Bildung nein. Ergebnis: PEGI 3, USK ab 0, ESRB Jedes Alter, ClassInd 0 (Hinweis „Chats“).
-3. **Zielgruppe und Inhalte** (geht erst nach 1.): nur 18+, spricht Kinder nicht an.
-   https://play.google.com/console/u/0/developers/7892927649553841249/app/4972724087261729148/app-content/target-audience-content
-4. **Datensicherheit** (geht erst nach 3.): Entwurf öffnen, bis „Vorschau“ durchklicken, Speichern.
-   https://play.google.com/console/u/0/developers/7892927649553841249/app/4972724087261729148/app-content/data-privacy-security
+3. ~~Zielgruppe und Inhalte~~ **erledigt (10.11.2026)**: nur „18 Jahre und älter“, die optionale Sperre für Minderjährige ist nicht gesetzt.
+4. ~~Datensicherheit~~ **erledigt (10.11.2026)**, gespeichert. In der Vorschau fehlt „Ungefährer Standort“, weil Google nur vorübergehend verarbeitete Daten nicht im Store-Eintrag zeigt.
+5. **Store-Eintrag eingerichtet (10.11.2026)**: Schritt „Bewerten“ gespeichert, Erklärung zu KI-Assets „Assets nicht kennzeichnen“ (Benjamin).
+- **Stand Dashboard:** „App einrichten“ ist komplett. Alle App-Inhalte sind erledigt. Offen sind nur noch die Test- und Veröffentlichungsschritte, zum Beispiel interner Test „Tester auswählen“. Nichts ist zur Prüfung eingereicht; „Verwaltete Veröffentlichung“ ist aus.
 - Die Erklärung „Nachrichten-App“ wurde in der Liste der App-Inhalte nicht angezeigt; deshalb gibt es dort nichts zu tun.
 
 ### Erledigt (08.11.2026) – sitemap-seiten.xml eingereicht
