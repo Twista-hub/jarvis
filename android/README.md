@@ -14,5 +14,7 @@ Paket: `eu.crewtender.app` (endgültig, lässt sich nach dem ersten Hochladen ni
   direkt installierte Test-APKs. Sonst zeigt die App eine Adressleiste.
 - In der App gibt es keinen Kauf: Pläne bucht man auf der Website (Zahlungsrichtlinie von Google Play).
 
+Store-Texte, Angaben für die Play Console und die Reihenfolge: `STORE.md`. Bilder: `store/`.
+
 Modi des Ablaufs: `probe` (baut mit einem Wegwerf-Schlüssel, prüft nur die Technik), `schluessel` (legt einmalig den
-Upload-Schlüssel an und zeigt seinen Fingerabdruck), `bauen` (baut das signierte App-Bundle zum Hochladen).
+Upload-Schlüssel an und zeigt seinen Fingerabdruck), `bauen` (baut das signierte App-Bundle; Download „crewtender-play-paket“ mit Bundle, Bildern und Texten).
