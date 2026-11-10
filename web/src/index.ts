@@ -92,7 +92,7 @@ import { fehlerMelden, fehlerText } from "./fehler.ts";
 import { einsatzplan } from "./einsatzplan";
 import { db, konto, sitzung, vorgangZugriff, type KontoEnv, type Sitzung } from "./konto";
 import MUSTER from "./muster-steckbrief.md";
-import { avv, datenschutz, impressum, nutzungsbedingungen, startseite, type StartZahlen } from "./rechtliches";
+import { avv, datenschutz, impressum, kontoLoeschen, nutzungsbedingungen, startseite, type StartZahlen } from "./rechtliches";
 import { kontakt } from "./kontakt.ts";
 import { hilfecenter } from "./hilfecenter.ts";
 import { usProfil, usRadar } from "./usprofil.ts";
@@ -354,6 +354,12 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
       const lp = url.pathname.match(/^\/([a-z]{2})\/?$/);
       if ((url.pathname === "/" && titel === null) || (lp && ISO2[lp[1].toUpperCase()])) return landesStart(request, url, lp?.[1], env);
       if (url.pathname === "/" || url.pathname === "/hochladen") return html(formular("", titel ?? ""));
+      if (url.pathname === "/konto-loeschen") {  // Google Play: public address for deleting the account; German or English
+        const de = appSprache(request) === "de";
+        const r = html(seite(de ? "Konto und Daten löschen" : "Delete account and data", kontoLoeschen(de ? "de" : "en")));
+        r.headers.set("x-jv-sprache", de ? "de" : "en");
+        return r;
+      }
       const recht = RECHT[url.pathname];
       const rs = appSprache(request);
       const uebersetzt = rs === "fr" ? [RECHT_FR, hinweisDeutsch] as const : rs === "pl" ? [RECHT_PL, hinweisDeutschPl] as const : rs === "es" ? [RECHT_ES, hinweisDeutschEs] as const : rs === "it" ? [RECHT_IT, hinweisDeutschIt] as const : rs === "en" ? [RECHT_EN, hinweisDeutschEn] as const : null;
