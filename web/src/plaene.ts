@@ -1,6 +1,7 @@
 // Plans and prices (Benjamin, 06.11.2026: 59 / 149 / 399 € a month, yearly payment = 10 months, payment by invoice).
 // Public price page /preise and the plan choice /konto/plan (preise.ts). The plan is set by Stripe or by the operator on
 // /konto/betreiber. The limits are enforced since 07.11.2026 (SQL jarvis_intern.plan_grenze, web plangrenzen.ts).
+import { APP_KAUF_HINWEIS } from "./android.ts";
 import { escape } from "./seite.ts";
 import type { PlanStand } from "./plangrenzen.ts";
 
@@ -130,12 +131,14 @@ ${guthaben ? `<p class="klein">Guthaben: ${guthaben} Steckbriefe</p>` : ""}<butt
   return `<section class="plan-zusatz"><h2>Zusatz</h2>${kraftForm}${paketForm}</section>`;
 }
 
-export function planSeite(aktuell: string, firma: string, darfAendern: boolean, hinweis = "", o: { stripe?: boolean; abo?: AboStand | null; test?: boolean; hinweisHtml?: string; stand?: PlanStand | null; zusatzOnline?: { paket: boolean; kraefte: boolean } } = {}): string {
+export function planSeite(aktuell: string, firma: string, darfAendern: boolean, hinweis = "", o: { stripe?: boolean; abo?: AboStand | null; test?: boolean; hinweisHtml?: string; stand?: PlanStand | null; zusatzOnline?: { paket: boolean; kraefte: boolean }; app?: boolean } = {}): string {
   const a = o.abo;
   const datum = (x: string | null) => (x ? new Date(x).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" }) : "");
   const aktiv = !!a?.status && ["active", "trialing", "past_due"].includes(a.status);
   const aboZeile = a?.status ? `<p class="klein">${aktiv ? (a.kuendigt ? `Gekündigt, läuft bis ${datum(a.bis)}. Danach Free.` : `Abo aktiv, ${a.zahlweise === "jahr" ? "jährlich" : "monatlich"}${a.bis ? `, nächste Abbuchung am ${datum(a.bis)}` : ""}.`) : a.status === "canceled" ? "Abo beendet." : `Abo-Status: ${escape(a.status)}.`}${a.status === "past_due" ? " <strong>⚠️ Die letzte Zahlung ist fehlgeschlagen. Bitte unter „Abo verwalten“ die Zahlungsart prüfen.</strong>" : ""}</p>` : "";
   const verwalten = darfAendern && o.stripe && a?.kunde ? `<form method="post" action="/konto/plan"><input type="hidden" name="weg" value="portal"><button class="zweit">Abo verwalten (kündigen, Zahlungsart, Rechnungen)</button></form>` : "";
   const test = o.test && o.stripe ? `<p class="hinweis">🧪 Stripe-Testmodus: nur du siehst die Bezahl-Knöpfe. Testkarte 4242 4242 4242 4242, beliebiges Datum in der Zukunft, beliebige Prüfziffer.</p>` : "";
+  // Inside the Android app (Google Play payments policy): no prices, no order, no link to a payment; only what the firm has.
+  if (o.app) return `<p>Dein Plan: <strong>${escape(planName(aktuell))}</strong></p>${aboZeile}${nutzungTeil(o.stand)}<p class="klein">${APP_KAUF_HINWEIS}</p>`;
   return `${hinweis || o.hinweisHtml ? `<p class="hinweis" role="status">${o.hinweisHtml ?? escape(hinweis)}</p>` : ""}${test}<p>Dein Plan: <strong>${escape(planName(aktuell))}</strong></p>${aboZeile}${nutzungTeil(o.stand)}${darfAendern ? zusatzTeil(o.stand, o.zusatzOnline ?? { paket: false, kraefte: false }) : ""}${verwalten}${planKarten({ aktuell, wahl: darfAendern, firma, stripe: o.stripe, abo: aktiv && !!a?.kunde })}${preisHinweise(o.stripe)}${darfAendern ? `<p class="klein">${o.stripe ? "Mit Karte oder Lastschrift ist der Plan sofort frei. Per Rechnung schalten wir ihn nach der Bestellung frei und schicken die Rechnung per E-Mail." : "Nach der Bestellung schalten wir den Plan frei und schicken die Rechnung per E-Mail."}</p>` : `<p class="klein">Den Plan ändert ein Inhaber oder Admin der Firma.</p>`}`;
 }

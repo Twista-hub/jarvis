@@ -383,7 +383,17 @@ export const MANIFEST = JSON.stringify({
   ],
 });
 
+/** Android app (android/README.md): the website proves with this file that the app eu.crewtender.app belongs to it, then
+ *  the app opens without an address bar. SHA-256 fingerprints of the signing certificates (public information): the app
+ *  signing key from the Play Console (Test und Veröffentlichung → App-Integrität) and the upload key for test builds. */
+export const APP_PAKET = "eu.crewtender.app";
+export const APP_FINGERABDRUECKE: string[] = [];
+export const ASSETLINKS = JSON.stringify(APP_FINGERABDRUECKE.length
+  ? [{ relation: ["delegate_permission/common.handle_all_urls"], target: { namespace: "android_app", package_name: APP_PAKET, sha256_cert_fingerprints: APP_FINGERABDRUECKE } }]
+  : []);
+
 const DATEIEN: Record<string, [string, string | (() => Uint8Array)]> = {
+  "/.well-known/assetlinks.json": ["application/json", ASSETLINKS],
   "/app.js": ["text/javascript; charset=utf-8", APP_JS],
   "/sw.js": ["text/javascript; charset=utf-8", SW_JS],
   "/manifest.webmanifest": ["application/manifest+json", MANIFEST],

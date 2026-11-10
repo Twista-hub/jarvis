@@ -76,6 +76,7 @@ import { betreiber } from "./loeschen.ts";
 import { betreiberRechnungen } from "./betreiber-rechnungen.ts";
 import { betreiberPartner, partnerOeffentlich } from "./partnerprogramm.ts";
 import { suchAbo } from "./suchabo.ts";
+import { appStart } from "./android.ts";
 import { seoSeiten } from "./seo-seiten.ts";
 import { herkunftWeitergeben, kurzlink } from "./herkunft.ts";
 import { demo } from "./demo.ts";
@@ -236,6 +237,8 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     if (url.pathname === "/__intern/db-check" && request.method === "POST") return datenbankPruefen(request, env);
     const sw = sprachWechsel(request);
     if (sw) return sw;
+    const inApp = appStart(request);
+    if (inApp) return inApp;
     const datei = request.method === "GET" ? statisch(url.pathname) : null;
     if (datei) return datei;
     // Functions under German law only for firms in Germany (Rechtsprüfung 03.11.2026, laenderfunktionen.ts).

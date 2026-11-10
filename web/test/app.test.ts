@@ -29,3 +29,17 @@ test("interner Datenbanktest ist ohne den einmaligen Deployment-Code nicht errei
   const r = await datenbankPruefen("falscher-testcode-123456", "0".repeat(64), {});
   assert.equal(r.status, 404);
 });
+
+test("Android-App: assetlinks.json ist gültiges JSON mit Paketname und Fingerabdrücken im richtigen Format", async () => {
+  const { APP_FINGERABDRUECKE, APP_PAKET } = await import("../src/app.ts");
+  const r = statisch("/.well-known/assetlinks.json")!;
+  assert.equal(r.headers.get("content-type"), "application/json");
+  const liste = await r.json() as any[];
+  assert.equal(APP_PAKET, "eu.crewtender.app");
+  for (const f of APP_FINGERABDRUECKE) assert.match(f, /^([0-9A-F]{2}:){31}[0-9A-F]{2}$/, "SHA-256 in Großbuchstaben mit Doppelpunkten");
+  if (APP_FINGERABDRUECKE.length) {
+    assert.equal(liste[0].target.package_name, APP_PAKET);
+    assert.deepEqual(liste[0].target.sha256_cert_fingerprints, APP_FINGERABDRUECKE);
+    assert.deepEqual(liste[0].relation, ["delegate_permission/common.handle_all_urls"]);
+  } else assert.deepEqual(liste, []);
+});
