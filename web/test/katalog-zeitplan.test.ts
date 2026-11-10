@@ -15,4 +15,6 @@ test("Zeitplan: Cloudflare stößt Mail und Social an, nur mit Schlüssel und zu
   // 07:11 Berlin: only the mail; 23:11 Berlin: nothing.
   assert.deepEqual(await ablaeufeAnstossen({ GH_DISPATCH_TOKEN: "t" }, new Date("2026-11-10T06:11:00Z"), holen), ["mail.yml"]);
   assert.deepEqual(await ablaeufeAnstossen({ GH_DISPATCH_TOKEN: "t" }, new Date("2026-11-10T22:11:00Z"), holen), []);
+  assert.deepEqual(await ablaeufeAnstossen({ GH_DISPATCH_TOKEN: "t" }, new Date("2026-11-10T05:11:00Z"), holen), ["katalog-nachholen.yml"], "6 Uhr Berlin: leere Tagesexporte nachholen, vor den Mails");
+  assert.deepEqual(await ablaeufeAnstossen({ GH_DISPATCH_TOKEN: "t" }, new Date("2026-11-10T12:11:00Z"), holen), ["katalog-nachholen.yml", "mail.yml", "social.yml"]);
 });

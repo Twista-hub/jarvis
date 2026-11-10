@@ -224,6 +224,13 @@ export function eformsKarte(zip: Uint8Array, grenze = 5_000_000): Map<string, Ef
     datei.start();
   });
   unzip.register(UnzipInflate);
-  unzip.push(zip, true);
+  inStuecken(unzip, zip);
   return karte;
+}
+
+/** Feeds a ZIP to fflate's streaming Unzip in pieces: one push with a whole month (6,000 files) recurses once per file
+ *  and overflows the call stack. */
+export function inStuecken(unzip: { push(daten: Uint8Array, ende?: boolean): void }, zip: Uint8Array, stueck = 65536): void {
+  if (!zip.length) { unzip.push(zip, true); return; }
+  for (let i = 0; i < zip.length; i += stueck) unzip.push(zip.subarray(i, i + stueck), i + stueck >= zip.length);
 }

@@ -1,0 +1,42 @@
+# Catalogue days whose daily export of the Bekanntmachungsservice came back empty are read from the monthly export
+# (web/scripts/katalog-nachholen.ts). Fails if the newest notice in the catalogue is older than 3 days, which sends a
+# phone message through "Fehler melden". Public CC0 data only. Started by the catalogue worker's cron (reliable) and,
+# as a reserve, by GitHub's schedule.
+name: Katalog nachholen
+on:
+  schedule:
+    - cron: "17 5,12,18 * * *"
+  workflow_dispatch:
+    inputs:
+      tage:
+        description: "Wie viele Tage zurück prüfen (1–40)"
+        default: "10"
+      probe:
+        description: "Nur prüfen, nichts schreiben"
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: katalog-nachholen
+jobs:
+  nachholen:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Leere Tage aus dem Monatsexport nachholen
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          TAGE: ${{ inputs.tage || '10' }}
+          PROBE: ${{ inputs.probe && '--probe' || '' }}
+        run: |
+          case "$TAGE" in ''|*[!0-9]*) TAGE=10 ;; esac
+          node --experimental-strip-types scripts/katalog-nachholen.ts --tage="$TAGE" $PROBE
