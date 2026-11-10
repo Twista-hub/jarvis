@@ -1,0 +1,93 @@
+# Android app for Google Play: a Trusted Web Activity built with Bubblewrap (android/README.md). Started by hand only.
+# The upload keystore lives in the private R2 bucket, its password in the secret ANDROID_SCHLUESSEL_PASSWORT
+# (created by Benjamin). GitHub minutes are free for this public repository; no AI, no database.
+name: Android-App
+on:
+  workflow_dispatch:
+    inputs:
+      modus:
+        description: "probe (Technik prüfen, Wegwerf-Schlüssel), schluessel (einmalig Upload-Schlüssel anlegen), bauen (App-Bundle zum Hochladen)"
+        type: choice
+        options: [probe, schluessel, bauen]
+        default: probe
+permissions:
+  contents: read
+concurrency:
+  group: android
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MODUS: ${{ inputs.modus }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PASSWORT: ${{ secrets.ANDROID_SCHLUESSEL_PASSWORT }}
+      ZIEL: jarvis-auftraege/android/crewtender-upload.keystore
+      ALIAS: crewtender-upload
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - name: Schlüssel bereitstellen
+        run: |
+          set -euo pipefail
+          cd android
+          dname="CN=Crewtender, O=WP Digital Ranger, L=Uebach-Palenberg, C=DE"
+          if [ "$MODUS" = probe ]; then
+            # Throw-away key: only proves that the build works. Never upload this bundle.
+            PASSWORT="$(openssl rand -hex 24)"; echo "::add-mask::$PASSWORT"; echo "PASSWORT=$PASSWORT" >> "$GITHUB_ENV"
+            keytool -genkeypair -keystore android.keystore -storetype PKCS12 -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 9125 -storepass "$PASSWORT" -keypass "$PASSWORT" -dname "$dname"
+            exit 0
+          fi
+          if [ -z "$PASSWORT" ] || [ "${#PASSWORT}" -lt 16 ]; then echo "::error::Secret ANDROID_SCHLUESSEL_PASSWORT fehlt oder ist kürzer als 16 Zeichen."; exit 1; fi
+          (cd ../web && npm ci --silent)
+          holen() { (cd ../web && npx wrangler r2 object get "$ZIEL" --file "$GITHUB_WORKSPACE/android/android.keystore" --remote --jurisdiction eu) >/dev/null 2>&1; }
+          if holen; then
+            echo "Upload-Schlüssel aus dem privaten Speicher geholt."
+          elif [ "$MODUS" = schluessel ]; then
+            keytool -genkeypair -keystore android.keystore -storetype PKCS12 -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 9125 -storepass "$PASSWORT" -keypass "$PASSWORT" -dname "$dname"
+            (cd ../web && npx wrangler r2 object put "$ZIEL" --file "$GITHUB_WORKSPACE/android/android.keystore" --remote --jurisdiction eu --content-type application/octet-stream) >/dev/null
+            holen || { echo "::error::Schlüssel ließ sich nach dem Speichern nicht wieder lesen."; exit 1; }
+            echo "Upload-Schlüssel neu angelegt und privat gespeichert."
+          else
+            echo "::error::Noch kein Upload-Schlüssel. Zuerst den Ablauf mit Modus schluessel starten."; exit 1
+          fi
+          # The certificate fingerprint is public information (it goes into assetlinks.json).
+          keytool -list -v -keystore android.keystore -alias "$ALIAS" -storepass "$PASSWORT" | grep -E "SHA256:|Valid from" | sed 's/^ *//' | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: App bauen
+        if: inputs.modus != 'schluessel'
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.PASSWORT }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ env.PASSWORT }}
+        run: |
+          set -euo pipefail
+          cd android
+          npm i -g @bubblewrap/cli@latest >/dev/null
+          mkdir -p ~/.bubblewrap
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
+          # Closed stdin: a question from the tool fails at once instead of waiting for an answer that never comes.
+          bubblewrap update --skipVersionUpgrade < /dev/null
+          bubblewrap build --skipPwaValidation < /dev/null
+          ls -la *.aab *.apk
+          # What was really built (not what the tool says): package, version code, target API. Google Play requires
+          # target API 36 (Android 16) since August 2026; raise MIN_ZIEL when Google raises it.
+          aapt="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2"
+          "$aapt" dump badging app-release-signed.apk | grep -E "^package:|^sdkVersion|^targetSdkVersion" | tee badging.txt | tee -a "$GITHUB_STEP_SUMMARY"
+          ziel="$(grep -oE "targetSdkVersion:'[0-9]+'" badging.txt | grep -oE "[0-9]+")"
+          if [ "${ziel:-0}" -lt 36 ]; then echo "::error::Ziel-API $ziel liegt unter der Vorgabe von Google Play (36). Nicht hochladen."; exit 1; fi
+          grep -q "name='eu.crewtender.app'" badging.txt || { echo "::error::Falscher Paketname."; exit 1; }
+      - name: App-Bundle bereitstellen
+        if: inputs.modus == 'bauen'
+        uses: actions/upload-artifact@v4
+        with:
+          name: crewtender-app-bundle
+          path: android/app-release-bundle.aab
+          retention-days: 14
+          if-no-files-found: error
