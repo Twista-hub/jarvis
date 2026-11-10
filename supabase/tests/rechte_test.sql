@@ -149,6 +149,8 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261109100000_bekanntmachung_links_national.sql
 \ir ../migrations/20261110000000_bekanntmachung_links_ocid.sql
 \ir ../migrations/20261110010000_portal_startseiten_links.sql
+\ir ../migrations/20261110020000_alarm_pause_eigene.sql
+\ir ../migrations/20261110030000_betreiber_betrieb.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -1686,6 +1688,7 @@ do $$ begin perform public.betreiber_konto_suchen('kunde@weg.test'); raise excep
 do $$ begin perform public.betreiber_konto_loeschen('kollege@weg.test', true); raise exception 'FEHLER: Kunde darf andere löschen'; exception when others then if sqlerrm like 'FEHLER%' then raise; end if; end $$;
 select set_config('test.wegfirma', :'wegfirma', false);
 do $$ begin perform public.betreiber_firmen(); raise exception 'FEHLER: Kunde sieht alle Firmen'; exception when insufficient_privilege then null; end $$;
+do $$ begin perform public.betreiber_betrieb(); raise exception 'FEHLER: Kunde sieht den Betriebszustand'; exception when insufficient_privilege then null; end $$;
 do $$ begin perform public.betreiber_ki_budget(current_setting('test.wegfirma')::uuid, null); raise exception 'FEHLER: Kunde hebt eigenes KI-Limit auf'; exception when insufficient_privilege then null; end $$;
 do $$ begin perform public.betreiber_paket(current_setting('test.wegfirma')::uuid, 'pro'); raise exception 'FEHLER: Kunde setzt eigenen Plan'; exception when insufficient_privilege then null; end $$;
 do $$ begin update public.firmen set ki_budget_usd = 100 where id = current_setting('test.wegfirma')::uuid; raise exception 'FEHLER: Kunde ändert KI-Limit direkt'; exception when insufficient_privilege then null; end $$;
@@ -1697,6 +1700,7 @@ select pruefe(public.ist_betreiber(), 'Betreiber erkannt');
 select pruefe((select count(*) = 2 from public.betreiber_konto_suchen('KUNDE@weg.test')), 'Betreiber findet beide Firmen des Kunden');
 select pruefe((select inhaber = 'kunde@weg.test' and mitglieder = 1 and ki_budget_usd = 0 and paket = 'kostenlos' from public.betreiber_firmen() where id = :'wegfirma'), 'Betreiber sieht Firma mit Inhaber, Mitgliedern, Plan und KI-Limit');
 select pruefe((select count(*) >= 3 from public.betreiber_firmen()), 'Betreiber sieht auch fremde Firmen');
+select pruefe((select b ? 'katalog_neueste' and b ? 'quelle' and (b->>'firmen')::int >= 3 and (b->>'datenbank_bytes')::bigint > 0 and (b->>'fehler_48h')::int >= 0 from public.betreiber_betrieb() b), 'Betreiber sieht den Betriebszustand');
 select public.betreiber_ki_budget(:'wegfirma', null);
 select pruefe((select ki_budget_usd is null from public.betreiber_firmen() where id = :'wegfirma'), 'Betreiber hebt KI-Limit auf (fremde Firma)');
 select public.betreiber_ki_budget(:'wegfirma', 5.50);

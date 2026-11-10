@@ -110,6 +110,9 @@ ${grundTags(titel)}
   .start-icon { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-size: 1.3rem; background: rgba(79,179,234,.18); }
   .start-live { margin: 18px 0 0; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
   .start-live p { margin: 0; }
+  .start-suche { margin: 18px 0 0; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
+  .start-suche h2 { margin: 0 0 2px; font-size: 1.15rem; } .start-suche > p { margin: 0 0 6px; } .start-suche .demo-suche { margin-bottom: 8px; } .start-suche .demo-suche button { grid-column: 1 / -1; }
+  .start-suche-schnell { display: flex; flex-wrap: wrap; gap: 6px; } .start-suche-schnell a { padding: 6px 12px; min-height: 32px; display: inline-flex; align-items: center; border-radius: 999px; border: 1px solid var(--line); text-decoration: none; font-size: .9rem; }
   .start-live-punkt { display: inline-block; width: 10px; height: 10px; margin-right: 8px; border-radius: 50%; background: #2fb36d; box-shadow: 0 0 0 4px rgba(47, 179, 109, .18); vertical-align: middle; }
   .start-live-beispiel { display: grid; gap: 2px; margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: var(--bg, rgba(255,255,255,.5)); border: 1px dashed var(--line); text-decoration: none; color: inherit; }
   .start-live-beispiel strong { color: var(--accent); }
@@ -819,6 +822,10 @@ ${grundTags(titel)}
   .angebot-zeile form { margin: 0; padding: 0; border: 0; background: none; box-shadow: none; } .angebot-zeile form button { width: auto; min-height: 30px; padding: 2px 10px; font-size: 13px; }
   .such-zeile { display: flex; gap: 6px; margin: 0 0 8px; padding: 0; border: 0; background: none; box-shadow: none; } .such-zeile input { flex: 1; } .such-zeile button { width: auto; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .betrieb-kopf { border-left: 4px solid #2e8b57; padding: 6px 12px; margin: 8px 0; } .betrieb-kopf.gelb { border-left-color: #d68910; } .betrieb-kopf.rot { border-left-color: #c0392b; }
+  .betrieb-liste { list-style: none; padding: 0; margin: 8px 0 20px; display: grid; gap: 6px; } .betrieb-liste li { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border: 1px solid rgba(127,127,127,.25); border-radius: 10px; }
+  .betrieb-marke { flex: 0 0 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: .8rem; color: #fff; background: #2e8b57; }
+  .betrieb-liste li.gelb .betrieb-marke { background: #b9770e; } .betrieb-liste li.rot .betrieb-marke { background: #c0392b; } .betrieb-liste li.grau .betrieb-marke { background: #7a8794; }
   .angebot-kennzahlen.zwei { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .balken-diagramm { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 4px; align-items: end; height: 150px; padding: 8px 8px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
   .balken-spalte { display: grid; grid-template-rows: auto 1fr auto; height: 100%; text-align: center; }

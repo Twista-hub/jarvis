@@ -197,6 +197,16 @@ export function liveKasten(z: StartZahlen | null): string {
 ${b?.id ? `<a class="start-live-beispiel" href="/ausschreibung/${encodeURIComponent(b.id)}"><span class="klein">Gerade neu</span><strong>${escape(b.titel)}</strong><span class="klein">${escape([b.ort, b.frist ? `Frist ${datumDe(b.frist)}` : ""].filter(Boolean).join(" · "))}</span></a>` : ""}</section>`;
 }
 
+/** Search in the real public notices straight from the start page (10.11.2026): a visitor sees tenders for the own
+ *  trade and region before registering. Only a form; the result page /demo/suche is cached at the edge, no AI. */
+export function startSuche(): string {
+  const schnell = ["Gebäudereinigung", "Sicherheitsdienst", "Elektro", "Maler", "Garten- und Landschaftsbau", "Catering"];
+  return `<section class="start-suche" aria-labelledby="start-suche-titel"><h2 id="start-suche-titel">Gibt es gerade Aufträge für dich?</h2>
+<p class="klein">Such in den echten öffentlichen Ausschreibungen – ohne Anmeldung.</p>
+<form method="get" action="/demo/suche" class="demo-suche"><label>Gewerk oder Stichwort<input name="q" maxlength="120" placeholder="z. B. Unterhaltsreinigung"></label><label>Ort oder PLZ<input name="ort" maxlength="60" placeholder="z. B. Köln oder 50"></label><button>Ausschreibungen zeigen</button></form>
+<p class="start-suche-schnell">${schnell.map((w) => `<a href="/demo/suche?q=${encodeURIComponent(w)}">${escape(w)}</a>`).join(" ")}</p></section>`;
+}
+
 export function startseite(beispiel: string, zahlen: StartZahlen | null = null): string {
   return `<section class="start-held">
 <p class="start-fuer">Für Handwerk, Reinigung, Sicherheit, Zeitarbeit, Gastro und viele weitere Branchen</p>
@@ -207,6 +217,7 @@ export function startseite(beispiel: string, zahlen: StartZahlen | null = null):
 <ul class="start-chips"><li>✓ Demo ohne Anmeldung</li><li>✓ 30 Tage alle Pro-Funktionen, danach Free</li><li>✓ Keine Kreditkarte nötig</li><li>✓ Datenbank in Frankfurt (EU)</li><li>✓ Monatlich kündbar</li><li>✓ Los geht's nach der E-Mail-Bestätigung</li></ul>
 </section>
 ${liveKasten(zahlen)}
+${startSuche()}
 <section class="start-statt" aria-label="Eine App statt zwei"><p><strong>Statt Ausschreibungsportal und Dienstplan-Software:</strong> Suche, Bewertung, Kalkulation, Angebot, Schichtplan, Zeiterfassung, Lohnliste und Rechnung greifen in Crewtender ineinander. Nichts doppelt eintippen.</p><p><a href="/vergleich">Was ist anders? Zum Vergleich →</a> · <a href="/stundensatz-rechner">🧮 Kostenloser Stundensatz-Rechner →</a></p></section>
 ${diaShow()}
 <h2 class="start-h2">So funktioniert's</h2>
