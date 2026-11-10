@@ -73,7 +73,7 @@ export const aboSeiten = {
 <p>Crewtender kann mehr: Jede Ausschreibung bekommt 1 bis 10 Punkte für deine Firma, dazu Steckbrief, Kalkulation mit deinen Löhnen und Schichtplan.</p>
 <p class="aktionsleiste"><a class="knopf" href="/registrieren">30 Tage Pro gratis testen</a> <a class="zweit" href="/demo">Demo ansehen</a></p>`,
   unbekannt: `<h1>Link nicht mehr gültig</h1><p>Dieses Abo gibt es nicht (mehr). Vielleicht wurde es schon abgemeldet, oder die Bestätigung kam später als 7 Tage.</p><p><a href="/demo/suche">Neue Suche starten</a></p>`,
-  abmelden: (token: string, q: string, ort: string) => `<h1>Abo abmelden</h1><p>Wöchentliche Mail für ${escape(suchName(q, ort))} beenden? Deine Adresse wird dabei gelöscht.</p><form method="post" action="/abo/abmelden/${token}"><button>Abmelden</button></form>`,
+  abmelden: (token: string, q: string, ort: string) => `<h1>Abo abmelden</h1><p>Wöchentliche Mail für ${escape(suchName(q, ort))} beenden? Deine Adresse wird dabei gelöscht.</p><form method="post" action="/abo/abmelden/${token}"><button>Abo beenden</button></form>`,
   abgemeldet: `<h1>Abgemeldet</h1><p role="status">Du bekommst keine Mails mehr zu dieser Suche. Deine Adresse ist gelöscht.</p><p><a href="/">Zur Startseite</a></p>`,
 };
 
