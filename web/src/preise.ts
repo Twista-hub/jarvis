@@ -1,5 +1,6 @@
 // Price page /preise (public) and plan choice /konto/plan (Benjamin, 06.11.2026). Ordering sends a mail to WP Digital
 // Ranger; the operator then sets the plan on /konto/betreiber and writes the invoice there (payment by invoice).
+import { inAndroidApp } from "./android.ts";
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { ABSENDER, senden, type Mail } from "./mail.ts";
@@ -58,8 +59,9 @@ export async function preise(request: Request, env: KontoEnv & StripeEnv & { SMT
   const betreiber = !!env.STRIPE_SECRET_KEY && !stripeLive(env) ? await db<boolean>(f.s, env, "rpc/ist_betreiber", { method: "POST", body: "{}" }).then((r) => r.ok && r.daten === true) : false;
   const mitStripe = darf && stripeSichtbar(env, betreiber);
   const zurueck = (code: string) => weiterleiten(`/konto/plan?hinweis=${encodeURIComponent(code)}`, f.s.cookies);
+  const inApp = inAndroidApp(request);
   if (request.method === "POST") {
-    if (!darf) return weiterleiten("/konto/plan", f.s.cookies);
+    if (!darf || inApp) return weiterleiten("/konto/plan", f.s.cookies);
     const form = await request.formData();
     const weg = String(form.get("weg") ?? "rechnung");
     if (weg === "portal" && mitStripe && firma?.stripe_kunde) {
@@ -114,6 +116,6 @@ export async function preise(request: Request, env: KontoEnv & StripeEnv & { SMT
   const gewechselt = PLAENE.find((x) => x.monat > 0 && x.id === url.searchParams.get("gewechselt"));
   const hinweisHtml = bestellt ? bestellHinweis(bestellt, url.searchParams.get("zahlweise") === "jahr", f.s.email) : gewechselt ? wechselHinweis(gewechselt) : undefined;
   const abo = firma ? { status: firma.abo_status, bis: firma.abo_bis, kuendigt: !!firma.abo_kuendigt, zahlweise: firma.abo_zahlweise, kunde: !!firma.stripe_kunde } : null;
-  return html(seite("Plan & Preise", planSeite(firma?.paket ?? "kostenlos", firma?.name ?? "", darf, hinweis, { stripe: mitStripe, abo, test: !stripeLive(env), hinweisHtml, stand: await planStand(f.s, env, f.m.firma_id), zusatzOnline: { paket: mitStripe, kraefte: mitStripe && !!firma?.stripe_abo && ["active", "trialing", "past_due"].includes(firma.abo_status ?? "") } }), 0, "einstellungen"), 200, f.s.cookies);
+  return html(seite("Plan & Preise", planSeite(firma?.paket ?? "kostenlos", firma?.name ?? "", darf, hinweis, { stripe: mitStripe, abo, test: !stripeLive(env), hinweisHtml, app: inApp, stand: await planStand(f.s, env, f.m.firma_id), zusatzOnline: { paket: mitStripe, kraefte: mitStripe && !!firma?.stripe_abo && ["active", "trialing", "past_due"].includes(firma.abo_status ?? "") } }), 0, "einstellungen"), 200, f.s.cookies);
 }
 

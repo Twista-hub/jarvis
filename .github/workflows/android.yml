@@ -41,7 +41,7 @@ jobs:
           dname="CN=Crewtender, O=WP Digital Ranger, L=Uebach-Palenberg, C=DE"
           if [ "$MODUS" = probe ]; then
             # Throw-away key: only proves that the build works. Never upload this bundle.
-            PASSWORT="$(openssl rand -hex 24)"; echo "::add-mask::$PASSWORT"; echo "PASSWORT=$PASSWORT" >> "$GITHUB_ENV"
+            PASSWORT="$(openssl rand -hex 24)"; echo "::add-mask::$PASSWORT"; echo "SCHLUESSEL_PW=$PASSWORT" >> "$GITHUB_ENV"
             keytool -genkeypair -keystore android.keystore -storetype PKCS12 -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 9125 -storepass "$PASSWORT" -keypass "$PASSWORT" -dname "$dname"
             exit 0
           fi
@@ -58,13 +58,11 @@ jobs:
           else
             echo "::error::Noch kein Upload-Schlüssel. Zuerst den Ablauf mit Modus schluessel starten."; exit 1
           fi
+          echo "SCHLUESSEL_PW=$PASSWORT" >> "$GITHUB_ENV"   # the build step reads this name (a job-level env value cannot be replaced)
           # The certificate fingerprint is public information (it goes into assetlinks.json).
           keytool -list -v -keystore android.keystore -alias "$ALIAS" -storepass "$PASSWORT" | grep -E "SHA256:|Valid from" | sed 's/^ *//' | tee -a "$GITHUB_STEP_SUMMARY"
       - name: App bauen
         if: inputs.modus != 'schluessel'
-        env:
-          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ env.PASSWORT }}
-          BUBBLEWRAP_KEY_PASSWORD: ${{ env.PASSWORT }}
         run: |
           set -euo pipefail
           cd android
@@ -72,9 +70,18 @@ jobs:
           mkdir -p ~/.bubblewrap
           printf '{"jdkPath":"%s","androidSdkPath":"%s"}' "$JAVA_HOME" "$ANDROID_HOME" > ~/.bubblewrap/config.json
           yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null 2>&1 || true
-          # Closed stdin: a question from the tool fails at once instead of waiting for an answer that never comes.
+          # Bubblewrap only generates the Android project from twa-manifest.json (closed stdin: a question from the tool
+          # fails at once). Building and signing use the standard Android tools of the runner; Bubblewrap's own build
+          # step does not accept the runner's SDK layout.
           bubblewrap update --skipVersionUpgrade < /dev/null
-          bubblewrap build --skipPwaValidation < /dev/null
+          chmod +x gradlew
+          ./gradlew --no-daemon -q bundleRelease assembleRelease
+          bt="$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)"
+          cp app/build/outputs/bundle/release/app-release.aab app-release-bundle.aab
+          jarsigner -keystore android.keystore -storepass:env SCHLUESSEL_PW -keypass:env SCHLUESSEL_PW -sigalg SHA256withRSA -digestalg SHA-256 app-release-bundle.aab "$ALIAS" >/dev/null
+          jarsigner -verify app-release-bundle.aab | tail -1
+          "${bt}zipalign" -f -p 4 app/build/outputs/apk/release/app-release-unsigned.apk app-release-aligned.apk
+          "${bt}apksigner" sign --ks android.keystore --ks-key-alias "$ALIAS" --ks-pass env:SCHLUESSEL_PW --key-pass env:SCHLUESSEL_PW --out app-release-signed.apk app-release-aligned.apk
           ls -la *.aab *.apk
           # What was really built (not what the tool says): package, version code, target API. Google Play requires
           # target API 36 (Android 16) since August 2026; raise MIN_ZIEL when Google raises it.
