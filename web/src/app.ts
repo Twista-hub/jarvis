@@ -388,8 +388,10 @@ export const MANIFEST = JSON.stringify({
  *  signing key from the Play Console (Test und Veröffentlichung → App-Integrität) and the upload key for test builds. */
 export const APP_PAKET = "eu.crewtender.app";
 export const APP_FINGERABDRUECKE: string[] = [
-  // Upload key "crewtender-upload" (created 10.11.2026, android.yml). The app signing key from the Play Console comes
-  // on top as soon as the app exists there; only with that one the store version opens without an address bar.
+  // App signing key of Google Play (Play Console → App-Integrität → App-Signatur, read by the Browser-Chat on 10.11.2026):
+  // the version from the store is signed with it, so only with this entry it opens without an address bar.
+  "EC:89:C6:70:2B:8E:BD:41:7A:4A:2F:83:C0:41:14:A6:D5:70:24:8A:0A:83:67:7D:74:D5:B2:87:C6:14:9B:62",
+  // Upload key "crewtender-upload" (created 10.11.2026, android.yml): for test builds installed directly.
   "C2:62:D8:F8:A8:A3:61:C7:76:10:C8:92:F5:EA:9C:98:AD:E5:9E:4D:B2:C3:FF:39:89:C1:D0:5A:3A:B0:29:17",
 ];
 export const ASSETLINKS = JSON.stringify(APP_FINGERABDRUECKE.length
