@@ -47,13 +47,27 @@ jobs:
           fi
           if [ -z "$PASSWORT" ] || [ "${#PASSWORT}" -lt 16 ]; then echo "::error::Secret ANDROID_SCHLUESSEL_PASSWORT fehlt oder ist kürzer als 16 Zeichen."; exit 1; fi
           (cd ../web && npm ci --silent)
-          holen() { (cd ../web && npx wrangler r2 object get "$ZIEL" --file "$GITHUB_WORKSPACE/android/android.keystore" --remote --jurisdiction eu) >/dev/null 2>&1; }
-          if holen; then
+          # 0 = fetched, 1 = there is none yet, 2 = could not be read (never create a new key then: an existing one
+          # must not be overwritten, updates of the app need the same key).
+          holen() {
+            local tmp="$RUNNER_TEMP/schluessel.tmp" aus
+            rm -f "$tmp" android.keystore
+            if aus="$( (cd ../web && npx wrangler r2 object get "$ZIEL" --file "$tmp" --remote --jurisdiction eu) 2>&1 )" && [ -s "$tmp" ]; then mv "$tmp" android.keystore; return 0; fi
+            rm -f "$tmp"
+            if echo "$aus" | grep -qiE "does not exist|not found|NoSuchKey|10007|404"; then return 1; fi
+            echo "$aus" | tail -3; return 2
+          }
+          rc=0; holen || rc=$?
+          if [ "$rc" = 0 ]; then
             echo "Upload-Schlüssel aus dem privaten Speicher geholt."
+          elif [ "$rc" = 2 ]; then
+            echo "::error::Der private Speicher war nicht lesbar. Kein neuer Schlüssel angelegt, bitte später noch einmal."; exit 1
           elif [ "$MODUS" = schluessel ]; then
             keytool -genkeypair -keystore android.keystore -storetype PKCS12 -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 9125 -storepass "$PASSWORT" -keypass "$PASSWORT" -dname "$dname"
-            (cd ../web && npx wrangler r2 object put "$ZIEL" --file "$GITHUB_WORKSPACE/android/android.keystore" --remote --jurisdiction eu --content-type application/octet-stream) >/dev/null
-            holen || { echo "::error::Schlüssel ließ sich nach dem Speichern nicht wieder lesen."; exit 1; }
+            cp android.keystore "$RUNNER_TEMP/neu.keystore"
+            (cd ../web && npx wrangler r2 object put "$ZIEL" --file "$RUNNER_TEMP/neu.keystore" --remote --jurisdiction eu --content-type application/octet-stream) >/dev/null
+            rc=0; holen || rc=$?
+            if [ "$rc" != 0 ] || ! cmp -s android.keystore "$RUNNER_TEMP/neu.keystore"; then echo "::error::Schlüssel ließ sich nach dem Speichern nicht wieder lesen."; exit 1; fi
             echo "Upload-Schlüssel neu angelegt und privat gespeichert."
           else
             echo "::error::Noch kein Upload-Schlüssel. Zuerst den Ablauf mit Modus schluessel starten."; exit 1
