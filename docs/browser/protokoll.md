@@ -19,6 +19,38 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### Erledigt (10.11.2026) – Play Console Crewtender
+Konto WP Digital Ranger (Organisationskonto), App-ID 4972724087261729148. Nichts veröffentlicht, nichts zur Prüfung eingereicht, kein Produktions-Release. Keine Passwörter eingegeben.
+
+**Erledigt**
+- App angelegt: „Crewtender – Aufträge & Team“, `eu.crewtender.app`, Standardsprache de-DE, App, kostenlos. Erklärungen Programmrichtlinien und US-Exportgesetze angehakt (Benjamin: „Ja“).
+- Interner Test: AAB hochgeladen (Version 1 / 1.0.0, API 24+, Ziel-SDK 36, 650 KB), Release-Name 1.0.0, Hinweis „Erste Version.“. Als Entwurf gespeichert, nicht eingeführt. Play App Signing aktiv. Keine Testerliste (Benjamin: nicht nötig).
+- Store-Eintrag de-DE: Kurz- und Langbeschreibung, Symbol, Vorstellungsgrafik, 6 Screenshots in der Reihenfolge 1–6. Als Entwurf gespeichert.
+- Store-Eintrag en-US (Übersetzung): „Crewtender – Tenders & Team“, Kurz- und Langbeschreibung laut Auftrag, gleiche Grafiken. Als Entwurf gespeichert.
+- Store-Einstellungen: Kategorie „Arbeit“ (die deutsche Console nennt „Business“ so), E-Mail hello@crewtender.eu, Website https://crewtender.eu, keine Telefonnummer.
+- App-Inhalte gespeichert: Datenschutzerklärung https://crewtender.eu/datenschutz · Werbung: nein · Werbe-ID: nein · Behörden-App: nein · Finanzfunktionen: keine · Gesundheit: keine.
+- Datensicherheit **als Entwurf** komplett ausgefüllt: erhoben ja, verschlüsselt ja, Konten ja (Methode „Nutzername, Passwort und andere Authentifizierung“, weil Passwort + Anmelde-Link per E-Mail), Konto-Lösch-URL https://crewtender.eu/konto-loeschen. Alle 10 Datentypen laut Auftrag (erhoben, nicht geteilt, App-Funktionen; Name/E-Mail/Nutzer-IDs auch Kontoverwaltung; nur Ungefährer Standort „sitzungsspezifisch: ja“). Die optionale Frage „Daten entfernen ohne Konto zu löschen“ ist leer.
+- Produktion → Länder/Regionen: Deutschland, Österreich, Schweiz „Ausgerichtet“. Track bleibt „Inaktiv“.
+- SHA-256 App-Signaturschlüssel (für assetlinks.json): `EC:89:C6:70:2B:8E:BD:41:7A:4A:2F:83:C0:41:14:A6:D5:70:24:8A:0A:83:67:7D:74:D5:B2:87:C6:14:9B:62`
+
+**Warnungen der Console (Wortlaut)**
+- Interner Test: „Dieser Release ist nicht für Nutzer verfügbar, da du noch keine Tester festgelegt hast. Tipp: Du solltest deinen Test-Track konfigurieren, um den Release für die Tester verfügbar zu machen.“
+- Veröffentlichungen – Übersicht: „Wenn du Änderungen zur Überprüfung einreichen möchtest, musst du zuerst die erforderlichen Schritte im App-Dashboard durchführen“
+- Veröffentlichungen – Übersicht (Hinweis): „Wenn du Apps in der EU vertreibst, beachte die Verordnung gegen ungerechtfertigtes Geoblocking (EU) 2018/302“
+- Datensicherheit, Vorschau: „Um den Fragebogen zur Datensicherheit zu senden, musst du die Zielaltersgruppe deiner App und andere Informationen zum Inhalt angeben“
+- Zielgruppe und Inhalte: „Du musst den Abschnitt mit den Anmeldedaten ausfüllen, bevor du die Fragen zu Zielgruppe und Inhalten beantworten kannst“
+
+**Offen für Benjamin** (Reihenfolge einhalten)
+1. **Anmeldedaten (Prüfkonto)**: „Ja, Teil der App ist zugangsbeschränkt“ → „Details hinzufügen“: Name, Nutzername und Passwort des Prüfkontos selbst eintragen. Unter „Sonstige Informationen“ (Englisch): „The app can also be explored without an account at https://crewtender.eu/demo (sample data). Subscriptions are not sold inside the Android app.“ → Speichern.
+   https://play.google.com/console/u/0/developers/7892927649553841249/app/4972724087261729148/app-content/testing-credentials
+2. **Altersfreigabe**: E-Mail ist eingetragen und Kategorie „Alle anderen App-Typen“ gewählt (so heißt „Dienstprogramm, Produktivität, Kommunikation oder Sonstiges“ jetzt). Offen: Haken „Ich stimme den … Nutzungsbedingungen der IARC zu“ – den setzt der Browser-Chat nur mit Benjamins Ja. Danach Fragebogen: Gewalt, Sexualität, Sprache, Drogen, Glücksspiel nein; Nutzer können kommunizieren ja; Standort teilen nein; digitale Käufe nein.
+   https://play.google.com/console/u/0/developers/7892927649553841249/app/4972724087261729148/app-content/content-rating-overview
+3. **Zielgruppe und Inhalte** (geht erst nach 1.): nur 18+, spricht Kinder nicht an.
+   https://play.google.com/console/u/0/developers/7892927649553841249/app/4972724087261729148/app-content/target-audience-content
+4. **Datensicherheit** (geht erst nach 3.): Entwurf öffnen, bis „Vorschau“ durchklicken, Speichern.
+   https://play.google.com/console/u/0/developers/7892927649553841249/app/4972724087261729148/app-content/data-privacy-security
+- Die Erklärung „Nachrichten-App“ wurde in der Liste der App-Inhalte nicht angezeigt; deshalb gibt es dort nichts zu tun.
+
 ### Erledigt (08.11.2026) – sitemap-seiten.xml eingereicht
 - Status „Erfolgreich“, gelesen 08.11.2026, 271 Seiten (= alle Einträge; die Soll-Zahl 273 im Auftrag war falsch, Claude Code). sitemap.xml bleibt mit „Konnte nicht abgerufen werden“ in der Liste (egal), sitemap-ausschreibungen.xml weiter „Erfolgreich“, 5.526 Seiten.
 
