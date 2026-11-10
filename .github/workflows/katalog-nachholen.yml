@@ -1,11 +1,11 @@
 # Catalogue days whose daily export of the Bekanntmachungsservice came back empty are read from the monthly export
 # (web/scripts/katalog-nachholen.ts). Fails if the newest notice in the catalogue is older than 3 days, which sends a
-# phone message through "Fehler melden". Public CC0 data only. Started by the catalogue worker's cron (reliable) and,
-# as a reserve, by GitHub's schedule.
+# phone message through "Fehler melden". Public CC0 data only, no AI. Started by the catalogue worker's cron at 6 and
+# 13 o'clock Berlin (reliable) and once in the evening by GitHub's schedule as a reserve.
 name: Katalog nachholen
 on:
   schedule:
-    - cron: "17 5,12,18 * * *"
+    - cron: "17 18 * * *"
   workflow_dispatch:
     inputs:
       tage:

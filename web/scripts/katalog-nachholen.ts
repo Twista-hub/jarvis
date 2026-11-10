@@ -8,6 +8,8 @@
 //   2. those days are read from the monthly export (same source, CC0 stated in every file) and taken in with the same
 //      code as the collector (normalisiereBlock, jarvis_katalog.aufnehmen); deadlines from the monthly eForms export
 //   3. it fails (→ workflow „Fehler melden“ → phone message) if the newest notice in the catalogue is older than 3 days
+// Sparing by design (Benjamin 10.11.2026: no quotas wasted): no AI, GitHub minutes are free for this public repository,
+// a normal run makes one small database query and reads no raw data; a month is downloaded only for days not yet caught up.
 //
 // Usage: node --experimental-strip-types scripts/katalog-nachholen.ts [--tage=10] [--probe]
 import postgres from "postgres";
@@ -98,8 +100,14 @@ async function main() {
   const sql = await verbinden();
   try {
     let aufgenommen = 0;
-    for (const monat of [...new Set(leer.map((t) => t.slice(0, 7)))].sort()) {
-      const wanted = new Set(leer.filter((t) => t.startsWith(monat)));
+    // An empty day that is at least 3 days old and already has notices in the catalogue was caught up by an earlier
+    // run (the monthly export is complete by then): do not download the month again for it.
+    const vorhanden = new Set((await sql`select distinct (quell_datum at time zone 'Europe/Berlin')::date::text as tag from public.vergabekatalog where quelle = 'bks' and quell_datum > now() - interval '45 days'`).map((r) => String(r.tag)));
+    const fertig = tageBis(heute, 2)[1];
+    const offeneTage = leer.filter((t) => !vorhanden.has(t) || t >= fertig);
+    if (leer.length !== offeneTage.length) console.log(`Schon nachgeholt: ${leer.filter((t) => !offeneTage.includes(t)).join(", ")}`);
+    for (const monat of [...new Set(offeneTage.map((t) => t.slice(0, 7)))].sort()) {
+      const wanted = new Set(offeneTage.filter((t) => t.startsWith(monat)));
       const jeTag = releasesDerTage(await laden(`${BASIS}?pubMonth=${monat}&format=ocds.zip`), wanted);
       console.log(`Monatsexport ${monat}: ${[...wanted].sort().map((t) => `${t}: ${jeTag.get(t)?.length ?? 0}`).join(", ")}`);
       if (![...jeTag.values()].some((r) => r.length) || probe) continue;
@@ -112,10 +120,14 @@ async function main() {
         const roh = jeTag.get(tag)!; const zuGross: string[] = []; let neu = 0;
         for (let i = 0; i < roh.length; i += 40) {
           const teil = roh.slice(i, i + 40).map((rel) => fristenEinsetzen(rel, fristen));
-          const bisher = await bestehendeBekanntmachungen(sql, teil.map((rel) => `bks:${rel.ocid || rel.id}`));
+          // Sparing with database traffic: first only id and date; the stored raw data (large) is read only for notices
+          // that really get a newer state. Notices taken in by an earlier run are skipped.
+          const ids = teil.map((rel) => `bks:${rel.ocid || rel.id}`);
+          const stand = new Map((await sql`select id, quell_datum from public.vergabekatalog where id in ${sql(ids)}`).map((r) => [String(r.id), new Date(r.quell_datum).getTime()]));
+          const offen = teil.filter((rel) => { const b = stand.get(`bks:${rel.ocid || rel.id}`); return b === undefined || b < Date.parse(rel.date); });
+          if (!offen.length) continue;
+          const bisher = await bestehendeBekanntmachungen(sql, offen.map((rel) => `bks:${rel.ocid || rel.id}`).filter((id) => stand.has(id)));
           const bestehend = new Map(bisher.map((r) => [String(r.id), { roh: r.roh, quell_datum: r.quell_datum }]));
-          // Already taken in by an earlier run (same or newer state): nothing to write.
-          const offen = teil.filter((rel) => { const b = bestehend.get(`bks:${rel.ocid || rel.id}`); return !b || new Date(b.quell_datum).getTime() < Date.parse(rel.date); });
           const batch = await normalisiereBlock(offen, bestehend, tag, zuGross);
           if (batch.length) await sql`select jarvis_katalog.aufnehmen(${sql.json(batch as any)})`;
           neu += batch.length;
