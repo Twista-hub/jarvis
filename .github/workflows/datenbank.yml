@@ -11,7 +11,7 @@ on:
     inputs:
       aktion:
         type: choice
-        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose, abos, beispielfirma_test, auftraggeber_diagnose, cpv_haeufigkeit, link_diagnose]
+        options: [anzeigen, einspielen, anmeldungen, loeschdiagnose, abos, beispielfirma_test, auftraggeber_diagnose, cpv_haeufigkeit, link_diagnose, such_abos]
         default: anzeigen
       bestaetigung:
         description: "Zum Einspielen hier EINSPIELEN eintippen"
@@ -156,6 +156,11 @@ jobs:
           psql "$DB_URL" -X -c "select substring(link from '^https?://([^/]+)') as domain, count(*), min(link) as beispiel from public.vergabekatalog group by 1 order by 2 desc limit 60"
           psql "$DB_URL" -X -c "select substring(link from '^https?://([^/]+)') as domain, count(*), min(link) as beispiel from public.vorgaenge where link is not null and link <> '' group by 1 order by 2 desc limit 60"
           psql "$DB_URL" -X -c "select land, substring(link from '^https?://([^/]+)') as domain, count(*), count(distinct link) as verschieden, max(link) as beispiel from jarvis_intern.ausland_avis group by 1, 2 order by 1, 3 desc"
+      - name: Such-Abos (nur lesen, Adressen gekürzt)
+        if: inputs.aktion == 'such_abos'
+        run: |
+          psql "$DB_URL" -X -c "select regexp_replace(email, '^(.{3})[^@]*', '\\1…') as wer, suche, gebiet, erstellt::timestamp(0), bestaetigt::timestamp(0), geprueft::timestamp(0), letzte_mail::timestamp(0), mails from jarvis_intern.such_abos order by erstellt desc limit 40"
+          psql "$DB_URL" -X -c "select count(*) as treffer_reinigung_7_tage from jarvis_intern.such_abo_treffer('Reinigung', '', now() - interval '7 days')"
       - name: CPV-Häufigkeit (nur lesen)
         if: inputs.aktion == 'cpv_haeufigkeit'
         run: |
@@ -166,7 +171,7 @@ jobs:
           psql "$DB_URL" -X -c "with g(name, p) as (values ('Catering/Kantine', array['5552','5551','5532','5531']), ('Schülerbeförderung/Personenverkehr', array['6013','6017','6011','6014']), ('Pflege/Soziales', array['8531','8532','8514','8511']), ('Bildung/Kurse', array['8050','8053','8040','8042','8041']), ('Abfall/Entsorgung', array['9051','9050','9052','9053']), ('Straßen-/Tiefbau', array['45233','45232','45231','45221','45112','45111','45234']), ('Gerüst/Beton/Mauer', array['45262']), ('Wartung Haustechnik', array['5071','5070','5072','5073','5075']), ('Brandschutz/Sicherheitstechnik', array['45343','3515','5141','4531212']), ('Fensterbau/Metallbau/Schlosser', array['45421','45441','4526','45223','44221']), ('Umzug/Logistik', array['6000','6310','98392']), ('Hausmeister/FM', array['7031','7033','7911','98341']), ('Planung/Ingenieure', array['7132','7131','7124','7122','7130']), ('Wäscherei', array['9831','98311']), ('IT-Dienste', array['72']), ('Zeitarbeit', array['7962']), ('Sicherheit', array['7971']), ('Reinigung', array['9091','90919']), ('Garten/Winterdienst', array['7731','7731','9062','9063']), ('Veranstaltung/Event', array['7995','9235']), ('Dolmetschen', array['7953','7954'])) select g.name, count(distinct v.id) as ausschreibungen, count(distinct v.id) filter (where v.frist > now()) as offen from g join public.vergabekatalog v on v.quelle = 'bks' and v.quell_datum > now() - interval '90 days' and exists (select 1 from unnest(v.cpv) c where c ~ '^[0-9]{8}' and left(c, 8) like any (select x || '%' from unnest(g.p) x)) group by 1 order by 2 desc"
           psql "$DB_URL" -X -c "select count(*) as gesamt_90_tage, count(*) filter (where frist > now()) as offen from public.vergabekatalog where quelle = 'bks' and quell_datum > now() - interval '90 days'"
       - name: Migrationen
-        if: inputs.aktion != 'anmeldungen' && inputs.aktion != 'auftraggeber_diagnose' && inputs.aktion != 'cpv_haeufigkeit' && inputs.aktion != 'link_diagnose'
+        if: inputs.aktion != 'anmeldungen' && inputs.aktion != 'auftraggeber_diagnose' && inputs.aktion != 'cpv_haeufigkeit' && inputs.aktion != 'link_diagnose' && inputs.aktion != 'such_abos'
         run: |
           set -o pipefail
           # Output (also errors) through a filter that removes credentials from connection strings.
