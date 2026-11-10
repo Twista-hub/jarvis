@@ -87,6 +87,50 @@ class Einstellungen(unittest.TestCase):
         self.assertEqual(mail.sofort_melden(con, "f1", []), 0)
 
 
+
+class SuchAbo(unittest.TestCase):
+    def test_wochenmail_mit_treffern_abmeldelink_und_impressum(self):
+        from datetime import datetime, timezone
+        token = "a" * 64
+        treffer = [("bks:ocds-mnwr74-1", "Unterhaltsreinigung <Schule>", "Stadt Aachen", "52062 Aachen", datetime(2026, 12, 1, 9, 0, tzinfo=timezone.utc)),
+                   ("bks:ocds-mnwr74-2", "Glasreinigung Rathaus", "Stadt Düren", "", None)]
+        m = mail.abo_mail("kunde@firma.de", "Gebäudereinigung", "52", treffer, token)
+        self.assertEqual(m["Subject"], "2 neue Ausschreibungen für „Gebäudereinigung“ in 52")
+        self.assertEqual(m["List-Unsubscribe"], f"<https://crewtender.eu/abo/abmelden/{token}>")
+        self.assertEqual(m["List-Unsubscribe-Post"], "List-Unsubscribe=One-Click")
+        text = m.get_body(("plain",)).get_content()
+        seite = m.get_body(("html",)).get_content()
+        self.assertIn("https://crewtender.eu/ausschreibung/bks%3Aocds-mnwr74-1", text)
+        self.assertIn("Stadt Aachen · 52062 Aachen · Frist 01.12.2026", text)
+        self.assertIn(f"Abmelden: https://crewtender.eu/abo/abmelden/{token}", text)
+        self.assertIn("Rochusstraße 19, 52531 Übach-Palenberg", text)
+        self.assertIn("https://crewtender.eu/demo/suche?q=Geb%C3%A4udereinigung&ort=52", text)
+        self.assertIn("Unterhaltsreinigung &lt;Schule&gt;", seite)
+        self.assertNotIn("<Schule>", seite)
+        self.assertEqual(mail.abo_mail("k@f.de", "", "Köln", treffer[:1], token)["Subject"], "1 neue Ausschreibung für in Köln")
+
+    def test_nur_tagsueber_und_ohne_treffer_keine_mail(self):
+        from datetime import datetime
+
+        class Con:
+            def __init__(self): self.sql = []
+            def execute(self, sql, args=()):
+                self.sql.append(" ".join(sql.split())[:60])
+                zeilen = [("1", "k@f.de", "maler", "", "b" * 64, datetime(2026, 11, 3, tzinfo=mail.BERLIN), None)] if "from jarvis_intern.such_abos where" in sql else [("1",)] if sql.startswith("update") else []
+                return type("R", (), {"fetchall": lambda s: zeilen, "fetchone": lambda s: zeilen[0] if zeilen else None})()
+
+        class Smtp:
+            def __init__(self): self.n = 0
+            def send_message(self, m): self.n += 1
+
+        con, smtp = Con(), Smtp()
+        self.assertEqual(mail.such_abos_senden(con, smtp, datetime(2026, 11, 10, 6, 0, tzinfo=mail.BERLIN)), 0)
+        self.assertEqual(con.sql, [], "nachts keine Abfrage")
+        self.assertEqual(mail.such_abos_senden(con, smtp, datetime(2026, 11, 10, 9, 0, tzinfo=mail.BERLIN)), 0)
+        self.assertEqual(smtp.n, 0, "ohne neue Treffer keine Mail")
+        self.assertTrue(any(x.startswith("update jarvis_intern.such_abos set geprueft") for x in con.sql), "Prüfung trotzdem vermerkt")
+
+
 if __name__ == "__main__":
     unittest.main()
 

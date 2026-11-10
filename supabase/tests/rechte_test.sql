@@ -151,6 +151,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261110010000_portal_startseiten_links.sql
 \ir ../migrations/20261110020000_alarm_pause_eigene.sql
 \ir ../migrations/20261110030000_betreiber_betrieb.sql
+\ir ../migrations/20261110040000_such_abos.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2251,5 +2252,36 @@ update public.firmen set herkunft = '{"quelle": "geschummelt"}' where id = :'her
 select pruefe((select herkunft->>'quelle' = 'linkedin' from public.firmen where id = :'herkunft_firma'), 'Herkunft nicht vom Kunden änderbar');
 reset role;
 select test_als('');
+
+-- Suche abonnieren (10.11.2026): only the worker's database role creates subscriptions; confirm and unsubscribe by token.
+reset role;
+select test_als('');
+set role anon;
+do $$ begin perform jarvis_intern.such_abo_anlegen('a@b.de', 'reinigung', '', 'x'); raise exception 'FEHLER: anon legt Abo an'; exception when insufficient_privilege then null; end $$;
+do $$ begin perform 1 from jarvis_intern.such_abos; raise exception 'FEHLER: anon liest Abos'; exception when insufficient_privilege then null; end $$;
+select pruefe(public.such_abo_bestaetigen('zu-kurz') is null and public.such_abo_abmelden(repeat('a', 64)) = false and public.such_abo_zeigen(repeat('a', 64)) is null, 'Abo: unbekanntes Token tut nichts');
+reset role;
+select jarvis_intern.such_abo_anlegen(' Kunde@Abo.Test ', 'Unterhaltsreinigung', '52', 'Einwilligung Test') ->> 'token' as abotoken \gset
+select pruefe(:'abotoken' ~ '^[0-9a-f]{64}$', 'Abo angelegt, Token 64 Zeichen');
+select pruefe(jarvis_intern.such_abo_anlegen('kunde@abo.test', 'Unterhaltsreinigung', '52', 'x') ->> 'status' = 'warten', 'Abo: zweite Anfrage binnen 10 Minuten schickt keine Mail');
+select pruefe((select bestaetigt is null and email = 'kunde@abo.test' from jarvis_intern.such_abos where token = :'abotoken'), 'Abo: Adresse kleingeschrieben, noch nicht bestätigt');
+do $$ begin perform jarvis_intern.such_abo_anlegen('kunde@abo.test', '', '', 'x'); raise exception 'FEHLER: Abo ohne Suche'; exception when others then if sqlerrm <> 'EINGABE' then raise; end if; end $$;
+do $$ begin perform jarvis_intern.such_abo_anlegen('keine-adresse', 'x', '', 'x'); raise exception 'FEHLER: Abo ohne gültige Adresse'; exception when others then if sqlerrm <> 'EINGABE' then raise; end if; end $$;
+set role anon;
+select pruefe(public.such_abo_bestaetigen(:'abotoken') ->> 'suche' = 'Unterhaltsreinigung', 'Abo: Bestätigung per Token ohne Anmeldung');
+select pruefe(public.such_abo_zeigen(:'abotoken') ->> 'gebiet' = '52', 'Abo: Abmeldeseite zeigt die Suche');
+reset role;
+select pruefe((select bestaetigt is not null from jarvis_intern.such_abos where token = :'abotoken'), 'Abo bestätigt');
+select pruefe(jarvis_intern.such_abo_anlegen('kunde@abo.test', 'Unterhaltsreinigung', '52', 'x') ->> 'status' = 'schon', 'Abo: bestätigtes Abo wird nicht doppelt angelegt');
+insert into jarvis_intern.such_abos (email, suche, einwilligung) select 'viele@abo.test', 'suche' || n, 'x' from generate_series(1, 5) n;
+select pruefe(jarvis_intern.such_abo_anlegen('viele@abo.test', 'noch eine', '', 'x') ->> 'status' = 'zu_viele', 'Abo: höchstens 5 offene Bestätigungen je Adresse');
+update jarvis_intern.such_abos set erstellt = now() - interval '8 days' where email = 'viele@abo.test';
+select jarvis_intern.such_abo_anlegen('neu@abo.test', 'maler', '', 'x');
+select pruefe((select count(*) = 0 from jarvis_intern.such_abos where email = 'viele@abo.test'), 'Abo: unbestätigte Einträge nach 7 Tagen gelöscht');
+select pruefe((select count(*) >= 0 from jarvis_intern.such_abo_treffer('Unterhaltsreinigung', '52', now() - interval '7 days')), 'Abo: Treffersuche läuft');
+set role anon;
+select pruefe(public.such_abo_abmelden(:'abotoken'), 'Abo: Abmelden per Token');
+reset role;
+select pruefe((select count(*) = 0 from jarvis_intern.such_abos where email = 'kunde@abo.test'), 'Abo: Abmelden löscht die Adresse');
 
 \echo ALLE TESTS OK

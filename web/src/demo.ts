@@ -1,6 +1,7 @@
 // Demo without registration: the real pages of Crewtender with sample data of a fictitious firm. Nothing is read from or
 // written to the database; forms are blocked in the browser (app.js, body[data-demo]) and every link into the app
 // is rewritten to the demo. Lets interested firms look around before they register.
+import { aboFormular } from "./suchabo.ts";
 import { KI_KENNUNG } from "./ki-kennung.ts";
 import { escape, markdown, seite } from "./seite.ts";
 import { html, trefferListe, frageMarken, unterlagenHinweis } from "./konto.ts";
@@ -114,7 +115,7 @@ export function demoSuchSeite(o: { q: string; ort: string; alle: boolean; treffe
     : !o.treffer.length ? `<p>Keine ${o.alle ? "" : "offenen "}Ausschreibungen gefunden. Versuch ein anderes Stichwort${o.alle ? "" : " oder „auch abgelaufene“"}.</p>`
     : `<p class="klein">${o.treffer.length === 30 ? "Die 30 neuesten Treffer" : `${o.treffer.length} ${o.treffer.length === 1 ? "Treffer" : "Treffer"}`}${gesucht ? "" : " – die neuesten offenen Ausschreibungen"}.</p><ul class="kontakt-liste demo-katalog">${o.treffer.map((t) => `<li><div><a href="${katalogLink(t.id)}"><strong>${escape(t.titel)}</strong></a><span class="klein">${escape([t.auftraggeber, t.ort].filter(Boolean).join(" · "))}${t.frist ? ` · Frist ${datumDe(t.frist)}` : ""}${t.steckbrief ? " · 📄 Beispiel-Steckbrief" : ""}</span></div></li>`).join("")}</ul>`;
   const beispiele = o.beispiele.length ? `<h2>Beispiel-Steckbriefe zu echten Ausschreibungen</h2><p class="klein">Neutral, nur aus der öffentlichen Bekanntmachung geschrieben – so sieht ein Steckbrief in Crewtender aus.</p><ul class="kontakt-liste demo-katalog">${o.beispiele.map((b) => `<li><div><a href="${katalogLink(b.katalog_id)}"><strong>${escape(b.titel)}</strong></a><span class="klein">${escape([b.auftraggeber, b.ort].filter(Boolean).join(" · "))}${b.frist ? ` · Frist ${datumDe(b.frist)}` : ""}</span></div></li>`).join("")}</ul>` : "";
-  return `${banner}${reiter("suche")}<p>Hier suchst du in den <strong>echten öffentlichen Ausschreibungen</strong> aus den amtlichen Quellen – mit deinen eigenen Stichwörtern und deiner Region. In der Demo ohne KI: Treffer nach Stichworten.</p>${suchFormular(o.q, o.ort, o.alle)}${liste}${KI_FENSTER}${beispiele}<p class="klein">Quelle: amtliche Bekanntmachungen (u. a. Bekanntmachungsservice des Bundes, TED). Namen von Ansprechpersonen blendet Crewtender aus.</p>`;
+  return `${banner}${reiter("suche")}<p>Hier suchst du in den <strong>echten öffentlichen Ausschreibungen</strong> aus den amtlichen Quellen – mit deinen eigenen Stichwörtern und deiner Region. In der Demo ohne KI: Treffer nach Stichworten.</p>${suchFormular(o.q, o.ort, o.alle)}${liste}${o.treffer === null ? "" : aboFormular(o.q, o.ort)}${KI_FENSTER}${beispiele}<p class="klein">Quelle: amtliche Bekanntmachungen (u. a. Bekanntmachungsservice des Bundes, TED). Namen von Ansprechpersonen blendet Crewtender aus.</p>`;
 }
 
 export function demoKatalogSeite(e: DemoEintrag): string {

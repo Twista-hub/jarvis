@@ -8,6 +8,7 @@ export type Betrieb = {
   zahlen_stand?: string | null; letzte_mail?: string | null; push_haengt?: number; social_zuletzt?: string | null;
   fehler_48h?: number; fehler_letzter?: { zeit?: string; text?: string } | null;
   ki?: { limit_usd?: number; reserviert?: number } | null; ki_firmen_aktiv?: number; datenbank_bytes?: number; firmen?: number;
+  such_abos?: { bestaetigt?: number; offen?: number; neu_7t?: number; letzte_mail?: string | null } | null;
 };
 export type Zustand = "gruen" | "gelb" | "rot" | "grau";
 export type Zeile = { name: string; zustand: Zustand; text: string };
@@ -37,6 +38,8 @@ export function betriebZeilen(d: Betrieb, jetzt = Date.parse(d.jetzt ?? "") || D
   zeilen.push({ name: "Bluesky und Mastodon", zustand: nachAlter(s, 36, 96), text: `letzter Post ${vor(s)}` });
   const limit = Number(d.ki?.limit_usd ?? 0), verbraucht = Number(d.ki?.reserviert ?? 0), anteil = limit > 0 ? verbraucht / limit : 0;
   zeilen.push({ name: "KI-Kosten im Monat", zustand: anteil >= 0.9 ? "rot" : anteil >= 0.7 ? "gelb" : "gruen", text: `${verbraucht.toFixed(2).replace(".", ",")} von ${limit.toFixed(0)} $ · tägliche KI-Suche für ${d.ki_firmen_aktiv ?? 0} ${(d.ki_firmen_aktiv ?? 0) === 1 ? "Firma" : "Firmen"}` });
+  const abo = d.such_abos ?? {};
+  zeilen.push({ name: "Such-Abos (Wochenmail)", zustand: "grau", text: `${zahl(abo.bestaetigt ?? 0)} bestätigt, davon ${zahl(abo.neu_7t ?? 0)} neu in 7 Tagen · ${zahl(abo.offen ?? 0)} warten auf Bestätigung · letzte Mail ${vor(stunden(abo.letzte_mail, jetzt))}` });
   const mb = (d.datenbank_bytes ?? 0) / 1e6;
   zeilen.push({ name: "Datenbank", zustand: mb >= 450 ? "rot" : mb >= 350 ? "gelb" : "gruen", text: `${Math.round(mb)} von 500 MB (Abruf pausiert ab 350 MB)` });
   return zeilen;
