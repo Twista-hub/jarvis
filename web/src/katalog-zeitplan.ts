@@ -8,8 +8,8 @@ export async function ablaeufeAnstossen(env: { GH_DISPATCH_TOKEN?: string }, jet
   if (!env.GH_DISPATCH_TOKEN) return [];
   const stunde = Number(jetzt.toLocaleString("en-GB", { timeZone: "Europe/Berlin", hour: "2-digit", hour12: false }));
   // katalog-nachholen.yml: empty daily exports of the source are read from its monthly export (10.11.2026), before the
-  // morning mails and twice more during the day.
-  const ablaeufe = [...([6, 13, 19].includes(stunde) ? ["katalog-nachholen.yml"] : []), ...(stunde >= 7 && stunde <= 20 ? ["mail.yml"] : []), ...(stunde >= 9 && stunde <= 20 ? ["social.yml"] : [])];
+  // morning mails and once more at midday.
+  const ablaeufe = [...([6, 13].includes(stunde) ? ["katalog-nachholen.yml"] : []), ...(stunde >= 7 && stunde <= 20 ? ["mail.yml"] : []), ...(stunde >= 9 && stunde <= 20 ? ["social.yml"] : [])];
   const fehler: string[] = [];
   for (const datei of ablaeufe) {
     const r = await holen(`https://api.github.com/repos/Twista-hub/jarvis/actions/workflows/${datei}/dispatches`, {
