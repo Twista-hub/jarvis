@@ -152,6 +152,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261110020000_alarm_pause_eigene.sql
 \ir ../migrations/20261110030000_betreiber_betrieb.sql
 \ir ../migrations/20261110040000_such_abos.sql
+\ir ../migrations/20261111010000_besuche_tag.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -2283,5 +2284,22 @@ set role anon;
 select pruefe(public.such_abo_abmelden(:'abotoken'), 'Abo: Abmelden per Token');
 reset role;
 select pruefe((select count(*) = 0 from jarvis_intern.such_abos where email = 'kunde@abo.test'), 'Abo: Abmelden löscht die Adresse');
+
+-- Visits from outside (11.11.2026): only the worker's database role counts; only numbers per day, channel and source.
+select test_als('');
+set role anon;
+do $$ begin perform jarvis_intern.besuch_zaehlen('ki', 'chatgpt'); raise exception 'FEHLER: anon zählt Besuche'; exception when insufficient_privilege then null; end $$;
+do $$ begin perform 1 from jarvis_intern.besuche_tag; raise exception 'FEHLER: anon liest Besuche'; exception when insufficient_privilege then null; end $$;
+reset role;
+select jarvis_intern.besuch_zaehlen('ki', 'chatgpt');
+select jarvis_intern.besuch_zaehlen('ki', 'ChatGPT');
+select jarvis_intern.besuch_zaehlen('suche', 'google');
+select jarvis_intern.besuch_zaehlen('unsinn', 'x');
+select jarvis_intern.besuch_zaehlen('ki', '  ');
+select pruefe((select n = 2 from jarvis_intern.besuche_tag where kanal = 'ki' and quelle = 'chatgpt') and (select count(*) = 2 from jarvis_intern.besuche_tag), 'Besuche: zählt je Tag, Kanal und Quelle; unbekannter Kanal und leere Quelle zählen nicht');
+select test_als('00000000-0000-0000-0000-0000000000b1');
+select pruefe((select jsonb_array_length(b->'besuche') = 2 and b->'besuche'->0->>'quelle' = 'chatgpt' and (b->'besuche'->0->>'t30')::int = 2 and (b->'besuche'->0->>'t7')::int = 2 from public.betreiber_betrieb() b), 'Betreiber sieht die Besuche von außen');
+select test_als('');
+reset role;
 
 \echo ALLE TESTS OK

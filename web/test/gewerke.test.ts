@@ -1,7 +1,7 @@
 import { ANLEITUNGEN } from "../src/hilfecenter.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { GEWERKE, gewerkSeite, ROBOTS, sitemap, uebersichtGewerke } from "../src/gewerke.ts";
+import { GEWERKE, gewerkSeite, LLMS, ROBOTS, sitemap, uebersichtGewerke } from "../src/gewerke.ts";
 
 test("Gewerke-Seiten: 26 Gewerke, Zahlen, Beispiele, FAQ, Sitemap", () => {
   assert.equal(GEWERKE.length, 26);
@@ -23,6 +23,11 @@ test("Gewerke-Seiten: 26 Gewerke, Zahlen, Beispiele, FAQ, Sitemap", () => {
   const map = sitemap("https://app.example");
   assert.equal((map.match(/<loc>/g) ?? []).length, 93 + 7 + 16 + 26 * 16 + ANLEITUNGEN.length); // + Stundensatz-Rechner, Vergleich, 16 neue Gewerke; 26 Gewerke × 16 Bundesländer; 49 + je 11 französische, polnische, spanische, italienische Seiten + Preise, Kontakt, Partner, Partnerbedingungen, Hilfe-Center und Anleitungen
   assert.match(ROBOTS("https://app.example"), /Disallow: \/sprache\n/);
+  const llms = LLMS("https://app.example");
+  assert.match(llms, /^# Crewtender\n\n> /);
+  assert.match(llms, /- \[Gebäudereinigung\]\(https:\/\/app\.example\/ausschreibungen\/gebaeudereinigung\): /);
+  assert.match(llms, /Free 0 €, Basis 59 €, Pro 149 €, Business 399 €/);
+  assert.doesNotMatch(llms, /undefined|\$\{/);
   assert.match(ROBOTS("https://app.example"), /Disallow: \/konto[\s\S]*Sitemap: https:\/\/app.example\/sitemap-seiten.xml/);
 });
 

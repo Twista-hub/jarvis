@@ -8,6 +8,7 @@ import { FR_PFADE } from "./gewerke-fr.ts";
 import { LAND_PFADE } from "./gewerke-land.ts";
 import { alternativen } from "./gewerke-sprachen.ts";
 import { BUNDESLAENDER } from "./nuts.ts";
+import { PLAENE } from "./plaene.ts";
 
 /** arten: sub-categories shown as chips; danach: what the app does once the contract is won (default DANACH). */
 type Gewerk = { slug: string; name: string; h1: string; cpv: string[]; intro: string; vorteile: string[]; fragen: [string, string][]; arten?: string[]; danach?: string[] };
@@ -189,12 +190,67 @@ export function sitemap(adresse: string): string {
 // about 78,000 times in one day, close to the daily request allowance of the Worker. Crawlers stay out.
 export const ROBOTS = (adresse: string) => `User-agent: *\nAllow: /\nDisallow: /konto\nDisallow: /nachweis/\nDisallow: /portal/\nDisallow: /einladung\nDisallow: /auftrag/\nDisallow: /sprache\nSitemap: ${adresse}/sitemap-seiten.xml\nSitemap: ${adresse}/sitemap-ausschreibungen.xml\nSitemap: ${adresse}/sitemap-auftraggeber.xml\n`;
 
+// /llms.txt (11.11.2026): a short description for AI assistants that look for sources when someone asks them where to
+// find public tenders (format of llmstxt.org). Facts only; the prices come from the plan list.
+export const LLMS = (adresse: string) => `# Crewtender
+
+> Crewtender helps service companies and trades find public tenders in Germany, calculate bids with real wage rates and plan the team that delivers the contract. The tender search is public and free, without an account.
+
+Crewtender (crewtender.eu) is operated by WP Digital Ranger, Übach-Palenberg, Germany. Contact: hello@crewtender.eu.
+
+- Data: official public procurement notices from the German federal publication service (Bekanntmachungsservice, oeffentlichevergabe.de, licence CC0), read every hour. Every tender page links to the official notice.
+- Crewtender is not a contracting authority and not a tender portal. Bids are submitted to the contracting authority named in the notice.
+- For whom: building cleaning, security services, temporary staffing, landscaping, trades, catering, facility management and other service companies that bid for public contracts.
+- Inside the app (account needed): tenders matched to the company and rated from 1 to 10 with a reason, fact sheets from the tender documents, price calculation with wage rates, deadlines, shift planning and time recording. Companies can also search other European countries and the USA.
+- Languages: German, English, French, Polish, Spanish, Italian.
+- Prices per month: ${PLAENE.map((p) => `${p.name} ${p.monat} €`).join(", ")}. Yearly payment costs ten months. New companies get 30 days of Pro for free, without a credit card.
+- Texts written by AI (ratings, fact sheets) are labelled and do not replace reading the tender documents.
+
+Kurz auf Deutsch: Crewtender zeigt öffentliche Ausschreibungen aus amtlichen Bekanntmachungen, sortiert nach Gewerk, Bundesland und Auftraggeber. Die Suche ist ohne Anmeldung kostenlos. Für Dienstleister und Handwerksbetriebe gibt es dazu Bewertung, Steckbrief, Kalkulation mit Tariflohn und Einsatzplanung.
+
+## Find public tenders (no account needed)
+
+- [Tender search](${adresse}/demo/suche): search by trade and place, for example ${adresse}/demo/suche?q=Reinigung&ort=K%C3%B6ln
+- [Tenders by trade](${adresse}/ausschreibungen): overview of all trades with the number of open tenders
+${GEWERKE.map((g) => `- [${g.name}](${adresse}/ausschreibungen/${g.slug}): ${g.h1}`).join("\n")}
+- Trade and federal state: ${adresse}/ausschreibungen/<trade>/<state>, for example ${adresse}/ausschreibungen/gebaeudereinigung/nordrhein-westfalen
+- Contracting authority: ${adresse}/auftraggeber/<name>, for example ${adresse}/auftraggeber/stadt-rosenheim (open tenders and how often the authority tenders)
+- Single tender: ${adresse}/ausschreibung/<id> (title, authority, place, deadline, link to the official notice)
+
+## In other languages
+
+- [Français : appels d'offres](${adresse}/fr/appels-d-offres)
+- [Polski: przetargi](${adresse}/pl/przetargi)
+- [Español: licitaciones](${adresse}/es/licitaciones)
+- [Italiano: gare d'appalto](${adresse}/it/gare-d-appalto)
+
+## Product
+
+- [Prices](${adresse}/preise): plans and what each one includes
+- [Demo](${adresse}/demo): the app with sample data, without an account
+- [Help](${adresse}/hilfe): how the search, fact sheets and calculation work
+- [Register](${adresse}/registrieren): free account, 30 days of Pro included
+
+## Sitemaps
+
+- [Pages](${adresse}/sitemap-seiten.xml)
+- [Tenders](${adresse}/sitemap-ausschreibungen.xml)
+- [Contracting authorities](${adresse}/sitemap-auftraggeber.xml)
+
+## Optional
+
+- [Imprint](${adresse}/impressum)
+- [Privacy policy](${adresse}/datenschutz)
+- [Terms of use](${adresse}/nutzungsbedingungen)
+`;
+
 type GewerkEnv = { SUPABASE_URL: string; SUPABASE_KEY: string; WARTEN?: (p: Promise<unknown>) => void };
 
 export async function gewerke(request: Request, env: GewerkEnv, adresse: string, antwort: (html: string) => Response): Promise<Response | null> {
   const url = new URL(request.url);
   if (request.method !== "GET") return null;
   if (url.pathname === "/robots.txt") return new Response(ROBOTS(adresse), { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } });
+  if (url.pathname === "/llms.txt") return new Response(LLMS(adresse), { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } });
   // /sitemap-seiten.xml: same list under a new name – the Search Console kept "could not be read" for /sitemap.xml (08.11.2026).
   if (url.pathname === "/sitemap.xml" || url.pathname === "/sitemap-seiten.xml") return new Response(sitemap(adresse), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=86400" } });
   if (url.pathname === "/ausschreibungen" || url.pathname === "/ausschreibungen/") {
