@@ -22,6 +22,9 @@ from profile_db import sprache as profil_sprache, verbinden
 
 APP = "https://crewtender.eu"
 ABSENDER = ("Crewtender", "kontakt@wpdigitalranger.com")
+# Search subscriptions: the sender name of the confirmation mail (web/src/mail.ts), which the subscriber has already seen.
+ABO_ABSENDER = "Crewtender · WP Digital Ranger"
+ABO_ZEILEN = 8
 BERLIN = ZoneInfo("Europe/Berlin")
 ERINNERN = (7, 2)  # days before the deadline
 MORGENS = 7  # hour of the phone notification on the deadline day
@@ -679,33 +682,33 @@ def abo_name(suche: str, gebiet: str) -> str:
 
 def abo_mail(an: str, suche: str, gebiet: str, treffer: list, token: str) -> EmailMessage:
     """Weekly mail of a search subscription (web/src/suchabo.ts): the new public notices, how to get more out of them, and
-    the unsubscribe link (also as List-Unsubscribe header for the mail program's own button)."""
+    the unsubscribe link (also as List-Unsubscribe header for the mail program's own button).
+
+    Plain text only, the same sender name as the confirmation mail and at most ABO_ZEILEN notices with their own link
+    (11.11.2026): the first version (HTML with a button and 15 links) went to Gmail's spam folder, while the plain-text
+    confirmation mail of the same subscription reached the inbox."""
     name = abo_name(suche, gebiet)
     ab = f"{APP}/abo/abmelden/{token}"
     such_link = f"{APP}/demo/suche?" + urlencode({k: v for k, v in (("q", suche), ("ort", gebiet)) if v})
     zeile = lambda t: " · ".join(x for x in (t[2], t[3], f"Frist {t[4].astimezone(BERLIN).strftime('%d.%m.%Y')}" if t[4] else "") if x)  # noqa: E731
     link = lambda t: f"{APP}/ausschreibung/{quote(t[0], safe='')}"  # noqa: E731
     n = len(treffer)
+    rest = n - ABO_ZEILEN
     m = EmailMessage()
-    m["From"] = formataddr(ABSENDER)
+    m["From"] = formataddr((ABO_ABSENDER, ABSENDER[1]))
     m["To"] = an
     m["Subject"] = f"{n} neue {'Ausschreibung' if n == 1 else 'Ausschreibungen'} für {name}"[:160]
     m["Message-ID"] = make_msgid(domain="wpdigitalranger.com")
     m["List-Unsubscribe"] = f"<{ab}>"
     m["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click"
-    mehr = "Crewtender bewertet jede Ausschreibung mit 1 bis 10 Punkten für deine Firma, schreibt den Steckbrief und rechnet mit deinen Löhnen den Preis."
-    grund = f"Du bekommst diese Mail, weil du auf crewtender.eu die Suche {name} abonniert hast."
     m.set_content(f"Hallo,\n\nneue öffentliche Ausschreibungen für {name}:\n\n"
-                  + "\n\n".join(f"{t[1]}\n{zeile(t)}\n{link(t)}" for t in treffer)
-                  + f"\n\nAlle Treffer: {such_link}\n\n{mehr}\n30 Tage Pro gratis testen: {APP}/registrieren\n\n"
-                  + f"{grund}\nAbmelden: {ab}\n\nCrewtender · WP Digital Ranger · Rochusstraße 19, 52531 Übach-Palenberg · {APP}/impressum\n")
-    m.add_alternative(f"""<div style="font-family:system-ui,sans-serif;max-width:640px">
-<p>Hallo,</p><p>neue öffentliche Ausschreibungen für <strong>{html.escape(name)}</strong>:</p>
-<ul style="padding-left:18px">{''.join(f'<li style="margin-bottom:10px"><a href="{html.escape(link(t))}"><strong>{html.escape(t[1])}</strong></a><br><span style="color:#555">{html.escape(zeile(t))}</span></li>' for t in treffer)}</ul>
-<p><a href="{html.escape(such_link)}">Alle Treffer ansehen</a></p>
-<p>{html.escape(mehr)}</p>
-<p><a href="{APP}/registrieren" style="display:inline-block;padding:10px 16px;background:#1d4ed8;color:#fff;border-radius:8px;text-decoration:none">30 Tage Pro gratis testen</a></p>
-<p style="color:#666;font-size:13px">{html.escape(grund)} <a href="{html.escape(ab)}">Abmelden</a><br>Crewtender · WP Digital Ranger · Rochusstraße 19, 52531 Übach-Palenberg · <a href="{APP}/impressum">Impressum</a></p></div>""", subtype="html")
+                  + "\n\n".join(f"{t[1]}\n{zeile(t)}\n{link(t)}" for t in treffer[:ABO_ZEILEN])
+                  + (f"\n\nUnd {rest} weitere." if rest > 0 else "")
+                  + f"\n\nAlle Treffer: {such_link}\n\n"
+                  + "Crewtender bewertet jede Ausschreibung mit 1 bis 10 Punkten für deine Firma, schreibt den Steckbrief und rechnet "
+                  + f"mit deinen Löhnen den Preis. 30 Tage Pro gratis testen: {APP}/registrieren\n\n"
+                  + f"Du bekommst diese Mail, weil du auf crewtender.eu die Suche {name} abonniert hast.\nAbmelden: {ab}\n\n"
+                  + "Crewtender · WP Digital Ranger · Rochusstraße 19, 52531 Übach-Palenberg\n")
     return m
 
 
