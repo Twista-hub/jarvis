@@ -7,14 +7,16 @@
 - Aufträge für den Browser-Chat immer vollständig als Kopiertext direkt in die Antwort schreiben (nicht nur auf eine Datei verweisen); die Datei in `docs/auftraege/` zusätzlich pflegen.
 - Antworten auf Deutsch, kurz, Wichtigstes zuerst.
 
-## Arbeitsteilung (seit 03.11.2026, ChatGPT ist raus)
-- ChatGPT/Codex wird nicht mehr genutzt. Claude Code programmiert; ein eigener Claude-Chat mit Browser-Steuerung erledigt Arbeiten im Browser (Konten, Formulare). Aufträge dafür liegen in `docs/auftraege/`, seine Rückmeldungen in `docs/browser/protokoll.md` (zu Beginn jeder Sitzung lesen; öffentliches Repo, keine Passwörter).
-- Gemeinsame Anleitung: `AGENTS.md`. Gemeinsames Gedächtnis: `docs/stand.md`. Zu Beginn jeder Sitzung beide lesen, am Ende `docs/stand.md` (Stand, offene Punkte, Protokoll) aktualisieren, committen, pushen.
+## Arbeitsteilung
+- Claude Code programmiert; ein eigener Claude-Chat mit Browser-Steuerung erledigt Arbeiten im Browser (Konten, Formulare). Aufträge dafür liegen in `docs/auftraege/`, seine Rückmeldungen in `docs/browser/protokoll.md` (öffentliches Repo, keine Passwörter). ChatGPT/Codex arbeitet nicht mehr mit; ältere Einträge mit „ChatGPT“ sind Geschichte.
+- Gemeinsame Anleitung: `AGENTS.md`. Gemeinsames Gedächtnis: `docs/stand.md`.
+- Zu Beginn einer Sitzung lesen: `AGENTS.md` und in `docs/stand.md` die Abschnitte „Aktueller Stand“ und „Offene Punkte“. Die Datei ist rund 300 KB groß; das Protokoll darunter ist das Archiv, darin gezielt nach Stichwort suchen statt alles zu lesen. `docs/browser/protokoll.md` (neueste Einträge) lesen, wenn ein Auftrag an den Browser-Chat offen ist oder die Aufgabe Konten und Formulare betrifft.
+- Am Ende einer Sitzung oder nach einem größeren Schritt `docs/stand.md` (Stand, offene Punkte, Protokoll) aktualisieren, committen, pushen: der Browser-Chat und die nächste Sitzung sehen diesen Chat nicht.
 - Anmeldungen für Crewtender-Konten immer mit **kontakt@wpdigitalranger.com**; hello@crewtender.eu ist nur die öffentliche Adresse (Weiterleitung an kontakt@).
 - Die App heißt nach außen **Crewtender** (seit 03.11.2026); technische Namen (Repo, Datenbank `jarvis_*`, Worker, Bucket) bleiben „jarvis“.
 
 ## Projekt
-- Jarvis ist das KI-Gehirn für Benjamins Firma. Plan, Regeln und Phasen stehen in `PLAN.md`. Zu Beginn jeder Sitzung lesen.
+- Dieses Repo ist das Produkt Crewtender: öffentliche Ausschreibungen finden, kalkulieren, Team einplanen (Aufbau in `AGENTS.md` Abschnitt 5). `PLAN.md` ist der ursprüngliche Plan vom 29.10.2026: Die Grundregeln dort gelten weiter, der Phasenstand ist überholt; aktuell ist `docs/stand.md`.
 - Alles läuft komplett online (GitHub, GitHub Actions, Cloudflare, Supabase Frankfurt, Telegram). Nichts darf an Benjamins PC hängen.
 
 ## Regeln
