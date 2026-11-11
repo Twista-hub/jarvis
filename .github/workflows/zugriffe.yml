@@ -1,46 +1,23 @@
-# Read only: visits to crewtender.eu from Cloudflare's own analytics (no tracking in the app). Last 7 days per day:
-# requests, page views, unique visitors; plus the top paths of the last 24 hours if the plan offers them.
+# Read only: who visits crewtender.eu, from Cloudflare's own analytics (no tracking of our own, no AI, no database):
+# daily totals, countries, referring sites, pages, networks, devices, and the Web Analytics beacon (real browsers only).
 name: Zugriffe
 on:
   workflow_dispatch:
+    inputs:
+      tage:
+        description: "Zeitraum in Tagen (1–90)"
+        default: "30"
 permissions:
   contents: read
 jobs:
   lesen:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v4
       - name: Cloudflare-Statistik lesen
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-        run: |
-          python3 - <<'PY'
-          import json, os, urllib.request
-          from datetime import date, timedelta, datetime, timezone
-          def cf(url, body=None):
-              req = urllib.request.Request(url, data=json.dumps(body).encode() if body else None,
-                  headers={"Authorization": f"Bearer {os.environ['CF_TOKEN']}", "Content-Type": "application/json"})
-              with urllib.request.urlopen(req, timeout=30) as r:
-                  return json.load(r)
-          zonen = cf("https://api.cloudflare.com/client/v4/zones?name=crewtender.eu")
-          if not zonen.get("result"):
-              print("Zone crewtender.eu nicht lesbar (Token ohne Zonen-Recht?)", zonen.get("errors")); raise SystemExit(0)
-          zone = zonen["result"][0]["id"]
-          bis = date.today(); von = bis - timedelta(days=7)
-          q = """query($z:String!,$v:Date!,$b:Date!){viewer{zones(filter:{zoneTag:$z}){
-            httpRequests1dGroups(limit:10,filter:{date_geq:$v,date_leq:$b},orderBy:[date_ASC]){dimensions{date} sum{requests pageViews} uniq{uniques}}}}}"""
-          r = cf("https://api.cloudflare.com/client/v4/graphql", {"query": q, "variables": {"z": zone, "v": str(von), "b": str(bis)}})
-          if r.get("errors"): print("FEHLER", r["errors"])
-          for g in ((r.get("data") or {}).get("viewer") or {}).get("zones", [{}])[0].get("httpRequests1dGroups", []):
-              print(f"TAG {g['dimensions']['date']}: Seitenaufrufe {g['sum']['pageViews']:>6}, Besucher (eindeutig) {g['uniq']['uniques']:>5}, Anfragen {g['sum']['requests']:>6}")
-          seit = (datetime.now(timezone.utc) - timedelta(hours=24)).strftime("%Y-%m-%dT%H:%M:%SZ")
-          q2 = """query($z:String!,$s:Time!){viewer{zones(filter:{zoneTag:$z}){
-            httpRequestsAdaptiveGroups(limit:25,filter:{datetime_geq:$s,requestSource:"eyeball"},orderBy:[count_DESC]){count dimensions{clientRequestPath}}}}}"""
-          r2 = cf("https://api.cloudflare.com/client/v4/graphql", {"query": q2, "variables": {"z": zone, "s": seit}})
-          if r2.get("errors"): print("PFADE nicht verfügbar:", r2["errors"][0].get("message"))
-          else:
-              for g in r2["data"]["viewer"]["zones"][0]["httpRequestsAdaptiveGroups"]:
-                  p = g["dimensions"]["clientRequestPath"]
-                  if not any(p.startswith(x) for x in ("/assets", "/app.js", "/favicon", "/og-", "/icon", "/manifest", "/sw")):
-                      print(f"PFAD {g['count']:>5}  {p}")
-          PY
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TAGE: ${{ inputs.tage }}
+        run: python3 alarm/zugriffe.py "$TAGE"
