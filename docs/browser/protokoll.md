@@ -19,6 +19,37 @@ Neueste Einträge oben. Keine Passwörter oder Codes (öffentliches Repo).
 
 ## Einträge
 
+### Erledigt (11.11.2026) – Crewtender zur Prüfung eingereicht
+Konto WP Digital Ranger, App „Crewtender – Aufträge & Team“ (`eu.crewtender.app`, App-ID 4972724087261729148). Ohne internen Test direkt zur Prüfung (Benjamin). Keine Passwörter eingegeben, nichts gekauft, nichts beworben.
+
+**Erledigt**
+- Produktion → Release über „Aus der Bibliothek hinzufügen“ mit dem vorhandenen Bundle (Versionscode 1, 1.0.0, API 24+, Ziel-SDK 36, 650 KB). Kein neues Bundle hochgeladen.
+- Release-Name `1.0.0`. Versionshinweise: `<de-DE>Erste Version.</de-DE>` und `<en-US>First version.</en-US>` („Versionshinweise für 2 von 2 Sprachen vorhanden“).
+- Vorschau-Schritt: „Bereit zur Veröffentlichung“. Keine Fehler und keine Warnungen. Gespeichert.
+- Länder/Regionen: Deutschland, Schweiz, Österreich „Ausgerichtet“.
+- Verwaltete Veröffentlichung: „Verwaltete Veröffentlichung aus“ (nicht geändert).
+- Veröffentlichungsübersicht → „11 Änderungen zur Überprüfung einreichen“ → bestätigt mit „Änderungen zur Überprüfung senden“. Dialogtext: Überprüfungen erfolgen in der Regel innerhalb von 7 Tagen.
+- Eingereicht wurden: Produktion 1.0.0 (vollständiger Roll-out), 3 Länder, Store-Einträge de-DE und en-US, Einstufung des Inhalts, Zielgruppe (18+), Datenschutzerklärung, Werbung, Datensicherheit, Gesundheits-Apps, App-Kategorie „Arbeit“. Dazu kommen die Anmeldedaten für das Prüfkonto (Benjamin hat sie selbst eingetragen).
+
+**Status Veröffentlichungsübersicht (Wortlaut, 11.11.2026)**
+- „Verwaltete Veröffentlichung aus“
+- „Änderungen, die überprüft werden“
+- „Schnelle Vorabprüfungen auf häufig auftretende Probleme werden ausgeführt … Die Änderungen werden zur Überprüfung eingereicht, sobald die Vorabprüfungen abgeschlossen sind.“ (zu dem Zeitpunkt „Noch maximal 15 Minuten“)
+
+**Warnungen der Console (Wortlaut)**
+- Veröffentlichungsübersicht (Hinweis): „Wenn du Apps in der EU vertreibst, beachte die Verordnung gegen ungerechtfertigtes Geoblocking (EU) 2018/302“
+- Produktion → Release-Dashboard, „3 Aktionen empfohlen“ (Release 1.0.0):
+  - „Die randlose Anzeige funktioniert möglicherweise nicht für alle Nutzer“
+  - „Deine App verwendet nicht mehr unterstützte APIs oder Parameter für die randlose Anzeige“
+  - „Mit der R8-Optimierung kannst du den Arbeitsspeicher und die Leistung deiner App verbessern“
+
+**Offen für Benjamin**
+1. Ergebnis der Prüfung abwarten (meist bis 7 Tage). Weil die verwaltete Veröffentlichung aus ist, geht die App nach der Freigabe automatisch live.
+   https://play.google.com/console/u/0/developers/7892927649553841249/app/4972724087261729148/publishing
+2. Die Hinweise zu randloser Anzeige und R8 blockieren nicht. Sie sind etwas für ein späteres Update (TWA neu bauen).
+   https://play.google.com/console/u/0/developers/7892927649553841249/app/4972724087261729148/tracks/production
+3. Der Release-Entwurf im internen Test ist noch vorhanden. Er stört nicht.
+
 ### Erledigt (10.11.2026) – Play Console Crewtender
 Konto WP Digital Ranger (Organisationskonto), App-ID 4972724087261729148. Nichts veröffentlicht, nichts zur Prüfung eingereicht, kein Produktions-Release. Keine Passwörter eingegeben.
 
