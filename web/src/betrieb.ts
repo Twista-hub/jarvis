@@ -9,6 +9,7 @@ export type Betrieb = {
   fehler_48h?: number; fehler_letzter?: { zeit?: string; text?: string } | null;
   ki?: { limit_usd?: number; reserviert?: number } | null; ki_firmen_aktiv?: number; datenbank_bytes?: number; firmen?: number;
   such_abos?: { bestaetigt?: number; offen?: number; neu_7t?: number; letzte_mail?: string | null } | null;
+  besuche?: { kanal?: string; quelle?: string; t7?: number | null; t30?: number | null }[] | null;
 };
 export type Zustand = "gruen" | "gelb" | "rot" | "grau";
 export type Zeile = { name: string; zustand: Zustand; text: string };
@@ -55,5 +56,20 @@ export function betriebKasten(d: Betrieb | null): string {
   const kopf = schlimmste === "gruen" ? "Alles läuft." : schlimmste === "gelb" ? "Bitte ansehen:" : "Störung:";
   const auffaellig = zeilen.filter((x) => x.zustand === schlimmste && schlimmste !== "gruen").map((x) => x.name).join(", ");
   return `<h2>Betrieb</h2><p class="betrieb-kopf ${schlimmste}" role="status"><strong>${kopf}</strong>${auffaellig ? ` ${escape(auffaellig)}` : ""}</p>
-<ul class="betrieb-liste">${zeilen.map((x) => `<li class="${x.zustand}"><span class="betrieb-marke" aria-hidden="true">${MARKE[x.zustand]}</span><span><strong>${escape(x.name)}</strong> <span class="sr-only">(${WORT[x.zustand]})</span><br><span class="klein">${escape(x.text)}</span></span></li>`).join("")}</ul>`;
+<ul class="betrieb-liste">${zeilen.map((x) => `<li class="${x.zustand}"><span class="betrieb-marke" aria-hidden="true">${MARKE[x.zustand]}</span><span><strong>${escape(x.name)}</strong> <span class="sr-only">(${WORT[x.zustand]})</span><br><span class="klein">${escape(x.text)}</span></span></li>`).join("")}</ul>
+${besucheKasten(d.besuche)}`;
+}
+
+const KANAL: Record<string, string> = { ki: "KI-Assistent (Klick auf einen Link)", "ki-abruf": "KI-Assistent hat eine Seite für jemanden abgerufen", suche: "Suchmaschine", social: "Soziales Netzwerk", verzeichnis: "Verzeichnis", sonstige: "Andere Website" };
+
+/** Visits from outside by channel and source (web/src/zaehler.ts); counted since 11.11.2026, without crawlers. */
+export function besucheKasten(besuche: Betrieb["besuche"]): string {
+  const zeilen = (besuche ?? []).filter((b) => b.kanal && b.quelle);
+  const kopf = `<h3>Besuche von außen (30 Tage)</h3>`;
+  if (!zeilen.length) return `${kopf}<p class="klein">Noch keine gezählt. Gezählt wird seit dem 11.11.2026, wenn jemand von einer Suchmaschine, einem KI-Assistenten, einem sozialen Netzwerk oder einer anderen Website kommt (ohne Suchroboter).</p>`;
+  const summe = (kanal: string, feld: "t7" | "t30") => zeilen.filter((b) => b.kanal === kanal).reduce((s, b) => s + Number(b[feld] ?? 0), 0);
+  const kanaele = Object.keys(KANAL).filter((k) => summe(k, "t30") > 0);
+  return `${kopf}<div class="tabelle-rahmen"><table><thead><tr><th scope="col">Woher</th><th scope="col">Quelle</th><th scope="col">7 Tage</th><th scope="col">30 Tage</th></tr></thead><tbody>${kanaele.map((k) =>
+    zeilen.filter((b) => b.kanal === k).map((b) => `<tr><td>${escape(KANAL[k])}</td><td>${escape(String(b.quelle))}</td><td>${zahl(Number(b.t7 ?? 0))}</td><td>${zahl(Number(b.t30 ?? 0))}</td></tr>`).join("")).join("")}</tbody></table></div>
+<p class="klein">Nur Zahlen je Tag und Quelle, ohne Suchroboter. KI-Assistenten zusammen: ${zahl(summe("ki", "t30") + summe("ki-abruf", "t30"))} in 30 Tagen.</p>`;
 }

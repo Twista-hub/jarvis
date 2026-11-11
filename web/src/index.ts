@@ -79,6 +79,7 @@ import { suchAbo } from "./suchabo.ts";
 import { appStart } from "./android.ts";
 import { seoSeiten } from "./seo-seiten.ts";
 import { herkunftWeitergeben, kurzlink } from "./herkunft.ts";
+import { besuchZaehlen, darfZaehlen, zaehlung } from "./zaehler.ts";
 import { demo } from "./demo.ts";
 import { gewerke } from "./gewerke.ts";
 import { metiers } from "./gewerke-fr.ts";
@@ -167,6 +168,9 @@ const worker = {
       antwort = html(seite("Fehler", `<p>Da ist leider etwas schiefgegangen. Bitte versuche es gleich noch einmal.</p><p class="klein">Wir haben eine Nachricht bekommen und kümmern uns darum.</p><p><a href="/konto">Zur Übersicht</a></p>`), 500);
     }
     const r = await herkunftWeitergeben(request, oeffentlicheMessung(request, darstellen(request, antwort)));
+    // Arrivals from outside, as a number per day and source; after the answer, never in its way.
+    const besuch = env.WARTEN ? zaehlung(request, r) : null;
+    if (besuch && darfZaehlen()) env.WARTEN!(besuchZaehlen(env, besuch));
     if (!new URL(request.url).pathname.startsWith("/auftrag/")) return r;
     const s = await sitzung(request,env);
     const headers = new Headers(r.headers);

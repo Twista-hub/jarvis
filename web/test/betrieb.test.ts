@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { betriebKasten, betriebZeilen, type Betrieb } from "../src/betrieb.ts";
+import { besucheKasten, betriebKasten, betriebZeilen, type Betrieb } from "../src/betrieb.ts";
 
 const jetzt = "2026-11-10T14:00:00Z";
 const gut: Betrieb = { jetzt, katalog_neueste: "2026-11-10T09:00:00Z", katalog_24h: 480, katalog_7t: 3100, quelle: { letzter_erfolg: "2026-11-10T13:10:00Z", fehler: null, rueckstand_tage: 0 },
@@ -31,4 +31,14 @@ test("Betrieb: Fehlermeldung, volle Datenbank, KI-Grenze, fehlende Daten", () =>
   assert.equal(betriebZeilen({ jetzt }).find((x) => x.name === "Ausschreibungen")!.zustand, "rot", "ohne Daten nie grün");
   assert.match(betriebKasten(null), /konnte nicht geladen werden/);
   assert.ok(!betriebKasten({ ...gut, fehler_48h: 1, fehler_letzter: { text: "<script>" } }).includes("<script>"));
+});
+
+test("Betrieb: Besuche von außen nach Kanal und Quelle", () => {
+  assert.match(besucheKasten([]), /Noch keine gezählt/);
+  assert.match(betriebKasten(gut), /Besuche von außen \(30 Tage\)/);
+  const k = besucheKasten([{ kanal: "suche", quelle: "google", t7: 12, t30: 40 }, { kanal: "ki", quelle: "chatgpt", t7: 2, t30: 3 }, { kanal: "ki-abruf", quelle: "perplexity", t7: null, t30: 5 }, { kanal: "sonstige", quelle: "<x>", t7: 1, t30: 1 }]);
+  assert.match(k, /<td>Suchmaschine<\/td><td>google<\/td><td>12<\/td><td>40<\/td>/);
+  assert.match(k, /KI-Assistenten zusammen: 8 in 30 Tagen/);
+  assert.ok(k.indexOf("chatgpt") < k.indexOf("google"), "KI-Assistenten stehen oben");
+  assert.doesNotMatch(k, /<x>/);
 });
