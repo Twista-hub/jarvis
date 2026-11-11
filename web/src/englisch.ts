@@ -183,7 +183,7 @@ const FUSS = '<p class="klein">WP Digital Ranger · ';
 /** Adds the language switch (the two other languages) to the page footer. */
 export function sprachFuss(seite: string, sprache: AppSprache, pfad: string): string {
   const links = APP_SPRACHEN.filter((s) => s !== sprache)
-    .map((s, i) => `<a href="/sprache?zu=${s}&amp;weiter=${encodeURIComponent(pfad)}" lang="${s}" hreflang="${s}">${i ? "" : "🌐 "}${NAMEN[s]}</a>`).join(" · ");
+    .map((s, i) => `<a href="/sprache?zu=${s}&amp;weiter=${encodeURIComponent(pfad)}" rel="nofollow" lang="${s}" hreflang="${s}">${i ? "" : "🌐 "}${NAMEN[s]}</a>`).join(" · ");
   return seite.replace(FUSS, `${FUSS}${links} · `);
 }
 
