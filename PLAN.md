@@ -1,5 +1,7 @@
 # Jarvis – Plan
 
+> Ursprünglicher Plan vom 29.10.2026. Die Grundregeln gelten weiter. Aufbau, Phasenstand und offene Entscheidungen sind überholt (der „Helfer Codex“ arbeitet nicht mehr mit, das Produkt heißt Crewtender): aktuell sind `AGENTS.md` und `docs/stand.md`.
+
 Stand 29.10.2026. Besitzer: Benjamin Schiffer, WP Digital Ranger.
 
 ## Ziel

@@ -2,7 +2,7 @@
 
 Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 
-## Aktueller Stand (03.11.2026, nachts) – zuerst lesen
+## Aktueller Stand – zuerst lesen (neueste Einträge oben)
 - **Katalog stand 06.–09.11.2026 still (10.11. bemerkt und behoben):** Der Tagesexport des Bundes (`pubDay`, OCDS und eForms) liefert seit 06.11. leere ZIP-Dateien; Portal und Monatsexport (`pubMonth`) enthalten die Bekanntmachungen. Der Sammler verbuchte die Tage als erledigt, niemand bekam eine Meldung. Neu: `web/scripts/katalog-nachholen.ts` + Ablauf „Katalog nachholen“ (6 und 13 Uhr über den Katalog-Worker, 18:17 UTC als Reserve): prüft 10 Tage, liest leere Tage aus dem Monatsexport, **schlägt fehl und meldet aufs Handy, wenn die neueste Bekanntmachung älter als 3 Tage ist**. Erster Lauf 10.11.: 1.936 Bekanntmachungen nachgeholt. Sparsam gebaut (Benjamin 10.11.: keine Kontingente verbrauchen, API-Guthaben nur für Kunden): keine KI, Normal-Lauf = eine kleine Abfrage, Rohdaten nur bei echten Änderungen. Offen: beobachten, ob der Bund den Tagesexport repariert.
 - **KI-Alarm für alle eigenen Firmen pausiert (Benjamin 10.11.2026):** zusätzlich zu Beispielfirma und PerLease jetzt auch WP Digital Ranger, Malerbetrieb Schlacheit und E2E-Testfirma (Migration `20261110020000_alarm_pause_eigene.sql`, `profile.json` wpdr `pausiert`). Damit nimmt bis zum ersten Kunden keine Firma an der täglichen KI-Suche teil; von Hand für genau eine Firma (alarm.yml Eingabe firma) geht weiter. Neue Kunden sind nicht betroffen.
 - **Betriebsübersicht** auf https://crewtender.eu/konto/betreiber (10.11.): Ampel für Ausschreibungen (neueste, 24 h, 7 Tage), Abruf beim Bund, öffentliche Zahlen, Fehlermeldungen 48 h, Handy-Nachrichten, tägliche Mail, Social, KI-Kosten, Datenbankgröße. `web/src/betrieb.ts`, `public.betreiber_betrieb()` (Migration `20261110030000`), ein kleiner lesender Aufruf, keine KI.
@@ -77,7 +77,7 @@ Regeln dazu stehen in `AGENTS.md` Abschnitt 1. Neueste Einträge oben.
 - **Alarm:** täglich, Quelle Bekanntmachungsservice (CC0) inkl. vollständiger eForms-Bekanntmachung (seit 03.11. über Bekanntmachungs-ID bzw. eForms-Tagesexport, vorher 404), Förderdatenbank.
 
 ## In Arbeit
-- Keine aktive Bearbeitung. GitHub-Suchlauf 41225815168 läuft selbstständig weiter; vor einem neuen Lauf dessen Ergebnis prüfen.
+- Keine aktive Bearbeitung.
 
 ## Nächste Schritte (mit Benjamin am 30.10.2026 abgestimmt, in dieser Reihenfolge)
 1. **Logo und Design:** Wortmarke mit Kompassmarke ist in der Kontonavigation eingebaut; HTML-/PNG-Vorschau unter `docs/design/`. Farblegende aus der Vorschau entfernt und Unterzeile auf „Digitale Lösungen“ gestellt.
