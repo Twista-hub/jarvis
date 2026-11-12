@@ -56,6 +56,7 @@ export async function herkunftWeitergeben(request: Request, r: Response): Promis
 export const KURZLINKS: Record<string, [string, string]> = {
   "/instagram": ["instagram", "social"], "/facebook": ["facebook", "social"], "/linkedin": ["linkedin", "social"],
   "/bluesky": ["bluesky", "social"], "/mastodon": ["mastodon", "social"],
+  "/flyer": ["flyer", "empfehlung"], // QR code on the one-page handout (Canva, 12.11.2026)
   "/g2": ["g2", "verzeichnis"], "/omr": ["omr", "verzeichnis"], "/getapp": ["getapp", "verzeichnis"], "/capterra": ["capterra", "verzeichnis"],
 };
 
