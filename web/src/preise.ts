@@ -1,6 +1,6 @@
 // Price page /preise (public) and plan choice /konto/plan (Benjamin, 06.11.2026). Ordering sends a mail to WP Digital
 // Ranger; the operator then sets the plan on /konto/betreiber and writes the invoice there (payment by invoice).
-import { inAndroidApp } from "./android.ts";
+import { APP_KAUF_HINWEIS, inAndroidApp } from "./android.ts";
 import { aktiveFirma } from "./firmenunterlagen.ts";
 import { db, html, weiterleiten, type KontoEnv } from "./konto.ts";
 import { ABSENDER, senden, type Mail } from "./mail.ts";
@@ -20,6 +20,11 @@ ${planKarten()}${PREIS_HINWEISE}
 <details><summary>Brauche ich eine Kreditkarte?</summary><p>Nein. Die 30 Tage Pro laufen ohne Kreditkarte und enden von selbst; danach geht es mit Free weiter. Erst für einen bezahlten Plan brauchst du eine Zahlungsart.</p></details>
 <details><summary>Wie kündige ich?</summary><p>Monatliche Pläne zum Monatsende, ein kurzes Schreiben an kontakt@wpdigitalranger.com reicht. Jahrespläne laufen 12 Monate.</p></details>
 <details><summary>Was passiert mit meinen Daten, wenn ich kündige?</summary><p>Bis zum Ende kannst du alles herunterladen. Danach löschen wir die Daten der Firma innerhalb von 30 Tagen.</p></details>`;
+}
+
+/** /preise inside the Android app: nothing to buy and no prices; the plan page shows what the firm has. */
+export function preisSeiteInApp(): string {
+  return `<p>${APP_KAUF_HINWEIS}</p><p><a class="knopf zweit" href="/konto/plan">Pläne ansehen</a></p>`;
 }
 
 export function bestellMail(o: { firma: string; email: string; plan: string; zahlweise: "monat" | "jahr"; firmaId: string }): Mail {
@@ -45,6 +50,12 @@ type Firma = { name: string; paket: string; stripe_kunde: string | null; stripe_
 export async function preise(request: Request, env: KontoEnv & StripeEnv & { SMTP_PASSWORD?: string }): Promise<Response | null> {
   const url = new URL(request.url);
   if (url.pathname === "/preise" && request.method === "GET") {
+    // Inside the Android app: no price list (Google Play payments policy), only the way to the firm's own plan.
+    if (inAndroidApp(request)) {
+      const r = html(seite("Plan", preisSeiteInApp()));
+      r.headers.set("cache-control", "private, no-store");
+      return r;
+    }
     const r = html(seite("Preise", preisSeiteInhalt()).replace("</title>", `</title>${seoKopf({ beschreibung: PREISE_BESCHREIBUNG, url: "https://crewtender.eu/preise" })}<link rel="canonical" href="https://crewtender.eu/preise">`));
     r.headers.delete("x-robots-tag");
     r.headers.set("cache-control", "public, max-age=600");

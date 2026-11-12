@@ -235,6 +235,7 @@ ${FRAGEN.map((f) => `- [${f.frage}](${adresse}/fragen/${f.slug})`).join("\n")}
 - [Demo](${adresse}/demo): the app with sample data, without an account
 - [Help](${adresse}/hilfe): how the search, fact sheets and calculation work
 - [Register](${adresse}/registrieren): free account, 30 days of Pro included
+- [Android app](https://play.google.com/store/apps/details?id=eu.crewtender.app): Crewtender on Google Play (Germany, Austria, Switzerland)
 
 ## Sitemaps
 

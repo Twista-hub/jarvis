@@ -2,6 +2,7 @@
 // 20261107020000_plan_grenzen.sql: office users, field workers, locations, search profiles, Steckbriefe); this file
 // gates the Pro workspace and shows friendly hints. Nothing is ever deleted: after a downgrade the pages stay readable
 // (and downloadable), only changes are stopped.
+import { APP_KAUF_HINWEIS } from "./android.ts";
 import { db, type KontoEnv, type Sitzung } from "./konto.ts";
 import { escape } from "./seite.ts";
 import { planName } from "./plaene.ts";
@@ -53,14 +54,17 @@ const BEREICH_TEXT: Record<"arbeitsoberflaeche" | "unterlagen", [string, string]
   unterlagen: ["Firmenunterlagen und Nachweise gehören zum Plan Basis.", "Basis"],
 };
 
-/** Box above a page the plan does not include: everything stays readable, changes need the upgrade. */
-export function planBanner(bereich: "arbeitsoberflaeche" | "unterlagen", plan: string): string {
-  return `<div class="hinweis plan-sperre" role="status"><p><strong>🔒 ${BEREICH_TEXT[bereich][0]}</strong></p><p>Dein Plan: <strong>${escape(planAnzeige(plan))}</strong></p><p>Vorhandene Daten bleiben erhalten und lesbar; Ändern geht nach dem Upgrade.</p><p><a class="knopf" href="/konto/plan">Zu ${BEREICH_TEXT[bereich][1]} wechseln</a></p></div>`;
+/** Box above a page the plan does not include: everything stays readable, changes need the upgrade. Inside the Android
+ *  app (Google Play payments policy) the box has no button towards a plan change, only the note that plans cannot be
+ *  booked there. */
+export function planBanner(bereich: "arbeitsoberflaeche" | "unterlagen", plan: string, app = false): string {
+  const weiter = app ? `<p class="klein">${APP_KAUF_HINWEIS}</p>` : `<p><a class="knopf" href="/konto/plan">Zu ${BEREICH_TEXT[bereich][1]} wechseln</a></p>`;
+  return `<div class="hinweis plan-sperre" role="status"><p><strong>🔒 ${BEREICH_TEXT[bereich][0]}</strong></p><p>Dein Plan: <strong>${escape(planAnzeige(plan))}</strong></p><p>Vorhandene Daten bleiben erhalten und lesbar; Ändern geht nach dem Upgrade.</p>${weiter}</div>`;
 }
 
 /** Page for a change the plan does not include. */
-export function planSperre(bereich: "arbeitsoberflaeche" | "unterlagen", plan: string): string {
-  return `<p class="konto-zurueck"><a href="/konto" aria-label="Zurück">←</a></p>${planBanner(bereich, plan)}`;
+export function planSperre(bereich: "arbeitsoberflaeche" | "unterlagen", plan: string, app = false): string {
+  return `<p class="konto-zurueck"><a href="/konto" aria-label="Zurück">←</a></p>${planBanner(bereich, plan, app)}`;
 }
 
 /** Message for a database refusal "Plan-Grenze: …" (or null when it is a different error). */
