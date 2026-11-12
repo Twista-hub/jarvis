@@ -10,6 +10,7 @@ Paket: `eu.crewtender.app` · Konto: WP Digital Ranger (Organisation) · Standar
 | App-Symbol 512×512 | `store/symbol-512.png` |
 | Vorstellungsgrafik 1024×500 | `store/vorstellungsgrafik-1024x500.png` |
 | Smartphone-Screenshots (6×, 1080×1920) | `store/screenshots-de/1-uebersicht.png` … `6-stunden.png` |
+| Smartphone-Screenshots mit Rahmen und Überschrift (6×, 1080×1920, seit 12.11.2026) | `store/screenshots-de-rahmen/1-uebersicht.png` … `6-stunden.png`; Quelle: Canva-Design „Crewtender – Play-Store-Bilder (Deutsch)“ (ID `DAHasTz_5lk`), dort bearbeitbar |
 
 Die Screenshots stammen aus der öffentlichen Demo (erfundene Beispieldaten).
 
