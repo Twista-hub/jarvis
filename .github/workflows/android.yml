@@ -104,6 +104,14 @@ jobs:
           ziel="$(grep -oE "targetSdkVersion:'[0-9]+'" badging.txt | grep -oE "[0-9]+")"
           if [ "${ziel:-0}" -lt 36 ]; then echo "::error::Ziel-API $ziel liegt unter der Vorgabe von Google Play (36). Nicht hochladen."; exit 1; fi
           grep -q "name='eu.crewtender.app'" badging.txt || { echo "::error::Falscher Paketname."; exit 1; }
+          # Diagnosis (12.11.2026: on Benjamin's phone the app opened like a Chrome tab): what makes the app a Trusted Web
+          # Activity is in the manifest and the string resources. Printed on every build, so a broken link is seen at once.
+          echo "--- Manifest (Start, Verknüpfung mit der Website)"
+          "$aapt" dump xmltree --file AndroidManifest.xml app-release-signed.apk | grep -E "E: (activity|service|provider|meta-data|data)|android:name|android:host|android:scheme|autoVerify|android:value|android:resource" | grep -iE "launcher|asset_statements|DEFAULT_URL|host|scheme|autoVerify|trusted|customtabs|FALLBACK|DelegationService|FocusActivity" | sed 's/^ *//' | head -60 || true
+          echo "--- Zeichenketten"
+          "$aapt" dump resources app-release-signed.apk | grep -A3 -E "string/(assetStatements|launchUrl|hostName|fallbackType|providerAuthority|appName)" | head -60 || true
+          echo "--- Zertifikat der Upload-Signatur"
+          "${bt}apksigner" verify --print-certs app-release-signed.apk | grep -E "SHA-256" || true
       - name: App-Bundle bereitstellen
         if: inputs.modus == 'bauen'
         uses: actions/upload-artifact@v4
