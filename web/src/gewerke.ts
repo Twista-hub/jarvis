@@ -9,6 +9,7 @@ import { LAND_PFADE } from "./gewerke-land.ts";
 import { alternativen } from "./gewerke-sprachen.ts";
 import { BUNDESLAENDER } from "./nuts.ts";
 import { PLAENE } from "./plaene.ts";
+import { FRAGEN } from "./fragen.ts";
 
 /** arten: sub-categories shown as chips; danach: what the app does once the contract is won (default DANACH). */
 type Gewerk = { slug: string; name: string; h1: string; cpv: string[]; intro: string; vorteile: string[]; fragen: [string, string][]; arten?: string[]; danach?: string[] };
@@ -165,7 +166,7 @@ ${s?.beispiele.length ? `<h2>Aktuelle Ausschreibungen (Auswahl)</h2><ul class="k
 <h2>Und wenn der Auftrag da ist</h2>
 <p>Ausschreibungsdienste hören beim Zuschlag auf. In Crewtender geht es in derselben App weiter:</p>
 <ul>${(g.danach ?? DANACH).map((v) => `<li>${escape(v)}</li>`).join("")}</ul>
-<p><a href="/stundensatz-rechner">🧮 Stundensatz kostenlos berechnen</a> · <a href="/vergleich">Vergleich: Ausschreibungsdienst plus Dienstplan-Software oder Crewtender?</a></p>
+<p><a href="/stundensatz-rechner">🧮 Stundensatz kostenlos berechnen</a> · <a href="/vergleich">Vergleich: Ausschreibungsdienst plus Dienstplan-Software oder Crewtender?</a> · <a href="/fragen">Fragen und Antworten zu öffentlichen Ausschreibungen</a></p>
 ${laenderChips(g.slug)}
 <h2>Häufige Fragen</h2>
 ${fragen.map(([q, a]) => `<details><summary>${escape(q)}</summary><p>${escape(a)}</p></details>`).join("")}
@@ -183,7 +184,7 @@ export function uebersichtGewerke(): string {
 const meta = (html: string, beschreibung: string, url: string, paar = "") => html.replace("</title>", `</title>\n<meta name="description" content="${escape(beschreibung)}">\n<link rel="canonical" href="${escape(url)}">${paar ? `\n${paar}` : ""}`);
 
 export function sitemap(adresse: string): string {
-  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...LAENDER_PFADE_DE(), ...FR_PFADE, ...LAND_PFADE, "/demo", "/preise", "/stundensatz-rechner", "/vergleich", "/us/sam-registration", "/datenschutz", "/impressum", "/kontakt", "/partner", "/partner/bedingungen", "/hilfe", ...ANLEITUNGEN.map((x) => `/hilfe/${x.slug}`)];
+  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...LAENDER_PFADE_DE(), ...FR_PFADE, ...LAND_PFADE, "/demo", "/preise", "/stundensatz-rechner", "/vergleich", "/us/sam-registration", "/datenschutz", "/impressum", "/kontakt", "/partner", "/partner/bedingungen", "/hilfe", ...ANLEITUNGEN.map((x) => `/hilfe/${x.slug}`), "/fragen", ...FRAGEN.map((f) => `/fragen/${f.slug}`)];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pfade.map((p) => `<url><loc>${adresse}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
 }
 // /sprache is the language switch in every footer (a redirect that sets a cookie): on 10.11.2026 GPTBot followed it
@@ -216,6 +217,10 @@ ${GEWERKE.map((g) => `- [${g.name}](${adresse}/ausschreibungen/${g.slug}): ${g.h
 - Trade and federal state: ${adresse}/ausschreibungen/<trade>/<state>, for example ${adresse}/ausschreibungen/gebaeudereinigung/nordrhein-westfalen
 - Contracting authority: ${adresse}/auftraggeber/<name>, for example ${adresse}/auftraggeber/stadt-rosenheim (open tenders and how often the authority tenders)
 - Single tender: ${adresse}/ausschreibung/<id> (title, authority, place, deadline, link to the official notice)
+
+## Questions and answers (German)
+
+${FRAGEN.map((f) => `- [${f.frage}](${adresse}/fragen/${f.slug})`).join("\n")}
 
 ## In other languages
 

@@ -1,5 +1,6 @@
 // Crewtender upload page: customers upload tender documents, a Workflow writes the Steckbrief.
 import { rechner } from "./rechner.ts";
+import { fragen } from "./fragen.ts";
 import { textSymbole } from "./symbole.ts";
 import { stripeWebhook } from "./stripe.ts";
 import { preise } from "./preise.ts";
@@ -273,6 +274,8 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     if (seo) return seo;
     const rn = rechner(request, ADRESSE, (h) => html(h));
     if (rn) return rn;
+    const fragenSeite = await fragen(request, ADRESSE, (h) => html(h), () => startZahlen(env));
+    if (fragenSeite) return fragenSeite;
     const gw = await gewerke(request, env, ADRESSE, (h) => html(h));
     if (gw) return gw;
     const fr = await metiers(request, env, ADRESSE, (h) => html(h));

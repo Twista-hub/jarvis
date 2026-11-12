@@ -85,6 +85,7 @@ ${grundTags(titel)}
   .start-held h1 { font-size: clamp(1.7rem, 6.4vw, 2.35rem); line-height: 1.15; letter-spacing: -.01em; margin: 0 0 12px; color: #102a40; }
   .start-statt { margin: 18px 0 0; padding: 14px 16px; border-radius: 18px; background: var(--card); border: 1px solid var(--line); }
   .start-statt p { margin: 4px 0; }
+  .frage-antwort { margin: 0 0 14px; padding: 12px 14px; border-radius: 14px; background: var(--card); border: 1px solid var(--line); font-size: 1.05em; }
   .tabelle-scroll { overflow-x: auto; }
   .vergleich-tabelle, .rechner-tabelle { width: 100%; border-collapse: collapse; font-size: 14px; }
   .vergleich-tabelle th, .vergleich-tabelle td, .rechner-tabelle td { padding: 7px 8px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
