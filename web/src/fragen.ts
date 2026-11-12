@@ -140,10 +140,10 @@ ${katalogSatz(k.zahlen)}
     frage: "Ab welchem Auftragswert muss öffentlich ausgeschrieben werden?",
     kurz: "Europaweit ausgeschrieben werden muss ab den EU-Schwellenwerten: 2026 und 2027 sind das 5.404.000 € für Bauaufträge und 216.000 € für Liefer- und Dienstleistungen (140.000 € bei obersten und oberen Bundesbehörden), jeweils ohne Umsatzsteuer. Darunter gelten die Regeln von Bund, Ländern und Kommunen mit eigenen Wertgrenzen; der Bund darf seit Juli 2026 bis 50.000 € direkt beauftragen.",
     inhalt: () => `<h2>EU-Schwellenwerte 2026 und 2027</h2>
-<div class="tabelle-scroll"><table><thead><tr><th scope="col">Auftrag</th><th scope="col">Schwellenwert (netto)</th></tr></thead><tbody>
-<tr><td>Bauaufträge</td><td>5.404.000 €</td></tr>
-<tr><td>Liefer- und Dienstleistungen (Länder, Kommunen, übrige Auftraggeber)</td><td>216.000 €</td></tr>
-<tr><td>Liefer- und Dienstleistungen oberster und oberer Bundesbehörden</td><td>140.000 €</td></tr>
+<div class="tabelle-scroll"><table><thead><tr><th scope="col">Auftrag</th><th scope="col">Wert (netto)</th></tr></thead><tbody>
+<tr><td>Bauaufträge</td><td>5.404.000&nbsp;€</td></tr>
+<tr><td>Liefer- und Dienstleistungen (Länder, Kommunen, übrige Auftraggeber)</td><td>216.000&nbsp;€</td></tr>
+<tr><td>Liefer- und Dienstleistungen oberster und oberer Bundesbehörden</td><td>140.000&nbsp;€</td></tr>
 </tbody></table></div>
 <p>Die Werte gelten vom 1. Januar 2026 bis zum 31. Dezember 2027. Maßgeblich ist der geschätzte Gesamtwert des Auftrags über die ganze Laufzeit, einschließlich Verlängerungen und aller Lose. Ab diesen Werten muss der Auftraggeber europaweit ausschreiben; die Bekanntmachung erscheint in TED.</p>
 <h2>Unterhalb der Schwellenwerte</h2>
