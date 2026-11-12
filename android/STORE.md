@@ -11,6 +11,8 @@ Paket: `eu.crewtender.app` · Konto: WP Digital Ranger (Organisation) · Standar
 | Vorstellungsgrafik 1024×500 | `store/vorstellungsgrafik-1024x500.png` |
 | Smartphone-Screenshots (6×, 1080×1920) | `store/screenshots-de/1-uebersicht.png` … `6-stunden.png` |
 | Smartphone-Screenshots mit Rahmen und Überschrift (6×, 1080×1920, seit 12.11.2026) | `store/screenshots-de-rahmen/1-uebersicht.png` … `6-stunden.png`; Quelle: Canva-Design „Crewtender – Play-Store-Bilder (Deutsch)“ (ID `DAHasTz_5lk`), dort bearbeitbar |
+| Englisch (en-US): Smartphone-Screenshots mit Rahmen und Überschrift (6×, 1080×1920, seit 12.11.2026) | `store/screenshots-en-rahmen/1-overview.png` … `6-hours.png`; Quelle: Canva-Design „Crewtender – Play store images (English)“ (ID `DAHasfT2bQU`); Rohbilder aus der englischen Demo in `store/screenshots-en/` |
+| Englisch (en-US): Vorstellungsgrafik 1024×500 | `store/vorstellungsgrafik-en-1024x500.png` |
 
 Die Screenshots stammen aus der öffentlichen Demo (erfundene Beispieldaten).
 
