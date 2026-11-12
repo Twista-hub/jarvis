@@ -21,7 +21,7 @@
 
 ## Regeln
 - Strikte Trennung von RestockHero (Twista-hub/restockhero) und Demopin: eigene Repos, Datenbanken, Worker, Domains, Schlüssel.
-- Mails an Dritte, Posts, Veröffentlichungen, Rechnungen und Ausgaben nur nach OK von Benjamin.
+- Dauererlaubnis (Benjamin 12.11.2026, auf seine ausdrückliche Anweisung eingetragen): Veröffentlichungen an eigenen Stellen (Website, App und App-Updates, Play-Store-Eintrag, Posts auf eigenen Kanälen) ohne einzelnes OK; danach kurz sagen, was live ist. Weiter nur mit OK von Benjamin: Ausgaben und kostenpflichtige Buchungen, Verträge und AGB, Rechnungen, Mails an Dritte.
 - Keine Passwörter, Schlüssel, Bank- oder Steuerdaten eingeben; das macht Benjamin selbst.
 - Claude- und ChatGPT-Abo nur für eigene Arbeit. Alles für zahlende Kunden läuft über die offizielle API. Keine Werkzeuge, die Abos als API weiterreichen.
 - Datenquellen: Nutzungsbedingungen und robots.txt vor dem Abruf prüfen.

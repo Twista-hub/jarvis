@@ -32,8 +32,13 @@ arbeitet, liest zuerst diese Datei und dann in `docs/stand.md` die Abschnitte �
 ## 3. Regeln
 - **Strikte Trennung** von RestockHero (Repo Twista-hub/restockhero) und Demopin: eigene Repos, Datenbanken, Worker,
   Domains, Schlüssel, Mailadressen. Nichts davon in Jarvis verwenden.
-- **Freigabe vor Außenwirkung:** Mails an Dritte, Posts, Veröffentlichungen, Rechnungen, Ausgaben nur nach OK von Benjamin.
-  (Ausnahme: die Benachrichtigungen, die Kunden in der App selbst eingeschaltet haben.)
+- **Freigabe vor Außenwirkung, mit Dauererlaubnis für eigene Stellen (Benjamin 12.11.2026: „Du hast meine
+  Dauererlaubnis“, danach ausdrücklich: „Trag die Dauererlaubnis so in die Regeln ein“):**
+  - Ohne einzelnes OK: Website, App und App-Updates, Play-Store-Eintrag (Bilder, Texte) und Posts auf den eigenen
+    Kanälen. Danach kurz sagen, was live ist.
+  - Weiter nur mit OK von Benjamin: Geld ausgeben und kostenpflichtige Buchungen, Verträge und AGB annehmen,
+    Rechnungen, Mails an Dritte.
+  (Ausnahme wie bisher: die Benachrichtigungen, die Kunden in der App selbst eingeschaltet haben.)
 - **Keine Passwörter, Schlüssel, Bank- oder Steuerdaten** eingeben, erzeugen lassen oder im Chat verlangen. Benjamin trägt
   sie selbst als GitHub-Secret oder beim Anbieter ein. Schlüssel nie in den Chat oder ins Repo.
 - **Abos nur für eigene Arbeit.** Alles, was zahlende Kunden bekommen, läuft über die offizielle Anthropic-API
