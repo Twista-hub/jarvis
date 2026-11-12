@@ -107,3 +107,13 @@ test("Spanisch: Wörterbuch und Sprache aus Land", () => {
   assert.equal(appSprache(new Request("https://x/", { headers: { "cf-ipcountry": "ES", "accept-language": "es-ES" } })), "es");
   assert.doesNotMatch(uebersetzen(seite("x", "<h2>Mein Profil</h2>"), "es"), /Mein Profil/);
 });
+
+test("Wochentag vor dem Datum und mit „ · “ verbundene Zeilen werden teilweise übersetzt", () => {
+  assert.equal(wort("Montag, 09.11.", "en"), "Monday, 09.11.");
+  assert.equal(wort("So., 08.11. · 06:00–14:30", "en"), "Sun, 08.11. · 06:00–14:30");
+  assert.equal(wort("👤 Eva Schneider · ✅ zugesagt", "en"), "👤 Eva Schneider · ✅ confirmed");
+  // A pattern for the whole line wins over the part-wise fallback.
+  assert.equal(wort("Übernommen: Kunden 3 · Einsatzorte 4", "en"), "Imported: customers 3 · sites 4");
+  // Names and free text without a known part stay untouched.
+  assert.equal(wort("Eva Schneider · Köln-Nord GmbH", "en"), null);
+});

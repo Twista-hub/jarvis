@@ -14,6 +14,7 @@ import { stempelTeil } from "./stempel.ts";
 import { offeneSchichtenTeil } from "./schichten.ts";
 import { meineSpesenTeil } from "./spesen.ts";
 import { SPRACHEN, sprachWahl, uebersetzen } from "./sprache.ts";
+import { appSprache } from "./englisch.ts";
 import { leitstand, uebersichtKopf, uebersichtTitel } from "./uebersicht.ts";
 import { fristenSeite } from "./fristen.ts";
 import { personenMaskieren } from "./datensparsam.ts";
@@ -138,16 +139,17 @@ async function rpc<T>(env: DemoEnv, name: string, body: Record<string, unknown>)
 const banner = `<aside class="demo-banner" role="note"><strong>🎬 Demo mit Beispieldaten</strong> – Firma, Personal und Beispiel-Ausschreibungen sind erfunden, nichts wird gespeichert. Unter „Echte Ausschreibungen“ suchst du in den amtlichen Bekanntmachungen. <a class="knopf" href="/registrieren">Kostenlos registrieren</a></aside>`;
 const reiter = (aktiv: string) => `<nav class="ordner-chips demo-reiter" aria-label="Demo">${Object.entries(DEMO_SEITEN).map(([k, t]) => `<a href="/demo/${k}"${k === aktiv ? ' aria-current="page"' : ""}>${t}</a>`).join("")}</nav>`;
 
-export function demoSeite(pfad: string, heute: string, muster: string, sprache = "de"): { titel: string; inhalt: string } | null {
+/** `sprache`: language of the worker app preview (/demo/app); `seitenSprache`: language of the visitor (greeting and date of the overview). */
+export function demoSeite(pfad: string, heute: string, muster: string, sprache = "de", seitenSprache = "de"): { titel: string; inhalt: string } | null {
   const v = vorgaenge(heute, muster);
   const teil = pfad.replace(/^\/demo\/?/, "");
   if (!teil) {
     const jetzt = new Date(`${heute}T07:30:00Z`);
     const naechste = v.find((x) => x.status === "neu") ?? v[0];
     const kopf = uebersichtKopf({ firma: FIRMA, jetzt, neu: 3, bald: v.filter((x) => tageBis(x.frist, heute) <= 7).length, angebote: v.filter((x) => x.status === "angebot").length,
-      naechste: { id: naechste.id, titel: naechste.titel, frist: naechste.frist, punkte: naechste.punkte, status: naechste.status } });
+      naechste: { id: naechste.id, titel: naechste.titel, frist: naechste.frist, punkte: naechste.punkte, status: naechste.status }, sprache: seitenSprache });
     const erstellt = [0, 0, -1, -2, -2, -2, -4, -5, -6].map((n) => `${tag(heute, n)}T06:00:00Z`);
-    return { titel: uebersichtTitel("Eva", jetzt), inhalt: `${banner}${kopf}${leitstand({ erstellt, fristen: v.map((x) => ({ id: x.id, titel: x.titel, frist: x.frist })), jetzt })}
+    return { titel: uebersichtTitel("Eva", jetzt, seitenSprache), inhalt: `${banner}${kopf}${leitstand({ erstellt, fristen: v.map((x) => ({ id: x.id, titel: x.titel, frist: x.frist })), jetzt, sprache: seitenSprache })}
 <h2>Echte Ausschreibungen durchsuchen</h2><p class="klein">Probiere es mit deinem Gewerk und deiner Region: Crewtender sucht in den amtlichen Bekanntmachungen, ohne Anmeldung.</p>${suchFormular("", "", false)}
 <h2>Firma auf einen Blick</h2><p class="klein">So arbeitet <strong>${FIRMA}</strong> mit Crewtender: passende Ausschreibungen jeden Morgen, Steckbriefe mit Losen und Stunden, Fristen, Schichtplan, Stundenzettel und Leistungsnachweis – und eine App für die Einsatzkräfte.</p>
 <div class="konto-kacheln team-werkzeuge">${Object.entries(DEMO_SEITEN).map(([k, t]) => `<a class="konto-kachel" href="/demo/${k}"><span class="konto-icon" aria-hidden="true">${t.split(" ")[0]}</span><strong>${escape(t.slice(t.indexOf(" ") + 1))}</strong><span class="konto-pfeil" aria-hidden="true">›</span></a>`).join("")}</div>
@@ -220,7 +222,7 @@ export async function demo(request: Request, muster: string, env?: DemoEnv): Pro
     if (cache && !e.inhalt.includes('class="fehler"')) await cache.put(schluessel, r.clone()).catch(() => undefined);
     return r;
   }
-  const s = demoSeite(url.pathname, heute, muster, sprache);
+  const s = demoSeite(url.pathname, heute, muster, sprache, appSprache(request));
   if (!s) return new Response(null, { status: 303, headers: { location: "/demo" } });
   let body = demoLinks(seite(s.titel, s.inhalt));
   if (url.pathname === "/demo/app") body = uebersetzen(body, sprache);
