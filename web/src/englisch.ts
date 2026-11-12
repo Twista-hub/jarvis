@@ -124,14 +124,34 @@ function wortGenau(text: string, sprache: Fremd): string | null {
   // Fixed labels in front of free text (AI fact sheet title, rating lines): translate only the label.
   for (const [de, ziel] of PRAEFIXE[sprache]) if (text.startsWith(de) && text.length > de.length) return ziel + text.slice(de.length);
   for (const [de, ziel] of SUFFIXE[sprache]) if (text.endsWith(de) && text.length > de.length && !/\d/.test(text)) return ziel(text.slice(0, -de.length));
-  if (!/\d/.test(text)) return null;
-  for (const m of w.muster) {
+  const tag = wochentag(text, sprache);
+  if (tag !== null) return tag;
+  if (/\d/.test(text)) for (const m of w.muster) {
     const t = m.re.exec(text);
     if (!t) continue;
     let i = 1;
     return m.ziel.replace(/#/g, () => t[i++] ?? "");
   }
+  // Lines joined with " · " ("06:00–14:30 · Kantine Rathaus", "👤 Eva Schneider · ✅ zugesagt"): each part on its own,
+  // only when no pattern covers the whole line.
+  if (text.includes(" · ")) {
+    const teile = text.split(" · ");
+    const neu = teile.map((t) => wortGenau(t, sprache));
+    if (neu.some((t) => t !== null)) return neu.map((t, i) => t ?? teile[i]).join(" · ");
+  }
   return null;
+}
+
+// Weekday in front of a numeric date ("Montag, 09.11.", "Mi., 18.11. · 06:00–14:30"): only the weekday is translated.
+const WOCHENTAGE: Partial<Record<Fremd, Record<string, string>>> = {
+  en: { Montag: "Monday", Dienstag: "Tuesday", Mittwoch: "Wednesday", Donnerstag: "Thursday", Freitag: "Friday", Samstag: "Saturday", Sonntag: "Sunday",
+    "Mo.": "Mon", "Di.": "Tue", "Mi.": "Wed", "Do.": "Thu", "Fr.": "Fri", "Sa.": "Sat", "So.": "Sun" },
+};
+function wochentag(text: string, sprache: Fremd): string | null {
+  const tage = WOCHENTAGE[sprache];
+  if (!tage) return null;
+  const m = /^(Montag|Dienstag|Mittwoch|Donnerstag|Freitag|Samstag|Sonntag|Mo\.|Di\.|Mi\.|Do\.|Fr\.|Sa\.|So\.), (\d{1,2}\.\d{1,2}\.(?:\d{2,4})?)$/.exec(text);
+  return m ? `${tage[m[1]]}, ${m[2]}` : null;
 }
 
 function textTauschen(roh: string, sprache: Fremd): string {
