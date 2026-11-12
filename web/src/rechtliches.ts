@@ -240,7 +240,7 @@ export function startseite(beispiel: string, zahlen: StartZahlen | null = null):
 <h1>Ausschreibung finden. Mit Tariflohn kalkulieren. Team einplanen.</h1>
 <p class="start-unter">Jeden Morgen liest Crewtender alle neuen öffentlichen Ausschreibungen in Deutschland und zeigt dir nur die, die zu deiner Firma passen. Dann rechnest du mit deinen Löhnen den Preis, schreibst das Angebot und planst nach dem Zuschlag Schichten, Stunden und Rechnungen – alles in einer App.</p>
 <div class="start-knoepfe"><a class="start-knopf" href="/registrieren">30 Tage Pro gratis testen</a><a class="start-knopf glas" href="/demo">🎬 Demo ansehen</a></div>
-<p class="start-klein">Schon ein Konto? <a href="/anmelden">Anmelden</a></p>
+<p class="start-klein">Schon ein Konto? <a href="/anmelden">Anmelden</a> · 📱 Auch als <a href="https://play.google.com/store/apps/details?id=eu.crewtender.app" rel="noopener">Android-App bei Google Play</a></p>
 <ul class="start-chips"><li>✓ Demo ohne Anmeldung</li><li>✓ 30 Tage alle Pro-Funktionen, danach Free</li><li>✓ Keine Kreditkarte nötig</li><li>✓ Datenbank in Frankfurt (EU)</li><li>✓ Monatlich kündbar</li><li>✓ Los geht's nach der E-Mail-Bestätigung</li></ul>
 </section>
 ${liveKasten(zahlen)}

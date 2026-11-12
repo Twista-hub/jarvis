@@ -77,7 +77,7 @@ import { betreiber } from "./loeschen.ts";
 import { betreiberRechnungen } from "./betreiber-rechnungen.ts";
 import { betreiberPartner, partnerOeffentlich } from "./partnerprogramm.ts";
 import { suchAbo } from "./suchabo.ts";
-import { appStart } from "./android.ts";
+import { appStart, inAndroidApp } from "./android.ts";
 import { seoSeiten } from "./seo-seiten.ts";
 import { herkunftWeitergeben, kurzlink } from "./herkunft.ts";
 import { besuchZaehlen, darfZaehlen, zaehlung } from "./zaehler.ts";
@@ -227,14 +227,14 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
   const p = fp ? await planStand(fp.s, env, fp.m.firma_id) : null;
   if (!fp || !p || darf(p, bereich)) return verarbeitenRoh(request, env);
   if (request.method !== "GET" && request.method !== "HEAD") {
-    const r = html(seite("Plan", planSperre(bereich, p.plan), 0, "team"), 403);
+    const r = html(seite("Plan", planSperre(bereich, p.plan, inAndroidApp(request)), 0, "team"), 403);
     for (const c of fp.s.cookies ?? []) r.headers.append("set-cookie", c);
     return r;
   }
   const r = await verarbeitenRoh(request, env);
   if (r.status !== 200 || !(r.headers.get("content-type") ?? "").startsWith("text/html")) return r;
   const text = await r.text();
-  return new Response(text.replace("<main>", `<main>${planBanner(bereich, p.plan)}`), { status: r.status, headers: r.headers });
+  return new Response(text.replace("<main>", `<main>${planBanner(bereich, p.plan, inAndroidApp(request))}`), { status: r.status, headers: r.headers });
 }
 
 async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
