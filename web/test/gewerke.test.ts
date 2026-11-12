@@ -21,7 +21,7 @@ test("Gewerke-Seiten: 26 Gewerke, Zahlen, Beispiele, FAQ, Sitemap", () => {
   for (const g of GEWERKE) assert.ok((g.arten?.length ?? 0) >= 3, `${g.slug}: Unterkategorien`);
   assert.equal((uebersichtGewerke().match(/href="\/ausschreibungen\//g) ?? []).length, 26);
   const map = sitemap("https://app.example");
-  assert.equal((map.match(/<loc>/g) ?? []).length, 93 + 7 + 16 + 26 * 16 + ANLEITUNGEN.length); // + Stundensatz-Rechner, Vergleich, 16 neue Gewerke; 26 Gewerke × 16 Bundesländer; 49 + je 11 französische, polnische, spanische, italienische Seiten + Preise, Kontakt, Partner, Partnerbedingungen, Hilfe-Center und Anleitungen
+  assert.equal((map.match(/<loc>/g) ?? []).length, 93 + 7 + 16 + 26 * 16 + ANLEITUNGEN.length + 11); // + /fragen and ten question pages (12.11.2026) // + Stundensatz-Rechner, Vergleich, 16 neue Gewerke; 26 Gewerke × 16 Bundesländer; 49 + je 11 französische, polnische, spanische, italienische Seiten + Preise, Kontakt, Partner, Partnerbedingungen, Hilfe-Center und Anleitungen
   assert.match(ROBOTS("https://app.example"), /Disallow: \/sprache\n/);
   const llms = LLMS("https://app.example");
   assert.match(llms, /^# Crewtender\n\n> /);
