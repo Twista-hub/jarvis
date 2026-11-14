@@ -49,3 +49,10 @@ test("Zähler: höchstens 30 Datenbankaufrufe je Minute", () => {
   assert.equal(erlaubt, 30);
   assert.equal(darfZaehlen(t + 61_000), true, "nächste Minute wieder frei");
 });
+
+test("Zähler: Vorschau-Abrufe von Mastodon- und Bluesky-Servern sind keine Besuche", () => {
+  const mit = (ua: string) => zaehlung(new Request("https://crewtender.eu/?utm_source=mastodon&utm_medium=social", { headers: { "user-agent": ua } }), seite());
+  assert.equal(mit("http.rb/5.2.0 (Mastodon/4.3.1; +https://mastodon.social/)"), null);
+  assert.equal(mit("Mozilla/5.0 (compatible; Bluesky Cardyb/1.1; +mailto:support@bsky.app)"), null);
+  assert.deepEqual(mit("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 Chrome/131.0 Mobile Safari/537.36"), { kanal: "social", quelle: "mastodon" });
+});
