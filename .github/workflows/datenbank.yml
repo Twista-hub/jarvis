@@ -77,6 +77,9 @@ jobs:
           psql "$DB_URL" -c "select coalesce(herkunft->>'quelle', herkunft->>'verweis', '(direkt/unbekannt)') as kanal, herkunft->>'medium' as medium, herkunft->>'kampagne' as kampagne, count(*) as firmen, count(*) filter (where abo_status in ('active', 'trialing')) as mit_abo from public.firmen where erstellt > now() - interval '90 days' group by 1, 2, 3 order by 4 desc"
           psql "$DB_URL" -c "select created_at, payload->>'action' as aktion, regexp_replace(coalesce(payload->>'actor_username', payload->'traits'->>'user_email', ''), '^(.{3})[^@]*', '\\1…') as wer, payload->>'log_type' as art from auth.audit_log_entries order by created_at desc limit 25"
           psql "$DB_URL" -c "select created_at, authentication_method, auth_code_issued_at, updated_at from auth.flow_state order by created_at desc limit 10"
+          # Visits from outside (AI assistants, search engines, social, directories), counted per day without personal data.
+          psql "$DB_URL" -X -c "select tag, kanal, quelle, n from jarvis_intern.besuche_tag where tag > current_date - 14 order by tag desc, n desc"
+          psql "$DB_URL" -X -c "select count(*) as such_abos, count(*) filter (where bestaetigt is not null) as bestaetigt from jarvis_intern.such_abos"
       - name: Kontolöschungs-Blocker prüfen (nur lesend)
         if: inputs.aktion == 'loeschdiagnose'
         env:
