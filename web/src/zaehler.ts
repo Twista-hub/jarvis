@@ -30,7 +30,9 @@ const QUELLEN: [RegExp, Kanal, string][] = [
 
 // Fetchers that load a page because a person asked their assistant (not the crawlers that read the whole site).
 const KI_ABRUF: [RegExp, string][] = [[/ChatGPT-User/i, "chatgpt"], [/Perplexity-User/i, "perplexity"], [/Claude-User/i, "claude"], [/MistralAI-User/i, "mistral"], [/DuckAssistBot/i, "duckduckgo"]];
-const ROBOTER = /bot\b|bot\/|crawler|spider|headless|preview|scanner|facebookexternalhit|curl\/|python|go-http|okhttp|java\/|wget|linkcheck|monitor/i;
+// Also the servers of social networks that load a link once to show a preview card (every Mastodon server that sees
+// one of our posts does this, Bluesky too): they arrive with our utm_source but nobody clicked.
+const ROBOTER = /bot\b|bot\/|crawler|spider|headless|preview|scanner|facebookexternalhit|curl\/|python|go-http|okhttp|java\/|wget|linkcheck|monitor|http\.rb|mastodon\/|pleroma|akkoma|misskey|cardyb|iframely|embedly/i;
 // The account area, files and the API are not public pages.
 const OHNE = /^\/(konto|abmelden|anmelden\/|api|nachweis|portal|einladung|auftrag\/|partner\/u\/|sprache|abo\/|[^?#]*\.(css|js|png|jpe?g|webp|svg|ico|webmanifest|xml|txt|pdf))/;
 const sauber = (v: string | null | undefined, max: number) => String(v ?? "").toLowerCase().replace(/^www\./, "").replace(/[^a-z0-9._-]/g, "").slice(0, max);
