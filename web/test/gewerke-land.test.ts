@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { brancheSeite, LAENDER, landGewerke, landUebersicht } from "../src/gewerke-land.ts";
 import { METIERS } from "../src/gewerke-fr.ts";
-import { GEWERKE, sitemap } from "../src/gewerke.ts";
+import { GEWERKE, landSchluessel, sitemap } from "../src/gewerke.ts";
 import { alternativen, SLUGS } from "../src/gewerke-sprachen.ts";
 
 const antwort = (h: string) => new Response(h, { headers: { "content-type": "text/html; charset=utf-8", "x-robots-tag": "noindex" } });
@@ -71,4 +71,16 @@ test("Spanische Gewerke-Seiten: Übersicht, Katalonien als Quelle, ohne Zahlen k
   const ut = await u.text();
   assert.match(ut, /<h1>Licitaciones públicas por oficio<\/h1>/);
   assert.match(ut, /hreflang="pl" href="https:\/\/app.example\/pl\/przetargi"/);
+});
+
+test("Sitemap der Seiten nennt nur Seiten, die indexiert werden dürfen", () => {
+  const alle = sitemap("https://x");
+  for (const p of ["/demo", "/datenschutz", "/impressum"]) assert.ok(!alle.includes(`<loc>https://x${p}</loc>`), `${p} trägt noindex`);
+  const g = GEWERKE[0];
+  // Only Bavaria (NUTS code 2) has notices for the first trade: the other 15 state pages of this trade are left out.
+  const eine = sitemap("https://x", new Set([landSchluessel(g.cpv, "2")]));
+  assert.ok(eine.includes(`<loc>https://x/ausschreibungen/${g.slug}/bayern</loc>`));
+  assert.equal((eine.match(new RegExp(`<loc>https://x/ausschreibungen/${g.slug}/`, "g")) ?? []).length, 1);
+  assert.ok(eine.includes(`<loc>https://x/ausschreibungen/${g.slug}</loc>`), "die Gewerk-Seite selbst bleibt");
+  assert.equal((alle.match(/<loc>/g) ?? []).length - (eine.match(/<loc>/g) ?? []).length, 26 * 16 - 1);
 });
