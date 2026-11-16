@@ -183,9 +183,30 @@ export function uebersichtGewerke(): string {
 
 const meta = (html: string, beschreibung: string, url: string, paar = "") => html.replace("</title>", `</title>\n<meta name="description" content="${escape(beschreibung)}">\n<link rel="canonical" href="${escape(url)}">${paar ? `\n${paar}` : ""}`);
 
-export function sitemap(adresse: string): string {
-  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...LAENDER_PFADE_DE(), ...FR_PFADE, ...LAND_PFADE, "/demo", "/preise", "/stundensatz-rechner", "/vergleich", "/us/sam-registration", "/datenschutz", "/impressum", "/kontakt", "/partner", "/partner/bedingungen", "/hilfe", ...ANLEITUNGEN.map((x) => `/hilfe/${x.slug}`), "/fragen", ...FRAGEN.map((f) => `/fragen/${f.slug}`)];
+/** Key of a trade page per federal state in the list of pages with notices (public.gewerk_land_belegt). */
+export const landSchluessel = (cpv: readonly string[], nuts: string) => `${cpv.join(",")}|${nuts}`;
+
+/**
+ * Sitemap of the pages. Only pages that may be indexed: the demo, the privacy policy and the imprint carry "noindex" and
+ * are left out, and so are trade pages per federal state without a notice in the last 30 days (`belegt`: the pages that
+ * have some; without the list all are named). Google reported "in the sitemap but excluded by noindex" on 16.11.2026.
+ */
+export function sitemap(adresse: string, belegt?: ReadonlySet<string> | null): string {
+  const laender = belegt ? GEWERKE.flatMap((g) => BUNDESLAENDER.filter((l) => belegt.has(landSchluessel(g.cpv, l.nuts))).map((l) => `/ausschreibungen/${g.slug}/${l.slug}`)) : LAENDER_PFADE_DE();
+  const pfade = ["/", ...Object.keys(ISO2).map((l) => `/${l.toLowerCase()}`), "/ausschreibungen", ...GEWERKE.map((g) => `/ausschreibungen/${g.slug}`), ...laender, ...FR_PFADE, ...LAND_PFADE, "/preise", "/stundensatz-rechner", "/vergleich", "/us/sam-registration", "/kontakt", "/partner", "/partner/bedingungen", "/hilfe", ...ANLEITUNGEN.map((x) => `/hilfe/${x.slug}`), "/fragen", ...FRAGEN.map((f) => `/fragen/${f.slug}`)];
   return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${pfade.map((p) => `<url><loc>${adresse}${p}</loc></url>`).join("\n")}\n</urlset>\n`;
+}
+
+/** Trade pages per federal state with notices, or null when the database does not answer or the list looks incomplete. */
+async function belegteLaender(env: GewerkEnv): Promise<Set<string> | null> {
+  try {
+    const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/gewerk_land_belegt`, { method: "POST", headers: { apikey: env.SUPABASE_KEY, "content-type": "application/json" }, body: "{}", signal: AbortSignal.timeout(4000) });
+    if (!r.ok) return null;
+    const z = (await r.json()) as [string, string][] | null;
+    // A nearly empty list means the background cache is being rebuilt or broken: better name all pages than drop them.
+    if (!Array.isArray(z) || z.length < 50) return null;
+    return new Set(z.map(([k, l]) => `${k}|${l}`));
+  } catch { return null; }
 }
 // /sprache is the language switch in every footer (a redirect that sets a cookie): on 10.11.2026 GPTBot followed it
 // about 78,000 times in one day, close to the daily request allowance of the Worker. Crawlers stay out.
@@ -258,7 +279,17 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   if (url.pathname === "/robots.txt") return new Response(ROBOTS(adresse), { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } });
   if (url.pathname === "/llms.txt") return new Response(LLMS(adresse), { headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "public, max-age=86400" } });
   // /sitemap-seiten.xml: same list under a new name – the Search Console kept "could not be read" for /sitemap.xml (08.11.2026).
-  if (url.pathname === "/sitemap.xml" || url.pathname === "/sitemap-seiten.xml") return new Response(sitemap(adresse), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": "public, max-age=86400" } });
+  if (url.pathname === "/sitemap.xml" || url.pathname === "/sitemap-seiten.xml") {
+    // 6 h at the edge when the database told which state pages have notices, 5 minutes for the full list without it.
+    const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
+    const k = new Request(`${adresse}/sitemap-seiten.xml?v=2`);
+    const alt = await cache?.match(k).catch(() => undefined);
+    if (alt) return alt;
+    const belegt = await belegteLaender(env);
+    const r = new Response(sitemap(adresse, belegt), { headers: { "content-type": "application/xml; charset=utf-8", "cache-control": `public, max-age=${belegt ? 21600 : 300}` } });
+    if (cache && belegt) env.WARTEN?.(cache.put(k, r.clone()).catch(() => undefined));
+    return r;
+  }
   if (url.pathname === "/ausschreibungen" || url.pathname === "/ausschreibungen/") {
     const r = antwort(meta(seite("Ausschreibungen nach Gewerk", uebersichtGewerke()), "Öffentliche Ausschreibungen für Handwerk, Reinigung, Sicherheitsdienst und Zeitarbeit: Crewtender findet täglich die passenden Aufträge für deine Firma.", `${adresse}/ausschreibungen`, alternativen(adresse, null)));
     r.headers.set("cache-control", "public, max-age=3600");

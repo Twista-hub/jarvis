@@ -153,6 +153,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261110030000_betreiber_betrieb.sql
 \ir ../migrations/20261110040000_such_abos.sql
 \ir ../migrations/20261111010000_besuche_tag.sql
+\ir ../migrations/20261116010000_gewerk_land_belegt.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
