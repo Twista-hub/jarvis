@@ -1,7 +1,7 @@
 import { ANLEITUNGEN } from "../src/hilfecenter.ts";
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { GEWERKE, gewerkSeite, LLMS, ROBOTS, sitemap, uebersichtGewerke } from "../src/gewerke.ts";
+import { aufzaehlen, GEWERKE, gewerkSeite, LLMS, ROBOTS, sitemap, uebersichtGewerke } from "../src/gewerke.ts";
 
 test("Gewerke-Seiten: 26 Gewerke, Zahlen, Beispiele, FAQ, Sitemap", () => {
   assert.equal(GEWERKE.length, 26);
@@ -73,4 +73,19 @@ test("Französische Gewerke-Seiten: Inhalt, Quelle, hreflang, Sitemap, immer Fra
   const sql = readFileSync(new URL("../../supabase/migrations/20261102130000_boamp_bestand.sql", import.meta.url), "utf8");
   for (const m of METIERS) assert.ok(sql.includes(`('fr:${m.praefixe.join(",")}'`), `Cache-Schlüssel fehlt: ${m.slug}`);
   assert.match(sitemap("https://app.example"), /<loc>https:\/\/app.example\/fr\/appels-d-offres\/securite-gardiennage<\/loc>/);
+});
+
+test("Gewerk-Seiten nennen die Berufe, nach denen gesucht wird (Search Console 16.11.2026)", () => {
+  assert.equal(aufzaehlen(["A"]), "A");
+  assert.equal(aufzaehlen(["A", "B", "C"]), "A, B und C");
+  for (const g of GEWERKE) {
+    assert.ok(g.berufe.length >= 3, `${g.slug}: Berufe fehlen`);
+    assert.match(g.titel, /^Ausschreibungen für /, g.slug);
+    assert.ok(g.titel.length <= 75, `${g.slug}: Titel zu lang (${g.titel.length})`);
+    const h = gewerkSeite(g, { monat: 12, offen: 5, beispiele: [{ titel: "Beispiel", auftraggeber: "Stadt", ort: "Köln", frist: null, link: "" }] });
+    assert.ok(h.includes(`Diese Seite ist für ${aufzaehlen(g.berufe)}, die öffentliche Aufträge suchen.`), g.slug);
+    assert.ok(h.includes(`<h2>Aktuelle Ausschreibungen für ${aufzaehlen(g.berufe.slice(0, 2))} (Auswahl)</h2>`), g.slug);
+  }
+  const shk = GEWERKE.find((g) => g.slug === "sanitaer-heizung-lueftung")!;
+  assert.ok(shk.titel.includes("Heizungsbauer") && shk.titel.includes("Klempner"));
 });
