@@ -6,7 +6,7 @@
 import { escape, markdown, seite } from "./seite.ts";
 import { KI_KENNUNG } from "./ki-kennung.ts";
 import { personenMaskieren } from "./datensparsam.ts";
-import { GEWERKE, type Statistik } from "./gewerke.ts";
+import { aufzaehlen, GEWERKE, type Statistik } from "./gewerke.ts";
 import { BUNDESLAENDER, landAusOrt, type Bundesland } from "./nuts.ts";
 export { BUNDESLAENDER, landAusOrt };
 
@@ -33,6 +33,7 @@ export function gewerkLandSeite(g: (typeof GEWERKE)[number], l: Bundesland, s: S
   return `<h1>Öffentliche Ausschreibungen ${escape(g.name)} ${escape(l.im)}</h1>
 <p class="klein"><a href="/ausschreibungen">Ausschreibungen</a> › <a href="/ausschreibungen/${g.slug}">${escape(g.name)}</a> › ${escape(l.name)}</p>
 <p>${escape(g.intro)}</p>
+${g.berufe.length ? `<p>Diese Seite ist für ${escape(aufzaehlen(g.berufe))} ${escape(l.im)}, die öffentliche Aufträge suchen.</p>` : ""}
 ${n ? `<div class="gewerk-zahlen"><div><strong>${zahl(n)}</strong><span>Ausschreibungen ${escape(l.im)} in den letzten 30 Tagen</span></div>${s?.offen ? `<div><strong>${zahl(s.offen)}</strong><span>davon noch offen</span></div>` : ""}</div>` : `<p class="hinweis">Zurzeit gibt es ${escape(l.im)} keine neue Ausschreibung in diesem Gewerk. Crewtender meldet dir die nächste automatisch.</p>`}
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">Kostenlos passende Aufträge ${escape(l.im)} finden</a><a class="knopf zweit" href="/demo">🎬 Demo ansehen</a></div>
 ${beispiele.length ? `<h2>Aktuelle Ausschreibungen ${escape(l.im)}</h2><ul class="kontakt-liste gewerk-beispiele">${beispiele.map((b) => `<li><div>${b.id ? `<a href="${ausschreibungLink(b.id)}"><strong>${escape(b.titel)}</strong></a>` : `<strong>${escape(b.titel)}</strong>`}<span class="klein">${escape([b.auftraggeber, b.ort].filter(Boolean).join(" · "))}${b.frist ? ` · Frist ${datum(b.frist)}` : ""}</span></div></li>`).join("")}</ul><p class="klein">Quelle: amtliche Bekanntmachungen. In Crewtender bekommst du nur die Ausschreibungen, die zu deiner Firma und deinem Umkreis passen, mit Bewertung und Steckbrief.</p>` : ""}
@@ -163,10 +164,10 @@ export async function seoSeiten(request: Request, env: SeoEnv, adresse: string, 
     const g = GEWERKE.find((x) => x.slug === gl[1]), l = BUNDESLAENDER.find((x) => x.slug === gl[2]);
     if (!g) return new Response(null, { status: 301, headers: { location: "/ausschreibungen" } });
     if (!l) return new Response(null, { status: 301, headers: { location: `/ausschreibungen/${g.slug}` } });
-    return gecacht(`/ausschreibungen/${g.slug}/${l.slug}?v=2`, async () => {
+    return gecacht(`/ausschreibungen/${g.slug}/${l.slug}?v=3`, async () => {
       const s = await rpc<Statistik>(env, "gewerk_land_statistik", { praefixe: g.cpv, land: l.nuts });
       const titel = `Ausschreibungen ${g.name} ${l.name}`;
-      const beschreibung = `Öffentliche Ausschreibungen ${g.name} ${l.im}: ${s?.monat ? `${zahl(s.monat)} in den letzten 30 Tagen, ${zahl(s.offen ?? 0)} offen. ` : ""}Crewtender findet täglich die passenden Aufträge für deinen Betrieb.`;
+      const beschreibung = `Öffentliche Ausschreibungen ${g.name} ${l.im}${g.berufe.length ? ` für ${aufzaehlen(g.berufe.slice(0, 2))}` : ""}: ${s?.monat ? `${zahl(s.monat)} in den letzten 30 Tagen, ${zahl(s.offen ?? 0)} offen. ` : ""}Crewtender findet täglich die passenden Aufträge für deinen Betrieb.`;
       const r = antwort(meta(seite(titel, gewerkLandSeite(g, l, s)), beschreibung, `${adresse}/ausschreibungen/${g.slug}/${l.slug}`, s?.monat ? "" : "noindex, follow"));
       r.headers.delete("x-robots-tag");
       return s ? r : null;

@@ -12,7 +12,9 @@ import { PLAENE } from "./plaene.ts";
 import { FRAGEN } from "./fragen.ts";
 
 /** arten: sub-categories shown as chips; danach: what the app does once the contract is won (default DANACH). */
-type Gewerk = { slug: string; name: string; h1: string; cpv: string[]; intro: string; vorteile: string[]; fragen: [string, string][]; arten?: string[]; danach?: string[] };
+type GewerkBasis = { slug: string; name: string; h1: string; cpv: string[]; intro: string; vorteile: string[]; fragen: [string, string][]; arten?: string[]; danach?: string[] };
+/** titel: page title; berufe: the words firms call themselves and search for (see SUCHWORTE). */
+type Gewerk = GewerkBasis & { titel: string; berufe: string[] };
 
 /** After the award: the part no tender service offers (competitor check 09.11.2026, docs/wettbewerb.md). */
 const DANACH = ["Schichten oder Einsätze planen, Zusagen sehen, Lücken füllen", "Stunden per Handy erfassen, im Büro freigeben, Lohnliste für DATEV", "Leistungsnachweis zum Unterschreiben und Rechnung, auch als XRechnung"];
@@ -23,7 +25,7 @@ const ALLGEMEIN: [string, string][] = [
   ["Woher kommen die Ausschreibungen?", "Aus den amtlichen Bekanntmachungen (Bekanntmachungsservice des Bundes, EU-Amtsblatt TED). Crewtender liest täglich alle neuen Ausschreibungen in Deutschland, über 1.000 pro Woche."],
 ];
 
-const ALLE: Gewerk[] = [
+const ALLE: GewerkBasis[] = [
   { slug: "elektro", name: "Elektro", h1: "Öffentliche Ausschreibungen für Elektroarbeiten", cpv: ["45311", "45315", "45317", "45310"], arten: ["Elektroinstallation", "Beleuchtung", "Photovoltaik", "Brandmelde- und Sicherheitstechnik", "Blitzschutz", "Wartung und Prüfung"],
     intro: "Schulen, Kitas, Rathäuser und Wohnungsbaugesellschaften vergeben laufend Elektroinstallation, Beleuchtung, PV-Anlagen und Wartung. Crewtender findet die Aufträge, die zu deinem Betrieb und Einzugsgebiet passen, und sagt in einem Satz, warum.",
     vorteile: ["Elektroinstallation, Sicherheitsbeleuchtung, PV und Wartung getrennt erkannt", "Steckbrief mit Losen, Mengen, Fristen und geforderten Nachweisen (z. B. Eintragung Installateurverzeichnis)", "Kalkulation pro Los mit deinen Stundensätzen"],
@@ -144,7 +146,44 @@ const REIHENFOLGE = ["architektur-ingenieurleistungen", "strassenbau-kanalbau", 
   "garten-landschaftsbau-winterdienst", "bildung-kurse", "brandschutz-sicherheitstechnik", "sicherheitsdienst", "pflege-soziale-dienste", "wartung-haustechnik",
   "schuelerbefoerderung-personenverkehr", "veranstaltungen-messen", "umzuege-logistik", "catering-kantine", "hausmeister-facility-management",
   "waescherei-textilreinigung", "zeitarbeit-personaldienstleister"];
-export const GEWERKE: Gewerk[] = REIHENFOLGE.map((slug) => ALLE.find((g) => g.slug === slug)!);
+// What people type into Google (Search Console 03.–13.11.2026): the name of their trade plus "Ausschreibung"
+// ("heizungsbauer ausschreibung", "klempner ausschreibung", "schreiner ausschreibung", "sicherheitsfirma ausschreibung"),
+// not the name of the field ("Sanitär, Heizung, Lüftung"). These words go into the page title, the description and
+// one sentence and one heading of each trade page. [title, trades]
+const SUCHWORTE: Record<string, [string, string[]]> = {
+  "elektro": ["Ausschreibungen für Elektriker und Elektroinstallateure", ["Elektriker", "Elektroinstallateure", "Elektrofirmen"]],
+  "sanitaer-heizung-lueftung": ["Ausschreibungen für Heizungsbauer, Klempner und Sanitärbetriebe", ["Heizungsbauer", "Klempner", "Sanitärinstallateure", "Lüftungsbauer"]],
+  "tischler-schreiner": ["Ausschreibungen für Schreiner und Tischler", ["Schreiner", "Tischler", "Bautischler"]],
+  "gebaeudereinigung": ["Ausschreibungen für Gebäudereiniger und Reinigungsfirmen", ["Gebäudereiniger", "Reinigungsfirmen", "Glasreiniger"]],
+  "maler-trockenbau": ["Ausschreibungen für Maler, Stuckateure und Trockenbauer", ["Maler", "Lackierer", "Stuckateure", "Trockenbauer"]],
+  "dach-zimmerer": ["Ausschreibungen für Dachdecker und Zimmerer", ["Dachdecker", "Zimmerer", "Zimmereien", "Spengler"]],
+  "garten-landschaftsbau-winterdienst": ["Ausschreibungen für Landschaftsgärtner und GaLaBau-Betriebe", ["Landschaftsgärtner", "Gärtner", "GaLaBau-Betriebe", "Winterdienste"]],
+  "sicherheitsdienst": ["Ausschreibungen für Sicherheitsfirmen und Wachdienste", ["Sicherheitsfirmen", "Wachdienste", "Security-Unternehmen"]],
+  "bodenbelaege-fliesen": ["Ausschreibungen für Bodenleger, Fliesenleger und Estrichleger", ["Bodenleger", "Fliesenleger", "Estrichleger", "Parkettleger"]],
+  "zeitarbeit-personaldienstleister": ["Ausschreibungen für Zeitarbeitsfirmen und Personaldienstleister", ["Zeitarbeitsfirmen", "Personaldienstleister", "Personalvermittler"]],
+  "architektur-ingenieurleistungen": ["Ausschreibungen für Architekten und Ingenieurbüros", ["Architekten", "Ingenieurbüros", "Planungsbüros", "Fachplaner"]],
+  "strassenbau-kanalbau": ["Ausschreibungen für Straßenbauer, Kanalbauer und Tiefbaufirmen", ["Straßenbauer", "Kanalbauer", "Tiefbaufirmen", "Pflasterer"]],
+  "rohbau-beton-geruestbau": ["Ausschreibungen für Maurer, Betonbauer und Gerüstbauer", ["Maurer", "Betonbauer", "Gerüstbauer", "Bauunternehmen"]],
+  "abbruch-erdarbeiten": ["Ausschreibungen für Abbruchunternehmen und Erdbauer", ["Abbruchunternehmen", "Erdbauer", "Baggerbetriebe"]],
+  "it-dienstleistungen": ["Ausschreibungen für IT-Dienstleister und Softwarefirmen", ["IT-Dienstleister", "Softwarefirmen", "Systemhäuser", "Agenturen"]],
+  "abfall-entsorgung": ["Ausschreibungen für Entsorger, Müllabfuhr und Containerdienste", ["Entsorger", "Müllabfuhr-Unternehmen", "Containerdienste"]],
+  "bildung-kurse": ["Ausschreibungen für Bildungsträger, Dozenten und Sprachschulen", ["Bildungsträger", "Sprachschulen", "Dozenten", "Coaches"]],
+  "brandschutz-sicherheitstechnik": ["Ausschreibungen für Brandschutzfirmen und Sicherheitstechniker", ["Brandschutzfirmen", "Errichter von Brandmeldeanlagen", "Sicherheitstechniker"]],
+  "pflege-soziale-dienste": ["Ausschreibungen für Pflegedienste und soziale Träger", ["Pflegedienste", "soziale Träger", "Betreuungsdienste"]],
+  "wartung-haustechnik": ["Ausschreibungen für Wartungsfirmen und Haustechniker", ["Wartungsfirmen", "Haustechniker", "Aufzugsfirmen"]],
+  "schuelerbefoerderung-personenverkehr": ["Ausschreibungen für Busunternehmen, Taxi- und Fahrdienste", ["Busunternehmen", "Taxiunternehmen", "Mietwagenunternehmen", "Fahrdienste"]],
+  "veranstaltungen-messen": ["Ausschreibungen für Eventagenturen, Messebauer und Veranstaltungstechnik", ["Eventagenturen", "Messebauer", "Veranstaltungstechniker"]],
+  "umzuege-logistik": ["Ausschreibungen für Umzugsunternehmen, Speditionen und Kurierdienste", ["Umzugsunternehmen", "Speditionen", "Kurierdienste"]],
+  "catering-kantine": ["Ausschreibungen für Caterer, Kantinen und Gastronomie", ["Caterer", "Kantinenbetreiber", "Großküchen", "Gastronomiebetriebe"]],
+  "hausmeister-facility-management": ["Ausschreibungen für Hausmeisterdienste und Facility Management", ["Hausmeisterdienste", "Hausmeisterservice-Firmen", "Facility-Management-Firmen"]],
+  "waescherei-textilreinigung": ["Ausschreibungen für Wäschereien und Textilreinigungen", ["Wäschereien", "Textilreinigungen", "Mietwäsche-Anbieter"]],
+};
+/** "A, B und C". */
+export const aufzaehlen = (w: readonly string[]) => (w.length < 2 ? w.join("") : `${w.slice(0, -1).join(", ")} und ${w[w.length - 1]}`);
+export const GEWERKE: Gewerk[] = REIHENFOLGE.map((slug) => {
+  const g = ALLE.find((x) => x.slug === slug)!, [titel, berufe] = SUCHWORTE[slug] ?? [g.h1, []];
+  return { ...g, titel, berufe };
+});
 
 const zahl = (n: number) => n.toLocaleString("de-DE");
 /** Trade × federal state pages (seo-seiten.ts). */
@@ -157,10 +196,11 @@ export function gewerkSeite(g: Gewerk, s: Statistik | null): string {
   const jsonld = JSON.stringify({ "@context": "https://schema.org", "@type": "FAQPage", mainEntity: fragen.map(([q, a]) => ({ "@type": "Question", name: q, acceptedAnswer: { "@type": "Answer", text: a } })) }).replace(/</g, "\\u003c");
   return `<h1>${escape(g.h1)}</h1>
 <p>${escape(g.intro)}</p>
+${g.berufe.length ? `<p>Diese Seite ist für ${escape(aufzaehlen(g.berufe))}, die öffentliche Aufträge suchen.</p>` : ""}
 ${s ? `<div class="gewerk-zahlen"><div><strong>${zahl(s.monat)}</strong><span>Ausschreibungen in den letzten 30 Tagen</span></div>${s.monat >= 8 ? `<div><strong>${zahl(Math.round(s.monat * 7 / 30))}</strong><span>neue pro Woche im Schnitt</span></div>` : ""}${s.offen ? `<div><strong>${zahl(s.offen)}</strong><span>davon noch offen</span></div>` : ""}</div>` : ""}
 ${g.arten?.length ? `<ul class="start-chips gewerk-arten" aria-label="Typische Leistungen">${g.arten.map((a) => `<li>${escape(a)}</li>`).join("")}</ul>` : ""}
 <div class="knopf-zeile"><a class="knopf" href="/registrieren">Kostenlos passende Aufträge finden</a><a class="knopf zweit" href="/demo">🎬 Demo ansehen</a></div>
-${s?.beispiele.length ? `<h2>Aktuelle Ausschreibungen (Auswahl)</h2><ul class="kontakt-liste gewerk-beispiele">${s.beispiele.map((b) => `<li><div>${b.id ? `<a href="/ausschreibung/${encodeURIComponent(b.id)}"><strong>${escape(b.titel)}</strong></a>` : `<strong>${escape(b.titel)}</strong>`}<span class="klein">${escape([b.auftraggeber, b.ort].filter(Boolean).join(" · "))} ${b.frist ? ` · Frist ${datum(b.frist)}` : ""}</span></div></li>`).join("")}</ul><p class="klein">Quelle: amtliche Bekanntmachungen. In Crewtender bekommst du nur die Ausschreibungen, die zu deiner Firma und deinem Gebiet passen, mit Bewertung und Steckbrief.</p>` : ""}
+${s?.beispiele.length ? `<h2>Aktuelle Ausschreibungen${g.berufe.length ? ` für ${escape(aufzaehlen(g.berufe.slice(0, 2)))}` : ""} (Auswahl)</h2><ul class="kontakt-liste gewerk-beispiele">${s.beispiele.map((b) => `<li><div>${b.id ? `<a href="/ausschreibung/${encodeURIComponent(b.id)}"><strong>${escape(b.titel)}</strong></a>` : `<strong>${escape(b.titel)}</strong>`}<span class="klein">${escape([b.auftraggeber, b.ort].filter(Boolean).join(" · "))} ${b.frist ? ` · Frist ${datum(b.frist)}` : ""}</span></div></li>`).join("")}</ul><p class="klein">Quelle: amtliche Bekanntmachungen. In Crewtender bekommst du nur die Ausschreibungen, die zu deiner Firma und deinem Gebiet passen, mit Bewertung und Steckbrief.</p>` : ""}
 <h2>So hilft Crewtender ${escape(g.name === "Elektro" ? "Elektrobetrieben" : `im Bereich ${g.name}`)}</h2>
 <ul>${g.vorteile.map((v) => `<li>${escape(v)}</li>`).join("")}<li>Jeden Morgen die neuen Treffer mit Punkten von 1 bis 10 und einem Satz, warum sie passen</li></ul>
 <h2>Und wenn der Auftrag da ist</h2>
@@ -301,7 +341,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
   if (!m) return null;
   if (!g) return new Response(null, { status: 301, headers: { location: "/ausschreibungen" } });
   const cache = (globalThis as { caches?: { default?: Cache } }).caches?.default;
-  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}?cache=5`);
+  const schluessel = new Request(`${adresse}/ausschreibungen/${g.slug}?cache=6`);
   const alt = await cache?.match(schluessel).catch(() => undefined);
   if (alt) return alt;
   let s: Statistik | null = null;
@@ -309,7 +349,7 @@ export async function gewerke(request: Request, env: GewerkEnv, adresse: string,
     const r = await fetch(`${env.SUPABASE_URL}/rest/v1/rpc/gewerk_statistik`, { method: "POST", headers: { apikey: env.SUPABASE_KEY, "content-type": "application/json" }, body: JSON.stringify({ praefixe: g.cpv }) });
     if (r.ok) s = (await r.json()) as Statistik | null;
   } catch { s = null; }
-  const r = antwort(meta(seite(g.h1, gewerkSeite(g, s)), `${g.h1}: ${s ? `${zahl(s.monat)} Ausschreibungen in den letzten 30 Tagen. ` : ""}Crewtender findet täglich die passenden Aufträge für deinen Betrieb – kostenlos registrieren.`, `${adresse}/ausschreibungen/${g.slug}`, alternativen(adresse, g.slug)));
+  const r = antwort(meta(seite(g.titel, gewerkSeite(g, s)), `${g.titel}: ${s ? `${zahl(s.monat)} Ausschreibungen in den letzten 30 Tagen. ` : ""}Crewtender findet täglich die passenden Aufträge für deinen Betrieb – kostenlos registrieren.`, `${adresse}/ausschreibungen/${g.slug}`, alternativen(adresse, g.slug)));
   r.headers.set("cache-control", "public, max-age=3600");
   r.headers.delete("x-robots-tag");
   if (cache && s) env.WARTEN?.(cache.put(schluessel, r.clone()).catch(() => undefined));
