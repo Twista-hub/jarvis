@@ -123,6 +123,28 @@ def main() -> None:
         if feld == "clientRefererHost":
             print(f"   Summe Anfragen {sum(anfragen.values())}, neue Besuche {sum(besuche.values())}")
 
+    # 2b. The language switch /sprache (a redirect that crawlers follow endlessly) and the load per hour: the free Worker
+    # plan allows 100,000 requests a day, and on 10.11. and 18.11.2026 crawlers alone came close to it.
+    for titel, feld, extra in (("Wer ruft /sprache auf (Kennung des Programms)", "userAgent", ',clientRequestPath:"/sprache"'),
+                               ("/sprache je Tag", "date", ',clientRequestPath:"/sprache"'),
+                               ("Alle Anfragen je Tag und Stunde (UTC), letzte 2 Tage", "datetimeHour", "")):
+        anfragen, meldung = Counter(), ""
+        for a, e in (fenster[-2:] if feld == "datetimeHour" else fenster):
+            q = """query($z:String!,$a:Time!,$e:Time!){viewer{zones(filter:{zoneTag:$z}){
+              httpRequestsAdaptiveGroups(limit:400,filter:{datetime_geq:$a,datetime_leq:$e,requestSource:"eyeball"%s},orderBy:[count_DESC]){count dimensions{wert:%s}}}}}""" % (extra, feld)
+            d, fehler = gql(q, {"z": zone, "a": a.strftime("%Y-%m-%dT%H:%M:%SZ"), "e": e.strftime("%Y-%m-%dT%H:%M:%SZ")})
+            meldung = fehler or meldung
+            for g in ((d.get("viewer") or {}).get("zones") or [{}])[0].get("httpRequestsAdaptiveGroups", []):
+                anfragen[str(g["dimensions"]["wert"])] += g["count"]
+        if meldung:
+            print(f"\n== {titel}: nicht verfügbar ({meldung})")
+        elif feld == "userAgent":
+            tabelle(titel, anfragen, 15)
+        else:
+            print(f"\n== {titel}")
+            for k in sorted(anfragen):
+                print(f"   {k}: {anfragen[k]}")
+
     # 3. Web Analytics: real browsers only
     konto = os.environ.get("CF_ACCOUNT", "").strip()
     seit = (jetzt - timedelta(days=min(tage, 30))).strftime("%Y-%m-%dT%H:%M:%SZ")
