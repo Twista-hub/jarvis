@@ -31,7 +31,7 @@ test("Englisch: ganze Seite, Attribute, geschützte Bereiche, Entities", () => {
   assert.doesNotMatch(en, /Nutzungsbedingungen/);
 });
 
-test("Englisch: Sprache aus Cookie oder Land, Umschalter im Fuß, Wechsel-Route", () => {
+test("Englisch: Sprache aus Cookie oder Land, Umschalter im Fuß, Wechsel-Route", async () => {
   const anfrage = (cookie = "", land = "DE", url = "https://x/konto", browser = "") => new Request(url, { headers: { cookie, "cf-ipcountry": land, "accept-language": browser } });
   // English is the standard (04.11.2026): without an own choice the browser language decides, never the IP alone.
   assert.equal(appSprache(anfrage("", "DE", undefined, "de-DE,de;q=0.9")), "de");
@@ -46,18 +46,35 @@ test("Englisch: Sprache aus Cookie oder Land, Umschalter im Fuß, Wechsel-Route"
   assert.equal(appSprache(anfrage("jv_psprache=it", "FR")), "it");
   assert.equal(appSprache(anfrage("jv_psprache=nl", "FR")), "en", "Niederländisch hat keine App-Sprache");
   const fuss = sprachFuss(seite("x", "<p>y</p>"), "de", "/konto/treffer?stand=neu");
-  assert.match(fuss, /href="\/sprache\?zu=en&amp;weiter=%2Fkonto%2Ftreffer%3Fstand%3Dneu"[^>]*>🌐 English<\/a>/);
-  assert.match(fuss, /zu=fr[^>]*>Français<\/a>/);
-  assert.match(sprachFuss(seite("x", "<p>y</p>"), "en", "/"), /zu=de[^>]*>🌐 Deutsch</);
-  assert.match(sprachFuss(seite("x", "<p>y</p>"), "fr", "/"), /zu=de[^>]*>🌐 Deutsch<\/a> · <a[^>]*zu=en[^>]*>English</);
-  assert.match(sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=fr&weiter=/"))!.headers.get("set-cookie") ?? "", /jv_psprache=fr;/);
-  assert.match(sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=xx&weiter=/"))!.headers.get("set-cookie") ?? "", /jv_psprache=de;/);
-  const r = sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=en&weiter=/konto/fristen"))!;
+  // A form with buttons, no links: crawlers followed the links without end (10.11. and 17.–19.11.2026).
+  assert.doesNotMatch(fuss, /href="\/sprache/);
+  assert.match(fuss, /<form method="post" action="\/sprache" class="klein sprach-wahl"><input type="hidden" name="weiter" value="\/konto\/treffer\?stand=neu">/);
+  assert.match(fuss, /<button name="zu" value="en" lang="en">English<\/button> · <button name="zu" value="fr" lang="fr">Français<\/button>/);
+  assert.match(sprachFuss(seite("x", "<p>y</p>"), "en", "/"), /<button name="zu" value="de" lang="de">Deutsch<\/button>/);
+  assert.doesNotMatch(sprachFuss(seite("x", "<p>y</p>"), "fr", "/"), /value="fr"/);
+  assert.match(sprachFuss(seite("x", "<p>y</p>"), "de", '/suche?q="><script>'), /value="\/suche\?q=&#34;&#62;&#60;script&#62;"/);
+  assert.match((await sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=fr&weiter=/")))!.headers.get("set-cookie") ?? "", /jv_psprache=fr;/);
+  assert.match((await sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=xx&weiter=/")))!.headers.get("set-cookie") ?? "", /jv_psprache=de;/);
+  const r = (await sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=en&weiter=/konto/fristen")))!;
   assert.equal(r.status, 303);
   assert.equal(r.headers.get("location"), "/konto/fristen");
   assert.match(r.headers.get("set-cookie") ?? "", /jv_psprache=en; Path=\/; Max-Age=31536000/);
-  assert.equal(sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=en&weiter=//boese.de"))!.headers.get("location"), "/");
-  assert.equal(sprachWechsel(anfrage("", "DE", "https://x/konto")), null);
+  assert.equal((await sprachWechsel(anfrage("", "DE", "https://x/sprache?zu=en&weiter=//boese.de")))!.headers.get("location"), "/");
+  assert.equal(await sprachWechsel(anfrage("", "DE", "https://x/konto")), null);
+  // The form in the footer.
+  const post = (zu: string, weiter: string) => sprachWechsel(new Request("https://x/sprache", { method: "POST", headers: { "content-type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ zu, weiter }).toString() }));
+  const p = (await post("pl", "/ausschreibungen/elektro?x=1"))!;
+  assert.equal(p.status, 303);
+  assert.equal(p.headers.get("location"), "/ausschreibungen/elektro?x=1");
+  assert.match(p.headers.get("set-cookie") ?? "", /jv_psprache=pl;/);
+  assert.equal((await post("en", "https://boese.de/"))!.headers.get("location"), "/");
+  // A crawler asking with GET gets no redirect and no cookie.
+  for (const ua of ["Mozilla/5.0 (compatible; meta-externalagent/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler))", "Mozilla/5.0 AppleWebKit/537.36 (KHTML, like Gecko; compatible; GPTBot/1.4; +https://openai.com/gptbot)", "Mozilla/5.0 (compatible; AhrefsBot/7.0; +http://ahrefs.com/robot/)"]) {
+    const b = (await sprachWechsel(new Request("https://x/sprache?zu=en&weiter=/preise", { headers: { "user-agent": ua } })))!;
+    assert.equal(b.status, 404, ua);
+    assert.equal(b.headers.get("set-cookie"), null);
+    assert.equal(b.headers.get("location"), null);
+  }
 });
 
 test("Englisch: feste Steckbrief-Marken aus der KI werden übersetzt, Inhalt bleibt", () => {
@@ -98,7 +115,7 @@ test("Polnisch: Wörterbuch, Sprache aus Land, Umschalter", () => {
   const anfrage = (cookie = "", land = "PL") => new Request("https://x/konto", { headers: { cookie, "cf-ipcountry": land, "accept-language": "pl-PL,pl;q=0.9" } });
   assert.equal(appSprache(anfrage()), "pl");
   assert.equal(appSprache(anfrage("jv_psprache=pl", "DE")), "pl");
-  assert.match(sprachFuss(seite("x", "<p>y</p>"), "de", "/"), /zu=pl[^>]*>Polski<\/a>/);
+  assert.match(sprachFuss(seite("x", "<p>y</p>"), "de", "/"), /value="pl" lang="pl">Polski<\/button>/);
 });
 
 test("Spanisch: Wörterbuch und Sprache aus Land", () => {

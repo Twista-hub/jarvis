@@ -240,7 +240,7 @@ async function verarbeiten(request: Request, env: Env): Promise<Response> {
 async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/__intern/db-check" && request.method === "POST") return datenbankPruefen(request, env);
-    const sw = sprachWechsel(request);
+    const sw = await sprachWechsel(request);
     if (sw) return sw;
     const inApp = appStart(request);
     if (inApp) return inApp;

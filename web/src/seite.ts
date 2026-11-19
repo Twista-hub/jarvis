@@ -227,6 +227,9 @@ ${grundTags(titel)}
   @keyframes kreisen { to { transform: rotate(360deg); } }
   @media (prefers-reduced-motion: reduce) { .kreisel { animation-duration: 3s; } }
   .klein { color: var(--muted); font-size: 14px; }
+  /* Language switch in the footer: a form (crawlers do not send forms) that looks like the row of links it replaced. */
+  form.sprach-wahl { display: block; margin: 0 0 6px; padding: 0; border: 0; background: none; box-shadow: none; border-radius: 0; max-width: none; }
+  form.sprach-wahl button { display: inline; width: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: none !important; box-shadow: none !important; font: inherit; font-weight: 400; color: var(--accent) !important; text-decoration: underline; cursor: pointer; transform: none; }
   .tabelle { overflow-x: auto; }
   table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 15px; }
   th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }

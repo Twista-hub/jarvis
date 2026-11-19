@@ -200,21 +200,39 @@ export function appSprache(request: Request): AppSprache {
 
 const NAMEN: Record<AppSprache, string> = { de: "Deutsch", en: "English", fr: "Français", pl: "Polski", es: "Español", it: "Italiano" };
 const FUSS = '<p class="klein">WP Digital Ranger · ';
-/** Adds the language switch (the two other languages) to the page footer. */
+/**
+ * Adds the language switch to the page footer: a small form with one button per language (POST), not links. Links to
+ * /sprache?zu=…&weiter=<page> gave every page five more addresses, and crawlers followed them without end although
+ * robots.txt forbids /sprache: GPTBot 78,000 times on 10.11.2026, Meta's crawler from 17.11. on, close to the 100,000
+ * requests a day of the Worker plan. Crawlers do not send forms.
+ */
 export function sprachFuss(seite: string, sprache: AppSprache, pfad: string): string {
-  const links = APP_SPRACHEN.filter((s) => s !== sprache)
-    .map((s, i) => `<a href="/sprache?zu=${s}&amp;weiter=${encodeURIComponent(pfad)}" rel="nofollow" lang="${s}" hreflang="${s}">${i ? "" : "🌐 "}${NAMEN[s]}</a>`).join(" · ");
-  return seite.replace(FUSS, `${FUSS}${links} · `);
+  const knoepfe = APP_SPRACHEN.filter((s) => s !== sprache).map((s) => `<button name="zu" value="${s}" lang="${s}">${NAMEN[s]}</button>`).join(" · ");
+  return seite.replace(FUSS, `<form method="post" action="/sprache" class="klein sprach-wahl"><input type="hidden" name="weiter" value="${escape(pfad)}"><span aria-hidden="true">🌐</span> ${knoepfe}</form>${FUSS}`);
 }
 
-/** GET /sprache?zu=fr&weiter=/konto: remembers the choice for a year and goes back. */
-export function sprachWechsel(request: Request): Response | null {
+const ROBOTER = /bot\b|bot\/|crawler|spider|externalagent|facebookexternalhit|GPT|Claude|Perplexity|Bytespider|CCBot|headless|python|curl\/|go-http|scrapy/i;
+const wechseln = (zu: string | null, weiter: string | null): Response => {
+  const sprache = (APP_SPRACHEN as readonly string[]).includes(zu ?? "") ? zu as AppSprache : "de";
+  const sicher = /^\/[^/\\][^\s]*$/.test(weiter ?? "") ? weiter! : "/";
+  return new Response(null, { status: 303, headers: { location: sicher, "set-cookie": `jv_psprache=${sprache}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`, "cache-control": "no-store" } });
+};
+
+/**
+ * /sprache: remembers the chosen language for a year and goes back. POST from the form in the footer; GET for the links
+ * in older pages and in the legal texts ("German version"). A crawler that still asks with GET gets 404 instead of a
+ * redirect, so it does not fetch the page behind it again and drops the address.
+ */
+export async function sprachWechsel(request: Request): Promise<Response | null> {
   const url = new URL(request.url);
-  if (url.pathname !== "/sprache" || request.method !== "GET") return null;
-  const zu = (APP_SPRACHEN as readonly string[]).includes(url.searchParams.get("zu") ?? "") ? url.searchParams.get("zu") as AppSprache : "de";
-  const weiter = url.searchParams.get("weiter") ?? "/";
-  const sicher = /^\/[^/\\][^\s]*$/.test(weiter) ? weiter : "/";
-  return new Response(null, { status: 303, headers: { location: sicher, "set-cookie": `jv_psprache=${zu}; Path=/; Max-Age=31536000; SameSite=Lax; Secure`, "cache-control": "no-store" } });
+  if (url.pathname !== "/sprache") return null;
+  if (request.method === "POST") {
+    const f = await request.formData().catch(() => null);
+    return wechseln(String(f?.get("zu") ?? ""), String(f?.get("weiter") ?? "/"));
+  }
+  if (request.method !== "GET") return null;
+  if (ROBOTER.test(request.headers.get("user-agent") ?? "")) return new Response("Not found", { status: 404, headers: { "content-type": "text/plain; charset=utf-8", "x-robots-tag": "noindex, nofollow", "cache-control": "public, max-age=86400" } });
+  return wechseln(url.searchParams.get("zu"), url.searchParams.get("weiter"));
 }
 
 /** Language of the US boxes (SAM.gov, USAspending), which exist only in German and English: French gets English. */
