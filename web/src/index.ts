@@ -744,7 +744,9 @@ async function startZahlen(env: Env): Promise<StartZahlen | null> {
 }
 
 async function landesStart(request: Request, url: URL, ausAdresse: string | undefined, env: Env): Promise<Response> {
-  const b = besucher(request, ausAdresse);
+  // The bare address in a link preview (WhatsApp, Messenger, Instagram …) shows the German page: Benjamin sends it to
+  // German firms (20.11.2026). For another language he sends the country address, e.g. crewtender.eu/us.
+  const b = besucher(request, ausAdresse ?? (istVorschauRoboter(request) ? "DE" : undefined));
   const gewaehlt = url.searchParams.get("sprache");
   if (gewaehlt && (SPRACHEN_OEFFENTLICH as readonly string[]).includes(gewaehlt)) b.sprache = gewaehlt as Sprache;
   const deutsch = b.land === "DE" && b.sprache === "de";
