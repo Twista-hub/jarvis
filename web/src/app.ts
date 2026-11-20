@@ -1,7 +1,7 @@
 // The small amount of browser code: start the upload as soon as a file is chosen, switch on phone
 // notifications, and the service worker that shows them and opens the right page on tap.
 // Served from our own origin, so the content security policy only needs script-src 'self'.
-import { OG_BILD, OG_BILD_DE, OG_BILD_ES, OG_BILD_FR, OG_BILD_IT, OG_BILD_PL } from "./og-bild.ts";
+import { OG_BILD, OG_BILD_DE, OG_BILD_ES, OG_BILD_FR, OG_BILD_IT, OG_BILD_NL, OG_BILD_PL } from "./og-bild.ts";
 import { DIA_BILDER } from "./dia-bilder.ts";
 import { ICON_192, ICON_512 } from "./icons.ts";
 import { ARBEITSAUSWAHL_JS } from "./arbeitsauswahl-browser.ts";
@@ -407,7 +407,7 @@ const DATEIEN: Record<string, [string, string | (() => Uint8Array)]> = {
   // Link preview image (Open Graph), see seo.ts.
   "/og-v1.jpg": ["image/jpeg", () => Uint8Array.from(atob(OG_BILD), (c) => c.charCodeAt(0))],
   "/og-de-v1.jpg": ["image/jpeg", () => Uint8Array.from(atob(OG_BILD_DE), (c) => c.charCodeAt(0))],
-  ...Object.fromEntries(Object.entries({ fr: OG_BILD_FR, pl: OG_BILD_PL, es: OG_BILD_ES, it: OG_BILD_IT }).map(([k, b64]) => [`/og-${k}-v1.jpg`, ["image/jpeg", () => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))] as [string, () => Uint8Array]])),
+  ...Object.fromEntries(Object.entries({ fr: OG_BILD_FR, pl: OG_BILD_PL, es: OG_BILD_ES, it: OG_BILD_IT, nl: OG_BILD_NL }).map(([k, b64]) => [`/og-${k}-v1.jpg`, ["image/jpeg", () => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))] as [string, () => Uint8Array]])),
   // Slides of the start page (rechtliches.ts diaShow); new file name when the pictures change.
   ...Object.fromEntries(Object.entries(DIA_BILDER).map(([pfad, b64]) => [pfad, ["image/webp", () => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0))] as [string, () => Uint8Array]])),
   "/icon-v2-192.png": ["image/png", () => Uint8Array.from(atob(ICON_192), (c) => c.charCodeAt(0))],
