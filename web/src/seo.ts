@@ -11,7 +11,7 @@ const VORSCHAU_ROBOTER = /facebookexternalhit|Facebot|WhatsApp|TelegramBot|Twitt
 export const istVorschauRoboter = (request: Request): boolean => VORSCHAU_ROBOTER.test(request.headers.get("user-agent") ?? "");
 
 /** Languages with an own preview picture (/og-<language>-v1.jpg); every other language shows the English one. */
-export const OG_SPRACHEN = ["de", "fr", "pl", "es", "it"] as const;
+export const OG_SPRACHEN = ["de", "fr", "pl", "es", "it", "nl"] as const;
 
 /** Finished page: the preview picture follows the language of the page (`<html lang="…">`). */
 export function vorschauBild(html: string): string {
