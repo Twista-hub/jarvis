@@ -4,7 +4,7 @@ import { fragen } from "./fragen.ts";
 import { textSymbole } from "./symbole.ts";
 import { stripeWebhook } from "./stripe.ts";
 import { preise } from "./preise.ts";
-import { START_BESCHREIBUNG, START_JSONLD, ogErgaenzen, seoKopf } from "./seo.ts";
+import { START_BESCHREIBUNG, START_JSONLD, istVorschauRoboter, ogErgaenzen, seoKopf, vorschauBild } from "./seo.ts";
 import kunden from "../kunden.json";
 import { BRANCHEN_VORLAGEN, euro, FELDER, losStunden, felderHtml, fmt, kalkulationCsv, MINDESTLOHN, laufzeitFaktor, preisGrafik, rechnen, runden, vergleichsWorte, STANDARD, szenarien, tarifSchnellwahl, zahl, zuschlagVergleich, vorlageFuerBereich, type Boden, type Eingaben, type Los, type LosWerte, type Zuschlag } from "./kalkulation";
 import profile from "../../alarm/profile.json";
@@ -201,7 +201,9 @@ function darstellen(request: Request, r: Response): Response {
   const attribute = `${theme ? ` data-theme="${theme}"` : ""}${wahl.includes("gross") ? ' data-schrift="gross"' : ""}`;
   // Pages written in one language (foreign trade and legal pages) say so; everything else follows the visitor's choice.
   const fest = r.headers.get("x-jv-sprache");
-  const sprache = (APP_SPRACHEN as readonly string[]).includes(fest ?? "") ? fest as AppSprache : appSprache(request);
+  // A link preview cannot follow the language of the person who will see it: the card is built once, when the link is
+  // sent. So preview robots get our pages as they are written, in German, instead of a half translated English version.
+  const sprache = (APP_SPRACHEN as readonly string[]).includes(fest ?? "") ? fest as AppSprache : istVorschauRoboter(request) ? "de" : appSprache(request);
   const url = new URL(request.url);
   const pfad = `${url.pathname}${url.search}`;
   const body = new Response(r.body).text();
@@ -211,6 +213,7 @@ function darstellen(request: Request, r: Response): Response {
     let t = await body;
     t = uebersetzen(t, sprache);
     t = sprachFuss(t, sprache, pfad);
+    t = vorschauBild(t);
     t = textSymbole(t);
     if (attribute) t = t.replace(/<html lang="([a-z]{2})"/, `<html lang="$1"${attribute}`);
     c.enqueue(new TextEncoder().encode(t)); c.close();

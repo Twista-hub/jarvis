@@ -25,3 +25,13 @@ test("SEO: Beschreibung, og:description und JSON-LD", () => {
   const bild = statisch(OG_PFAD);
   assert.equal(bild?.headers.get("content-type"), "image/jpeg");
 });
+
+test("Vorschau geteilter Links: deutsches Bild auf deutschen Seiten, Vorschau-Roboter erkannt", async () => {
+  const { istVorschauRoboter, vorschauBild } = await import("../src/seo.ts");
+  const de = seite("Preise", "<p>x</p>");
+  assert.match(vorschauBild(de), /property="og:image" content="https:\/\/crewtender\.eu\/og-de-v1\.jpg"/);
+  assert.match(vorschauBild(de.replace('<html lang="de"', '<html lang="en"')), /content="https:\/\/crewtender\.eu\/og-v1\.jpg"/);
+  const mit = (ua: string) => istVorschauRoboter(new Request("https://x/", { headers: { "user-agent": ua } }));
+  for (const ua of ["facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)", "WhatsApp/2.23.20.0", "TelegramBot (like TwitterBot)", "LinkedInBot/1.0", "facebookexternalhit/1.1 Facebot Twitterbot/1.0"]) assert.ok(mit(ua), ua);
+  for (const ua of ["Mozilla/5.0 (compatible; Googlebot/2.1; +http://www.google.com/bot.html)", "Mozilla/5.0 (iPhone; CPU iPhone OS 18_7 like Mac OS X) Safari/604.1", "Mozilla/5.0 (compatible; meta-externalagent/1.1)"]) assert.ok(!mit(ua), ua);
+});

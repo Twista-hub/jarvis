@@ -3,6 +3,19 @@
 const escape = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export const OG_PFAD = "/og-v1.jpg";
+/** The same picture with the German line; pages in German name this one (vorschauBild). */
+export const OG_PFAD_DE = "/og-de-v1.jpg";
+
+// Programs that load a page once to build the preview card of a shared link (WhatsApp, Messenger, Instagram and
+// iMessage use facebookexternalhit; plus Telegram, X, LinkedIn, Slack, Discord, Mastodon, Bluesky). They send no
+// language and mostly come from the USA, so they got our German pages half translated into English.
+const VORSCHAU_ROBOTER = /facebookexternalhit|Facebot|WhatsApp|TelegramBot|Twitterbot|LinkedInBot|Slackbot|Discordbot|SkypeUriPreview|Pinterest|vkShare|Viber|cardyb|Mastodon|http\.rb|Iframely|Embedly/i;
+export const istVorschauRoboter = (request: Request): boolean => VORSCHAU_ROBOTER.test(request.headers.get("user-agent") ?? "");
+
+/** Finished page: a page in German (`<html lang="de">`) shows the German preview picture. */
+export function vorschauBild(html: string): string {
+  return /<html lang="de"/.test(html.slice(0, 200)) ? html.replace(`${ADRESSE}${OG_PFAD}"`, `${ADRESSE}${OG_PFAD_DE}"`) : html;
+}
 const ADRESSE = "https://crewtender.eu";
 
 /** Title as shown in the browser tab and in Google: the brand only once. */
