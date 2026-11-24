@@ -154,6 +154,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261110040000_such_abos.sql
 \ir ../migrations/20261111010000_besuche_tag.sql
 \ir ../migrations/20261116010000_gewerk_land_belegt.sql
+\ir ../migrations/20261124010000_ortssuche.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -485,6 +486,23 @@ select pruefe((select count(*) = 1 from public.demo_suche('', '', 'offen')), 'De
 select pruefe((select count(*) = 2 from public.demo_suche('', '', 'alle')), 'Demo: auf Wunsch auch abgelaufene');
 select pruefe((select count(*) = 1 and bool_and(steckbrief) from public.demo_suche('Elektriker', '', 'offen')), 'Demo: Stichwortsuche mit Kennzeichen Beispiel-Steckbrief');
 select pruefe((select count(*) = 0 from public.demo_suche('Elektriker', 'Hamburg', 'offen')), 'Demo: Ortsfilter');
+-- Ortssuche (24.11.2026): eine Zahl ist nur ein Postleitzahl-Anfang, ein Ortsname sucht im Ortstext.
+reset role;
+insert into public.vergabekatalog (id,quelle,quelle_id,version,quell_datum,titel,link,auftraggeber,auftraggeber_id,status,frist,ort,plz) values
+  ('bks:ort1','bks','ort1','v1','2026-11-20','Reinigung Kreishaus','https://example.test/1','Kreis Düren','buyer-o1','offen','2100-01-01','52349 Düren DEA26','{52349}'),
+  ('bks:ort2','bks','ort2','v1','2026-11-20','Reinigung Forstamt','https://example.test/2','Forstamt Mirow','buyer-o2','offen','2100-01-01','17252 Mirow, Rudolf-Breitscheid-Str.26','{17252}'),
+  ('bks:ort3','bks','ort3','v1','2026-11-20','Reinigung Dortmunder U','https://example.test/3','Stadt Dortmund','buyer-o3','offen','2100-01-01','Dortmund DEA52','{}');
+set role anon;
+select pruefe((select count(*) = 1 and bool_and(id = 'bks:ort1') from public.demo_suche('', '52', 'offen')), 'Demo: „52“ findet nur Postleitzahlen, die mit 52 beginnen (nicht 17252, nicht DEA52)');
+select pruefe((select count(*) = 1 and bool_and(id = 'bks:ort1') from public.demo_suche('', 'düren', 'offen')), 'Demo: Ortsname ohne Rücksicht auf Groß- und Kleinschreibung');
+select pruefe((select count(*) = 1 and bool_and(id = 'bks:ort2') from public.demo_suche('Reinigung', '17252', 'offen')), 'Demo: ganze Postleitzahl mit Stichwort');
+select pruefe((select count(*) = 0 from public.demo_suche('', '99', 'alle')), 'Demo: Postleitzahl ohne Treffer');
+select pruefe((select count(*) = 4 from public.demo_suche('', '%_', 'offen')), 'Demo: Platzhalterzeichen im Ort wirken wie kein Ort');
+reset role;
+select pruefe((select count(*) = 1 from jarvis_intern.such_abo_treffer('Reinigung', '52', '2026-11-01')), 'Abo: dieselbe Ortssuche (nur Postleitzahl-Anfang)');
+select pruefe(array_length(jarvis_intern.plz_kandidaten('52'), 1) = 1100 and jarvis_intern.plz_kandidaten('52349') = '{52349}' and jarvis_intern.plz_kandidaten('Aachen') = '{}', 'Postleitzahl-Kandidaten');
+delete from public.vergabekatalog where id in ('bks:ort1', 'bks:ort2', 'bks:ort3');
+set role anon;
 select pruefe((select public.demo_eintrag('bks:test')->>'steckbrief' like 'Neutraler%' and public.demo_eintrag('bks:test')->>'titel' = 'Elektriker für die Verwaltung'), 'Demo: Eintrag mit Beispiel-Steckbrief');
 select pruefe(public.demo_eintrag('gibt-es-nicht') is null, 'Demo: unbekannter Eintrag');
 select pruefe((select count(*) = 1 from public.demo_steckbriefe()) and public.demo_steckbrief('bks:test') is not null, 'Demo: Liste der Beispiel-Steckbriefe');
