@@ -155,6 +155,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261111010000_besuche_tag.sql
 \ir ../migrations/20261116010000_gewerk_land_belegt.sql
 \ir ../migrations/20261124010000_ortssuche.sql
+\ir ../migrations/20261124020000_ortssuche_plz.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -500,7 +501,13 @@ select pruefe((select count(*) = 0 from public.demo_suche('', '99', 'alle')), 'D
 select pruefe((select count(*) = 4 from public.demo_suche('', '%_', 'offen')), 'Demo: Platzhalterzeichen im Ort wirken wie kein Ort');
 reset role;
 select pruefe((select count(*) = 1 from jarvis_intern.such_abo_treffer('Reinigung', '52', '2026-11-01')), 'Abo: dieselbe Ortssuche (nur Postleitzahl-Anfang)');
-select pruefe(array_length(jarvis_intern.plz_kandidaten('52'), 1) = 1100 and jarvis_intern.plz_kandidaten('52349') = '{52349}' and jarvis_intern.plz_kandidaten('Aachen') = '{}', 'Postleitzahl-Kandidaten');
+select pruefe(jarvis_intern.plz_anfaenge('{52349,5020,00-950,abc}') @> '{52,523,5234,52349,50,502,5020}' and not jarvis_intern.plz_anfaenge('{52349,5020,00-950,abc}') && '{00,ab,5,523490}', 'Postleitzahl-Anfänge: 2 bis 5 Stellen, nur reine Ziffern');
+insert into public.vergabekatalog (id,quelle,quelle_id,version,quell_datum,titel,link,auftraggeber,auftraggeber_id,status,frist,ort,plz) values
+  ('bks:ort4','bks','ort4','v1','2026-11-20','Transporte','https://example.test/4','EWN','buyer-o4','offen','2100-01-01','16831 EWN Rheinsberg','{16831}'),
+  ('bks:ort5','bks','ort5','v1','2026-11-20','Kanal','https://example.test/5','Stadt Übach-Palenberg','buyer-o5','offen','2100-01-01','52531 Übach-Palenberg DEA','{52531}');
+select pruefe((select count(*) = 0 from jarvis_intern.katalog_suche_ids('', 'heinsberg', true, null, 30)), 'Ortsname beginnt ein Wort: „Heinsberg“ findet nicht „Rheinsberg“');
+select pruefe((select count(*) = 1 from jarvis_intern.katalog_suche_ids('', 'Rheinsberg', true, null, 30)) and (select count(*) = 1 from jarvis_intern.katalog_suche_ids('', 'palenberg', true, null, 30)) and (select count(*) = 1 from jarvis_intern.katalog_suche_ids('', 'Übach-Palenberg', true, null, 30)), 'Ortsname: ganzer Name, Teil nach Bindestrich, Name mit Bindestrich');
+delete from public.vergabekatalog where id in ('bks:ort4', 'bks:ort5');
 delete from public.vergabekatalog where id in ('bks:ort1', 'bks:ort2', 'bks:ort3');
 set role anon;
 select pruefe((select public.demo_eintrag('bks:test')->>'steckbrief' like 'Neutraler%' and public.demo_eintrag('bks:test')->>'titel' = 'Elektriker für die Verwaltung'), 'Demo: Eintrag mit Beispiel-Steckbrief');
