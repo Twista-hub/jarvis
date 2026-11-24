@@ -2,6 +2,10 @@ import { normalisieren, type Bekanntmachung } from "./katalog-daten.ts";
 import { strFromU8 } from "fflate";
 import type postgres from "postgres";
 
+/** Most notices the catalogue may hold; at this number collecting pauses. Raised from 50,000 on 24.11.2026: the weekly
+ *  clean-up (alarm/katalog_aufraeumen.py) keeps notices for 90 days after their deadline, which needs about 55,000
+ *  places plus the awarded procedures that stay. The size limit of 350 MB stays the real protection. */
+export const BESTANDSGRENZE = 65000;
 export async function bestehendeBekanntmachungen(sql: postgres.Sql | postgres.TransactionSql, ids: string[]) {
   if (!ids.length) return [];
   // fetch_types:false deliberately disables array discovery; bind individual text values.

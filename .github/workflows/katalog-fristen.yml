@@ -2,7 +2,7 @@
 # firm records get only an empty deadline filled. "probe" counts without writing.
 # Every Sunday night ("woche", Benjamin 24.11.2026): old notices are removed (alarm/katalog_aufraeumen.py, rule there),
 # the raw data of closed or expired ones is shrunk and the freed space given back, so the catalogue stays below the
-# limits at which the collector pauses (350 MB, 50,000 notices; it paused on 06.11. and 24.11.2026).
+# limits at which the collector pauses (350 MB, 65,000 notices; it paused on 06.11. and 24.11.2026).
 name: Katalog-Fristen
 on:
   schedule:

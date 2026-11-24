@@ -15,7 +15,7 @@
 import postgres from "postgres";
 import { Unzip, UnzipInflate, strFromU8, unzipSync } from "fflate";
 import { eformsKarte, fristenEinsetzen, inStuecken, type EformsFristen } from "../src/katalog-daten.ts";
-import { bestehendeBekanntmachungen, normalisiereBlock } from "../src/katalog-plan.ts";
+import { BESTANDSGRENZE, bestehendeBekanntmachungen, normalisiereBlock } from "../src/katalog-plan.ts";
 
 const UA = "Crewtender-Katalog/1.0 (public procurement index)";
 const BASIS = "https://oeffentlichevergabe.de/api/notice-exports";
@@ -112,7 +112,7 @@ async function main() {
       console.log(`Monatsexport ${monat}: ${[...wanted].sort().map((t) => `${t}: ${jeTag.get(t)?.length ?? 0}`).join(", ")}`);
       if (![...jeTag.values()].some((r) => r.length) || probe) continue;
       const [{ groesse, n }] = await sql`select pg_database_size(current_database()) as groesse, (select count(*)::int from public.vergabekatalog) as n`;
-      if (Number(groesse) > 350_000_000 || n >= 50000) throw new Error("Speicher- oder Bestandsgrenze erreicht; nichts aufgenommen");
+      if (Number(groesse) > 350_000_000 || n >= BESTANDSGRENZE) throw new Error("Speicher- oder Bestandsgrenze erreicht; nichts aufgenommen");
       await pause(6000);
       let fristen = new Map<string, EformsFristen>();
       try { fristen = eformsKarte(await laden(`${BASIS}?pubMonth=${monat}&format=eforms.zip`)); } catch (e) { console.log(`eForms ${monat} nicht lesbar, Fristen trägt der Ablauf Katalog-Fristen nach: ${e instanceof Error ? e.message : e}`); }

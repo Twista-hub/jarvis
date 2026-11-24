@@ -1,4 +1,4 @@
-"""Remove old notices from the catalog so it stays below the collector's limits (50,000 notices, 350 MB).
+"""Remove old notices from the catalog so it stays below the collector's limits (65,000 notices, 350 MB).
 
 Rule (Benjamin, 24.11.2026): a notice goes when its deadline passed more than 90 days ago, or, without a deadline, when
 it was published more than 90 days ago. Kept in any case: awarded or completed procedures (price comparison,
@@ -26,7 +26,7 @@ def ziel(tage: int = TAGE) -> str:
 
 def stand(con) -> None:
     n, = con.execute("select count(*) from public.vergabekatalog").fetchone()
-    print(f"Bestand: {n} Bekanntmachungen (Grenze des Sammlers 50000)")
+    print(f"Bestand: {n} Bekanntmachungen (Grenze des Sammlers 65000, web/src/katalog-plan.ts)")
     print("Nach Monat der Veröffentlichung: gesamt / mit Zuschlag oder abgeschlossen / ohne Frist / von Firmen gespeichert")
     for monat, alle, fest, ohne, gespeichert in con.execute("""
             select to_char(k.quell_datum, 'YYYY-MM'), count(*),

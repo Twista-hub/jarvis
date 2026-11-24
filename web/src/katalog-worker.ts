@@ -1,7 +1,7 @@
 import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloudflare:workers";
 import { unzipSync } from "fflate";
 import { eformsKarte, fristenEinsetzen, type EformsFristen } from "./katalog-daten.ts";
-import { nachholLimit, releaseBloecke, normalisiereBlock, wiederholen, bestehendeBekanntmachungen, exportTage } from "./katalog-plan.ts";
+import { BESTANDSGRENZE, nachholLimit, releaseBloecke, normalisiereBlock, wiederholen, bestehendeBekanntmachungen, exportTage } from "./katalog-plan.ts";
 
 type Env = DbEnv & { AKTIV: string; SAMMLER: Workflow; GH_DISPATCH_TOKEN?: string };
 const UA = "Crewtender-Katalog/1.0 (public procurement index)";
@@ -34,7 +34,7 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
         if (/^\s*Disallow\s*:\s*\S/im.test(text)) throw new Error("Quellenregeln geändert; erneute Prüfung nötig");
       }
       if ((await sql`select pg_database_size(current_database()) as groesse`)[0].groesse > 350_000_000) throw new Error("Speichergrenze erreicht; Sammlung pausiert");
-      if ((await sql`select count(*)::int as n from public.vergabekatalog`)[0].n > 50000) throw new Error("Bestandsgrenze erreicht; Sammlung pausiert");
+      if ((await sql`select count(*)::int as n from public.vergabekatalog`)[0].n > BESTANDSGRENZE) throw new Error("Bestandsgrenze erreicht; Sammlung pausiert");
       const today = new Date().toISOString().slice(0, 10);
       // The source publishes completed daily exports. Today's HTTP 400 is not a failed import.
       // Remove only the old collector's premature retry marker, preserving successful records.
@@ -50,7 +50,7 @@ export class KatalogSammler extends WorkflowEntrypoint<Env> {
       const ergebnis = await step.do(`Export ${tag}`, { retries: { limit: 2, delay: "30 seconds", backoff: "exponential" }, timeout: "5 minutes" }, async () => {
         try {
           return await katalogDb(this.env, async (sql) => {
-            if ((await sql`select pg_database_size(current_database()) as groesse`)[0].groesse > 350_000_000 || (await sql`select count(*)::int as n from public.vergabekatalog`)[0].n >= 50000) throw new Error("Speichergrenze erreicht");
+            if ((await sql`select pg_database_size(current_database()) as groesse`)[0].groesse > 350_000_000 || (await sql`select count(*)::int as n from public.vergabekatalog`)[0].n >= BESTANDSGRENZE) throw new Error("Speichergrenze erreicht");
             const [alt] = await sql`select * from jarvis_katalog.exporte where quelle='bks' and tag=${tag}`;
             if (!erneut && alt?.naechster_versuch && new Date(alt.naechster_versuch).getTime() > Date.now()) return;
             const headers: Record<string, string> = { "User-Agent": UA };
