@@ -5,6 +5,7 @@ An Jarvis arbeiten Claude Code (programmiert) und ein Claude-Chat mit Browser-St
 arbeitet, liest zuerst diese Datei und dann in `docs/stand.md` die Abschnitte „Aktueller Stand“ und „Offene Punkte“.
 
 ## 1. Pflicht: gemeinsames Gedächtnis
+- **Wo das Gedächtnis liegt:** Seit 24.11.2026 im privaten Projekt `Twista-hub/jarvis-intern`, mit denselben Pfaden wie früher hier (`docs/stand.md`, `docs/browser/`, `docs/auftraege/`, `docs/recht/`, `docs/abos.md`, `docs/ki-kosten*.md`, `docs/wettbewerb.md`, `docs/anfragen/`). Wo in dieser Datei einer dieser Pfade steht, ist das private Projekt gemeint. Dieses Projekt ist öffentlich: nichts Internes hier ablegen (keine Kosten- und Margenzahlen, keine Protokolle, keine Namen oder Adressen Dritter).
 - **Zu Beginn jeder Sitzung:** `git pull`, dann diese Datei und in `docs/stand.md` die Abschnitte „Aktueller Stand“ und „Offene Punkte“ lesen. `docs/stand.md` ist rund 300 KB groß: Das Protokoll darunter ist das Archiv, darin gezielt nach Stichwort suchen. `docs/browser/protokoll.md` (Rückmeldungen des Browser-Chats, neueste Einträge) und `docs/app-fahrplan.md` lesen, wenn die Aufgabe sie berührt.
 - **Am Ende jeder Sitzung (oder nach jedem größeren Schritt):** in `docs/stand.md`
   - „Aktueller Stand“ und „Offene Punkte“ anpassen,

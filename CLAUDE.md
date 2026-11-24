@@ -8,6 +8,7 @@
 - Antworten auf Deutsch, kurz, Wichtigstes zuerst.
 
 ## Arbeitsteilung
+- **Interne Unterlagen liegen seit 24.11.2026 im privaten Projekt `Twista-hub/jarvis-intern`** (Benjamin, 21. und 24.11.2026), mit denselben Pfaden wie früher hier: `docs/stand.md`, `docs/browser/`, `docs/auftraege/`, `docs/recht/`, `docs/abos.md`, `docs/ki-kosten*.md`, `docs/wettbewerb.md`, `docs/anfragen/`, `alarm/kostenmodell.py`. Wo unten einer dieser Pfade steht, ist das private Projekt gemeint. Dieses Projekt hier ist öffentlich: nichts Internes ablegen (keine Kosten- und Margenzahlen, keine Protokolle, keine Namen oder Adressen Dritter, keine privaten Mailadressen). Sitzungen ohne Zugriff auf das private Projekt sagen das Benjamin, statt den Stand hier neu anzulegen.
 - Claude Code programmiert; ein eigener Claude-Chat mit Browser-Steuerung erledigt Arbeiten im Browser (Konten, Formulare). Aufträge dafür liegen in `docs/auftraege/`, seine Rückmeldungen in `docs/browser/protokoll.md` (öffentliches Repo, keine Passwörter). ChatGPT/Codex arbeitet nicht mehr mit; ältere Einträge mit „ChatGPT“ sind Geschichte.
 - Gemeinsame Anleitung: `AGENTS.md`. Gemeinsames Gedächtnis: `docs/stand.md`.
 - Zu Beginn einer Sitzung lesen: `AGENTS.md` und in `docs/stand.md` die Abschnitte „Aktueller Stand“ und „Offene Punkte“. Die Datei ist rund 300 KB groß; das Protokoll darunter ist das Archiv, darin gezielt nach Stichwort suchen statt alles zu lesen. `docs/browser/protokoll.md` (neueste Einträge) lesen, wenn ein Auftrag an den Browser-Chat offen ist oder die Aufgabe Konten und Formulare betrifft.
