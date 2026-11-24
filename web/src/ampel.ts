@@ -108,35 +108,35 @@ const FARBE_TEXT: Record<Farbe, { de: string; en: string; icon: string }> = {
 };
 
 /** Small chip for the hit card: light + set-aside. */
-export function ampelChip(us: UsDaten | null | undefined, p: UsProfil | null, sprache: "de" | "en"): string {
+export function ampelChip(us: UsDaten | null | undefined, p: UsProfil | null, sprache: "de" | "en", jetzt = new Date()): string {
   if (!us) return "";
-  const { farbe } = pruefen(us, p);
+  const { farbe } = pruefen(us, p, jetzt);
   const sa = us.set_aside ? (SET_ASIDES[us.set_aside.toUpperCase()]?.name ?? us.set_aside) : (sprache === "en" ? "Full and open" : "offen für alle");
   return `<li class="us-ampel ${farbe}" title="${escape(FARBE_TEXT[farbe][sprache])}">${FARBE_TEXT[farbe].icon} ${escape(sa)}</li>`;
 }
 
 /** Deadline as stated (with the notice's own UTC offset) plus the reader's time zone. */
-function fristText(iso: string, sprache: "de" | "en"): { angegeben: string; lokal: string; rest: string } {
+function fristText(iso: string, sprache: "de" | "en", jetzt = new Date()): { angegeben: string; lokal: string; rest: string } {
   const d = new Date(iso);
   const offset = /([+-]\d{2}):?(\d{2})$/.exec(iso);
   const zone = offset ? ({ "-05:00": "America/New_York", "-04:00": "America/New_York", "-06:00": "America/Chicago", "-07:00": "America/Denver", "-08:00": "America/Los_Angeles", "-09:00": "America/Anchorage", "-10:00": "Pacific/Honolulu" } as Record<string, string>)[`${offset[1]}:${offset[2]}`] : undefined;
   const fmt = (tz: string, loc: string) => d.toLocaleString(loc, { timeZone: tz, year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
   const angegeben = zone ? fmt(zone, sprache === "en" ? "en-US" : "de-DE") : iso;
   const lokal = sprache === "en" ? fmt("America/New_York", "en-US") : fmt("Europe/Berlin", "de-DE");
-  const ms = +d - Date.now();
+  const ms = +d - +jetzt;
   const tage = Math.floor(ms / 86400_000), stunden = Math.floor((ms % 86400_000) / 3600_000);
   const rest = ms <= 0 ? (sprache === "en" ? "closed" : "abgelaufen") : sprache === "en" ? `${tage} days ${stunden} hours left` : `noch ${tage} Tage ${stunden} Std.`;
   return { angegeben, lokal, rest };
 }
 
 /** Box on the tender page: light with reasons, deadline tracker, amendments, contact and next steps. */
-export function usKasten(v: { id: string; fragefrist?: string | null; link: string | null }, us: UsDaten, p: UsProfil | null, sprache: "de" | "en", darfProfil: boolean): string {
+export function usKasten(v: { id: string; fragefrist?: string | null; link: string | null }, us: UsDaten, p: UsProfil | null, sprache: "de" | "en", darfProfil: boolean, jetzt = new Date()): string {
   const t = (de: string, en: string) => sprache === "en" ? en : de;
-  const { farbe, gruende } = pruefen(us, p);
+  const { farbe, gruende } = pruefen(us, p, jetzt);
   const reihenfolge = { rot: 0, gelb: 1, gruen: 2 };
   const liste = [...gruende].sort((a, b) => reihenfolge[a.farbe] - reihenfolge[b.farbe])
     .map((g) => `<li class="${g.farbe}">${FARBE_TEXT[g.farbe].icon} ${escape(g[sprache])}</li>`).join("");
-  const f = us.frist ? fristText(us.frist, sprache) : null;
+  const f = us.frist ? fristText(us.frist, sprache, jetzt) : null;
   const aenderungen = (us.aenderungen ?? []).filter((a) => a.feld === "frist" || a.feld === "set_aside" || a.feld === "art");
   const feldName = (x: string) => x === "frist" ? t("Frist", "Deadline") : x === "set_aside" ? "Set-aside" : t("Art", "Notice type");
   const wert = (feld: string, x: string) => feld === "frist" ? (fristText(x, sprache).angegeben) : x;

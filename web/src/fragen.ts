@@ -7,7 +7,7 @@
 // Vergabebeschleunigungsgesetz (BGBl. 2026 I Nr. 137, in force 01.07.2026), Bundestariftreuegesetz (BGBl. 2026 I
 // Nr. 119, in force 01.05.2026). Only points confirmed by several sources are stated; the UVgO is being revised
 // (planned until 31.12.2026): re-check the pages when it is published, and at the latest when STAND changes year.
-import { BRANCHEN_VORLAGEN, euro, fmt, mindestlohnHeute, rechnen, STANDARD, MINDESTLOHN_2027, type Eingaben } from "./kalkulation.ts";
+import { BRANCHEN_VORLAGEN, euro, fmt, mindestlohnHeute, rechnen, STANDARD, MINDESTLOHN_2026, MINDESTLOHN_2027, type Eingaben } from "./kalkulation.ts";
 import { GEWERKE } from "./gewerke.ts";
 import { BUNDESLAENDER } from "./nuts.ts";
 import { PLAENE } from "./plaene.ts";
@@ -171,7 +171,7 @@ ${katalogSatz(k.zahlen)}
       const selbstkosten = a.r.schritte.find((s) => s.name.startsWith("= Selbstkosten"))?.betrag;
       return `<h2>Die Bausteine</h2>
 <ol>
-<li><strong>Stundenlohn:</strong> der Tariflohn der Lohngruppe, die die Arbeit verlangt, mindestens der gesetzliche Mindestlohn (${fmt(mindestlohnHeute())} € im Jahr 2026, ${fmt(MINDESTLOHN_2027)} € ab 2027). In der Gebäudereinigung und im Sicherheitsgewerbe gelten höhere Branchen- und Tariflöhne.</li>
+<li><strong>Stundenlohn:</strong> der Tariflohn der Lohngruppe, die die Arbeit verlangt, mindestens der gesetzliche Mindestlohn (${fmt(MINDESTLOHN_2026)} € im Jahr 2026, ${fmt(MINDESTLOHN_2027)} € ab 2027). In der Gebäudereinigung und im Sicherheitsgewerbe gelten höhere Branchen- und Tariflöhne.</li>
 <li><strong>Lohnnebenkosten:</strong> Arbeitgeberanteile zur Sozialversicherung, Umlagen, Berufsgenossenschaft, meist 21 bis 25 % vom Lohn.</li>
 <li><strong>Ausfallzeiten:</strong> Urlaub, Krankheit und Feiertage werden bezahlt, aber nicht abgerechnet, meist 15 bis 25 %.</li>
 <li><strong>Zuschläge:</strong> Nacht-, Sonntags- und Feiertagsarbeit nach dem Anteil dieser Stunden am Auftrag.</li>

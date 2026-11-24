@@ -21,7 +21,7 @@ test("F1: Zuschlagsvergleich ordnet das eigene Angebot ein und maskiert Texte", 
 
 test("F2: Preisuntergrenze und Warnung unter dem Branchenmindestlohn", () => {
   const boden = { lohn: 14.8, name: "Branchenmindestlohn Gebäudereinigung" };
-  const r = rechnen({ ...STANDARD, lohn: 15 }, lose, { "1": 100, "2": 100 }, { "2": { lohn: 14.2 } }, undefined, boden);
+  const r = rechnen({ ...STANDARD, lohn: 15 }, lose, { "1": 100, "2": 100 }, { "2": { lohn: 14.7 } }, undefined, boden); // above the legal minimum wage of 2027 (14.60 €), below the sector minimum
   assert.ok(r.warnungen.some((w) => /Los 2: Lohn unter dem Branchenmindestlohn Gebäudereinigung/.test(w)));
   assert.equal(r.untergrenze, untergrenze({ ...STANDARD, lohn: 15 }, 14.8));
   assert.ok(r.untergrenze < r.preisProStunde);

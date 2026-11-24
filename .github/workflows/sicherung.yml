@@ -45,8 +45,12 @@ jobs:
           gzip -dc s/daten.sql.gz | tail -n 5 | grep -q "PostgreSQL database dump complete"
           gzip -dc s/anmeldungen.sql.gz | tail -n 5 | grep -q "PostgreSQL database dump complete"
           tar -cf - -C s . | openssl enc -aes-256-cbc -pbkdf2 -iter 200000 -salt -pass env:BACKUP_PASSWORT -out "jarvis-$TAG.tar.enc"
-          # Check that it can be decrypted again.
-          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_PASSWORT -in "jarvis-$TAG.tar.enc" | tar -tf - | grep -q daten.sql.gz
+          # Check that it can be decrypted again. The list goes into a file first: "tar -tf - | grep -q" let grep leave at
+          # the first hit, tar then failed writing the next name ("tar: stdout: write error"), and with pipefail the whole
+          # step failed although the backup was fine. No backup was stored from 14.11. to 24.11.2026 because of that.
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass env:BACKUP_PASSWORT -in "jarvis-$TAG.tar.enc" | tar -tf - > inhalt.txt
+          grep -q daten.sql.gz inhalt.txt
+          grep -q anmeldungen.sql.gz inhalt.txt
           ls -la "jarvis-$TAG.tar.enc"
           echo "TAG=$TAG" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4

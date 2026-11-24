@@ -33,7 +33,7 @@ test("Ampel: gelb ohne Profil, fehlendes NAICS, unbekannte Größe; offen für a
 });
 
 test("US-Kasten: Fristen-Tracker mit Zeitzone, Amendments, Kontakt, zweisprachig", () => {
-  const html = usKasten({ id: "v1", link: null }, us({ solicitation: "36C25726Q0042", aenderungen: [{ feld: "frist", alt: "2026-11-18T14:00:00-05:00", neu: "2026-11-20T14:00:00-05:00", gesehen: "2026-11-02" }], kontakt: { name: "Jane Doe", email: "jane.doe@va.gov" } }), profil(), "en", true);
+  const html = usKasten({ id: "v1", link: null }, us({ solicitation: "36C25726Q0042", aenderungen: [{ feld: "frist", alt: "2026-11-18T14:00:00-05:00", neu: "2026-11-20T14:00:00-05:00", gesehen: "2026-11-02" }], kontakt: { name: "Jane Doe", email: "jane.doe@va.gov" } }), profil(), "en", true, jetzt);
   assert.match(html, /May I bid\?/);
   assert.match(html, /Nov 20, 2026, 2:00 PM EST/);
   assert.match(html, /1 change\(s\) since first seen/);
@@ -41,11 +41,15 @@ test("US-Kasten: Fristen-Tracker mit Zeitzone, Amendments, Kontakt, zweisprachig
   assert.match(html, /mailto:jane\.doe@va\.gov/);
   assert.match(html, /sam\.gov\/opp\/abc\/view/);
   assert.match(html, /36C25726Q0042/);
-  const de = usKasten({ id: "v1", link: null, fragefrist: "2026-11-10T12:00:00-05:00" }, us(), null, "de", false);
+  const de = usKasten({ id: "v1", link: null, fragefrist: "2026-11-10T12:00:00-05:00" }, us(), null, "de", false, jetzt);
   assert.match(de, /Darf ich bieten\?/);
   assert.match(de, /Frist für Rückfragen/);
   assert.doesNotMatch(de, /us-profil/, "ohne Recht kein Link zum Profil");
-  assert.match(ampelChip(us(), profil(), "en"), /us-ampel gruen[^>]*>🟢 Total Small Business/);
+  // Fixed "now" as in the tests above: the sample deadline 20.11.2026 passed, and with the real clock this test failed
+  // from 21.11.2026 on and blocked every rollout.
+  assert.match(ampelChip(us(), profil(), "en", jetzt), /us-ampel gruen[^>]*>🟢 Total Small Business/);
+  assert.match(ampelChip(us(), profil(), "en", new Date("2026-11-21T12:00:00Z")), /us-ampel rot/, "nach der Frist rot");
+  assert.match(html, /18 days \d+ hours left/);
 });
 
 test("US-Bieterprofil: Formular prüfen und anzeigen", () => {
