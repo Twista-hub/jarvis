@@ -156,6 +156,7 @@ alter default privileges in schema public grant select, insert, update, delete o
 \ir ../migrations/20261116010000_gewerk_land_belegt.sql
 \ir ../migrations/20261124010000_ortssuche.sql
 \ir ../migrations/20261124020000_ortssuche_plz.sql
+\ir ../migrations/20261126010000_social_meta.sql
 grant usage on schema public to authenticated;
 
 insert into auth.users (id, email) values
@@ -530,6 +531,17 @@ do $$ begin
   raise exception 'FEHLER: anon liest Bewertungen';
 exception when insufficient_privilege then null; end $$;
 reset role;
+-- Social posts: Facebook/Instagram share the channel 'meta'; one post per day, channel and slot; unknown channels refused.
+insert into jarvis_intern.social_posts (tag, kanal, slot, art, text) values ('2026-11-27', 'meta', 3, 'zahl', 'Test');
+do $$ begin
+  insert into jarvis_intern.social_posts (tag, kanal, slot, art, text) values ('2026-11-27', 'meta', 3, 'tipp', 'Test');
+  raise exception 'FEHLER: zweiter Facebook/Instagram-Post am selben Tag';
+exception when unique_violation then null; end $$;
+do $$ begin
+  insert into jarvis_intern.social_posts (tag, kanal, slot, art, text) values ('2026-11-27', 'tiktok', 1, 'tipp', 'Test');
+  raise exception 'FEHLER: unbekannter Kanal angenommen';
+exception when check_violation then null; end $$;
+delete from jarvis_intern.social_posts where tag = '2026-11-27' and kanal = 'meta';
 set role authenticated;
 select test_als('00000000-0000-0000-0000-00000000000a');
 select public.katalog_uebernehmen(:'firma','bks:test',null) as katalog_vorgang \gset

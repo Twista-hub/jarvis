@@ -1,3 +1,4 @@
+import json
 import os
 import sys
 import unittest
@@ -75,6 +76,101 @@ class SocialTest(unittest.TestCase):
         self.assertNotIn("DE143", alt)
         self.assertIn("Deadline 24 Nov 2026", alt)
 
+
+class MetaTest(unittest.TestCase):
+    """Facebook and Instagram through the Make webhook (social_meta.py)."""
+
+    def test_termine(self):
+        import social_meta as m
+        b = s.BERLIN
+        self.assertEqual([m.art_meta(date(2026, 11, d)) for d in range(23, 30)], ["ausschreibung", "zahl", "tipp", "ausschreibung", "zahl", None, None])
+        self.assertEqual([m.faellig(datetime(2026, 11, 27, h, 11, tzinfo=b)) for h in (9, 16, 17, 20, 21)], [False, False, True, True, False])
+        self.assertFalse(m.faellig(datetime(2026, 11, 28, 18, 0, tzinfo=b)), "am Wochenende kein Post")
+        self.assertEqual(m.bild_name(date(2026, 11, 27), "zahl"), "2026-11-27-zahl.jpg")
+
+    def test_texte(self):
+        import social_meta as m
+        t = m.ausschreibung_texte(dict(T, gewerk="building cleaning"))
+        self.assertEqual(t["link"], "https://crewtender.eu/demo/katalog/bks%3Aocds-mnwr74-abc?utm_source=facebook&utm_medium=social")
+        self.assertIn(t["link"], t["message"])
+        self.assertIn("⏰ Bid deadline: 9 Dec 2026", t["message"])
+        self.assertLessEqual(len(t["message"]), 600)
+        self.assertNotIn("https://", t["caption"], "Instagram: Links sind nicht klickbar")
+        self.assertIn("link in bio", t["caption"])
+        self.assertIn("#publictenders #ausschreibung #vergabe #gebäudereinigung", t["caption"])
+        for text in t.values():
+            self.assertNotIn("Mustermann", text)
+        z = m.zahl_texte({"tag": date(2026, 11, 26), "neu": 1412, "gewerk": "joinery", "gewerk_n": 38})
+        self.assertIn("1,412 new public tenders in Germany on Thursday, 26 Nov – 38 of them in joinery", z["message"])
+        self.assertIn("https://crewtender.eu/?utm_source=facebook&utm_medium=social", z["message"])
+        self.assertNotIn("https://", z["caption"])
+        for i in range(len(s.TIPPS)):
+            tp = m.tipp_texte(i)
+            self.assertIn("utm_source=facebook", tp["message"])
+            self.assertNotIn("https://", tp["caption"])
+        self.assertEqual(len(m.FOTO_TIPP), len(s.TIPPS))
+
+    def test_ablauf_ohne_netz(self):
+        """Without the secret nothing is sent; with it: picture stored, one message, one row; the address stays secret."""
+        import social_meta as m
+
+        class Con:
+            def __init__(self, schon=False):
+                self.schon, self.sql = schon, []
+
+            def execute(self, sql, werte=()):
+                self.sql.append((sql, werte))
+                gepostet = "where tag" in sql and self.schon
+                zahl = "count(*)" in sql
+                return type("R", (), {"fetchone": lambda self_: (1,) if gepostet else (0,) if zahl else None, "fetchall": lambda self_: []})()
+
+            def commit(self):
+                pass
+
+        jetzt = datetime(2026, 11, 25, 17, 11, tzinfo=s.BERLIN)  # Wednesday: tip
+        alt = {k: os.environ.pop(k, None) for k in ("MAKE_WEBHOOK_URL",)}
+        gesendet, abgelegt = [], []
+        orig = (m.bild_hochladen, m.senden, m.wrangler)
+        m.bild_hochladen = lambda daten, name: abgelegt.append((len(daten), name)) or f"https://crewtender.eu/social/bild/{name}"
+        m.senden = lambda n: gesendet.append(n)
+        m.wrangler = lambda *a: None
+        try:
+            c = Con()
+            m.posten(c, jetzt)
+            self.assertEqual(gesendet, [], "ohne Secret wird nichts gesendet")
+            os.environ["MAKE_WEBHOOK_URL"] = "https://hook.example/geheim"
+            m.posten(Con(schon=True), jetzt)
+            self.assertEqual(gesendet, [], "nur ein Post am Tag")
+            m.posten(Con(), datetime(2026, 11, 25, 12, 0, tzinfo=s.BERLIN))
+            self.assertEqual(gesendet, [], "vor 17 Uhr nichts")
+            c = Con()
+            m.posten(c, jetzt)
+            self.assertEqual(len(gesendet), 1)
+            n = gesendet[0]
+            self.assertEqual(sorted(n), ["caption", "image_url", "link", "message"])
+            self.assertEqual(n["image_url"], "https://crewtender.eu/social/bild/2026-11-25-tipp.jpg")
+            self.assertGreater(abgelegt[0][0], 20000)
+            eintrag = [w for q, w in c.sql if q.startswith("insert into jarvis_intern.social_posts")]
+            self.assertEqual(len(eintrag), 1)
+            self.assertNotIn("geheim", json.dumps([n, [str(x) for x in eintrag[0]]]))
+        finally:
+            m.bild_hochladen, m.senden, m.wrangler = orig
+            os.environ.pop("MAKE_WEBHOOK_URL", None)
+            for k, v in alt.items():
+                if v is not None:
+                    os.environ[k] = v
+
+    def test_bilder_hochkant(self):
+        import io
+        from PIL import Image
+        import social_bild as sb
+        for daten, alt_text in (sb.ausschreibung_bild_hoch("Unterhaltsreinigung von 6 Schulen im Stadtgebiet", "72108 Rottenburg", "24 Nov 2026", "€210k", "oeffentlichevergabe.de", "fenster"),
+                                sb.zahl_bild_hoch(1412, "new public tenders in Germany on Thursday, 26 Nov", "38 of them in joinery"),
+                                sb.tipp_bild_hoch(s.TIPPS[0][0], "unterlagen"), sb.tipp_bild_hoch(s.TIPPS[1][0], "gibt-es-nicht")):
+            bild = Image.open(io.BytesIO(daten))
+            self.assertEqual((bild.format, bild.size), ("JPEG", (1080, 1350)), "Instagram: JPEG im Format 4:5")
+            self.assertLess(len(daten), 600_000)
+            self.assertTrue(alt_text)
 
 if __name__ == "__main__":
     unittest.main()

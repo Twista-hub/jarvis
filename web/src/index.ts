@@ -1,4 +1,5 @@
 // Crewtender upload page: customers upload tender documents, a Workflow writes the Steckbrief.
+import { socialBild } from "./social-bild.ts";
 import { rechner } from "./rechner.ts";
 import { fragen } from "./fragen.ts";
 import { textSymbole } from "./symbole.ts";
@@ -249,6 +250,8 @@ async function verarbeitenRoh(request: Request, env: Env): Promise<Response> {
     if (inApp) return inApp;
     const datei = request.method === "GET" ? statisch(url.pathname) : null;
     if (datei) return datei;
+    const postBild = request.method === "GET" ? await socialBild(url.pathname, env) : null;
+    if (postBild) return postBild;
     // Functions under German law only for firms in Germany (Rechtsprüfung 03.11.2026, laenderfunktionen.ts).
     if (NUR_DEUTSCHLAND.test(url.pathname)) {
       const fl = await aktiveFirma(request, env);

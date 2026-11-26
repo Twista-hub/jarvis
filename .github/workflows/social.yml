@@ -1,4 +1,6 @@
 # Automatic posts on Bluesky and Mastodon (alarm/social.py): weekdays about 09, 13 and 17 Berlin, weekends about 11.
+# Facebook and Instagram: one post per weekday from 17:00 Berlin through a Make.com scenario (alarm/social_meta.py,
+# secret MAKE_WEBHOOK_URL; without it they are skipped).
 # One UTC start per slot (winter 09/13/17, summer 10/14/18 Berlin; the script's windows cover both) on an off-peak minute,
 # plus a second start 30 minutes later in case GitHub drops a scheduled run (it dropped both starts on 07.11.2026); the
 # script posts once per day, slot and network. Secrets: BLUESKY_APP_PASSWORD, MASTODON_TOKEN (a network without its
@@ -13,7 +15,7 @@ on:
   workflow_dispatch:
     inputs:
       modus:
-        description: "probe (nur Texte zeigen), woche (Zahlen fürs Wochenpaket) oder posten"
+        description: "probe (nur Texte zeigen), woche (Zahlen fürs Wochenpaket), posten, meta-probe (Texte für Facebook/Instagram zeigen), meta-bild (Bild ablegen und öffentliche Adresse prüfen) oder meta (Facebook/Instagram-Post jetzt an Make geben)"
         default: "probe"
 permissions:
   contents: read
@@ -34,5 +36,9 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
           BLUESKY_APP_PASSWORD: ${{ secrets.BLUESKY_APP_PASSWORD }}
           MASTODON_TOKEN: ${{ secrets.MASTODON_TOKEN }}
+          # Facebook and Instagram through Make (alarm/social_meta.py); the picture goes into the bucket with wrangler.
+          MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           MODUS: ${{ inputs.modus || 'posten' }}
         run: cd alarm && python social.py "$MODUS"

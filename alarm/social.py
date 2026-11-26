@@ -10,7 +10,12 @@ persons; no notice twice (jarvis_intern.social_posts); Bluesky at most 300 chara
 Secrets (GitHub → Settings → Secrets and variables → Actions): BLUESKY_APP_PASSWORD (app password of @crewtender.eu),
 MASTODON_TOKEN (access token of @crewtender@mastodon.social, scopes write:statuses and write:media). A network without its secret is skipped.
 
+Facebook and Instagram (26.11.2026) go through a Make.com scenario, one post per weekday: social_meta.py.
+
 CLI: python3 social.py probe   – show today's texts for every kind, post nothing, write nothing
+     python3 social.py meta-probe – show today's Facebook/Instagram texts, post nothing
+     python3 social.py meta-bild  – store today's picture and check its public address, post nothing
+     python3 social.py meta    – hand today's Facebook/Instagram post to Make now (once per day)
      python3 social.py woche   – numbers of last week per trade and the best current tender as JSON (weekly FB/IG package)
      python3 social.py posten  – post the post of the current slot (once per day, slot and network; nothing outside a slot)
 """
@@ -157,7 +162,8 @@ def ausschreibung_waehlen(con) -> dict | None:
         # The value only when it clearly belongs to this tender (one lot at most): a multi-lot project value would
         # make a small lot look huge.
         w = wert_text((wert or {}).get("amount"), (wert or {}).get("currency")) if len(lose or []) <= 1 else ""
-        t = {"id": kid, "titel": titel, "ort": ort, "frist": frist, "quelle": quelle, "wert": w}
+        gewerk = next((name for name, ps in GEWERKE if any(c.startswith(p) for p in ps for c in (cpv or []))), "")
+        t = {"id": kid, "titel": titel, "ort": ort, "frist": frist, "quelle": quelle, "wert": w, "gewerk": gewerk}
         if not ausschreibung_text(t, "bluesky"):
             continue
         dienst = any(c.startswith(p) for name, ps in GEWERKE if name in DIENSTE for p in ps for c in (cpv or []))
@@ -284,6 +290,17 @@ def main() -> None:
             print("WOCHE " + json.dumps({"von": str(von), "bis": str(bis - timedelta(days=1)), "gesamt": gesamt, "gewerke": je,
                                           "ausschreibung": {**t, "frist": str(t["frist"]), "url": adresse("/demo/katalog/" + urllib.parse.quote(t["id"], safe=""), "instagram")} if t else None}, ensure_ascii=False))
             return
+        if modus in ("meta", "meta-probe", "meta-bild"):
+            import social_meta
+            social_meta.posten(con, jetzt, erzwingen=modus == "meta", probe=modus == "meta-probe", nur_bild=modus == "meta-bild")
+            return
+        if modus == "posten":  # Facebook/Instagram first and on their own: a failure there must not stop the other networks
+            try:
+                import social_meta
+                social_meta.posten(con, jetzt)
+            except Exception as e:  # noqa: BLE001
+                con.rollback()
+                print(f"meta: fehlgeschlagen ({type(e).__name__}: {str(e)[:200]})")
         if modus == "probe":
             for art in ("ausschreibung", "zahl", "tipp"):
                 benutzt, _, t, b = texte(con, art, heute)
