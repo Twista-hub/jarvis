@@ -1,10 +1,10 @@
 """Facebook/Instagram package, weeks 48-50/2026 (posts Fri 27.11. to Fri 11.12., three a week). Data from
 `social.py woche` (run 26.11.2026): new public tenders 19-25 Nov 2026 per trade, best current tender. The tips use
-the texts of alarm/social.py (TIPPS) with example data. Writes HTML; render with: node rendern.cjs."""
+the texts of alarm/social.py (TIPPS) with example data. Backgrounds: photos from ../fotos (see ../motive.py). Writes HTML; render with: node rendern.cjs."""
 import pathlib, re, sys
 hier = pathlib.Path(__file__).parent
 sys.path.insert(0, str(hier.parent))
-from motive import motiv  # noqa: E402
+from motive import foto  # noqa: E402
 quelle = (hier.parent / "entwuerfe.py").read_text(encoding="utf-8")
 LOGO = re.search(r"LOGO = '''(.*?)'''", quelle, re.S).group(1)
 BASE = re.search(r"BASE = '''(.*?)'''", quelle, re.S).group(1)
@@ -20,9 +20,9 @@ def tipp(kopf: str, zeile1: str, zeile2: str, text: str, zeilen: list[tuple[str,
     karten = "".join(f'''<div style="display:flex;align-items:center;gap:22px;padding:24px 30px;border-radius:24px;background:#fff;border:1px solid #e3eef6;margin-bottom:16px;box-shadow:0 20px 40px -28px rgba(21,50,75,.5)">
 <span style="flex:0 0 14px;height:64px;border-radius:7px;background:{farbe}"></span><div style="flex:1"><div style="font-size:30px;font-weight:800;color:#14202b">{t}</div><div style="font-size:21px;color:#66665f;margin-top:4px">{n}</div></div>
 <span style="font-size:24px;font-weight:800;color:{farbe};text-align:right;white-space:nowrap">{rechts}</span></div>''' for t, n, rechts, farbe in zeilen)
-    return BASE + f'''<div class="post" style="{DUNKEL if dunkel else HELL}">{motiv(bild, dunkel)}{marke}
+    return BASE + f'''<div class="post" style="{DUNKEL if dunkel else HELL}">{foto(bild, dunkel)}{marke}
 <div style="position:absolute;left:72px;right:72px;top:170px"><div style="font-size:24px;font-weight:700;color:{akzent};letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px">{kopf}</div>
-<div style="font-size:74px;font-weight:850;line-height:1.03;letter-spacing:-.025em">{zeile1}<br><span style="color:{akzent}">{zeile2}</span></div>
+<div style="font-size:74px;font-weight:850;line-height:1.03;letter-spacing:-.025em;{"text-shadow:0 4px 24px rgba(10,40,65,.45)" if dunkel else ""}">{zeile1}<br><span style="color:{akzent}">{zeile2}</span></div>
 <div style="font-size:30px;line-height:1.35;margin-top:26px;color:{satz};max-width:610px">{text}</div></div>
 <div style="position:absolute;left:72px;right:72px;top:640px">{karten}</div>
 <div class="fuss" style="color:{rand}"><span style="font-weight:700">crewtender.eu</span><span class="klein">{fuss}</span></div></div></body></html>'''
@@ -33,7 +33,7 @@ gewerke = [("Joinery", 80), ("Electrical work", 66), ("Plumbing & heating", 66),
 hoechst = max(n for _, n in gewerke)
 balken = "".join(f'''<div style="display:grid;grid-template-columns:330px 1fr 60px;align-items:center;gap:16px;margin-bottom:14px"><span style="font-size:24px;font-weight:600">{g}</span>
 <span style="height:30px;border-radius:9px;background:linear-gradient(90deg,#bfe7ff,#ffffff);width:{round(100 * n / hoechst)}%"></span><span style="font-size:26px;font-weight:800;text-align:right">{n}</span></div>''' for g, n in gewerke)
-p1 = BASE + f'''<div class="post" style="{DUNKEL}">{motiv("haeuser", True)}{marke}
+p1 = BASE + f'''<div class="post" style="{DUNKEL}">{foto("haeuser", True)}{marke}
 <div style="position:absolute;left:72px;right:72px;top:170px"><div style="font-size:24px;font-weight:700;color:#d4efff;letter-spacing:.12em;text-transform:uppercase;margin-bottom:10px">Number of the week · 19–25 Nov 2026</div>
 <div style="font-size:190px;font-weight:850;letter-spacing:-.045em;line-height:1">1,702</div>
 <div style="font-size:40px;font-weight:800;line-height:1.15;margin-top:34px">new public tenders in Germany</div></div>
@@ -42,7 +42,7 @@ p1 = BASE + f'''<div class="post" style="{DUNKEL}">{motiv("haeuser", True)}{mark
 <div class="fuss" style="color:#eaf6fd"><span style="font-weight:700">crewtender.eu</span><span class="klein">Source: oeffentlichevergabe.de</span></div></div></body></html>'''
 
 # 2 — Mon 30.11.: tender of the week (real notice)
-p2 = BASE + f'''<div class="post" style="{HELL}">{motiv("fenster")}{marke}
+p2 = BASE + f'''<div class="post" style="{HELL}">{foto("fenster")}{marke}
 <div style="position:absolute;left:72px;right:72px;top:170px"><div style="font-size:24px;font-weight:700;color:#1f6fa8;letter-spacing:.12em;text-transform:uppercase;margin-bottom:18px">Tender of the week</div>
 <div style="font-size:66px;font-weight:850;line-height:1.05;letter-spacing:-.02em">Cleaning contract<br><span style="color:#1f6fa8">open for bids.</span></div></div>
 <div style="position:absolute;left:72px;right:72px;top:480px;padding:48px 50px 44px;border-radius:40px;background:rgba(255,255,255,.7);border:1.5px solid rgba(255,255,255,.95);box-shadow:0 50px 90px -40px rgba(21,50,75,.55)">
@@ -58,12 +58,12 @@ p2 = BASE + f'''<div class="post" style="{HELL}">{motiv("fenster")}{marke}
 # 3 — Wed 02.12.: rating (example data)
 p3 = tipp("Crewtender tip", "Which tenders", "fit your company?", "Every morning Crewtender rates new tenders for your company, 1–10, with a short reason.", [
     ("Cleaning of 3 schools", "Your trade, your region", "9 / 10", GRUEN), ("Security, town hall", "Fits – night shifts required", "7 / 10", BLAU),
-    ("Winter service, 25 sites", "Far from your sites", "4 / 10", GELB), ("Road construction, lot 2", "Not your trade", "1 / 10", GRAU)], "Example tenders for illustration", "ziel")
+    ("Winter service, 25 sites", "Far from your sites", "4 / 10", GELB), ("Road construction, lot 2", "Not your trade", "1 / 10", GRAU)], "Example tenders for illustration", "checkliste")
 
 # 4 — Fri 04.12.: fact sheet (example data)
 p4 = tipp("Crewtender tip", "Tender documents,", "read in minutes.", "Upload the tender documents and Crewtender writes a fact sheet: lots, quantities, deadlines and required evidence.", [
     ("Lots", "3 lots · bids per lot allowed", "", BLAU), ("Quantities", "12,400 m² floor area · 5 days a week", "", BLAU),
-    ("Deadlines", "Questions until 4 Dec · bid by 15 Dec", "", GELB), ("Required evidence", "Liability insurance · references · tax clearance", "", GRUEN)], "Example fact sheet for illustration", "blaetter", dunkel=True)
+    ("Deadlines", "Questions until 4 Dec · bid by 15 Dec", "", GELB), ("Required evidence", "Liability insurance · references · tax clearance", "", GRUEN)], "Example fact sheet for illustration", "unterlagen", dunkel=True)
 
 # 5 — Mon 07.12.: team (example data)
 p5 = tipp("Crewtender tip", "Won the contract?", "Plan your crew.", "Shift plan, timesheets and proof of service in one place – and an app for your crew in 6 languages.", [
@@ -78,7 +78,7 @@ p6 = tipp("Crewtender tip", "Search real tenders.", "No sign-up.", "Try the demo
 # 7 — Fri 11.12.: deadlines (example data)
 p7 = tipp("Crewtender tip", "Bid deadlines", "under control.", "Crewtender reminds you 7 and 2 days before each deadline – by e-mail and on your phone.", [
     ("Catering, school canteen", "Reminder sent today", "Bid due in 2 days", ROT), ("Building cleaning, lot 3", "Reminder sent today", "Bid due in 7 days", GELB),
-    ("Security, event hall", "Reminders 7 and 2 days before", "Bid due in 16 days", BLAU), ("Electrical work, sports hall", "Bidder questions deadline", "Questions until 18 Dec", BLAU)], "Example tenders for illustration", "kalender")
+    ("Security, event hall", "Reminders 7 and 2 days before", "Bid due in 16 days", BLAU), ("Electrical work, sports hall", "Bidder questions deadline", "Questions until 18 Dec", BLAU)], "Example tenders for illustration", "wecker")
 
 for n, h in [("1-fr-zahl-der-woche", p1), ("2-mo-ausschreibung-der-woche", p2), ("3-mi-bewertung", p3), ("4-fr-steckbrief", p4), ("5-mo-team", p5), ("6-mi-suche", p6), ("7-fr-fristen", p7)]:
     (hier / f"{n}.html").write_text(h, encoding="utf-8")

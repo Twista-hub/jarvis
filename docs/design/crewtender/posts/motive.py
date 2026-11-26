@@ -103,3 +103,29 @@ def motiv(name: str, dunkel: bool = False) -> str:
     return (f'<div style="position:absolute;right:{rechts}px;top:{oben}px;width:{breite}px;height:{breite}px;opacity:{deck};'
             f'-webkit-mask-image:{maske};-webkit-mask-composite:source-in;mask-image:{maske};mask-composite:intersect">'
             f'<svg viewBox="0 0 600 600" width="{breite}" height="{breite}" xmlns="http://www.w3.org/2000/svg">{zeichnung(f, glas)}</svg></div>')
+
+
+# Photos (Benjamin, 26.11.2026: he chose photos over the drawings). Generated with Canva's image generation in his
+# account (AI pictures, no stock photos, no real persons), stored in fotos/. Name -> width, distance from the right
+# edge and from the top for the light posts; for the dark posts whether the photo is mirrored (subject to the right).
+FOTOS = {"fenster": (800, 0, 0, False), "haeuser": (800, 0, 0, False), "checkliste": (800, -130, -60, False), "unterlagen": (800, 0, 0, True),
+         "team": (620, -110, 0, False), "lupe": (800, 0, 0, True), "wecker": (800, -60, -100, False)}
+# Dark posts only: enlarged and moved so the subject sits top right, as CSS background size and position.
+AUSSCHNITT = {"lupe": "1242px auto", }
+AUSSCHNITT_LAGE = {"lupe": "-124px -143px"}
+
+
+def foto(name: str, dunkel: bool = False, ordner: str = "../fotos") -> str:
+    """The photo as a layer behind the text. Light posts: top right, fading out towards the text on the left and
+    above the cards. Dark posts: over the whole picture under a blue veil."""
+    breite, rechts, oben, spiegeln = FOTOS[name]
+    bild = f"url('{ordner}/{name}.jpg')"
+    if dunkel:
+        lage = f"{AUSSCHNITT_LAGE[name]}/{AUSSCHNITT[name]} no-repeat" if name in AUSSCHNITT else "center/cover"
+        return (f'<div style="position:absolute;inset:0;background:{bild} {lage};{"transform:scaleX(-1);" if spiegeln else ""}"></div>'
+                '<div style="position:absolute;inset:0;background:linear-gradient(170deg,rgba(31,111,168,.80) 0%,rgba(31,111,168,.62) 30%,rgba(21,80,126,.86) 62%,rgba(15,58,90,.96) 100%)"></div>')
+    hoehe = round(breite * 1.25)
+    voll, weg = round(100 * (480 - oben) / hoehe), round(100 * (660 - oben) / hoehe)
+    maske = f"linear-gradient(90deg,transparent 2%,rgba(0,0,0,.55) 26%,#000 52%),linear-gradient(180deg,#000 {voll}%,transparent {weg}%)"
+    return (f'<div style="position:absolute;right:{rechts}px;top:{oben}px;width:{breite}px;height:{hoehe}px;background:{bild} center top/cover;opacity:.62;'
+            f'-webkit-mask-image:{maske};-webkit-mask-composite:source-in;mask-image:{maske};mask-composite:intersect"></div>')
